@@ -35,9 +35,9 @@ class ExperimentalData:
     metadata: Dict[str, Any]
 
 
-class ImprovedRDFParser:
+class RDFParser:
     """
-    Improved RDF parser that handles multi-file experiments.
+    RDF parser that handles multi-file experiments.
     
     Can correlate specimen TTL + activity TTLs + data files for complete experiments.
     Handles unique URI identification across multiple loaded experiments.
@@ -756,7 +756,7 @@ class ImprovedRDFParser:
 
 def load_experimental_data(file_path: Union[str, Path]) -> ExperimentalData:
     """Convenience function to load experimental data from a TTL file"""
-    parser = ImprovedRDFParser(file_path)
+    parser = RDFParser(file_path)
     
     # Find the test in the file
     tests = parser.get_all_tests()
@@ -767,9 +767,9 @@ def load_experimental_data(file_path: Union[str, Path]) -> ExperimentalData:
     return parser.get_experimental_data(tests[0])
 
 
-def merge_experimental_files(file_paths: List[Union[str, Path]]) -> ImprovedRDFParser:
+def merge_experimental_files(file_paths: List[Union[str, Path]]) -> RDFParser:
     """Merge multiple experimental TTL files into one parser"""
-    parser = ImprovedRDFParser()
+    parser = RDFParser()
     
     for file_path in file_paths:
         parser.load_file(file_path)
@@ -779,7 +779,7 @@ def merge_experimental_files(file_paths: List[Union[str, Path]]) -> ImprovedRDFP
 
 def extract_measurements_to_dict(file_path: Union[str, Path]) -> Dict[str, Dict]:
     """Extract all measurements from a file as nested dictionaries"""
-    parser = ImprovedRDFParser(file_path)
+    parser = RDFParser(file_path)
     
     result = {
         'specimens': {},
