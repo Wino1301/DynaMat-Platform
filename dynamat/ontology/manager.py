@@ -109,7 +109,7 @@ class OntologyManager:
     
     def get_classes(self, parent_class: Optional[str] = None) -> Dict[str, ClassInfo]:
         """
-        Get all classes or subclasses of a parent class.
+        Get all classes or classes with a specific parent.
         
         Args:
             parent_class: Optional parent class name to filter by
@@ -125,16 +125,16 @@ class OntologyManager:
         
         # Query for classes
         query = """
-        SELECT ?class ?name ?parent ?comment WHERE {
-            ?class a owl:Class .
-            OPTIONAL { ?class rdfs:label ?name }
-            OPTIONAL { ?class rdfs:subClassOf ?parent }
-            OPTIONAL { ?class rdfs:comment ?comment }
+        SELECT ?cls ?name ?parent ?comment WHERE {
+            ?cls a owl:Class .
+            OPTIONAL { ?cls rdfs:label ?name }
+            OPTIONAL { ?cls rdfs:subClassOf ?parent }
+            OPTIONAL { ?cls rdfs:comment ?comment }
         }
         """
         
         for row in self.graph.query(query):
-            class_uri = str(row.class)
+            class_uri = str(row.cls)  
             class_name = str(row.name) if row.name else self._extract_name_from_uri(class_uri)
             
             # Filter by parent class if specified
@@ -161,17 +161,10 @@ class OntologyManager:
         properties = []
         class_uri = self._get_class_uri(class_name)
         
-        # Query for properties with this class in domain
+        # Simplified query that extracts class properties
         query = f"""
         SELECT ?prop ?name ?range ?comment WHERE {{
-            ?prop rdfs:domain ?domain .
-            ?domain owl:unionOf*/rdf:rest*/rdf:first* <{class_uri}> .
-            OPTIONAL {{ ?prop rdfs:label ?name }}
-            OPTIONAL {{ ?prop rdfs:range ?range }}
-            OPTIONAL {{ ?prop rdfs:comment ?comment }}
-        }}
-        UNION
-        {{
+            # Direct domain relationship
             ?prop rdfs:domain <{class_uri}> .
             OPTIONAL {{ ?prop rdfs:label ?name }}
             OPTIONAL {{ ?prop rdfs:range ?range }}

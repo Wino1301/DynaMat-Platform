@@ -1,364 +1,600 @@
 """
-PyQt6 Form Generator
+DynaMat Platform Forms Module
 
-This module belongs in dynamat/gui/ and handles the conversion of 
-ontology schemas to PyQt6 widgets and forms.
+This module builds complete forms using the reusable widgets from widgets.py.
+Provides automatic form generation from ontology schemas with integrated validation.
 
-Separates GUI concerns from ontology concerns.
+Key Features:
+1. Automatic form generation from ontology schemas
+2. Built-in validation and error handling
+3. Data collection and export capabilities
+4. Template support for common configurations
+5. Clean integration with the ontology system
 """
 
-from typing import Dict, List, Any, Optional, Callable
+import sys
+from pathlib import Path
+from typing import Dict, List, Any, Optional, Callable, Union
+from dataclasses import dataclass, field
+
+# Add the parent directory to Python path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
 from PyQt6.QtWidgets import (
-    QWidget, QFormLayout, QVBoxLayout, QHBoxLayout,
-    QLabel, QLineEdit, QSpinBox, QDoubleSpinBox, 
-    QComboBox, QCheckBox, QDateEdit, QTextEdit,
-    QGroupBox, QPushButton, QScrollArea
+    QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QGridLayout,
+    QGroupBox, QScrollArea, QPushButton, QLabel, QFrame, 
+    QSplitter, QTabWidget, QMessageBox, QProgressBar,
+    QSizePolicy, QSpacerItem
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QDate
-from PyQt6.QtGui import QFont
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
+from PyQt6.QtGui import QFont, QPalette
 
-from ..ontology.manager import get_ontology_manager
-
-
-class MeasurementWidget(QWidget):
-    """Widget combining SpinBox + Unit ComboBox for measurements"""
-    
-    valueChanged = pyqtSignal(str, float, str)  # name, value, unit
-    
-    def __init__(self, name: str, units: List[str], description: str = ""):
-        super().__init__()
-        self.name = name
-        
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Value input
-        self.value_spinbox = QDoubleSpinBox()
-        self.value_spinbox.setRange(-999999.99, 999999.99)
-        self.value_spinbox.setDecimals(3)
-        self.value_spinbox.valueChanged.connect(self._emit_change)
-        
-        # Unit selector
-        self.unit_combo = QComboBox()
-        self.unit_combo.addItems(units)
-        self.unit_combo.currentTextChanged.connect(self._emit_change)
-        
-        layout.addWidget(self.value_spinbox, 3)
-        layout.addWidget(self.unit_combo, 1)
-        
-        self.setLayout(layout)
-        
-        if description:
-            self.setToolTip(description)
-    
-    def _emit_change(self):
-        """Emit change signal with current values"""
-        self.valueChanged.emit(
-            self.name,
-            self.value_spinbox.value(),
-            self.unit_combo.currentText()
-        )
-    
-    def get_value(self) -> tuple:
-        """Get current value and unit"""
-        return self.value_spinbox.value(), self.unit_combo.currentText()
-    
-    def set_value(self, value: float, unit: str):
-        """Set value and unit"""
-        self.value_spinbox.setValue(value)
-        unit_index = self.unit_combo.findText(unit)
-        if unit_index >= 0:
-            self.unit_combo.setCurrentIndex(unit_index)
+try:
+    from dynamat.gui.widgets import (
+        OntologyWidget, WidgetData, WidgetFactory, MeasurementWidget,
+        OntologySelector, TextWidget, NumberWidget, DateWidget, BooleanWidget,
+        IndividualDefinitionWidget, WidgetState, RequiredRule, RangeRule
+    )
+    from dynamat.ontology.manager import get_ontology_manager
+except ImportError:
+    # Fallback for direct execution
+    from widgets import (
+        OntologyWidget, WidgetData, WidgetFactory, MeasurementWidget,
+        OntologySelector, TextWidget, NumberWidget, DateWidget, BooleanWidget,
+        IndividualDefinitionWidget, WidgetState, RequiredRule, RangeRule
+    )
+    from dynamat.ontology.manager import get_ontology_manager
 
 
-class SelectorWidget(QComboBox):
-    """Enhanced ComboBox for selecting ontology individuals"""
-    
-    def __init__(self, name: str, options: List[str], description: str = ""):
-        super().__init__()
-        self.name = name
-        
-        self.addItem("-- Select --", None)  # Default empty option
-        for option in options:
-            self.addItem(option, option)
-        
-        if description:
-            self.setToolTip(description)
-    
-    def get_selected_value(self) -> Optional[str]:
-        """Get selected value (None if default option selected)"""
-        return self.currentData()
+# =============================================================================
+# FORM DATA STRUCTURES
+# =============================================================================
 
+@dataclass
+class FormSection:
+    """Represents a section of a form"""
+    title: str
+    widgets: List[OntologyWidget] = field(default_factory=list)
+    layout_type: str = "form"  # "form", "grid", "horizontal"
+    collapsible: bool = False
+    expanded: bool = True
+
+
+@dataclass
+class FormData:
+    """Complete form data structure"""
+    class_name: str
+    object_properties: Dict[str, Any] = field(default_factory=dict)
+    measurement_properties: Dict[str, Dict] = field(default_factory=dict)
+    data_properties: Dict[str, Any] = field(default_factory=dict)
+    validation_errors: List[str] = field(default_factory=list)
+    is_valid: bool = True
+
+
+@dataclass
+class FormTemplate:
+    """Template for form configurations"""
+    name: str
+    class_name: str
+    default_values: Dict[str, Any] = field(default_factory=dict)
+    hidden_properties: List[str] = field(default_factory=list)
+    required_properties: List[str] = field(default_factory=list)
+    property_groups: Dict[str, List[str]] = field(default_factory=dict)
+
+
+# =============================================================================
+# ENHANCED FORM GENERATOR
+# =============================================================================
 
 class OntologyFormGenerator:
     """
-    Generates PyQt6 forms from ontology schemas.
-    
-    Converts the GUI-agnostic schemas from OntologyManager into
-    actual PyQt6 widgets and layouts.
+    Form generator that creates complete forms from ontology schemas.
+    Provides automatic widget creation with validation and template support.
     """
     
     def __init__(self, ontology_manager=None):
         self.ontology_manager = ontology_manager or get_ontology_manager()
+        self.templates: Dict[str, FormTemplate] = {}
+        self._load_default_templates()
+    
+    def _load_default_templates(self):
+        """Load default form templates"""
+        # Example default templates - these could be loaded from files
+        specimen_template = FormTemplate(
+            name="Standard Specimen",
+            class_name="Specimen",
+            property_groups={
+                "Identification": ["hasIdentifier", "hasSpecimenRole"],
+                "Material": ["hasMaterial", "hasStructure"],
+                "Dimensions": ["OriginalLength", "OriginalWidth", "OriginalThickness"],
+                "Processing": ["hasProcessing", "hasHeatTreatment"]
+            },
+            required_properties=["hasIdentifier", "hasMaterial"]
+        )
+        self.templates["specimen_standard"] = specimen_template
+        
+        test_template = FormTemplate(
+            name="SHPB Test",
+            class_name="SHPBTest",
+            property_groups={
+                "Test Info": ["hasTestDate", "hasUser", "hasTestMode"],
+                "Equipment": ["hasStrikerBar", "hasInputBar", "hasOutputBar"],
+                "Conditions": ["StrikerVelocity", "TestTemperature", "StrainRate"],
+                "Results": ["MaxStress", "MaxStrain", "YieldStrength"]
+            },
+            required_properties=["hasTestDate", "hasUser"]
+        )
+        self.templates["shpb_test"] = test_template
     
     def create_class_form(
         self, 
         class_name: str, 
         parent: QWidget = None,
-        on_change_callback: Optional[Callable] = None
-    ) -> QWidget:
+        template_name: str = None,
+        on_change_callback: Optional[Callable] = None,
+        validation_callback: Optional[Callable] = None
+    ) -> 'OntologyForm':
         """
-        Create a complete form for a class.
+        Create a complete form for an ontology class.
         
         Args:
             class_name: The ontology class to create form for
             parent: Parent widget
-            on_change_callback: Function called when values change
+            template_name: Optional template to apply
+            on_change_callback: Called when any value changes
+            validation_callback: Called when validation state changes
             
         Returns:
-            QWidget containing the complete form
+            OntologyForm instance
         """
-        if parent is None:
-            parent = QWidget()
+        form = OntologyForm(
+            class_name=class_name,
+            ontology_manager=self.ontology_manager,
+            parent=parent
+        )
         
-        # Get raw schema from ontology
-        schema = self.ontology_manager.get_class_schema(class_name)
+        # Apply template if specified
+        if template_name and template_name in self.templates:
+            form.apply_template(self.templates[template_name])
         
-        main_layout = QVBoxLayout()
+        # Connect callbacks
+        if on_change_callback:
+            form.dataChanged.connect(on_change_callback)
+        if validation_callback:
+            form.validationChanged.connect(validation_callback)
         
-        # Create sections for different property types
-        if schema['object_properties']:
-            selection_group = self._create_selection_section(
-                schema['object_properties'], on_change_callback
-            )
-            main_layout.addWidget(selection_group)
+        # Generate the form
+        form.generate_form()
         
-        if schema['measurement_properties']:
-            measurement_group = self._create_measurement_section(
-                schema['measurement_properties'], on_change_callback
-            )
-            main_layout.addWidget(measurement_group)
-        
-        if schema['data_properties']:
-            data_group = self._create_data_section(
-                schema['data_properties'], on_change_callback
-            )
-            main_layout.addWidget(data_group)
-        
-        parent.setLayout(main_layout)
-        return parent
+        return form
     
-    def _create_selection_section(
-        self, 
-        object_properties: List[Dict], 
-        on_change_callback: Optional[Callable]
-    ) -> QGroupBox:
-        """Create section for object property selections"""
-        group = QGroupBox("Selections")
-        layout = QFormLayout()
-        
-        for prop in object_properties:
-            if prop['available_values']:  # Only create if has options
-                selector = SelectorWidget(
-                    name=prop['name'],
-                    options=prop['available_values'],
-                    description=prop['description']
-                )
-                
-                if on_change_callback:
-                    selector.currentTextChanged.connect(
-                        lambda text, p=prop: on_change_callback('selector', p['name'], text)
-                    )
-                
-                # Create label with description
-                label = QLabel(self._format_property_name(prop['name']))
-                if prop['description']:
-                    label.setToolTip(prop['description'])
-                
-                layout.addRow(label, selector)
-        
-        group.setLayout(layout)
-        return group
+    def register_template(self, template: FormTemplate):
+        """Register a new form template"""
+        self.templates[template.name.lower().replace(" ", "_")] = template
     
-    def _create_measurement_section(
-        self, 
-        measurement_properties: List[Dict], 
-        on_change_callback: Optional[Callable]
-    ) -> QGroupBox:
-        """Create section for measurement inputs"""
-        group = QGroupBox("Measurements")
-        layout = QFormLayout()
+    def get_available_templates(self, class_name: str = None) -> List[str]:
+        """Get available templates, optionally filtered by class"""
+        if class_name:
+            return [name for name, template in self.templates.items() 
+                   if template.class_name == class_name]
+        return list(self.templates.keys())
+
+
+# =============================================================================
+# MAIN FORM CLASS
+# =============================================================================
+
+class OntologyForm(QWidget):
+    """
+    Main form class that combines multiple widgets into a complete form.
+    Provides validation, templates, and data management capabilities.
+    """
+    
+    # Signals
+    dataChanged = pyqtSignal(FormData)
+    validationChanged = pyqtSignal(bool, list)  # is_valid, error_messages
+    formCompleted = pyqtSignal(FormData)
+    
+    def __init__(self, class_name: str, ontology_manager=None, parent=None):
+        super().__init__(parent)
         
-        for prop in measurement_properties:
-            measurement_widget = MeasurementWidget(
-                name=prop['name'],
-                units=prop['available_units'],
-                description=prop['description']
-            )
+        self.class_name = class_name
+        self.ontology_manager = ontology_manager or get_ontology_manager()
+        self.template: Optional[FormTemplate] = None
+        
+        # Widget tracking
+        self.widgets: Dict[str, OntologyWidget] = {}
+        self.sections: List[FormSection] = []
+        
+        # Validation
+        self.validation_timer = QTimer()
+        self.validation_timer.setSingleShot(True)
+        self.validation_timer.timeout.connect(self._validate_form)
+        
+        # Setup
+        self._setup_ui()
+    
+    def _setup_ui(self):
+        """Setup the main form UI structure"""
+        self.main_layout = QVBoxLayout()
+        self.main_layout.setSpacing(10)
+        
+        # Header
+        self._create_header()
+        
+        # Scrollable content area
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        
+        self.content_widget = QWidget()
+        self.content_layout = QVBoxLayout()
+        self.content_widget.setLayout(self.content_layout)
+        
+        self.scroll_area.setWidget(self.content_widget)
+        self.main_layout.addWidget(self.scroll_area)
+        
+        # Footer with validation info
+        self._create_footer()
+        
+        self.setLayout(self.main_layout)
+    
+    def _create_header(self):
+        """Create form header with title and info"""
+        header_frame = QFrame()
+        header_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+        header_layout = QHBoxLayout()
+        
+        # Title
+        title = QLabel(f"{self.class_name} Form")
+        title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        header_layout.addWidget(title)
+        
+        # Template info
+        self.template_label = QLabel("")
+        self.template_label.setFont(QFont("Arial", 10))
+        self.template_label.setStyleSheet("color: #666;")
+        header_layout.addWidget(self.template_label)
+        
+        header_layout.addStretch()
+        header_frame.setLayout(header_layout)
+        self.main_layout.addWidget(header_frame)
+    
+    def _create_footer(self):
+        """Create form footer with validation and controls"""
+        footer_frame = QFrame()
+        footer_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+        footer_layout = QVBoxLayout()
+        
+        # Validation status
+        self.validation_label = QLabel("Form validation: Ready")
+        self.validation_label.setFont(QFont("Arial", 9))
+        footer_layout.addWidget(self.validation_label)
+        
+        # Progress bar for validation
+        self.validation_progress = QProgressBar()
+        self.validation_progress.setVisible(False)
+        self.validation_progress.setMaximum(0)  # Indeterminate
+        footer_layout.addWidget(self.validation_progress)
+        
+        footer_frame.setLayout(footer_layout)
+        self.main_layout.addWidget(footer_frame)
+    
+    def generate_form(self):
+        """Generate the complete form based on class schema"""
+        # Clear existing content
+        self._clear_content()
+        
+        # Get schema from ontology
+        schema = self.ontology_manager.get_class_schema(self.class_name)
+        
+        # Organize properties into sections
+        if self.template and self.template.property_groups:
+            self._generate_from_template(schema)
+        else:
+            self._generate_default_sections(schema)
+        
+        # Create widgets and layouts
+        for section in self.sections:
+            self._create_section_widget(section)
+        
+        # Setup validation
+        self._setup_validation()
+        
+        # Apply template defaults
+        if self.template:
+            self._apply_template_defaults()
+    
+    def _clear_content(self):
+        """Clear existing form content"""
+        # Remove all widgets from content layout
+        while self.content_layout.count():
+            child = self.content_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+        
+        # Clear tracking
+        self.widgets.clear()
+        self.sections.clear()
+    
+    def _generate_from_template(self, schema: Dict):
+        """Generate form sections based on template"""
+        template_groups = self.template.property_groups
+        used_properties = set()
+        
+        # Create sections for each template group
+        for group_name, property_names in template_groups.items():
+            section = FormSection(title=group_name)
             
-            if on_change_callback:
-                measurement_widget.valueChanged.connect(
-                    lambda name, value, unit, p=prop: 
-                    on_change_callback('measurement', name, {'value': value, 'unit': unit})
-                )
+            for prop_name in property_names:
+                widget = self._create_widget_for_property(prop_name, schema)
+                if widget:
+                    section.widgets.append(widget)
+                    self.widgets[prop_name] = widget
+                    used_properties.add(prop_name)
             
-            # Create label
-            label = QLabel(self._format_property_name(prop['name']))
-            if prop['description']:
-                label.setToolTip(prop['description'])
+            if section.widgets:  # Only add sections with widgets
+                self.sections.append(section)
+        
+        # Add remaining properties to "Other" section
+        remaining_props = self._get_all_property_names(schema) - used_properties
+        if remaining_props:
+            other_section = FormSection(title="Other Properties")
+            for prop_name in remaining_props:
+                widget = self._create_widget_for_property(prop_name, schema)
+                if widget:
+                    other_section.widgets.append(widget)
+                    self.widgets[prop_name] = widget
             
-            layout.addRow(label, measurement_widget)
-        
-        group.setLayout(layout)
-        return group
+            if other_section.widgets:
+                self.sections.append(other_section)
     
-    def _create_data_section(
-        self, 
-        data_properties: List[Dict], 
-        on_change_callback: Optional[Callable]
-    ) -> QGroupBox:
-        """Create section for data property inputs"""
-        group = QGroupBox("Properties")
-        layout = QFormLayout()
+    def _generate_default_sections(self, schema: Dict):
+        """Generate default form sections when no template is used"""
+        # Selection section (object properties)
+        if schema.get('object_properties'):
+            selection_section = FormSection(title="Selections")
+            for prop in schema['object_properties']:
+                widget = WidgetFactory.create_widget(prop, self)
+                selection_section.widgets.append(widget)
+                self.widgets[prop['name']] = widget
+            self.sections.append(selection_section)
         
-        for prop in data_properties:
-            widget = self._create_data_widget(prop)
+        # Measurements section
+        if schema.get('measurement_properties'):
+            measurement_section = FormSection(title="Measurements")
+            for prop in schema['measurement_properties']:
+                widget = WidgetFactory.create_widget(prop, self)
+                measurement_section.widgets.append(widget)
+                self.widgets[prop['name']] = widget
+            self.sections.append(measurement_section)
+        
+        # Data properties section
+        if schema.get('data_properties'):
+            data_section = FormSection(title="Properties")
+            for prop in schema['data_properties']:
+                widget = WidgetFactory.create_widget(prop, self)
+                data_section.widgets.append(widget)
+                self.widgets[prop['name']] = widget
+            self.sections.append(data_section)
+    
+    def _create_widget_for_property(self, prop_name: str, schema: Dict) -> Optional[OntologyWidget]:
+        """Create widget for a specific property from schema"""
+        # Search in all property types
+        for prop_type in ['object_properties', 'measurement_properties', 'data_properties']:
+            for prop in schema.get(prop_type, []):
+                if prop['name'] == prop_name:
+                    return WidgetFactory.create_widget(prop, self)
+        return None
+    
+    def _get_all_property_names(self, schema: Dict) -> set:
+        """Get all property names from schema"""
+        names = set()
+        for prop_type in ['object_properties', 'measurement_properties', 'data_properties']:
+            for prop in schema.get(prop_type, []):
+                names.add(prop['name'])
+        return names
+    
+    def _create_section_widget(self, section: FormSection):
+        """Create and add a section widget to the form"""
+        group_box = QGroupBox(section.title)
+        group_box.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        
+        # Choose layout based on section configuration
+        if section.layout_type == "grid":
+            layout = QGridLayout()
+            # Add widgets in grid pattern
+            for i, widget in enumerate(section.widgets):
+                row, col = divmod(i, 2)
+                layout.addWidget(QLabel(widget.label_text), row, col * 2)
+                layout.addWidget(widget, row, col * 2 + 1)
+        elif section.layout_type == "horizontal":
+            layout = QHBoxLayout()
+            for widget in section.widgets:
+                widget_layout = QVBoxLayout()
+                widget_layout.addWidget(QLabel(widget.label_text))
+                widget_layout.addWidget(widget)
+                layout.addLayout(widget_layout)
+        else:  # Default form layout
+            layout = QFormLayout()
+            for widget in section.widgets:
+                layout.addRow(widget.label_text, widget)
+        
+        group_box.setLayout(layout)
+        self.content_layout.addWidget(group_box)
+    
+    def _setup_validation(self):
+        """Setup validation for all widgets"""
+        for widget in self.widgets.values():
+            widget.valueChanged.connect(self._on_widget_changed)
             
-            if on_change_callback and widget:
-                self._connect_data_widget(widget, prop, on_change_callback)
+            # Add required validation if specified in template
+            if (self.template and 
+                widget.property_name in self.template.required_properties):
+                widget.add_validation_rule(RequiredRule())
+                widget.required = True
+                widget.set_state(WidgetState.REQUIRED)
+    
+    def _apply_template_defaults(self):
+        """Apply default values from template"""
+        if not self.template or not self.template.default_values:
+            return
+        
+        for prop_name, default_value in self.template.default_values.items():
+            if prop_name in self.widgets:
+                self.widgets[prop_name].set_value(default_value)
+    
+    def _on_widget_changed(self, widget_data: WidgetData):
+        """Handle widget value changes"""
+        # Debounce validation
+        self.validation_timer.stop()
+        self.validation_timer.start(500)  # Validate 500ms after last change
+        
+        # Emit data changed signal
+        form_data = self.get_form_data()
+        self.dataChanged.emit(form_data)
+    
+    def _validate_form(self):
+        """Validate the entire form"""
+        self.validation_progress.setVisible(True)
+        
+        errors = []
+        all_valid = True
+        
+        for widget in self.widgets.values():
+            is_valid, error_msg = widget.validate()
+            if not is_valid:
+                all_valid = False
+                errors.append(f"{widget.label_text}: {error_msg}")
+                widget.set_state(WidgetState.INVALID)
+            else:
+                widget.set_state(WidgetState.VALID if widget.required 
+                               else WidgetState.NORMAL)
+        
+        # Update validation display
+        if all_valid:
+            self.validation_label.setText("Form validation: ✓ All fields valid")
+            self.validation_label.setStyleSheet("color: green;")
+        else:
+            self.validation_label.setText(f"Form validation: ✗ {len(errors)} error(s)")
+            self.validation_label.setStyleSheet("color: red;")
+        
+        self.validation_progress.setVisible(False)
+        
+        # Emit validation changed signal
+        self.validationChanged.emit(all_valid, errors)
+    
+    def apply_template(self, template: FormTemplate):
+        """Apply a form template"""
+        self.template = template
+        self.template_label.setText(f"Template: {template.name}")
+        
+        # Regenerate form if already created
+        if self.widgets:
+            self.generate_form()
+    
+    def get_form_data(self) -> FormData:
+        """Get current form data"""
+        form_data = FormData(class_name=self.class_name)
+        
+        for prop_name, widget in self.widgets.items():
+            widget_data = widget.get_widget_data()
             
-            # Create label
-            label = QLabel(self._format_property_name(prop['name']))
-            if prop['description']:
-                label.setToolTip(prop['description'])
-            
-            layout.addRow(label, widget)
+            if widget_data.widget_type == "measurement":
+                form_data.measurement_properties[prop_name] = widget_data.value
+            elif widget_data.widget_type == "selector":
+                form_data.object_properties[prop_name] = widget_data.value
+            else:
+                form_data.data_properties[prop_name] = widget_data.value
         
-        group.setLayout(layout)
-        return group
-    
-    def _create_data_widget(self, prop: Dict) -> QWidget:
-        """Create appropriate widget for data property"""
-        data_type = prop['data_type'].lower()
+        # Add validation info
+        is_valid, errors = self._get_current_validation()
+        form_data.is_valid = is_valid
+        form_data.validation_errors = errors
         
-        if 'float' in data_type or 'double' in data_type:
-            widget = QDoubleSpinBox()
-            widget.setRange(-999999.99, 999999.99)
-            widget.setDecimals(3)
-            return widget
+        return form_data
+    
+    def set_form_data(self, form_data: FormData):
+        """Set form data"""
+        # Set object properties
+        for prop_name, value in form_data.object_properties.items():
+            if prop_name in self.widgets:
+                self.widgets[prop_name].set_value(value)
         
-        elif 'int' in data_type:
-            widget = QSpinBox()
-            widget.setRange(-999999, 999999)
-            return widget
+        # Set measurement properties
+        for prop_name, value in form_data.measurement_properties.items():
+            if prop_name in self.widgets:
+                self.widgets[prop_name].set_value(value)
         
-        elif 'bool' in data_type:
-            return QCheckBox()
+        # Set data properties
+        for prop_name, value in form_data.data_properties.items():
+            if prop_name in self.widgets:
+                self.widgets[prop_name].set_value(value)
+    
+    def _get_current_validation(self) -> tuple[bool, List[str]]:
+        """Get current validation state"""
+        errors = []
+        all_valid = True
         
-        elif 'date' in data_type:
-            widget = QDateEdit()
-            widget.setDate(QDate.currentDate())
-            widget.setCalendarPopup(True)
-            return widget
+        for widget in self.widgets.values():
+            is_valid, error_msg = widget.validate()
+            if not is_valid:
+                all_valid = False
+                errors.append(f"{widget.label_text}: {error_msg}")
         
-        else:  # Default to text
-            return QLineEdit()
+        return all_valid, errors
     
-    def _connect_data_widget(self, widget: QWidget, prop: Dict, callback: Callable):
-        """Connect appropriate signal for data widget"""
-        if isinstance(widget, (QSpinBox, QDoubleSpinBox)):
-            widget.valueChanged.connect(
-                lambda value: callback('data', prop['name'], value)
-            )
-        elif isinstance(widget, QLineEdit):
-            widget.textChanged.connect(
-                lambda text: callback('data', prop['name'], text)
-            )
-        elif isinstance(widget, QCheckBox):
-            widget.toggled.connect(
-                lambda checked: callback('data', prop['name'], checked)
-            )
-        elif isinstance(widget, QDateEdit):
-            widget.dateChanged.connect(
-                lambda date: callback('data', prop['name'], date.toString(Qt.DateFormat.ISODate))
-            )
+    def reset_form(self):
+        """Reset form to default state"""
+        for widget in self.widgets.values():
+            widget.set_value(None)
+            widget.set_state(WidgetState.NORMAL)
+        
+        self.validation_label.setText("Form validation: Ready")
+        self.validation_label.setStyleSheet("")
     
-    def _format_property_name(self, name: str) -> str:
-        """Convert property name to readable label"""
-        # Convert camelCase to words
-        import re
-        # Add space before capital letters
-        formatted = re.sub(r'([a-z])([A-Z])', r'\1 \2', name)
-        # Remove common prefixes
-        formatted = formatted.replace('has ', '').replace('is ', '')
-        return formatted.title()
-    
-    def create_specimen_form(self, parent: QWidget = None) -> QWidget:
-        """Convenience method for specimen forms"""
-        return self.create_class_form("Specimen", parent)
-    
-    def create_test_form(self, test_type: str, parent: QWidget = None) -> QWidget:
-        """Convenience method for test forms"""
-        return self.create_class_form(test_type, parent)
-    
-    def extract_form_data(self, form_widget: QWidget) -> Dict[str, Any]:
-        """Extract all data from a generated form"""
-        data = {
-            'selectors': {},
-            'measurements': {},
-            'data_properties': {}
+    def export_data(self) -> Dict[str, Any]:
+        """Export form data in a format suitable for TTL generation"""
+        form_data = self.get_form_data()
+        
+        return {
+            'class_name': form_data.class_name,
+            'object_properties': form_data.object_properties,
+            'measurement_properties': form_data.measurement_properties,
+            'data_properties': form_data.data_properties,
+            'validation_status': {
+                'is_valid': form_data.is_valid,
+                'errors': form_data.validation_errors
+            }
         }
-        
-        # Recursively find our custom widgets
-        def find_widgets(widget):
-            if isinstance(widget, SelectorWidget):
-                value = widget.get_selected_value()
-                if value is not None:
-                    data['selectors'][widget.name] = value
-            
-            elif isinstance(widget, MeasurementWidget):
-                value, unit = widget.get_value()
-                data['measurements'][widget.name] = {'value': value, 'unit': unit}
-            
-            elif hasattr(widget, 'property_name'):  # Our data widgets
-                # Extract value based on widget type
-                if isinstance(widget, (QSpinBox, QDoubleSpinBox)):
-                    data['data_properties'][widget.property_name] = widget.value()
-                elif isinstance(widget, QLineEdit):
-                    data['data_properties'][widget.property_name] = widget.text()
-                elif isinstance(widget, QCheckBox):
-                    data['data_properties'][widget.property_name] = widget.isChecked()
-                elif isinstance(widget, QDateEdit):
-                    data['data_properties'][widget.property_name] = widget.date().toString(Qt.DateFormat.ISODate)
-            
-            # Recurse through children
-            for child in widget.findChildren(QWidget):
-                find_widgets(child)
-        
-        find_widgets(form_widget)
-        return data
 
 
 # =============================================================================
-# CONVENIENCE FUNCTIONS FOR GUI MODULE
+# CONVENIENCE FUNCTIONS
 # =============================================================================
 
-def create_specimen_form(parent: QWidget = None, on_change: Callable = None) -> QWidget:
-    """Create a specimen data entry form"""
+def create_specimen_form(parent: QWidget = None, template: str = "standard") -> OntologyForm:
+    """Create a specimen form with optional template"""
     generator = OntologyFormGenerator()
-    return generator.create_class_form("Specimen", parent, on_change)
+    template_name = f"specimen_{template}" if template else None
+    return generator.create_class_form("Specimen", parent, template_name)
 
 
-def create_test_form(test_type: str, parent: QWidget = None, on_change: Callable = None) -> QWidget:
-    """Create a test data entry form"""
+def create_test_form(test_type: str, parent: QWidget = None) -> OntologyForm:
+    """Create a test form for specific test type"""
     generator = OntologyFormGenerator()
-    return generator.create_class_form(test_type, parent, on_change)
+    template_name = f"{test_type.lower()}_test" if test_type in ["SHPB", "QuasiStatic"] else None
+    return generator.create_class_form(test_type, parent, template_name)
 
 
-def create_scrollable_form(form_widget: QWidget) -> QScrollArea:
-    """Wrap a form in a scrollable area"""
+def create_scrollable_form(form: OntologyForm) -> QScrollArea:
+    """Wrap a form in a scrollable area (if not already scrollable)"""
+    if hasattr(form, 'scroll_area'):
+        return form  # Form already has scrolling
+    
     scroll = QScrollArea()
-    scroll.setWidget(form_widget)
+    scroll.setWidget(form)
     scroll.setWidgetResizable(True)
     scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
     scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -366,7 +602,7 @@ def create_scrollable_form(form_widget: QWidget) -> QScrollArea:
 
 
 # =============================================================================
-# EXAMPLE USAGE (for testing/documentation)
+# EXAMPLE USAGE
 # =============================================================================
 
 if __name__ == "__main__":
@@ -375,17 +611,34 @@ if __name__ == "__main__":
     
     app = QApplication(sys.argv)
     
-    def on_form_change(widget_type: str, property_name: str, value: Any):
-        print(f"Changed {widget_type}.{property_name} = {value}")
-    
-    # Create specimen form
+    # Create main window
     main_window = QMainWindow()
-    specimen_form = create_specimen_form(on_change=on_form_change)
-    scrollable_form = create_scrollable_form(specimen_form)
+    main_window.setWindowTitle("DynaMat Enhanced Form Example")
+    main_window.resize(800, 600)
     
-    main_window.setCentralWidget(scrollable_form)
-    main_window.setWindowTitle("DynaMat Specimen Form")
-    main_window.resize(600, 800)
+    # Create form generator
+    generator = OntologyFormGenerator()
+    
+    # Create specimen form with template
+    def on_data_changed(form_data: FormData):
+        print(f"Form data changed. Valid: {form_data.is_valid}")
+        if not form_data.is_valid:
+            print(f"Errors: {form_data.validation_errors}")
+    
+    def on_validation_changed(is_valid: bool, errors: List[str]):
+        print(f"Validation changed. Valid: {is_valid}")
+        if errors:
+            print(f"Errors: {errors}")
+    
+    # Create and setup form
+    specimen_form = generator.create_class_form(
+        "Specimen",
+        template_name="specimen_standard",
+        on_change_callback=on_data_changed,
+        validation_callback=on_validation_changed
+    )
+    
+    main_window.setCentralWidget(specimen_form)
     main_window.show()
     
     sys.exit(app.exec())
