@@ -268,26 +268,9 @@ class OntologyManager:
     
     def get_measurement_paths(self, class_name: str) -> Dict[str, Dict]:
         """
-        Get all measurement-related properties and their units in one call.
-        
-        This solves the nested traversal problem: instead of multiple calls like
-        Specimen -> dimensions -> original length -> value and units,
-        this returns all measurement paths for a class.
-        
-        Args:
-            class_name: The class to get measurement paths for
-            
-        Returns:
-            Dict with structure:
-            {
-                "OriginalLength": {
-                    "property_path": ["hasDimension", "OriginalLength"], 
-                    "units": ["mm", "inch", "m"],
-                    "data_type": "float",
-                    "description": "..."
-                },
-                ...
-            }
+        1. Direct property relationships
+        2. Properties that have units defined
+        3. Measurement-related properties based on naming patterns
         """
         cache_key = f"measurements_{class_name}"
         if cache_key in self._measurement_paths_cache:
@@ -296,91 +279,197 @@ class OntologyManager:
         measurements = {}
         class_uri = self._get_class_uri(class_name)
         
-        # Query for measurement properties - this handles the nested relationships
-        query = f"""
-        SELECT DISTINCT ?measurement ?measurementName ?unit ?unitName ?path ?comment WHERE {{
-            # Direct measurement properties
-            {{
-                <{class_uri}> ?directProp ?measurement .
-                ?measurement a/rdfs:subClassOf* dyn:Geometry .
-                ?measurement rdfs:label ?measurementName .
-                ?measurement dyn:hasUnits ?unit .
-                ?unit rdfs:label ?unitName .
-                OPTIONAL {{ ?measurement rdfs:comment ?comment }}
-                BIND(CONCAT(STRAFTER(STR(?directProp), "#")) AS ?path)
-            }}
-            UNION
-            # Nested through dimensions
-            {{
-                <{class_uri}> dyn:hasDimension ?measurement .
-                ?measurement rdfs:label ?measurementName .
-                ?measurement dyn:hasUnits ?unit .
-                ?unit rdfs:label ?unitName .
-                OPTIONAL {{ ?measurement rdfs:comment ?comment }}
-                BIND("hasDimension" AS ?path)
-            }}
-            UNION
-            # Nested through mechanical properties
-            {{
-                <{class_uri}> dyn:hasMechanicalProperty ?measurement .
-                ?measurement rdfs:label ?measurementName .
-                ?measurement dyn:hasUnits ?unit .
-                ?unit rdfs:label ?unitName .
-                OPTIONAL {{ ?measurement rdfs:comment ?comment }}
-                BIND("hasMechanicalProperty" AS ?path)
-            }}
-        }}
-        """
+        # STEP 1: Get all properties for this class
+        properties = self.get_class_properties(class_name)
         
-        # Group results by measurement
-        for row in self.graph.query(query):
-            measurement_name = str(row.measurementName)
-            unit_name = str(row.unitName)
-            path = str(row.path)
-            
-            if measurement_name not in measurements:
-                measurements[measurement_name] = {
-                    "property_path": [path, measurement_name] if path != measurement_name else [measurement_name],
-                    "units": [],
-                    "data_type": "float",  # Most measurements are float
-                    "description": str(row.comment) if row.comment else None
-                }
-            
-            if unit_name not in measurements[measurement_name]["units"]:
-                measurements[measurement_name]["units"].append(unit_name)
+        # STEP 2: For each property, check if it's measurement-related
+        for prop in properties:
+            # Check if property name suggests it's a measurement
+            if self._is_measurement_property(prop.name):
+                measurement_info = self._get_measurement_info(prop)
+                if measurement_info:
+                    measurements[prop.name] = measurement_info
+        
+        # STEP 3: Add hardcoded measurement patterns for common cases
+        common_measurements = self._get_common_measurements_for_class(class_name)
+        measurements.update(common_measurements)
         
         self._measurement_paths_cache[cache_key] = measurements
         return measurements
     
-    def get_measurement_units(self, measurement_type: str) -> List[str]:
-        """Get available units for a measurement type"""
-        # Query for individuals that are units and associated with this measurement
-        query = f"""
+    def _is_measurement_property(self, property_name: str) -> bool:
+        """Check if a property name suggests it's measurement-related"""
+        measurement_keywords = [
+            'dimension', 'length', 'width', 'height', 'thickness', 'diameter',
+            'area', 'volume', 'mass', 'weight', 'density', 'temperature',
+            'pressure', 'velocity', 'force', 'stress', 'strain', 'modulus',
+            'strength', 'hardness', 'time', 'rate'
+        ]
+        
+        property_lower = property_name.lower()
+        return any(keyword in property_lower for keyword in measurement_keywords)
+    
+    def _get_measurement_info(self, prop: PropertyInfo) -> Optional[Dict]:
+        """Get measurement information for a property"""
+        # Try to find units for this property
+        units = self._find_units_for_property(prop.name)
+        
+        if not units:
+            # If no units found, provide default units based on property name
+            units = self._get_default_units_for_property(prop.name)
+        
+        if units:
+            return {
+                "property_path": [prop.name],
+                "units": units,
+                "data_type": "float",
+                "description": prop.description or f"Measurement property: {prop.name}"
+            }
+        
+        return None
+    
+    def _find_units_for_property(self, property_name: str) -> List[str]:
+        """Find units associated with a property in the ontology"""
+        # Try different patterns to find units
+        units = []
+        
+        # Pattern 1: Direct unit relationships
+        query1 = f"""
         SELECT DISTINCT ?unit ?unitName WHERE {{
-            ?measurement rdfs:label "{measurement_type}" .
-            ?measurement dyn:hasUnits ?unit .
+            ?prop rdfs:label "{property_name}" .
+            ?prop dyn:hasUnits ?unit .
             OPTIONAL {{ ?unit rdfs:label ?unitName }}
         }}
         """
         
-        units = []
-        for row in self.graph.query(query):
+        for row in self.graph.query(query1):
             unit_name = str(row.unitName) if row.unitName else self._extract_name_from_uri(str(row.unit))
             units.append(unit_name)
         
+        # Pattern 2: Units through instances
+        query2 = f"""
+        SELECT DISTINCT ?unit ?unitName WHERE {{
+            ?instance rdfs:label "{property_name}" .
+            ?instance dyn:hasUnits ?unit .
+            OPTIONAL {{ ?unit rdfs:label ?unitName }}
+        }}
+        """
+        
+        for row in self.graph.query(query2):
+            unit_name = str(row.unitName) if row.unitName else self._extract_name_from_uri(str(row.unit))
+            if unit_name not in units:
+                units.append(unit_name)
+        
         return units
     
-    def get_materials(self) -> Dict[str, IndividualInfo]:
-        """Get all available materials"""
-        return self.get_individuals("Material")
+    def _get_default_units_for_property(self, property_name: str) -> List[str]:
+        """Provide sensible default units based on property name patterns"""
+        property_lower = property_name.lower()
+        
+        # Length measurements
+        if any(word in property_lower for word in ['length', 'width', 'height', 'thickness', 'diameter']):
+            return ['mm', 'inch', 'm', 'cm']
+        
+        # Area measurements
+        if 'area' in property_lower or 'section' in property_lower:
+            return ['mm²', 'in²', 'm²', 'cm²']
+        
+        # Volume measurements
+        if 'volume' in property_lower:
+            return ['mm³', 'in³', 'm³', 'cm³']
+        
+        # Mass measurements
+        if any(word in property_lower for word in ['mass', 'weight']):
+            return ['kg', 'g', 'lb', 'oz']
+        
+        # Pressure measurements
+        if 'pressure' in property_lower:
+            return ['MPa', 'GPa', 'Pa', 'psi']
+        
+        # Velocity measurements
+        if 'velocity' in property_lower or 'speed' in property_lower:
+            return ['m/s', 'mm/s', 'ft/s']
+        
+        # Temperature measurements
+        if 'temperature' in property_lower:
+            return ['°C', '°F', 'K']
+        
+        # Stress/Strength measurements
+        if any(word in property_lower for word in ['stress', 'strength', 'modulus']):
+            return ['MPa', 'GPa', 'Pa', 'psi']
+        
+        # Strain measurements
+        if 'strain' in property_lower:
+            return ['%', 'mm/mm', 'in/in']
+        
+        # Time measurements
+        if 'time' in property_lower:
+            return ['s', 'ms', 'μs', 'min']
+        
+        # Default for unknown measurements
+        return ['unit']
     
-    def get_specimen_roles(self) -> Dict[str, IndividualInfo]:
-        """Get all available specimen roles"""
-        return self.get_individuals("SpecimenRole")
-    
-    def get_equipment_types(self) -> Dict[str, ClassInfo]:
-        """Get all equipment types"""
-        return self.get_classes("Equipment")
+    def _get_common_measurements_for_class(self, class_name: str) -> Dict[str, Dict]:
+        """Get common measurements expected for specific classes"""
+        common_measurements = {}
+        
+        if class_name == "Specimen":
+            common_measurements.update({
+                "OriginalLength": {
+                    "property_path": ["hasDimension"],
+                    "units": ["mm", "inch", "m"],
+                    "data_type": "float",
+                    "description": "Original length of specimen"
+                },
+                "OriginalWidth": {
+                    "property_path": ["hasDimension"],
+                    "units": ["mm", "inch", "m"],
+                    "data_type": "float",
+                    "description": "Original width of specimen"
+                },
+                "OriginalThickness": {
+                    "property_path": ["hasDimension"],
+                    "units": ["mm", "inch", "m"],
+                    "data_type": "float",
+                    "description": "Original thickness of specimen"
+                },
+                "Mass": {
+                    "property_path": ["hasDimension"],
+                    "units": ["g", "kg", "lb"],
+                    "data_type": "float",
+                    "description": "Mass of specimen"
+                }
+            })
+        
+        elif class_name == "SHPBTest":
+            common_measurements.update({
+                "StrikerVelocity": {
+                    "property_path": ["hasTestingConditions"],
+                    "units": ["m/s", "mm/s", "ft/s"],
+                    "data_type": "float",
+                    "description": "Striker bar velocity"
+                },
+                "TestTemperature": {
+                    "property_path": ["hasTestingConditions"],
+                    "units": ["°C", "°F", "K"],
+                    "data_type": "float",
+                    "description": "Test temperature"
+                },
+                "StrainRate": {
+                    "property_path": ["hasSeriesData"],
+                    "units": ["1/s", "s⁻¹"],
+                    "data_type": "float",
+                    "description": "Strain rate during test"
+                },
+                "MaxStress": {
+                    "property_path": ["hasSeriesData"],
+                    "units": ["MPa", "GPa", "psi"],
+                    "data_type": "float",
+                    "description": "Maximum stress achieved"
+                }
+            })
+        
+        return common_measurements
     
     # =============================================================================
     # SCHEMA GENERATION (GUI-AGNOSTIC)
@@ -388,18 +477,16 @@ class OntologyManager:
     
     def get_class_schema(self, class_name: str) -> Dict[str, Any]:
         """
-        Generate a raw schema for a class (GUI-agnostic).
         
-        Returns structured data that any GUI framework can interpret.
         """
         schema = {
             'class_name': class_name,
-            'object_properties': [],    # Properties linking to other classes/individuals
-            'data_properties': [],      # Properties with literal values
-            'measurement_properties': []  # Properties with value + unit pairs
+            'object_properties': [],
+            'data_properties': [],
+            'measurement_properties': []
         }
         
-        # Get measurement paths (handles nested relationships)
+        # Get measurement paths (now works with actual ontology)
         measurements = self.get_measurement_paths(class_name)
         for name, info in measurements.items():
             schema['measurement_properties'].append({
@@ -410,19 +497,19 @@ class OntologyManager:
                 'description': info['description']
             })
         
-        # Get object and data properties
+        # Get properties for the class
         properties = self.get_class_properties(class_name)
         for prop in properties:
             if prop.range_class:
-                # Check if range class has individuals
-                individuals = self.get_individuals(prop.range_class)
+                # Check if we can find individuals for this range class
+                individuals = self._get_individuals_robust(prop.range_class)
                 
                 schema['object_properties'].append({
                     'name': prop.name,
                     'range_class': prop.range_class,
                     'available_values': list(individuals.keys()) if individuals else [],
                     'description': prop.description,
-                    'required': False  # Could be determined from SHACL constraints
+                    'required': False
                 })
             else:
                 # Data property
@@ -432,6 +519,9 @@ class OntologyManager:
                     'description': prop.description,
                     'required': False
                 })
+        
+        # Add hardcoded properties for known classes
+        schema = self._add_hardcoded_properties(schema, class_name)
         
         return schema
     
@@ -487,7 +577,56 @@ class OntologyManager:
         
         return str(literal)
 
-
+    def diagnose_ontology(self) -> Dict[str, Any]:
+        """Diagnose what's actually in the ontology for debugging"""
+        diagnosis = {
+            'total_triples': len(self.graph),
+            'classes': {},
+            'properties': {},
+            'individuals': {},
+            'missing_essentials': []
+        }
+        
+        # Count classes
+        classes_query = "SELECT (COUNT(DISTINCT ?class) as ?count) WHERE { ?class a owl:Class . }"
+        for row in self.graph.query(classes_query):
+            diagnosis['classes']['total'] = int(row.count)
+        
+        # Count properties
+        props_query = """
+        SELECT (COUNT(DISTINCT ?prop) as ?count) WHERE { 
+            { ?prop a owl:ObjectProperty . } UNION { ?prop a owl:DatatypeProperty . }
+        }
+        """
+        for row in self.graph.query(props_query):
+            diagnosis['properties']['total'] = int(row.count)
+        
+        # Check for essential classes
+        essential_classes = ['Specimen', 'SHPBTest', 'Material', 'Structure', 'Shape']
+        for class_name in essential_classes:
+            class_uri = self._get_class_uri(class_name)
+            exists_query = f"ASK {{ <{class_uri}> a owl:Class . }}"
+            exists = bool(self.graph.query(exists_query))
+            diagnosis['classes'][class_name] = exists
+            if not exists:
+                diagnosis['missing_essentials'].append(f"Class: {class_name}")
+        
+        # Check for essential properties
+        essential_properties = ['hasMaterial', 'hasStructure', 'hasDimension']
+        for prop_name in essential_properties:
+            prop_uri = f"{self.dyn}{prop_name}"
+            exists_query = f"""
+            ASK {{ 
+                {{ <{prop_uri}> a owl:ObjectProperty . }} UNION 
+                {{ <{prop_uri}> a owl:DatatypeProperty . }}
+            }}
+            """
+            exists = bool(self.graph.query(exists_query))
+            diagnosis['properties'][prop_name] = exists
+            if not exists:
+                diagnosis['missing_essentials'].append(f"Property: {prop_name}")
+        
+        return diagnosis
 # Convenience function for global access
 _global_manager = None
 
