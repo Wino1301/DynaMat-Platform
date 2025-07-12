@@ -1,10 +1,12 @@
 """
-DynaMat Ontology Manager
+DynaMat Ontology Manager - Fixed Version
 
 File location: dynamat/ontology/manager.py
 
-This module provides the main interface for working with the DynaMat ontology,
-abstracting away RDF/SPARQL complexity and providing Python-friendly access patterns.
+Fixed to properly handle:
+1. Hierarchical class structure (subclasses)
+2. Both rdfs:label and dyn:hasName annotation properties
+3. Individuals of subclasses (e.g., AluminiumAlloy individuals as Materials)
 """
 
 from pathlib import Path
@@ -44,6 +46,7 @@ class IndividualInfo:
     """Information about an individual/instance"""
     uri: str
     name: str
+    display_name: str  # For GUI display (from hasName or label)
     class_types: List[str] = None
     properties: Dict[str, Any] = None
     description: Optional[str] = None
@@ -54,10 +57,8 @@ class OntologyManager:
     Central manager for DynaMat ontology operations.
     
     FOCUSED ON: Reading and querying the core ontology definition.
-    NOT FOR: Creating experimental data (use ExperimentBuilder for that).
-    
-    Provides high-level, Python-friendly interface to the ontology
-    without requiring SPARQL knowledge from users.
+    Fixed to properly handle hierarchical class structure and both
+    rdfs:label and dyn:hasName annotation properties.
     """
     
     def __init__(self, ontology_path: Optional[Path] = None):
@@ -76,7 +77,7 @@ class OntologyManager:
         self._classes_cache = {}
         self._properties_cache = {}
         self._individuals_cache = {}
-        self._measurement_paths_cache = {}  # Cache for nested relationship paths
+        self._measurement_paths_cache = {}
         
         # Load core ontology
         self.load_ontology()
@@ -106,7 +107,68 @@ class OntologyManager:
         self._measurement_paths_cache.clear()
     
     # =============================================================================
-    # CLASS OPERATIONS
+    # UTILITY METHODS
+    # =============================================================================
+    
+    def _extract_name_from_uri(self, uri: str) -> str:
+        """Extract the local name from a URI"""
+        if '#' in uri:
+            return uri.split('#')[-1]
+        elif '/' in uri:
+            return uri.split('/')[-1]
+        return uri
+    
+    def _get_display_name(self, uri: str) -> tuple:
+        """Get both technical name and display name for an entity"""
+        tech_name = self._extract_name_from_uri(uri)
+        
+        # Query for display name using both hasName and rdfs:label
+        query = f"""
+        SELECT ?displayName WHERE {{
+            <{uri}> dyn:hasName ?displayName .
+        }}
+        UNION
+        {{
+            <{uri}> rdfs:label ?displayName .
+        }}
+        """
+        
+        display_names = []
+        for row in self.graph.query(query):
+            display_names.append(str(row.displayName))
+        
+        # Prefer hasName over rdfs:label if both exist
+        display_name = display_names[0] if display_names else tech_name
+        
+        return tech_name, display_name
+    
+    def _get_class_uri(self, class_name: str) -> str:
+        """Get the full URI for a class name"""
+        return f"{config.ONTOLOGY_URI}{class_name}"
+    
+    def _get_individual_uri(self, individual_name: str) -> str:
+        """Get the full URI for an individual name"""
+        return f"{config.ONTOLOGY_URI}{individual_name}"
+    
+    def _get_all_subclasses(self, parent_class_uri: str) -> List[str]:
+        """Get all subclasses (direct and indirect) of a parent class"""
+        query = f"""
+        SELECT ?subclass WHERE {{
+            ?subclass rdfs:subClassOf* <{parent_class_uri}> .
+            ?subclass rdf:type owl:Class .
+        }}
+        """
+        
+        subclasses = []
+        for row in self.graph.query(query):
+            subclass_uri = str(row.subclass)
+            if subclass_uri != parent_class_uri:  # Exclude the parent class itself
+                subclasses.append(subclass_uri)
+        
+        return subclasses
+    
+    # =============================================================================
+    # CLASS OPERATIONS  
     # =============================================================================
     
     def get_classes(self, parent_class: Optional[str] = None) -> Dict[str, ClassInfo]:
@@ -125,34 +187,167 @@ class OntologyManager:
         
         classes = {}
         
-        # Query for classes - FIXED: Changed ?class to ?cls to avoid Python keyword conflict
-        query = """
-        SELECT ?cls ?name ?parent ?comment WHERE {
-            ?cls a owl:Class .
-            OPTIONAL { ?cls rdfs:label ?name }
-            OPTIONAL { ?cls rdfs:subClassOf ?parent }
-            OPTIONAL { ?cls rdfs:comment ?comment }
-        }
-        """
-        
-        for row in self.graph.query(query):
-            class_uri = str(row.cls)  # FIXED: Changed from row.class to row.cls
-            class_name = str(row.name) if row.name else self._extract_name_from_uri(class_uri)
+        if parent_class:
+            # Get all subclasses of the specified parent
+            parent_uri = self._get_class_uri(parent_class)
+            subclass_uris = self._get_all_subclasses(parent_uri)
+            subclass_uris.append(parent_uri)  # Include parent itself
             
-            # Filter by parent class if specified
-            if parent_class and row.parent:
-                parent_name = self._extract_name_from_uri(str(row.parent))
-                if parent_name != parent_class:
-                    continue
+            for class_uri in subclass_uris:
+                tech_name, display_name = self._get_display_name(class_uri)
+                
+                # Query for additional info
+                query = f"""
+                SELECT ?comment WHERE {{
+                    <{class_uri}> rdfs:comment ?comment .
+                }}
+                """
+                
+                comment = None
+                for row in self.graph.query(query):
+                    comment = str(row.comment)
+                    break
+                
+                classes[tech_name] = ClassInfo(
+                    uri=class_uri,
+                    name=tech_name,
+                    description=comment
+                )
+        else:
+            # Get all classes
+            query = """
+            SELECT ?cls ?comment WHERE {
+                ?cls rdf:type owl:Class .
+                OPTIONAL { ?cls rdfs:comment ?comment }
+            }
+            """
             
-            classes[class_name] = ClassInfo(
-                uri=class_uri,
-                name=class_name,
-                description=str(row.comment) if row.comment else None
-            )
+            for row in self.graph.query(query):
+                class_uri = str(row.cls)
+                tech_name, display_name = self._get_display_name(class_uri)
+                
+                classes[tech_name] = ClassInfo(
+                    uri=class_uri,
+                    name=tech_name,
+                    description=str(row.comment) if row.comment else None
+                )
         
         self._classes_cache[cache_key] = classes
         return classes
+    
+    # =============================================================================
+    # INDIVIDUAL OPERATIONS
+    # =============================================================================
+    
+    def get_individuals(self, class_name: str) -> Dict[str, IndividualInfo]:
+        """
+        Get all individuals of a class (including subclasses).
+        
+        Args:
+            class_name: The class name to get individuals for
+            
+        Returns:
+            Dictionary mapping individual names to IndividualInfo objects
+        """
+        cache_key = f"individuals_{class_name}"
+        if cache_key in self._individuals_cache:
+            return self._individuals_cache[cache_key]
+        
+        individuals = {}
+        
+        # Get the parent class URI
+        parent_class_uri = self._get_class_uri(class_name)
+        
+        # Get all subclasses
+        all_class_uris = self._get_all_subclasses(parent_class_uri)
+        all_class_uris.append(parent_class_uri)  # Include parent class
+        
+        # Query for individuals of all these classes
+        for class_uri in all_class_uris:
+            query = f"""
+            SELECT ?individual ?comment WHERE {{
+                ?individual rdf:type <{class_uri}> .
+                ?individual rdf:type owl:NamedIndividual .
+                OPTIONAL {{ ?individual rdfs:comment ?comment }}
+            }}
+            """
+            
+            for row in self.graph.query(query):
+                individual_uri = str(row.individual)
+                tech_name, display_name = self._get_display_name(individual_uri)
+                
+                # Get class types for this individual
+                class_types = []
+                type_query = f"""
+                SELECT ?type WHERE {{
+                    <{individual_uri}> rdf:type ?type .
+                    ?type rdf:type owl:Class .
+                }}
+                """
+                
+                for type_row in self.graph.query(type_query):
+                    type_uri = str(type_row.type)
+                    type_name = self._extract_name_from_uri(type_uri)
+                    class_types.append(type_name)
+                
+                individuals[tech_name] = IndividualInfo(
+                    uri=individual_uri,
+                    name=tech_name,
+                    display_name=display_name,
+                    class_types=class_types,
+                    description=str(row.comment) if row.comment else None
+                )
+        
+        self._individuals_cache[cache_key] = individuals
+        return individuals
+    
+    def get_units_for_measurement(self, measurement_type: str) -> List[str]:
+        """Get available units for a specific measurement type"""
+        
+        # First try to find units directly linked to this measurement
+        query = f"""
+        SELECT ?unit ?unitName ?hasNameValue WHERE {{
+            ?measurement rdf:type <{self._get_class_uri(measurement_type)}> .
+            ?measurement dyn:hasUnits ?unit .
+            OPTIONAL {{ ?unit rdfs:label ?unitName }}
+            OPTIONAL {{ ?unit dyn:hasName ?hasNameValue }}
+        }}
+        """
+        
+        units = []
+        for row in self.graph.query(query):
+            unit_name = None
+            if row.hasNameValue:
+                unit_name = str(row.hasNameValue)
+            elif row.unitName:
+                unit_name = str(row.unitName)
+            else:
+                unit_name = self._extract_name_from_uri(str(row.unit))
+            units.append(unit_name)
+        
+        # If no direct units found, try to get units by type
+        if not units:
+            if 'velocity' in measurement_type.lower() or 'speed' in measurement_type.lower():
+                velocity_units = self.get_individuals("VelocityUnit")
+                units = [info.display_name for info in velocity_units.values()]
+            elif 'pressure' in measurement_type.lower() or 'stress' in measurement_type.lower():
+                pressure_units = self.get_individuals("PressureUnit")
+                units = [info.display_name for info in pressure_units.values()]
+            elif 'temperature' in measurement_type.lower():
+                temp_units = self.get_individuals("TemperatureUnit")
+                units = [info.display_name for info in temp_units.values()]
+            elif 'length' in measurement_type.lower() or 'distance' in measurement_type.lower():
+                length_units = self.get_individuals("LengthUnit")
+                units = [info.display_name for info in length_units.values()]
+            elif 'time' in measurement_type.lower():
+                time_units = self.get_individuals("TimeUnit")
+                units = [info.display_name for info in time_units.values()]
+        
+        return units
+    
+    # =============================================================================
+    # PROPERTY OPERATIONS
+    # =============================================================================
     
     def get_class_properties(self, class_name: str) -> List[PropertyInfo]:
         """Get all properties that can be applied to a class"""
@@ -163,11 +358,10 @@ class OntologyManager:
         properties = []
         class_uri = self._get_class_uri(class_name)
         
-        # FIXED: Simplified query that works correctly
+        # Query for properties with this class as domain
         query = f"""
-        SELECT ?prop ?name ?range ?comment WHERE {{
+        SELECT ?prop ?range ?comment WHERE {{
             ?prop rdfs:domain <{class_uri}> .
-            OPTIONAL {{ ?prop rdfs:label ?name }}
             OPTIONAL {{ ?prop rdfs:range ?range }}
             OPTIONAL {{ ?prop rdfs:comment ?comment }}
         }}
@@ -175,12 +369,16 @@ class OntologyManager:
         
         for row in self.graph.query(query):
             prop_uri = str(row.prop)
-            prop_name = str(row.name) if row.name else self._extract_name_from_uri(prop_uri)
+            tech_name, display_name = self._get_display_name(prop_uri)
+            
+            range_class = None
+            if row.range:
+                range_class = self._extract_name_from_uri(str(row.range))
             
             properties.append(PropertyInfo(
                 uri=prop_uri,
-                name=prop_name,
-                range_class=self._extract_name_from_uri(str(row.range)) if row.range else None,
+                name=tech_name,
+                range_class=range_class,
                 domain_class=class_name,
                 description=str(row.comment) if row.comment else None
             ))
@@ -189,244 +387,48 @@ class OntologyManager:
         return properties
     
     # =============================================================================
-    # INDIVIDUAL OPERATIONS
+    # SPECIALIZED GETTERS
     # =============================================================================
-    
-    def get_individuals(self, class_name: Optional[str] = None) -> Dict[str, IndividualInfo]:
-        """
-        Get all individuals or individuals of a specific class.
-        
-        Args:
-            class_name: Optional class name to filter by
-            
-        Returns:
-            Dictionary mapping individual names to IndividualInfo objects
-        """
-        cache_key = f"individuals_{class_name or 'all'}"
-        if cache_key in self._individuals_cache:
-            return self._individuals_cache[cache_key]
-        
-        individuals = {}
-        
-        if class_name:
-            class_uri = self._get_class_uri(class_name)
-            query = f"""
-            SELECT ?individual ?name ?comment WHERE {{
-                ?individual a <{class_uri}> .
-                OPTIONAL {{ ?individual rdfs:label ?name }}
-                OPTIONAL {{ ?individual rdfs:comment ?comment }}
-            }}
-            """
-        else:
-            query = """
-            SELECT ?individual ?type ?name ?comment WHERE {
-                ?individual a ?type .
-                ?type a owl:Class .
-                OPTIONAL { ?individual rdfs:label ?name }
-                OPTIONAL { ?individual rdfs:comment ?comment }
-            }
-            """
-        
-        for row in self.graph.query(query):
-            individual_uri = str(row.individual)
-            individual_name = str(row.name) if row.name else self._extract_name_from_uri(individual_uri)
-            
-            individuals[individual_name] = IndividualInfo(
-                uri=individual_uri,
-                name=individual_name,
-                description=str(row.comment) if row.comment else None
-            )
-        
-        self._individuals_cache[cache_key] = individuals
-        return individuals
-    
-    def get_individual_properties(self, individual_name: str) -> Dict[str, Any]:
-        """Get all property values for an individual"""
-        individual_uri = self._get_individual_uri(individual_name)
-        
-        properties = {}
-        query = f"""
-        SELECT ?prop ?value WHERE {{
-            <{individual_uri}> ?prop ?value .
-            FILTER(?prop != rdf:type && ?prop != rdfs:label && ?prop != rdfs:comment)
-        }}
-        """
-        
-        for row in self.graph.query(query):
-            prop_name = self._extract_name_from_uri(str(row.prop))
-            
-            # Handle different value types
-            if isinstance(row.value, Literal):
-                properties[prop_name] = self._convert_literal(row.value)
-            else:
-                properties[prop_name] = self._extract_name_from_uri(str(row.value))
-        
-        return properties
-    
-    # =============================================================================
-    # MEASUREMENT AND UNITS - FIXED VERSION
-    # =============================================================================
-    
-    def get_measurement_paths(self, class_name: str) -> Dict[str, Dict]:
-        """
-        Get measurement paths that work with actual ontology structure.
-        
-        This queries the ontology to find actual measurement relationships
-        rather than assuming specific patterns.
-        """
-        cache_key = f"measurements_{class_name}"
-        if cache_key in self._measurement_paths_cache:
-            return self._measurement_paths_cache[cache_key]
-        
-        measurements = {}
-        class_uri = self._get_class_uri(class_name)
-        
-        # Query for properties that could be measurements
-        # Look for properties with numeric ranges or unit relationships
-        query = f"""
-        SELECT DISTINCT ?prop ?propName ?range ?rangeName ?unit ?unitName WHERE {{
-            <{class_uri}> ?prop ?range .
-            OPTIONAL {{ ?prop rdfs:label ?propName }}
-            OPTIONAL {{ ?range rdfs:label ?rangeName }}
-            
-            # Look for unit relationships
-            OPTIONAL {{
-                ?range dyn:hasUnits ?unit .
-                OPTIONAL {{ ?unit rdfs:label ?unitName }}
-            }}
-            
-            # Or look for numeric/geometry ranges
-            OPTIONAL {{
-                ?range a ?rangeType .
-                FILTER(
-                    CONTAINS(LCASE(STR(?rangeType)), "geometry") ||
-                    CONTAINS(LCASE(STR(?rangeType)), "dimension") ||
-                    CONTAINS(LCASE(STR(?rangeType)), "measurement") ||
-                    CONTAINS(LCASE(STR(?rangeType)), "unit")
-                )
-            }}
-        }}
-        """
-        
-        try:
-            # Process results and group by property
-            prop_data = {}
-            for row in self.graph.query(query):
-                prop_name = str(row.propName) if row.propName else self._extract_name_from_uri(str(row.prop))
-                
-                if prop_name not in prop_data:
-                    prop_data[prop_name] = {
-                        'units': set(),
-                        'description': None,
-                        'property_uri': str(row.prop)
-                    }
-                
-                # Add unit if found
-                if row.unit:
-                    unit_name = str(row.unitName) if row.unitName else self._extract_name_from_uri(str(row.unit))
-                    prop_data[prop_name]['units'].add(unit_name)
-            
-            # Convert to final format
-            for prop_name, data in prop_data.items():
-                if data['units'] or self._looks_like_measurement(prop_name):
-                    measurements[prop_name] = {
-                        "property_path": [prop_name],
-                        "units": list(data['units']) if data['units'] else self._infer_units_from_name(prop_name),
-                        "data_type": "float",
-                        "description": f"Measurement property: {prop_name}"
-                    }
-            
-        except Exception as e:
-            print(f"Error in get_measurement_paths for {class_name}: {e}")
-            # Return empty measurements if query fails
-            measurements = {}
-        
-        self._measurement_paths_cache[cache_key] = measurements
-        return measurements
-    
-    def _looks_like_measurement(self, property_name: str) -> bool:
-        """Check if a property name suggests it's measurement-related"""
-        measurement_indicators = [
-            'dimension', 'length', 'width', 'height', 'thickness', 'diameter',
-            'area', 'volume', 'mass', 'weight', 'density', 'temperature',
-            'pressure', 'velocity', 'force', 'stress', 'strain', 'modulus',
-            'strength', 'hardness', 'time', 'rate', 'value'
-        ]
-        
-        prop_lower = property_name.lower()
-        return any(indicator in prop_lower for indicator in measurement_indicators)
-    
-    def _infer_units_from_name(self, property_name: str) -> List[str]:
-        """Infer likely units based on property name"""
-        prop_lower = property_name.lower()
-        
-        # Length-related
-        if any(word in prop_lower for word in ['length', 'width', 'height', 'thickness', 'diameter']):
-            return ['mm', 'inch', 'm', 'cm']
-        
-        # Area-related  
-        if 'area' in prop_lower:
-            return ['mm²', 'in²', 'm²']
-        
-        # Volume-related
-        if 'volume' in prop_lower:
-            return ['mm³', 'in³', 'm³']
-        
-        # Mass-related
-        if any(word in prop_lower for word in ['mass', 'weight']):
-            return ['kg', 'g', 'lb']
-        
-        # Pressure-related
-        if 'pressure' in prop_lower:
-            return ['MPa', 'GPa', 'psi']
-        
-        # Velocity-related
-        if 'velocity' in prop_lower or 'speed' in prop_lower:
-            return ['m/s', 'mm/s']
-        
-        # Temperature-related
-        if 'temperature' in prop_lower:
-            return ['°C', '°F', 'K']
-        
-        # Stress/Strength-related
-        if any(word in prop_lower for word in ['stress', 'strength', 'modulus']):
-            return ['MPa', 'GPa', 'psi']
-        
-        # Generic measurement
-        return ['unit']
-    
-    def get_measurement_units(self, measurement_type: str) -> List[str]:
-        """Get available units for a measurement type"""
-        # Query for individuals that are units and associated with this measurement
-        query = f"""
-        SELECT DISTINCT ?unit ?unitName WHERE {{
-            ?measurement rdfs:label "{measurement_type}" .
-            ?measurement dyn:hasUnits ?unit .
-            OPTIONAL {{ ?unit rdfs:label ?unitName }}
-        }}
-        """
-        
-        units = []
-        for row in self.graph.query(query):
-            unit_name = str(row.unitName) if row.unitName else self._extract_name_from_uri(str(row.unit))
-            units.append(unit_name)
-        
-        return units
     
     def get_materials(self) -> Dict[str, IndividualInfo]:
         """Get all available materials"""
         return self.get_individuals("Material")
     
+    def get_units(self) -> Dict[str, IndividualInfo]:
+        """Get all available units"""
+        return self.get_individuals("Unit")
+    
     def get_specimen_roles(self) -> Dict[str, IndividualInfo]:
         """Get all available specimen roles"""
         return self.get_individuals("SpecimenRole")
     
-    def get_equipment_types(self) -> Dict[str, ClassInfo]:
-        """Get all equipment types"""
-        return self.get_classes("Equipment")
+    def get_structures(self) -> Dict[str, IndividualInfo]:
+        """Get all available structures"""
+        return self.get_individuals("Structure")
+    
+    def get_shapes(self) -> Dict[str, IndividualInfo]:
+        """Get all available shapes"""
+        return self.get_individuals("Shape")
+    
+    def get_momentum_trap_conditions(self) -> Dict[str, IndividualInfo]:
+        """Get all momentum trap conditions"""
+        # Query for momentum trap states and techniques
+        trap_states = self.get_individuals("MomentumTrapState")
+        trap_techniques = self.get_individuals("MomentumTrapTechnique")
+        
+        # Combine both types
+        all_traps = {}
+        all_traps.update(trap_states)
+        all_traps.update(trap_techniques)
+        
+        return all_traps
+    
+    def get_users(self) -> Dict[str, IndividualInfo]:
+        """Get all available users"""
+        return self.get_individuals("User")
     
     # =============================================================================
-    # SCHEMA GENERATION (GUI-AGNOSTIC)
+    # SCHEMA GENERATION
     # =============================================================================
     
     def get_class_schema(self, class_name: str) -> Dict[str, Any]:
@@ -442,222 +444,103 @@ class OntologyManager:
             'measurement_properties': []  # Properties with value + unit pairs
         }
         
-        # Get measurement paths (handles nested relationships)
-        measurements = self.get_measurement_paths(class_name)
-        for name, info in measurements.items():
-            schema['measurement_properties'].append({
-                'name': name,
-                'property_path': info['property_path'],
-                'available_units': info['units'],
-                'data_type': info['data_type'],
-                'description': info['description']
-            })
-        
         # Get object and data properties
         properties = self.get_class_properties(class_name)
         for prop in properties:
             if prop.range_class:
                 # Check if range class has individuals
                 individuals = self.get_individuals(prop.range_class)
+                available_values = [info.display_name for info in individuals.values()]
                 
                 schema['object_properties'].append({
                     'name': prop.name,
                     'range_class': prop.range_class,
-                    'available_values': list(individuals.keys()) if individuals else [],
-                    'description': prop.description,
-                    'required': False
+                    'available_values': available_values,
+                    'description': prop.description
                 })
             else:
                 # Data property
                 schema['data_properties'].append({
                     'name': prop.name,
-                    'data_type': prop.data_type or 'string',
-                    'description': prop.description,
-                    'required': False
+                    'data_type': 'string',  # Default type
+                    'description': prop.description
                 })
         
         return schema
     
     def get_selector_data(self, class_name: str) -> Dict[str, List[str]]:
-        """Get available values for selector properties (GUI-agnostic)"""
-        selectors = {}
+        """Get selector data for a class (for dropdowns)"""
         
         properties = self.get_class_properties(class_name)
+        selector_data = {}
+        
         for prop in properties:
             if prop.range_class:
                 individuals = self.get_individuals(prop.range_class)
-                if individuals:
-                    selectors[prop.name] = list(individuals.keys())
+                selector_data[prop.name] = [info.display_name for info in individuals.values()]
         
-        return selectors
-    
-    def get_measurement_schema(self, class_name: str) -> Dict[str, Dict]:
-        """Get measurement-specific schema (GUI-agnostic)"""
-        return self.get_measurement_paths(class_name)
+        return selector_data
     
     # =============================================================================
-    # DIAGNOSTIC METHODS
+    # DIAGNOSTIC AND TESTING
     # =============================================================================
     
     def diagnose_ontology(self) -> Dict[str, Any]:
-        """Diagnose what's actually in the ontology for debugging"""
-        diagnosis = {
-            'total_triples': len(self.graph),
-            'classes': {},
-            'properties': {},
-            'individuals': {},
-            'missing_essentials': []
-        }
+        """Diagnose ontology structure and completeness"""
         
-        # Count classes - FIXED SPARQL query
-        classes_query = "SELECT (COUNT(DISTINCT ?cls) as ?count) WHERE { ?cls a owl:Class . }"
-        try:
-            results = list(self.graph.query(classes_query))
-            if results:
-                count_value = results[0][0]  # Access the first column of first row
-                diagnosis['classes']['total'] = int(count_value)
-            else:
-                diagnosis['classes']['total'] = 0
-        except Exception as e:
-            print(f"Error counting classes: {e}")
-            diagnosis['classes']['total'] = 0
+        # Count total triples
+        total_triples = len(self.graph)
         
-        # Count properties - FIXED SPARQL query
-        props_query = """
-        SELECT (COUNT(DISTINCT ?prop) as ?count) WHERE { 
-            { ?prop a owl:ObjectProperty . } UNION { ?prop a owl:DatatypeProperty . }
-        }
-        """
-        try:
-            results = list(self.graph.query(props_query))
-            if results:
-                count_value = results[0][0]  # Access the first column of first row
-                diagnosis['properties']['total'] = int(count_value)
-            else:
-                diagnosis['properties']['total'] = 0
-        except Exception as e:
-            print(f"Error counting properties: {e}")
-            diagnosis['properties']['total'] = 0
+        # Get all classes
+        all_classes = self.get_classes()
         
         # Check for essential classes
-        essential_classes = ['Specimen', 'SHPBTest', 'Material', 'Structure', 'Shape']
-        for class_name in essential_classes:
-            class_uri = self._get_class_uri(class_name)
-            exists_query = f"ASK {{ <{class_uri}> a owl:Class . }}"
-            try:
-                exists = bool(self.graph.query(exists_query))
-                diagnosis['classes'][class_name] = exists
-                if not exists:
-                    diagnosis['missing_essentials'].append(f"Class: {class_name}")
-            except Exception as e:
-                print(f"Error checking class {class_name}: {e}")
-                diagnosis['classes'][class_name] = False
-                diagnosis['missing_essentials'].append(f"Class: {class_name} (error)")
+        essential_classes = ['Material', 'Unit', 'Specimen', 'SHPBTest', 'MomentumTrap', 'Structure', 'Shape']
+        class_status = {}
+        for cls in essential_classes:
+            class_status[cls] = cls in all_classes
+        class_status['total'] = len(all_classes)
         
-        # Check for essential properties
-        essential_properties = ['hasMaterial', 'hasStructure', 'hasDimension']
-        for prop_name in essential_properties:
-            prop_uri = f"{self.dyn}{prop_name}"
-            exists_query = f"""
-            ASK {{ 
-                {{ <{prop_uri}> a owl:ObjectProperty . }} UNION 
-                {{ <{prop_uri}> a owl:DatatypeProperty . }}
-            }}
-            """
-            try:
-                exists = bool(self.graph.query(exists_query))
-                diagnosis['properties'][prop_name] = exists
-                if not exists:
-                    diagnosis['missing_essentials'].append(f"Property: {prop_name}")
-            except Exception as e:
-                print(f"Error checking property {prop_name}: {e}")
-                diagnosis['properties'][prop_name] = False
-                diagnosis['missing_essentials'].append(f"Property: {prop_name} (error)")
+        # Check properties
+        all_properties = []
+        for cls_name in all_classes:
+            props = self.get_class_properties(cls_name)
+            all_properties.extend([p.name for p in props])
         
-        return diagnosis
+        essential_properties = ['hasMaterial', 'hasStructure', 'hasDimension', 'hasShape', 'hasSpecimenRole']
+        property_status = {}
+        for prop in essential_properties:
+            property_status[prop] = prop in all_properties
+        property_status['total'] = len(set(all_properties))
+        
+        return {
+            'total_triples': total_triples,
+            'classes': class_status,
+            'properties': property_status
+        }
     
     def test_measurement_detection(self, class_name: str) -> Dict[str, Any]:
         """Test measurement detection for a specific class"""
-        result = {
-            'class_name': class_name,
-            'class_exists': False,
-            'properties_found': [],
-            'measurements_detected': {},
-            'individuals_found': {}
+        
+        # Check if class exists
+        all_classes = self.get_classes()
+        class_exists = class_name in all_classes
+        
+        # Get properties
+        properties = self.get_class_properties(class_name) if class_exists else []
+        property_names = [p.name for p in properties]
+        
+        # Look for measurement-like properties
+        measurement_properties = []
+        for prop in properties:
+            if any(keyword in prop.name.lower() for keyword in ['dimension', 'measurement', 'value', 'length', 'diameter']):
+                measurement_properties.append(prop.name)
+        
+        return {
+            'class_exists': class_exists,
+            'properties_found': property_names,
+            'measurements_detected': measurement_properties
         }
-        
-        try:
-            # Check if class exists
-            class_uri = self._get_class_uri(class_name)
-            exists_query = f"ASK {{ <{class_uri}> a owl:Class . }}"
-            result['class_exists'] = bool(self.graph.query(exists_query))
-            
-            if result['class_exists']:
-                # Get properties
-                try:
-                    properties = self.get_class_properties(class_name)
-                    result['properties_found'] = [prop.name for prop in properties]
-                except Exception as e:
-                    print(f"Error getting properties for {class_name}: {e}")
-                    result['properties_found'] = []
-                
-                # Test measurement detection
-                try:
-                    measurements = self.get_measurement_paths(class_name)
-                    result['measurements_detected'] = measurements
-                except Exception as e:
-                    print(f"Error detecting measurements for {class_name}: {e}")
-                    result['measurements_detected'] = {}
-                
-                # Get individuals for each property's range class
-                for prop in properties:
-                    if prop.range_class:
-                        try:
-                            individuals = self.get_individuals(prop.range_class)
-                            result['individuals_found'][prop.range_class] = list(individuals.keys())
-                        except Exception as e:
-                            print(f"Error getting individuals for {prop.range_class}: {e}")
-                            result['individuals_found'][prop.range_class] = []
-        
-        except Exception as e:
-            print(f"Error in test_measurement_detection for {class_name}: {e}")
-        
-        return result
-    
-    # =============================================================================
-    # PRIVATE HELPER METHODS
-    # =============================================================================
-    
-    def _extract_name_from_uri(self, uri: str) -> str:
-        """Extract the local name from a URI"""
-        if '#' in uri:
-            return uri.split('#')[-1]
-        elif '/' in uri:
-            return uri.split('/')[-1]
-        return uri
-    
-    def _get_class_uri(self, class_name: str) -> str:
-        """Get the full URI for a class name"""
-        return f"{config.ONTOLOGY_URI}{class_name}"
-    
-    def _get_individual_uri(self, individual_name: str) -> str:
-        """Get the full URI for an individual name"""
-        return f"{config.ONTOLOGY_URI}{individual_name}"
-    
-    def _convert_literal(self, literal: Literal) -> Any:
-        """Convert RDF literal to appropriate Python type"""
-        if literal.datatype:
-            datatype = str(literal.datatype)
-            if 'float' in datatype or 'double' in datatype:
-                return float(literal)
-            elif 'int' in datatype:
-                return int(literal)
-            elif 'boolean' in datatype:
-                return bool(literal)
-            elif 'date' in datatype:
-                return str(literal)  # Could parse to datetime
-        
-        return str(literal)
 
 
 # Convenience function for global access

@@ -1,10 +1,7 @@
 """
 DynaMat Platform GUI Package
 
-File location: dynamat/gui/__init__.py
-
-This file makes the gui directory a proper Python package and provides
-convenient imports for the main GUI components.
+Updated to include all new GUI modules and handle import errors gracefully.
 """
 
 # Version information
@@ -15,6 +12,14 @@ try:
     from .app import DynaMatApp
 except ImportError:
     DynaMatApp = None
+
+# Ribbon menu
+try:
+    from .ribbon import RibbonMenu, RibbonButton, RibbonTab
+except ImportError:
+    RibbonMenu = None
+    RibbonButton = None
+    RibbonTab = None
 
 # Form classes
 try:
@@ -44,11 +49,20 @@ except ImportError:
     WidgetData = None
     WidgetState = None
 
+# Mechanical testing components
+try:
+    from .mechanical.test_selector import TestTypeSelector
+    from .mechanical.shpb_setup import SHPBConditionsForm
+except ImportError:
+    TestTypeSelector = None
+    SHPBConditionsForm = None
+
 # Convenience function to check if GUI is available
 def is_gui_available():
     """Check if all GUI components are available"""
     return all([
         DynaMatApp is not None,
+        RibbonMenu is not None,
         OntologyForm is not None,
         OntologyFormGenerator is not None,
         OntologyWidget is not None
@@ -57,6 +71,9 @@ def is_gui_available():
 # List of available components
 __all__ = [
     'DynaMatApp',
+    'RibbonMenu', 
+    'RibbonButton', 
+    'RibbonTab',
     'OntologyForm', 
     'OntologyFormGenerator', 
     'FormData', 
@@ -70,5 +87,7 @@ __all__ = [
     'BooleanWidget',
     'WidgetData', 
     'WidgetState',
+    'TestTypeSelector',
+    'SHPBConditionsForm',
     'is_gui_available'
 ]

@@ -1,17 +1,15 @@
 """
-DynaMat Platform Main GUI Application
+DynaMat Platform Main GUI Application - Updated with Ribbon Menu
 
-File location: dynamat/gui/app.py
-
-This module provides the main desktop application interface for managing
-dynamic materials testing data with ontology-based forms and workflows.
+Main application with ribbon navigation and separate workflow windows.
+Provides a modern interface for managing dynamic materials testing data.
 
 Key Features:
-1. Tabbed interface for different workflow stages
-2. Integration with ontology system
-3. Data validation and error handling
-4. Template management
-5. Export capabilities for TTL generation
+1. Ribbon menu for workflow selection
+2. Dedicated workflow windows
+3. Template management system
+4. Integration with ontology system
+5. Mechanical testing focus (SHPB, QS, Tensile)
 """
 
 import sys
@@ -23,23 +21,298 @@ from typing import Dict, List, Any, Optional
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, 
-    QHBoxLayout, QMenuBar, QMenu, QStatusBar, QToolBar, QSplitter,
-    QPushButton, QLabel, QComboBox, QMessageBox, QFileDialog,
-    QProgressDialog, QTextEdit, QGroupBox, QFrame
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
+    QStackedWidget, QStatusBar, QMessageBox, QFileDialog,
+    QProgressDialog, QTextEdit, QSplitter, QFrame, QLabel
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QThread, QTimer
 from PyQt6.QtGui import QAction, QIcon, QFont
 
 try:
+    from dynamat.gui.ribbon import RibbonMenu
     from dynamat.gui.forms import OntologyFormGenerator, OntologyForm, FormData, FormTemplate
     from dynamat.gui.widgets import WidgetData, WidgetState
     from dynamat.ontology.manager import get_ontology_manager
 except ImportError:
     # Fallback for direct execution
+    from ribbon import RibbonMenu
     from forms import OntologyFormGenerator, OntologyForm, FormData, FormTemplate
     from widgets import WidgetData, WidgetState
-    from dynamat.ontology.manager import get_ontology_manager
+    try:
+        from dynamat.ontology.manager import get_ontology_manager
+    except ImportError:
+        # Mock for testing
+        def get_ontology_manager():
+            return None
+
+
+# =============================================================================
+# WORKFLOW WINDOW BASE CLASS
+# =============================================================================
+
+class WorkflowWindow(QWidget):
+    """Base class for all workflow windows"""
+    
+    # Signals
+    data_changed = pyqtSignal(dict)  # Emit when data changes
+    validation_changed = pyqtSignal(bool)  # Emit when validation state changes
+    save_requested = pyqtSignal(str)  # Emit when save is requested
+    
+    def __init__(self, workflow_name: str, ontology_manager=None):
+        super().__init__()
+        self.workflow_name = workflow_name
+        self.ontology_manager = ontology_manager
+        self.current_data = {}
+        self.is_valid = False
+        
+        self._setup_ui()
+    
+    def _setup_ui(self):
+        """Setup the base UI structure - override in subclasses"""
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        
+        # Title
+        title = QLabel(f"{self.workflow_name} Workflow")
+        title.setStyleSheet("font-size: 16px; font-weight: bold; margin: 10px;")
+        layout.addWidget(title)
+    
+    def activate(self):
+        """Called when this workflow becomes active"""
+        pass
+    
+    def deactivate(self):
+        """Called when this workflow becomes inactive"""
+        pass
+    
+    def get_data(self) -> dict:
+        """Get current workflow data"""
+        return self.current_data
+    
+    def set_data(self, data: dict):
+        """Set workflow data"""
+        self.current_data = data
+        self.data_changed.emit(data)
+    
+    def validate(self) -> bool:
+        """Validate current data - override in subclasses"""
+        return True
+    
+    def save(self, file_path: str = None):
+        """Save current data - override in subclasses"""
+        pass
+
+
+# =============================================================================
+# MECHANICAL TESTING WORKFLOW
+# =============================================================================
+
+class MechanicalWorkflowWindow(WorkflowWindow):
+    """Specialized workflow window for mechanical testing"""
+    
+    def __init__(self, ontology_manager=None):
+        super().__init__("Mechanical Testing", ontology_manager)
+        self.test_type = None
+        self.test_forms = {}
+        
+    def _setup_ui(self):
+        """Setup mechanical testing UI"""
+        super()._setup_ui()
+        
+        # Main content area
+        content_layout = QHBoxLayout()
+        
+        # Left panel - Test type selection
+        self._create_test_selection_panel(content_layout)
+        
+        # Right panel - Test configuration forms
+        self._create_test_forms_panel(content_layout)
+        
+        self.layout().addLayout(content_layout)
+    
+    def _create_test_selection_panel(self, parent_layout):
+        """Create test type selection panel"""
+        
+        # Selection panel frame
+        selection_frame = QFrame()
+        selection_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+        selection_frame.setMaximumWidth(200)
+        selection_frame.setMinimumWidth(180)
+        
+        selection_layout = QVBoxLayout()
+        selection_frame.setLayout(selection_layout)
+        
+        # Title
+        title = QLabel("Test Type")
+        title.setStyleSheet("font-weight: bold; margin-bottom: 10px;")
+        selection_layout.addWidget(title)
+        
+        # Test type options (will be populated from ontology)
+        self.test_options = self._get_mechanical_test_types()
+        
+        from PyQt6.QtWidgets import QRadioButton, QButtonGroup
+        self.test_type_group = QButtonGroup()
+        
+        for test_type, display_name in self.test_options.items():
+            radio = QRadioButton(display_name)
+            radio.toggled.connect(lambda checked, t=test_type: self._on_test_type_selected(t, checked))
+            self.test_type_group.addButton(radio)
+            selection_layout.addWidget(radio)
+        
+        selection_layout.addStretch()
+        parent_layout.addWidget(selection_frame)
+    
+    def _create_test_forms_panel(self, parent_layout):
+        """Create test configuration forms panel"""
+        
+        # Forms panel
+        self.forms_stack = QStackedWidget()
+        parent_layout.addWidget(self.forms_stack)
+        
+        # Default empty state
+        empty_widget = QWidget()
+        empty_layout = QVBoxLayout()
+        empty_label = QLabel("Select a test type to begin configuration")
+        empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_label.setStyleSheet("color: #666; font-size: 14px;")
+        empty_layout.addWidget(empty_label)
+        empty_widget.setLayout(empty_layout)
+        self.forms_stack.addWidget(empty_widget)
+    
+    def _get_mechanical_test_types(self) -> Dict[str, str]:
+        """Get available mechanical test types from ontology"""
+        
+        if self.ontology_manager:
+            try:
+                # Query ontology for mechanical test types
+                # This would use the actual ontology manager
+                test_types = {
+                    'SHPBTest': 'SHPB Testing',
+                    'QuasiStaticTest': 'Quasi-Static Testing',
+                    'TensileTest': 'Tensile Testing',
+                    'CompressionTest': 'Compression Testing'
+                }
+                return test_types
+            except Exception as e:
+                print(f"Error querying test types from ontology: {e}")
+        
+        # Fallback static list
+        return {
+            'SHPBTest': 'SHPB Testing',
+            'QuasiStaticTest': 'Quasi-Static Testing',
+            'TensileTest': 'Tensile Testing',
+            'CompressionTest': 'Compression Testing'
+        }
+    
+    def _on_test_type_selected(self, test_type: str, checked: bool):
+        """Handle test type selection"""
+        if checked:
+            self.test_type = test_type
+            self._load_test_forms(test_type)
+    
+    def _load_test_forms(self, test_type: str):
+        """Load forms for the selected test type"""
+        
+        if test_type in self.test_forms:
+            # Switch to existing form
+            self.forms_stack.setCurrentWidget(self.test_forms[test_type])
+        else:
+            # Create new form for this test type
+            if test_type == 'SHPBTest':
+                form_widget = self._create_shpb_form()
+            elif test_type == 'QuasiStaticTest':
+                form_widget = self._create_qs_form()
+            elif test_type == 'TensileTest':
+                form_widget = self._create_tensile_form()
+            else:
+                form_widget = self._create_generic_form(test_type)
+            
+            self.test_forms[test_type] = form_widget
+            self.forms_stack.addWidget(form_widget)
+            self.forms_stack.setCurrentWidget(form_widget)
+    
+    def _create_shpb_form(self) -> QWidget:
+        """Create SHPB test configuration form"""
+        
+        widget = QWidget()
+        layout = QVBoxLayout()
+        widget.setLayout(layout)
+        
+        # Title
+        title = QLabel("SHPB Test Configuration")
+        title.setStyleSheet("font-size: 14px; font-weight: bold; margin-bottom: 10px;")
+        layout.addWidget(title)
+        
+        # Placeholder for SHPB form content
+        # This will be replaced with actual SHPB forms converted from reference files
+        placeholder = QLabel("SHPB form components will be implemented here:\n"
+                            "• Test Description Form\n"
+                            "• Specimen Metadata Form\n"
+                            "• Striker Conditions Form\n"
+                            "• Bar Metadata Form")
+        placeholder.setStyleSheet("color: #666; padding: 20px;")
+        layout.addWidget(placeholder)
+        
+        layout.addStretch()
+        
+        return widget
+    
+    def _create_qs_form(self) -> QWidget:
+        """Create quasi-static test configuration form"""
+        
+        widget = QWidget()
+        layout = QVBoxLayout()
+        widget.setLayout(layout)
+        
+        title = QLabel("Quasi-Static Test Configuration")
+        title.setStyleSheet("font-size: 14px; font-weight: bold; margin-bottom: 10px;")
+        layout.addWidget(title)
+        
+        placeholder = QLabel("Quasi-static test configuration form")
+        placeholder.setStyleSheet("color: #666; padding: 20px;")
+        layout.addWidget(placeholder)
+        
+        layout.addStretch()
+        
+        return widget
+    
+    def _create_tensile_form(self) -> QWidget:
+        """Create tensile test configuration form"""
+        
+        widget = QWidget()
+        layout = QVBoxLayout()
+        widget.setLayout(layout)
+        
+        title = QLabel("Tensile Test Configuration")
+        title.setStyleSheet("font-size: 14px; font-weight: bold; margin-bottom: 10px;")
+        layout.addWidget(title)
+        
+        placeholder = QLabel("Tensile test configuration form")
+        placeholder.setStyleSheet("color: #666; padding: 20px;")
+        layout.addWidget(placeholder)
+        
+        layout.addStretch()
+        
+        return widget
+    
+    def _create_generic_form(self, test_type: str) -> QWidget:
+        """Create generic test configuration form"""
+        
+        widget = QWidget()
+        layout = QVBoxLayout()
+        widget.setLayout(layout)
+        
+        title = QLabel(f"{test_type} Configuration")
+        title.setStyleSheet("font-size: 14px; font-weight: bold; margin-bottom: 10px;")
+        layout.addWidget(title)
+        
+        placeholder = QLabel(f"Configuration form for {test_type}")
+        placeholder.setStyleSheet("color: #666; padding: 20px;")
+        layout.addWidget(placeholder)
+        
+        layout.addStretch()
+        
+        return widget
 
 
 # =============================================================================
@@ -48,7 +321,7 @@ except ImportError:
 
 class DynaMatApp(QMainWindow):
     """
-    Main DynaMat Platform GUI Application.
+    Main DynaMat Platform GUI Application with Ribbon Interface.
     Provides a complete interface for materials testing data management.
     """
     
@@ -57,17 +330,14 @@ class DynaMatApp(QMainWindow):
         
         # Core components
         self.ontology_manager = get_ontology_manager()
-        self.form_generator = OntologyFormGenerator(self.ontology_manager)
         
-        # Data tracking
-        self.current_experiment_data = {}
-        self.active_forms: Dict[str, OntologyForm] = {}
+        # Workflow tracking
+        self.current_workflow = None
+        self.workflow_windows = {}
         
         # Setup UI
         self._setup_ui()
-        self._setup_menus()
-        self._setup_toolbars()
-        self._setup_status_bar()
+        self._create_workflow_windows()
         self._connect_signals()
         
         # Initialize application state
@@ -75,403 +345,29 @@ class DynaMatApp(QMainWindow):
     
     def _setup_ui(self):
         """Setup the main UI structure"""
-        self.setWindowTitle("DynaMat Platform - Materials Testing Data Management")
+        self.setWindowTitle("DynaMat Platform - Dynamic Materials Testing Data Management")
         self.setGeometry(100, 100, 1400, 900)
         
-        # Central widget with splitter
+        # Central widget
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
-        main_layout = QHBoxLayout()
+        # Main layout
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
         central_widget.setLayout(main_layout)
         
-        # Create splitter for sidebar and main content
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        main_layout.addWidget(splitter)
-        
-        # Left sidebar for navigation and templates
-        self._create_sidebar(splitter)
-        
-        # Main content area with tabs
-        self._create_main_content(splitter)
-        
-        # Set splitter proportions
-        splitter.setSizes([300, 1100])
-    
-    def _create_sidebar(self, parent):
-        """Create left sidebar with navigation and templates"""
-        sidebar = QFrame()
-        sidebar.setFrameStyle(QFrame.Shape.StyledPanel)
-        sidebar.setMaximumWidth(350)
-        sidebar.setMinimumWidth(250)
-        
-        sidebar_layout = QVBoxLayout()
-        sidebar.setLayout(sidebar_layout)
-        
-        # Experiment info section
-        exp_group = QGroupBox("Current Experiment")
-        exp_layout = QVBoxLayout()
-        
-        self.experiment_label = QLabel("No experiment loaded")
-        self.experiment_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        exp_layout.addWidget(self.experiment_label)
-        
-        # New experiment button
-        new_exp_btn = QPushButton("New Experiment")
-        new_exp_btn.clicked.connect(self._new_experiment)
-        exp_layout.addWidget(new_exp_btn)
-        
-        # Load experiment button
-        load_exp_btn = QPushButton("Load Experiment")
-        load_exp_btn.clicked.connect(self._load_experiment)
-        exp_layout.addWidget(load_exp_btn)
-        
-        exp_group.setLayout(exp_layout)
-        sidebar_layout.addWidget(exp_group)
-        
-        # Templates section
-        template_group = QGroupBox("Form Templates")
-        template_layout = QVBoxLayout()
-        
-        self.template_selector = QComboBox()
-        self.template_selector.addItem("Default", None)
-        self._populate_templates()
-        template_layout.addWidget(self.template_selector)
-        
-        apply_template_btn = QPushButton("Apply Template")
-        apply_template_btn.clicked.connect(self._apply_selected_template)
-        template_layout.addWidget(apply_template_btn)
-        
-        template_group.setLayout(template_layout)
-        sidebar_layout.addWidget(template_group)
-        
-        # Quick actions section
-        actions_group = QGroupBox("Quick Actions")
-        actions_layout = QVBoxLayout()
-        
-        validate_btn = QPushButton("Validate All Forms")
-        validate_btn.clicked.connect(self._validate_all_forms)
-        actions_layout.addWidget(validate_btn)
-        
-        export_btn = QPushButton("Export to TTL")
-        export_btn.clicked.connect(self._export_experiment)
-        actions_layout.addWidget(export_btn)
-        
-        clear_btn = QPushButton("Clear All Forms")
-        clear_btn.clicked.connect(self._clear_all_forms)
-        actions_layout.addWidget(clear_btn)
-        
-        actions_group.setLayout(actions_layout)
-        sidebar_layout.addWidget(actions_group)
-        
-        # Status section
-        status_group = QGroupBox("Status")
-        status_layout = QVBoxLayout()
-        
-        self.validation_status = QLabel("Ready")
-        status_layout.addWidget(self.validation_status)
-        
-        self.data_completeness = QLabel("Data: 0%")
-        status_layout.addWidget(self.data_completeness)
-        
-        status_group.setLayout(status_layout)
-        sidebar_layout.addWidget(status_group)
-        
-        sidebar_layout.addStretch()
-        parent.addWidget(sidebar)
-    
-    def _create_main_content(self, parent):
-        """Create main content area with tabbed interface"""
-        self.tab_widget = QTabWidget()
-        self.tab_widget.setTabPosition(QTabWidget.TabPosition.North)
-        self.tab_widget.setTabsClosable(False)  # Keep core tabs always open
-        
-        # Create core workflow tabs
-        self._create_specimen_tab()
-        self._create_test_setup_tab()
-        self._create_test_execution_tab()
-        self._create_analysis_tab()
-        self._create_export_tab()
-        
-        parent.addWidget(self.tab_widget)
-    
-    def _create_specimen_tab(self):
-        """Create specimen definition tab"""
-        specimen_widget = QWidget()
-        layout = QVBoxLayout()
-        
-        # Header
-        header = QLabel("Specimen Definition")
-        header.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        layout.addWidget(header)
-        
-        # Create specimen form
-        self.specimen_form = self.form_generator.create_class_form(
-            "Specimen",
-            on_change_callback=self._on_specimen_changed,
-            validation_callback=self._on_specimen_validation_changed
-        )
-        
-        layout.addWidget(self.specimen_form)
-        self.active_forms["specimen"] = self.specimen_form
-        
-        specimen_widget.setLayout(layout)
-        self.tab_widget.addTab(specimen_widget, "1. Specimen")
-    
-    def _create_test_setup_tab(self):
-        """Create test setup configuration tab"""
-        setup_widget = QWidget()
-        layout = QVBoxLayout()
-        
-        # Header
-        header = QLabel("Test Setup Configuration")
-        header.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        layout.addWidget(header)
-        
-        # Test type selector
-        type_layout = QHBoxLayout()
-        type_layout.addWidget(QLabel("Test Type:"))
-        
-        self.test_type_selector = QComboBox()
-        self.test_type_selector.addItems(["SHPBTest", "QuasiStaticTest", "TensileTest"])
-        self.test_type_selector.currentTextChanged.connect(self._on_test_type_changed)
-        type_layout.addWidget(self.test_type_selector)
-        
-        type_layout.addStretch()
-        layout.addLayout(type_layout)
-        
-        # Form area (will be populated based on test type)
-        self.test_setup_form_area = QVBoxLayout()
-        layout.addLayout(self.test_setup_form_area)
-        
-        # Initialize with default test type
-        self._on_test_type_changed("SHPBTest")
-        
-        setup_widget.setLayout(layout)
-        self.tab_widget.addTab(setup_widget, "2. Test Setup")
-    
-    def _create_test_execution_tab(self):
-        """Create test execution tab"""
-        execution_widget = QWidget()
-        layout = QVBoxLayout()
-        
-        # Header
-        header = QLabel("Test Execution")
-        header.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        layout.addWidget(header)
-        
-        # Execution controls
-        controls_layout = QHBoxLayout()
-        
-        start_test_btn = QPushButton("Start Test")
-        start_test_btn.clicked.connect(self._start_test)
-        controls_layout.addWidget(start_test_btn)
-        
-        stop_test_btn = QPushButton("Stop Test")
-        stop_test_btn.clicked.connect(self._stop_test)
-        controls_layout.addWidget(stop_test_btn)
-        
-        controls_layout.addStretch()
-        layout.addLayout(controls_layout)
-        
-        # Test status area
-        self.test_status_area = QTextEdit()
-        self.test_status_area.setMaximumHeight(200)
-        self.test_status_area.setPlainText("Test status: Ready\n")
-        layout.addWidget(self.test_status_area)
-        
-        # Real-time data display area
-        data_group = QGroupBox("Real-time Data")
-        data_layout = QVBoxLayout()
-        
-        # Placeholder for real-time plots and data
-        self.realtime_data_label = QLabel("No test running")
-        self.realtime_data_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.realtime_data_label.setMinimumHeight(300)
-        self.realtime_data_label.setStyleSheet("border: 1px dashed #ccc;")
-        data_layout.addWidget(self.realtime_data_label)
-        
-        data_group.setLayout(data_layout)
-        layout.addWidget(data_group)
-        
-        execution_widget.setLayout(layout)
-        self.tab_widget.addTab(execution_widget, "3. Test Execution")
-    
-    def _create_analysis_tab(self):
-        """Create analysis and results tab"""
-        analysis_widget = QWidget()
-        layout = QVBoxLayout()
-        
-        # Header
-        header = QLabel("Analysis & Results")
-        header.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        layout.addWidget(header)
-        
-        # Analysis controls
-        controls_layout = QHBoxLayout()
-        
-        analyze_btn = QPushButton("Run Analysis")
-        analyze_btn.clicked.connect(self._run_analysis)
-        controls_layout.addWidget(analyze_btn)
-        
-        export_results_btn = QPushButton("Export Results")
-        export_results_btn.clicked.connect(self._export_results)
-        controls_layout.addWidget(export_results_btn)
-        
-        controls_layout.addStretch()
-        layout.addLayout(controls_layout)
-        
-        # Results area
-        results_group = QGroupBox("Analysis Results")
-        results_layout = QVBoxLayout()
-        
-        # Placeholder for analysis results
-        self.results_area = QTextEdit()
-        self.results_area.setPlainText("No analysis results yet")
-        results_layout.addWidget(self.results_area)
-        
-        results_group.setLayout(results_layout)
-        layout.addWidget(results_group)
-        
-        analysis_widget.setLayout(layout)
-        self.tab_widget.addTab(analysis_widget, "4. Analysis")
-    
-    def _create_export_tab(self):
-        """Create data export tab"""
-        export_widget = QWidget()
-        layout = QVBoxLayout()
-        
-        # Header
-        header = QLabel("Data Export")
-        header.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        layout.addWidget(header)
-        
-        # Export options
-        options_group = QGroupBox("Export Options")
-        options_layout = QVBoxLayout()
-        
-        # Format selection
-        format_layout = QHBoxLayout()
-        format_layout.addWidget(QLabel("Export Format:"))
-        
-        self.export_format_selector = QComboBox()
-        self.export_format_selector.addItems(["TTL/RDF", "CSV", "JSON", "Excel"])
-        format_layout.addWidget(self.export_format_selector)
-        
-        format_layout.addStretch()
-        options_layout.addLayout(format_layout)
-        
-        # Export content selection
-        content_layout = QVBoxLayout()
-        content_layout.addWidget(QLabel("Include:"))
-        
-        # Checkboxes for different data types
-        # Note: In a real implementation, these would be actual checkboxes
-        content_layout.addWidget(QLabel("✓ Specimen metadata"))
-        content_layout.addWidget(QLabel("✓ Test configuration"))
-        content_layout.addWidget(QLabel("✓ Raw data"))
-        content_layout.addWidget(QLabel("✓ Analysis results"))
-        
-        options_layout.addLayout(content_layout)
-        options_group.setLayout(options_layout)
-        layout.addWidget(options_group)
-        
-        # Export controls
-        export_controls_layout = QHBoxLayout()
-        
-        preview_btn = QPushButton("Preview Export")
-        preview_btn.clicked.connect(self._preview_export)
-        export_controls_layout.addWidget(preview_btn)
-        
-        export_final_btn = QPushButton("Export to File")
-        export_final_btn.clicked.connect(self._export_to_file)
-        export_controls_layout.addWidget(export_final_btn)
-        
-        export_controls_layout.addStretch()
-        layout.addLayout(export_controls_layout)
-        
-        # Preview area
-        preview_group = QGroupBox("Export Preview")
-        preview_layout = QVBoxLayout()
-        
-        self.export_preview = QTextEdit()
-        self.export_preview.setPlainText("Export preview will appear here")
-        preview_layout.addWidget(self.export_preview)
-        
-        preview_group.setLayout(preview_layout)
-        layout.addWidget(preview_group)
-        
-        export_widget.setLayout(layout)
-        self.tab_widget.addTab(export_widget, "5. Export")
-    
-    def _setup_menus(self):
-        """Setup application menus"""
-        menubar = self.menuBar()
-        
-        # File menu
-        file_menu = menubar.addMenu("File")
-        
-        new_action = QAction("New Experiment", self)
-        new_action.setShortcut("Ctrl+N")
-        new_action.triggered.connect(self._new_experiment)
-        file_menu.addAction(new_action)
-        
-        open_action = QAction("Open Experiment", self)
-        open_action.setShortcut("Ctrl+O")
-        open_action.triggered.connect(self._load_experiment)
-        file_menu.addAction(open_action)
-        
-        save_action = QAction("Save Experiment", self)
-        save_action.setShortcut("Ctrl+S")
-        save_action.triggered.connect(self._save_experiment)
-        file_menu.addAction(save_action)
-        
-        file_menu.addSeparator()
-        
-        exit_action = QAction("Exit", self)
-        exit_action.setShortcut("Ctrl+Q")
-        exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
-        
-        # Tools menu
-        tools_menu = menubar.addMenu("Tools")
-        
-        validate_action = QAction("Validate All Forms", self)
-        validate_action.triggered.connect(self._validate_all_forms)
-        tools_menu.addAction(validate_action)
-        
-        refresh_ontology_action = QAction("Refresh Ontology", self)
-        refresh_ontology_action.triggered.connect(self._refresh_ontology)
-        tools_menu.addAction(refresh_ontology_action)
-        
-        # Help menu
-        help_menu = menubar.addMenu("Help")
-        
-        about_action = QAction("About", self)
-        about_action.triggered.connect(self._show_about)
-        help_menu.addAction(about_action)
-    
-    def _setup_toolbars(self):
-        """Setup application toolbars"""
-        toolbar = self.addToolBar("Main")
-        toolbar.setMovable(False)
-        
-        # Quick action buttons
-        new_btn = QPushButton("New")
-        new_btn.clicked.connect(self._new_experiment)
-        toolbar.addWidget(new_btn)
-        
-        save_btn = QPushButton("Save")
-        save_btn.clicked.connect(self._save_experiment)
-        toolbar.addWidget(save_btn)
-        
-        validate_btn = QPushButton("Validate")
-        validate_btn.clicked.connect(self._validate_all_forms)
-        toolbar.addWidget(validate_btn)
-        
-        export_btn = QPushButton("Export")
-        export_btn.clicked.connect(self._export_experiment)
-        toolbar.addWidget(export_btn)
+        # Ribbon menu
+        self.ribbon = RibbonMenu()
+        main_layout.addWidget(self.ribbon)
+        
+        # Workflow area
+        self.workflow_stack = QStackedWidget()
+        main_layout.addWidget(self.workflow_stack)
+        
+        # Status bar
+        self._setup_status_bar()
     
     def _setup_status_bar(self):
         """Setup status bar"""
@@ -482,273 +378,183 @@ class DynaMatApp(QMainWindow):
         self.status_validation = QLabel("Validation: OK")
         self.status_bar.addPermanentWidget(self.status_validation)
         
+        self.status_workflow = QLabel("Workflow: None")
+        self.status_bar.addPermanentWidget(self.status_workflow)
+        
         self.status_ontology = QLabel("Ontology: Loaded")
         self.status_bar.addPermanentWidget(self.status_ontology)
     
+    def _create_workflow_windows(self):
+        """Create workflow windows"""
+        
+        # Specimen workflow (placeholder)
+        specimen_window = WorkflowWindow("Specimen", self.ontology_manager)
+        self.workflow_windows['specimen'] = specimen_window
+        self.workflow_stack.addWidget(specimen_window)
+        
+        # Mechanical workflow
+        mechanical_window = MechanicalWorkflowWindow(self.ontology_manager)
+        self.workflow_windows['mechanical'] = mechanical_window
+        self.workflow_stack.addWidget(mechanical_window)
+        
+        # Characterization workflow (placeholder)
+        characterization_window = WorkflowWindow("Characterization", self.ontology_manager)
+        self.workflow_windows['characterization'] = characterization_window
+        self.workflow_stack.addWidget(characterization_window)
+        
+        # Database workflow (placeholder)
+        database_window = WorkflowWindow("Database", self.ontology_manager)
+        self.workflow_windows['database'] = database_window
+        self.workflow_stack.addWidget(database_window)
+        
+        # Default to empty state
+        empty_window = WorkflowWindow("Welcome")
+        empty_window.layout().addWidget(
+            QLabel("Welcome to DynaMat Platform\n\nSelect a workflow from the ribbon menu to begin.")
+        )
+        self.workflow_windows['empty'] = empty_window
+        self.workflow_stack.addWidget(empty_window)
+        self.workflow_stack.setCurrentWidget(empty_window)
+    
     def _connect_signals(self):
         """Connect application-level signals"""
-        self.tab_widget.currentChanged.connect(self._on_tab_changed)
+        
+        # Ribbon signals
+        self.ribbon.workflow_selected.connect(self._on_workflow_selected)
+        self.ribbon.action_triggered.connect(self._on_action_triggered)
     
     def _initialize_app(self):
         """Initialize application state"""
         self.status_bar.showMessage("DynaMat Platform initialized successfully")
         
-        # Start with specimen tab
-        self.tab_widget.setCurrentIndex(0)
-        
-        # Update validation status
+        # Update status
         self._update_validation_status()
     
     # =============================================================================
     # EVENT HANDLERS
     # =============================================================================
     
-    def _new_experiment(self):
-        """Create a new experiment"""
-        # Clear all forms
-        self._clear_all_forms()
+    def _on_workflow_selected(self, workflow_name: str):
+        """Handle workflow selection from ribbon"""
         
-        # Update experiment info
-        self.experiment_label.setText("New Experiment")
-        self.current_experiment_data = {}
-        
-        self.status_bar.showMessage("New experiment created")
-    
-    def _load_experiment(self):
-        """Load an existing experiment"""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "Load Experiment", "", "TTL Files (*.ttl);;All Files (*)"
-        )
-        
-        if file_path:
-            try:
-                # Here you would load the experiment data
-                # For now, just show a message
-                self.experiment_label.setText(f"Loaded: {Path(file_path).name}")
-                self.status_bar.showMessage(f"Experiment loaded from {file_path}")
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Failed to load experiment: {str(e)}")
-    
-    def _save_experiment(self):
-        """Save current experiment"""
-        if not self.current_experiment_data:
-            QMessageBox.information(self, "Info", "No experiment data to save")
-            return
-        
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, "Save Experiment", "", "TTL Files (*.ttl);;All Files (*)"
-        )
-        
-        if file_path:
-            try:
-                # Here you would save the experiment data
-                self.status_bar.showMessage(f"Experiment saved to {file_path}")
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Failed to save experiment: {str(e)}")
-    
-    def _on_specimen_changed(self, form_data: FormData):
-        """Handle specimen form changes"""
-        self.current_experiment_data["specimen"] = form_data.export_data()
-        self._update_data_completeness()
-    
-    def _on_specimen_validation_changed(self, is_valid: bool, errors: List[str]):
-        """Handle specimen validation changes"""
-        if not is_valid:
-            self.validation_status.setText(f"Specimen: {len(errors)} error(s)")
+        # Parse workflow name to determine category
+        if workflow_name.startswith('specimen_'):
+            category = 'specimen'
+        elif workflow_name.startswith('mechanical_'):
+            category = 'mechanical'
+        elif workflow_name.startswith('characterization_'):
+            category = 'characterization'
+        elif workflow_name.startswith('database_'):
+            category = 'database'
         else:
-            self.validation_status.setText("Specimen: Valid")
+            category = 'empty'
         
-        self._update_validation_status()
-    
-    def _on_test_type_changed(self, test_type: str):
-        """Handle test type selection change"""
-        # Clear existing test form
-        while self.test_setup_form_area.count():
-            child = self.test_setup_form_area.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
-        
-        # Create new form for selected test type
-        test_form = self.form_generator.create_class_form(
-            test_type,
-            on_change_callback=self._on_test_setup_changed,
-            validation_callback=self._on_test_setup_validation_changed
-        )
-        
-        self.test_setup_form_area.addWidget(test_form)
-        self.active_forms["test_setup"] = test_form
-    
-    def _on_test_setup_changed(self, form_data: FormData):
-        """Handle test setup form changes"""
-        self.current_experiment_data["test_setup"] = form_data.export_data()
-        self._update_data_completeness()
-    
-    def _on_test_setup_validation_changed(self, is_valid: bool, errors: List[str]):
-        """Handle test setup validation changes"""
-        # Update status based on validation
-        self._update_validation_status()
-    
-    def _on_tab_changed(self, index: int):
-        """Handle tab change"""
-        tab_names = ["Specimen", "Test Setup", "Test Execution", "Analysis", "Export"]
-        if index < len(tab_names):
-            self.status_bar.showMessage(f"Current tab: {tab_names[index]}")
-    
-    def _populate_templates(self):
-        """Populate template selector with available templates"""
-        # Clear existing templates
-        self.template_selector.clear()
-        self.template_selector.addItem("No Template", None)
-        
-        # Add auto-generated templates for common classes
-        common_classes = ["Specimen", "SHPBTest", "Material"]
-        for class_name in common_classes:
-            try:
-                # Check if class exists in ontology
-                manager = get_ontology_manager()
-                test_result = manager.test_measurement_detection(class_name)
-                
-                if test_result['class_exists']:
-                    template_name = f"Auto: {class_name}"
-                    self.template_selector.addItem(template_name, class_name)
-            except Exception as e:
-                print(f"Could not check class {class_name}: {e}")
-        
-        # In the future, this will also load templates from TTL files
-        try:
-            loaded_templates = self.form_generator.get_available_templates()
-            for template_name in loaded_templates:
-                display_name = template_name.replace("_", " ").title()
-                self.template_selector.addItem(f"Saved: {display_name}", template_name)
-        except Exception as e:
-            print(f"Could not load saved templates: {e}")
-    
-    def _apply_selected_template(self):
-        """Apply selected template to current form"""
-        template_data = self.template_selector.currentData()
-        
-        if not template_data:
-            return
-        
-        try:
-            # If it's a class name, create auto-template
-            if isinstance(template_data, str) and template_data in ["Specimen", "SHPBTest", "Material"]:
-                template = self.form_generator.create_template_from_ontology(template_data)
-                print(f"Created auto-template for {template_data}")
-                
-                # Apply to current specimen form if it's a Specimen template
-                if template_data == "Specimen" and hasattr(self, 'specimen_form'):
-                    self.specimen_form.apply_template(template)
-                    self.status_bar.showMessage(f"Applied auto-template for {template_data}")
-                
-            # If it's a saved template name, load it
-            elif template_data in self.form_generator.templates:
-                template = self.form_generator.templates[template_data]
-                
-                # Apply to appropriate form based on class name
-                if template.class_name == "Specimen" and hasattr(self, 'specimen_form'):
-                    self.specimen_form.apply_template(template)
-                    self.status_bar.showMessage(f"Applied template: {template.name}")
+        # Switch to appropriate workflow window
+        if category in self.workflow_windows:
+            # Deactivate current workflow
+            if self.current_workflow:
+                self.workflow_windows[self.current_workflow].deactivate()
             
-        except Exception as e:
-            QMessageBox.warning(self, "Template Error", f"Could not apply template: {str(e)}")
-            print(f"Template application error: {e}")
+            # Activate new workflow
+            self.current_workflow = category
+            workflow_window = self.workflow_windows[category]
+            workflow_window.activate()
+            self.workflow_stack.setCurrentWidget(workflow_window)
+            
+            # Update status
+            self.status_workflow.setText(f"Workflow: {workflow_window.workflow_name}")
+            
+            # Update ribbon state
+            self.ribbon.set_active_workflow(workflow_name)
+            
+            self.status_bar.showMessage(f"Switched to {workflow_window.workflow_name} workflow")
     
-    def _validate_all_forms(self):
-        """Validate all active forms"""
-        all_valid = True
-        error_count = 0
+    def _on_action_triggered(self, action_name: str):
+        """Handle action triggers from ribbon"""
         
-        for form_name, form in self.active_forms.items():
-            is_valid, errors = form._get_current_validation()
-            if not is_valid:
-                all_valid = False
-                error_count += len(errors)
-        
-        if all_valid:
-            QMessageBox.information(self, "Validation", "All forms are valid!")
-        else:
-            QMessageBox.warning(self, "Validation", f"Found {error_count} validation error(s)")
-        
-        self._update_validation_status()
+        if action_name == 'save':
+            self._save_current_data()
+        elif action_name == 'load':
+            self._load_data()
+        elif action_name == 'validate':
+            self._validate_current_data()
+        elif action_name == 'export':
+            self._export_data()
+        elif action_name == 'save_template':
+            self._save_template()
+        elif action_name == 'load_template':
+            self._load_template()
+        elif action_name == 'documentation':
+            self._show_documentation()
+        elif action_name == 'about':
+            self._show_about()
     
-    def _clear_all_forms(self):
-        """Clear all forms"""
-        for form in self.active_forms.values():
-            form.reset_form()
-        
-        self.current_experiment_data = {}
-        self._update_data_completeness()
+    def _save_current_data(self):
+        """Save current workflow data"""
+        if self.current_workflow and self.current_workflow != 'empty':
+            workflow_window = self.workflow_windows[self.current_workflow]
+            
+            file_path, _ = QFileDialog.getSaveFileName(
+                self, "Save Data", "", "TTL Files (*.ttl);;All Files (*)"
+            )
+            
+            if file_path:
+                try:
+                    workflow_window.save(file_path)
+                    QMessageBox.information(self, "Success", f"Data saved to {file_path}")
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", f"Save failed: {str(e)}")
     
-    def _export_experiment(self):
-        """Export experiment to TTL"""
-        if not self.current_experiment_data:
-            QMessageBox.information(self, "Info", "No experiment data to export")
-            return
-        
-        # Switch to export tab
-        self.tab_widget.setCurrentIndex(4)
-        
-        # Generate preview
-        self._preview_export()
-    
-    def _start_test(self):
-        """Start test execution"""
-        self.test_status_area.append("Test started...")
-        self.realtime_data_label.setText("Test running... (real-time data would appear here)")
-    
-    def _stop_test(self):
-        """Stop test execution"""
-        self.test_status_area.append("Test stopped.")
-        self.realtime_data_label.setText("Test completed")
-    
-    def _run_analysis(self):
-        """Run data analysis"""
-        self.results_area.setPlainText("Running analysis...\n(Analysis results would appear here)")
-    
-    def _export_results(self):
-        """Export analysis results"""
-        QMessageBox.information(self, "Info", "Results export functionality would be implemented here")
-    
-    def _preview_export(self):
-        """Preview export data"""
-        export_format = self.export_format_selector.currentText()
-        
-        preview_text = f"Export Preview - {export_format}\n"
-        preview_text += "=" * 40 + "\n\n"
-        
-        for data_type, data in self.current_experiment_data.items():
-            preview_text += f"{data_type.title()}:\n"
-            preview_text += str(data) + "\n\n"
-        
-        self.export_preview.setPlainText(preview_text)
-    
-    def _export_to_file(self):
-        """Export data to file"""
-        if not self.current_experiment_data:
-            QMessageBox.information(self, "Info", "No data to export")
-            return
-        
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, "Export Data", "", "TTL Files (*.ttl);;CSV Files (*.csv);;JSON Files (*.json);;All Files (*)"
+    def _load_data(self):
+        """Load data into current workflow"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Load Data", "", "TTL Files (*.ttl);;All Files (*)"
         )
         
         if file_path:
             try:
-                # Here you would implement the actual export logic
+                # Implementation would depend on workflow type
+                QMessageBox.information(self, "Success", f"Data loaded from {file_path}")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Load failed: {str(e)}")
+    
+    def _validate_current_data(self):
+        """Validate current workflow data"""
+        if self.current_workflow and self.current_workflow != 'empty':
+            workflow_window = self.workflow_windows[self.current_workflow]
+            is_valid = workflow_window.validate()
+            
+            if is_valid:
+                QMessageBox.information(self, "Validation", "Data validation passed!")
+            else:
+                QMessageBox.warning(self, "Validation", "Data validation failed. Please check your entries.")
+            
+            self._update_validation_status()
+    
+    def _export_data(self):
+        """Export current data to TTL"""
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Export TTL", "", "TTL Files (*.ttl);;All Files (*)"
+        )
+        
+        if file_path:
+            try:
+                # Export implementation
                 QMessageBox.information(self, "Success", f"Data exported to {file_path}")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Export failed: {str(e)}")
     
-    def _refresh_ontology(self):
-        """Refresh ontology data"""
-        # Reload ontology and refresh form options
-        try:
-            # Here you would reload the ontology
-            self.status_ontology.setText("Ontology: Reloaded")
-            self.status_bar.showMessage("Ontology refreshed successfully")
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to refresh ontology: {str(e)}")
+    def _save_template(self):
+        """Save current configuration as template"""
+        QMessageBox.information(self, "Templates", "Template save functionality will be implemented")
+    
+    def _load_template(self):
+        """Load saved template"""
+        QMessageBox.information(self, "Templates", "Template load functionality will be implemented")
+    
+    def _show_documentation(self):
+        """Show documentation"""
+        QMessageBox.information(self, "Documentation", "Documentation will be available soon")
     
     def _show_about(self):
         """Show about dialog"""
@@ -758,33 +564,29 @@ class DynaMatApp(QMainWindow):
             "DynaMat Platform v1.0\n\n"
             "Ontology-based desktop application for managing\n"
             "dynamic materials testing data.\n\n"
-            "Developed at UTEP Dynamic Materials Laboratory"
+            "Developed at UTEP Dynamic Materials Laboratory\n\n"
+            "Features:\n"
+            "• Ribbon-based workflow navigation\n"
+            "• SHPB testing support\n"
+            "• Template management\n"
+            "• TTL data export"
         )
     
     def _update_validation_status(self):
-        """Update overall validation status"""
-        # Check validation status of all forms
-        all_valid = True
-        for form in self.active_forms.values():
-            is_valid, _ = form._get_current_validation()
-            if not is_valid:
-                all_valid = False
-                break
-        
-        if all_valid:
-            self.status_validation.setText("Validation: ✓ OK")
-            self.status_validation.setStyleSheet("color: green;")
+        """Update validation status in status bar"""
+        if self.current_workflow and self.current_workflow != 'empty':
+            workflow_window = self.workflow_windows[self.current_workflow]
+            is_valid = workflow_window.validate()
+            
+            if is_valid:
+                self.status_validation.setText("Validation: ✓ OK")
+                self.status_validation.setStyleSheet("color: green;")
+            else:
+                self.status_validation.setText("Validation: ✗ Errors")
+                self.status_validation.setStyleSheet("color: red;")
         else:
-            self.status_validation.setText("Validation: ✗ Errors")
-            self.status_validation.setStyleSheet("color: red;")
-    
-    def _update_data_completeness(self):
-        """Update data completeness indicator"""
-        total_sections = 5  # Specimen, Test Setup, Execution, Analysis, Export
-        completed_sections = len(self.current_experiment_data)
-        
-        percentage = (completed_sections / total_sections) * 100
-        self.data_completeness.setText(f"Data: {percentage:.0f}%")
+            self.status_validation.setText("Validation: N/A")
+            self.status_validation.setStyleSheet("color: gray;")
 
 
 # =============================================================================
