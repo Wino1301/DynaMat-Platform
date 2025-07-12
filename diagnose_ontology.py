@@ -185,21 +185,39 @@ def test_fixed_methods(manager):
                     units_str += f" (+{len(info['units'])-3} more)"
                 print(f"       - {name}: [{units_str}]")
         else:
-            print("     ⚠️  No measurement properties found (will use defaults)")
+            print("     ⚠️  No measurement properties found")
     
     except Exception as e:
         print(f"     ✗ Measurement path test failed: {e}")
     
     try:
-        print("   👥 Testing individual retrieval...")
-        materials = manager._get_default_individuals("Material")
-        print(f"     ✓ Default materials available: {len(materials)}")
+        print("   🧪 Testing specific class detection...")
+        specimen_test = manager.test_measurement_detection("Specimen")
+        print(f"     ✓ Specimen class exists: {specimen_test['class_exists']}")
+        print(f"     ✓ Properties found: {len(specimen_test['properties_found'])}")
+        if specimen_test['properties_found']:
+            for prop in specimen_test['properties_found'][:5]:  # Show first 5
+                print(f"       - {prop}")
         
-        structures = manager._get_default_individuals("Structure") 
-        print(f"     ✓ Default structures available: {len(structures)}")
+        print(f"     ✓ Measurements detected: {len(specimen_test['measurements_detected'])}")
+        
+        print(f"     ✓ Individual classes with instances:")
+        for class_name, individuals in specimen_test['individuals_found'].items():
+            if individuals:
+                print(f"       - {class_name}: {len(individuals)} instances")
         
     except Exception as e:
-        print(f"     ✗ Individual retrieval test failed: {e}")
+        print(f"     ✗ Class detection test failed: {e}")
+    
+    try:
+        print("   🔬 Testing SHPB class...")
+        shpb_test = manager.test_measurement_detection("SHPBTest")
+        print(f"     ✓ SHPBTest class exists: {shpb_test['class_exists']}")
+        print(f"     ✓ Properties found: {len(shpb_test['properties_found'])}")
+        print(f"     ✓ Measurements detected: {len(shpb_test['measurements_detected'])}")
+        
+    except Exception as e:
+        print(f"     ✗ SHPB test failed: {e}")
 
 if __name__ == "__main__":
     main()

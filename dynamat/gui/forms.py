@@ -1,6 +1,8 @@
 """
 DynaMat Platform Forms Module
 
+File location: dynamat/gui/forms.py
+
 This module builds complete forms using the reusable widgets from widgets.py.
 Provides automatic form generation from ontology schemas with integrated validation.
 
@@ -98,33 +100,10 @@ class OntologyFormGenerator:
         self._load_default_templates()
     
     def _load_default_templates(self):
-        """Load default form templates"""
-        # Example default templates - these could be loaded from files
-        specimen_template = FormTemplate(
-            name="Standard Specimen",
-            class_name="Specimen",
-            property_groups={
-                "Identification": ["hasIdentifier", "hasSpecimenRole"],
-                "Material": ["hasMaterial", "hasStructure"],
-                "Dimensions": ["OriginalLength", "OriginalWidth", "OriginalThickness"],
-                "Processing": ["hasProcessing", "hasHeatTreatment"]
-            },
-            required_properties=["hasIdentifier", "hasMaterial"]
-        )
-        self.templates["specimen_standard"] = specimen_template
-        
-        test_template = FormTemplate(
-            name="SHPB Test",
-            class_name="SHPBTest",
-            property_groups={
-                "Test Info": ["hasTestDate", "hasUser", "hasTestMode"],
-                "Equipment": ["hasStrikerBar", "hasInputBar", "hasOutputBar"],
-                "Conditions": ["StrikerVelocity", "TestTemperature", "StrainRate"],
-                "Results": ["MaxStress", "MaxStrain", "YieldStrength"]
-            },
-            required_properties=["hasTestDate", "hasUser"]
-        )
-        self.templates["shpb_test"] = test_template
+        """Load templates from ontology or external files"""
+        # Templates are now loaded from ontology or TTL files
+        # No hardcoded templates - this ensures we work with actual ontology structure
+        pass
     
     def create_class_form(
         self, 
@@ -168,9 +147,118 @@ class OntologyFormGenerator:
         
         return form
     
+    def create_template_from_ontology(self, class_name: str, template_name: str = None) -> FormTemplate:
+        """Create template by analyzing actual ontology properties"""
+        schema = self.ontology_manager.get_class_schema(class_name)
+        
+        if not template_name:
+            template_name = f"Auto-generated {class_name}"
+        
+        # Group properties by logical sections based on their characteristics
+        property_groups = {}
+        
+        # Group object properties by their range classes
+        for prop in schema.get('object_properties', []):
+            range_class = prop.get('range_class', 'Other')
+            
+            if 'material' in range_class.lower():
+                group_name = "Material Properties"
+            elif 'structure' in range_class.lower():
+                group_name = "Structure Properties"
+            elif 'shape' in range_class.lower():
+                group_name = "Shape Properties"
+            elif 'user' in range_class.lower() or 'role' in range_class.lower():
+                group_name = "Identification"
+            else:
+                group_name = "Relationships"
+            
+            if group_name not in property_groups:
+                property_groups[group_name] = []
+            property_groups[group_name].append(prop['name'])
+        
+        # Add measurement properties to their own group
+        if schema.get('measurement_properties'):
+            property_groups["Measurements"] = [prop['name'] for prop in schema['measurement_properties']]
+        
+        # Add data properties
+        if schema.get('data_properties'):
+            property_groups["Data Properties"] = [prop['name'] for prop in schema['data_properties']]
+        
+        # Remove empty groups
+        property_groups = {k: v for k, v in property_groups.items() if v}
+        
+        return FormTemplate(
+            name=template_name,
+            class_name=class_name,
+            property_groups=property_groups,
+            required_properties=[],  # Could be determined from ontology constraints later
+            default_values={}        # Could be loaded from template TTL files later
+        )
+    
+    def analyze_template_coverage(self, template: FormTemplate) -> Dict[str, Any]:
+        """Analyze how well a template covers the actual ontology properties"""
+        schema = self.ontology_manager.get_class_schema(template.class_name)
+        
+        analysis = {
+            'template_name': template.name,
+            'class_name': template.class_name,
+            'ontology_properties': {
+                'object_properties': [prop['name'] for prop in schema.get('object_properties', [])],
+                'measurement_properties': [prop['name'] for prop in schema.get('measurement_properties', [])],
+                'data_properties': [prop['name'] for prop in schema.get('data_properties', [])]
+            },
+            'template_properties': [],
+            'coverage': {
+                'covered': [],
+                'missing_from_template': [],
+                'extra_in_template': []
+            }
+        }
+        
+        # Get all properties mentioned in template
+        for group_props in template.property_groups.values():
+            analysis['template_properties'].extend(group_props)
+        
+        # Flatten all ontology properties
+        all_ontology_props = (
+            analysis['ontology_properties']['object_properties'] +
+            analysis['ontology_properties']['measurement_properties'] +
+            analysis['ontology_properties']['data_properties']
+        )
+        
+        # Analyze coverage
+        analysis['coverage']['covered'] = [
+            prop for prop in analysis['template_properties'] 
+            if prop in all_ontology_props
+        ]
+        
+        analysis['coverage']['missing_from_template'] = [
+            prop for prop in all_ontology_props 
+            if prop not in analysis['template_properties']
+        ]
+        
+        analysis['coverage']['extra_in_template'] = [
+            prop for prop in analysis['template_properties'] 
+            if prop not in all_ontology_props
+        ]
+        
+        return analysis
+    
     def register_template(self, template: FormTemplate):
         """Register a new form template"""
         self.templates[template.name.lower().replace(" ", "_")] = template
+    
+    def load_template_from_ttl(self, ttl_file_path: Path) -> Optional[FormTemplate]:
+        """Load template from TTL file - placeholder for future implementation"""
+        # This will be implemented when we add TTL-based template storage
+        # For now, just return None to indicate no template loaded
+        return None
+    
+    def save_template_to_ttl(self, template: FormTemplate, ttl_file_path: Path) -> bool:
+        """Save template to TTL file - placeholder for future implementation"""
+        # This will be implemented when we add TTL-based template storage
+        # For now, just return False to indicate save failed
+        return False
     
     def get_available_templates(self, class_name: str = None) -> List[str]:
         """Get available templates, optionally filtered by class"""

@@ -1,6 +1,8 @@
 """
 DynaMat Platform Main GUI Application
 
+File location: dynamat/gui/app.py
+
 This module provides the main desktop application interface for managing
 dynamic materials testing data with ontology-based forms and workflows.
 
@@ -203,10 +205,9 @@ class DynaMatApp(QMainWindow):
         header.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         layout.addWidget(header)
         
-        # Form
+        # Create specimen form
         self.specimen_form = self.form_generator.create_class_form(
             "Specimen",
-            template_name="specimen_standard",
             on_change_callback=self._on_specimen_changed,
             validation_callback=self._on_specimen_validation_changed
         )
@@ -594,18 +595,64 @@ class DynaMatApp(QMainWindow):
             self.status_bar.showMessage(f"Current tab: {tab_names[index]}")
     
     def _populate_templates(self):
-        """Populate template selector"""
-        templates = self.form_generator.get_available_templates()
-        for template_name in templates:
-            self.template_selector.addItem(template_name.replace("_", " ").title(), template_name)
+        """Populate template selector with available templates"""
+        # Clear existing templates
+        self.template_selector.clear()
+        self.template_selector.addItem("No Template", None)
+        
+        # Add auto-generated templates for common classes
+        common_classes = ["Specimen", "SHPBTest", "Material"]
+        for class_name in common_classes:
+            try:
+                # Check if class exists in ontology
+                manager = get_ontology_manager()
+                test_result = manager.test_measurement_detection(class_name)
+                
+                if test_result['class_exists']:
+                    template_name = f"Auto: {class_name}"
+                    self.template_selector.addItem(template_name, class_name)
+            except Exception as e:
+                print(f"Could not check class {class_name}: {e}")
+        
+        # In the future, this will also load templates from TTL files
+        try:
+            loaded_templates = self.form_generator.get_available_templates()
+            for template_name in loaded_templates:
+                display_name = template_name.replace("_", " ").title()
+                self.template_selector.addItem(f"Saved: {display_name}", template_name)
+        except Exception as e:
+            print(f"Could not load saved templates: {e}")
     
     def _apply_selected_template(self):
         """Apply selected template to current form"""
-        template_name = self.template_selector.currentData()
-        if template_name and hasattr(self, 'specimen_form'):
-            # Apply template to specimen form (or current active form)
-            # This would need to be expanded for different form types
-            pass
+        template_data = self.template_selector.currentData()
+        
+        if not template_data:
+            return
+        
+        try:
+            # If it's a class name, create auto-template
+            if isinstance(template_data, str) and template_data in ["Specimen", "SHPBTest", "Material"]:
+                template = self.form_generator.create_template_from_ontology(template_data)
+                print(f"Created auto-template for {template_data}")
+                
+                # Apply to current specimen form if it's a Specimen template
+                if template_data == "Specimen" and hasattr(self, 'specimen_form'):
+                    self.specimen_form.apply_template(template)
+                    self.status_bar.showMessage(f"Applied auto-template for {template_data}")
+                
+            # If it's a saved template name, load it
+            elif template_data in self.form_generator.templates:
+                template = self.form_generator.templates[template_data]
+                
+                # Apply to appropriate form based on class name
+                if template.class_name == "Specimen" and hasattr(self, 'specimen_form'):
+                    self.specimen_form.apply_template(template)
+                    self.status_bar.showMessage(f"Applied template: {template.name}")
+            
+        except Exception as e:
+            QMessageBox.warning(self, "Template Error", f"Could not apply template: {str(e)}")
+            print(f"Template application error: {e}")
     
     def _validate_all_forms(self):
         """Validate all active forms"""
