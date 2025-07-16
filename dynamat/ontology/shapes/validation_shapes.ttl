@@ -1,0 +1,531 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix dyn: <https://github.com/Wino1301/DynaMat-Platform/ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+# DynaMat Platform Core SHACL Shapes
+# Location: dynamat/ontology/shapes/validation_shapes.ttl
+# 
+# These shapes define validation rules for core classes and enable
+# automatic GUI form generation with proper constraints.
+
+# =============================================================================
+# PROPERTY GROUPS (for organizing form sections)
+# =============================================================================
+
+dyn:IdentificationGroup
+    a sh:PropertyGroup ;
+    rdfs:label "Identification" ;
+    rdfs:comment "Basic identification and naming properties" ;
+    sh:order 1 .
+
+dyn:MaterialGroup
+    a sh:PropertyGroup ;
+    rdfs:label "Material Properties" ;
+    rdfs:comment "Material composition and characteristics" ;
+    sh:order 2 .
+
+dyn:GeometryGroup
+    a sh:PropertyGroup ;
+    rdfs:label "Geometry & Dimensions" ;
+    rdfs:comment "Physical dimensions and geometric properties" ;
+    sh:order 3 .
+
+dyn:TestConditionsGroup
+    a sh:PropertyGroup ;
+    rdfs:label "Test Conditions" ;
+    rdfs:comment "Testing parameters and environmental conditions" ;
+    sh:order 4 .
+
+dyn:EquipmentGroup
+    a sh:PropertyGroup ;
+    rdfs:label "Equipment Setup" ;
+    rdfs:comment "Equipment configuration and settings" ;
+    sh:order 5 .
+
+dyn:DataGroup
+    a sh:PropertyGroup ;
+    rdfs:label "Data & Results" ;
+    rdfs:comment "Measurement data and analysis results" ;
+    sh:order 6 .
+
+# =============================================================================
+# SPECIMEN SHAPE
+# =============================================================================
+
+dyn:SpecimenShape
+    a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    rdfs:label "Specimen Data Entry Form" ;
+    rdfs:comment "Validation and form generation for specimen metadata" ;
+    
+    # Specimen ID (required)
+    sh:property [
+        sh:path dyn:hasName ;
+        rdfs:label "Specimen ID" ;
+        rdfs:comment "Unique identifier for this specimen (e.g., SPN-AL001-001)" ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "^SPN-[A-Z0-9]+-[0-9]+$" ;
+        sh:group dyn:IdentificationGroup ;
+        sh:order 1 ;
+        sh:message "Specimen ID must follow format: SPN-MaterialID-Number"
+    ] ;
+    
+    # Material (required)
+    sh:property [
+        sh:path dyn:hasMaterial ;
+        rdfs:label "Material" ;
+        rdfs:comment "Select the material for this specimen" ;
+        sh:class dyn:Material ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:group dyn:MaterialGroup ;
+        sh:order 1 ;
+        sh:message "Material selection is required"
+    ] ;
+    
+    # Structure (required for manufactured specimens)
+    sh:property [
+        sh:path dyn:hasStructure ;
+        rdfs:label "Structure Type" ;
+        rdfs:comment "Structural configuration (solid, lattice, etc.)" ;
+        sh:class dyn:Structure ;
+        sh:maxCount 1 ;
+        sh:group dyn:MaterialGroup ;
+        sh:order 2
+    ] ;
+    
+    # Specimen Role (required)
+    sh:property [
+        sh:path dyn:hasSpecimenRole ;
+        rdfs:label "Specimen Role" ;
+        rdfs:comment "Purpose of this specimen in testing" ;
+        sh:in ( "Primary" "Backup" "Calibration" "Reference" ) ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:group dyn:IdentificationGroup ;
+        sh:order 2
+    ] ;
+    
+    # Original Length (required)
+    sh:property [
+        sh:path dyn:hasOriginalLength ;
+        rdfs:label "Original Length" ;
+        rdfs:comment "Initial length of specimen before testing" ;
+        sh:datatype xsd:double ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:minInclusive 0.1 ;
+        sh:maxInclusive 1000.0 ;
+        sh:group dyn:GeometryGroup ;
+        sh:order 1 ;
+        sh:message "Original length must be between 0.1 and 1000 mm"
+    ] ;
+    
+    # Diameter (required for cylindrical specimens)
+    sh:property [
+        sh:path dyn:hasDiameter ;
+        rdfs:label "Diameter" ;
+        rdfs:comment "Diameter for cylindrical specimens" ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:minInclusive 0.1 ;
+        sh:maxInclusive 100.0 ;
+        sh:group dyn:GeometryGroup ;
+        sh:order 2 ;
+        sh:message "Diameter must be between 0.1 and 100 mm"
+    ] ;
+    
+    # Creation Date
+    sh:property [
+        sh:path dyn:hasCreationDate ;
+        rdfs:label "Creation Date" ;
+        rdfs:comment "Date when specimen was manufactured/prepared" ;
+        sh:datatype xsd:date ;
+        sh:maxCount 1 ;
+        sh:group dyn:IdentificationGroup ;
+        sh:order 3
+    ] ;
+    
+    # Description
+    sh:property [
+        sh:path dyn:hasDescription ;
+        rdfs:label "Description" ;
+        rdfs:comment "Additional notes about this specimen" ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:group dyn:IdentificationGroup ;
+        sh:order 4
+    ] .
+
+# =============================================================================
+# MECHANICAL TEST SHAPE (Base for all mechanical tests)
+# =============================================================================
+
+dyn:MechanicalTestShape
+    a sh:NodeShape ;
+    sh:targetClass dyn:MechanicalTest ;
+    rdfs:label "Mechanical Test Setup" ;
+    rdfs:comment "Base validation for all mechanical tests" ;
+    
+    # Test ID (required)
+    sh:property [
+        sh:path dyn:hasName ;
+        rdfs:label "Test ID" ;
+        rdfs:comment "Unique test identifier (e.g., TEST-001)" ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "^TEST-[0-9]+$" ;
+        sh:group dyn:IdentificationGroup ;
+        sh:order 1 ;
+        sh:message "Test ID must follow format: TEST-Number"
+    ] ;
+    
+    # Test Date (required)
+    sh:property [
+        sh:path dyn:hasTestDate ;
+        rdfs:label "Test Date" ;
+        rdfs:comment "Date when test was performed" ;
+        sh:datatype xsd:date ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:group dyn:IdentificationGroup ;
+        sh:order 2 ;
+        sh:message "Test date is required"
+    ] ;
+    
+    # User (required)
+    sh:property [
+        sh:path dyn:hasUser ;
+        rdfs:label "Operator" ;
+        rdfs:comment "Person who performed the test" ;
+        sh:class dyn:User ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:group dyn:IdentificationGroup ;
+        sh:order 3 ;
+        sh:message "Test operator must be specified"
+    ] ;
+    
+    # Specimen (required)
+    sh:property [
+        sh:path dyn:performedOn ;
+        rdfs:label "Test Specimen" ;
+        rdfs:comment "Specimen being tested" ;
+        sh:class dyn:Specimen ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:group dyn:IdentificationGroup ;
+        sh:order 4 ;
+        sh:message "Test specimen must be specified"
+    ] ;
+    
+    # Test Temperature
+    sh:property [
+        sh:path dyn:hasTestTemperature ;
+        rdfs:label "Test Temperature" ;
+        rdfs:comment "Temperature during testing" ;
+        sh:in ( "Room Temperature" "High Temperature" "Low Temperature" ) ;
+        sh:maxCount 1 ;
+        sh:group dyn:TestConditionsGroup ;
+        sh:order 1
+    ] ;
+    
+    # Test Validity
+    sh:property [
+        sh:path dyn:hasTestValidity ;
+        rdfs:label "Test Validity" ;
+        rdfs:comment "Assessment of test quality and reliability" ;
+        sh:in ( "Valid" "Invalid" "Questionable" "Preliminary" ) ;
+        sh:maxCount 1 ;
+        sh:group dyn:DataGroup ;
+        sh:order 1
+    ] .
+
+# =============================================================================
+# SHPB TEST SHAPE (Specific for Split Hopkinson Pressure Bar tests)
+# =============================================================================
+
+dyn:SHPBTestShape
+    a sh:NodeShape ;
+    sh:targetClass dyn:SHPBTest ;
+    rdfs:label "SHPB Test Configuration" ;
+    rdfs:comment "Validation for Split Hopkinson Pressure Bar test setup" ;
+    
+    # Inherit from MechanicalTest
+    # Note: SHACL inheritance is implicit through class hierarchy
+    
+    # Striker Length (required for SHPB)
+    sh:property [
+        sh:path dyn:hasStrikerLength ;
+        rdfs:label "Striker Length" ;
+        rdfs:comment "Length of striker bar used" ;
+        sh:datatype xsd:double ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:minInclusive 10.0 ;
+        sh:maxInclusive 2000.0 ;
+        sh:group dyn:EquipmentGroup ;
+        sh:order 1 ;
+        sh:message "Striker length must be between 10 and 2000 mm"
+    ] ;
+    
+    # Striker Velocity (required)
+    sh:property [
+        sh:path dyn:hasStrikerVelocity ;
+        rdfs:label "Striker Velocity" ;
+        rdfs:comment "Impact velocity of striker bar" ;
+        sh:datatype xsd:double ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:minInclusive 1.0 ;
+        sh:maxInclusive 100.0 ;
+        sh:group dyn:TestConditionsGroup ;
+        sh:order 1 ;
+        sh:message "Striker velocity must be between 1 and 100 m/s"
+    ] ;
+    
+    # Pulse Shaping
+    sh:property [
+        sh:path dyn:hasPulseShaping ;
+        rdfs:label "Pulse Shaping" ;
+        rdfs:comment "Whether pulse shaping was used" ;
+        sh:in ( "Yes" "No" ) ;
+        sh:maxCount 1 ;
+        sh:group dyn:TestConditionsGroup ;
+        sh:order 2
+    ] ;
+    
+    # Momentum Trap Configuration
+    sh:property [
+        sh:path dyn:hasMomentumTrap ;
+        rdfs:label "Momentum Trap" ;
+        rdfs:comment "Momentum trap configuration" ;
+        sh:class dyn:MomentumTrap ;
+        sh:maxCount 1 ;
+        sh:group dyn:EquipmentGroup ;
+        sh:order 2
+    ] ;
+    
+    # Strain Rate (calculated/measured)
+    sh:property [
+        sh:path dyn:hasStrainRate ;
+        rdfs:label "Target Strain Rate" ;
+        rdfs:comment "Target strain rate for this test (1/s)" ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:minInclusive 100.0 ;
+        sh:maxInclusive 10000.0 ;
+        sh:group dyn:TestConditionsGroup ;
+        sh:order 3 ;
+        sh:message "SHPB strain rate typically between 100 and 10000 /s"
+    ] .
+
+# =============================================================================
+# MATERIAL SHAPE (Base for all materials)
+# =============================================================================
+
+dyn:MaterialShape
+    a sh:NodeShape ;
+    sh:targetClass dyn:Material ;
+    rdfs:label "Material Definition" ;
+    rdfs:comment "Validation for material properties and identification" ;
+    
+    # Material Name (required)
+    sh:property [
+        sh:path dyn:hasName ;
+        rdfs:label "Material Name" ;
+        rdfs:comment "Standard material designation (e.g., Al6061-T6)" ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:group dyn:IdentificationGroup ;
+        sh:order 1 ;
+        sh:message "Material name is required"
+    ] ;
+    
+    # Material Type
+    sh:property [
+        sh:path dyn:hasMaterialType ;
+        rdfs:label "Material Category" ;
+        rdfs:comment "General category of material" ;
+        sh:in ( "Metal" "Polymer" "Ceramic" "Composite" "Other" ) ;
+        sh:maxCount 1 ;
+        sh:group dyn:MaterialGroup ;
+        sh:order 1
+    ] ;
+    
+    # Density
+    sh:property [
+        sh:path dyn:hasDensity ;
+        rdfs:label "Density (g/cm³)" ;
+        rdfs:comment "Material density" ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:minInclusive 0.1 ;
+        sh:maxInclusive 30.0 ;
+        sh:group dyn:MaterialGroup ;
+        sh:order 2
+    ] ;
+    
+    # Supplier/Source
+    sh:property [
+        sh:path dyn:hasSupplier ;
+        rdfs:label "Supplier" ;
+        rdfs:comment "Material supplier or source" ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:group dyn:IdentificationGroup ;
+        sh:order 2
+    ] .
+
+# =============================================================================
+# ALUMINIUM ALLOY SHAPE (Specific for aluminum alloys)
+# =============================================================================
+
+dyn:AluminiumAlloyShape
+    a sh:NodeShape ;
+    sh:targetClass dyn:AluminiumAlloy ;
+    rdfs:label "Aluminium Alloy Properties" ;
+    rdfs:comment "Specific validation for aluminum alloy materials" ;
+    
+    # Alloy Designation (required)
+    sh:property [
+        sh:path dyn:hasAlloyDesignation ;
+        rdfs:label "Alloy Designation" ;
+        rdfs:comment "Standard alloy designation (e.g., 6061, 2024, 7075)" ;
+        sh:in ( "1100" "2024" "3003" "5052" "6061" "6063" "7075" "Other" ) ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:group dyn:MaterialGroup ;
+        sh:order 1 ;
+        sh:message "Alloy designation is required"
+    ] ;
+    
+    # Temper (required)
+    sh:property [
+        sh:path dyn:hasTemper ;
+        rdfs:label "Temper Condition" ;
+        rdfs:comment "Heat treatment condition" ;
+        sh:in ( "O" "H14" "H32" "T4" "T6" "T651" "Other" ) ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:group dyn:MaterialGroup ;
+        sh:order 2 ;
+        sh:message "Temper condition is required"
+    ] ;
+    
+    # Elastic Modulus
+    sh:property [
+        sh:path dyn:hasElasticModulus ;
+        rdfs:label "Elastic Modulus (GPa)" ;
+        rdfs:comment "Young's modulus of elasticity" ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:minInclusive 50.0 ;
+        sh:maxInclusive 100.0 ;
+        sh:group dyn:MaterialGroup ;
+        sh:order 3 ;
+        sh:message "Elastic modulus for aluminum typically 50-100 GPa"
+    ] .
+
+# =============================================================================
+# EQUIPMENT SHAPES
+# =============================================================================
+
+dyn:EquipmentShape
+    a sh:NodeShape ;
+    sh:targetClass dyn:Equipment ;
+    rdfs:label "Equipment Configuration" ;
+    rdfs:comment "Validation for equipment settings and calibration" ;
+    
+    # Equipment Name
+    sh:property [
+        sh:path dyn:hasName ;
+        rdfs:label "Equipment Name" ;
+        rdfs:comment "Name or identifier for this equipment" ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:group dyn:IdentificationGroup ;
+        sh:order 1
+    ] ;
+    
+    # Calibration Date
+    sh:property [
+        sh:path dyn:hasCalibrationDate ;
+        rdfs:label "Last Calibration" ;
+        rdfs:comment "Date of last calibration" ;
+        sh:datatype xsd:date ;
+        sh:maxCount 1 ;
+        sh:group dyn:IdentificationGroup ;
+        sh:order 2
+    ] .
+
+# =============================================================================
+# USER SHAPE
+# =============================================================================
+
+dyn:UserShape
+    a sh:NodeShape ;
+    sh:targetClass dyn:User ;
+    rdfs:label "User Information" ;
+    rdfs:comment "Validation for user/operator data" ;
+    
+    # User Name (required)
+    sh:property [
+        sh:path dyn:hasName ;
+        rdfs:label "Full Name" ;
+        rdfs:comment "Full name of the user" ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:group dyn:IdentificationGroup ;
+        sh:order 1 ;
+        sh:message "User name is required"
+    ] ;
+    
+    # User ID
+    sh:property [
+        sh:path dyn:hasUserID ;
+        rdfs:label "User ID" ;
+        rdfs:comment "Unique user identifier" ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:group dyn:IdentificationGroup ;
+        sh:order 2
+    ] ;
+    
+    # Email
+    sh:property [
+        sh:path dyn:hasEmail ;
+        rdfs:label "Email Address" ;
+        rdfs:comment "Contact email address" ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:pattern "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$" ;
+        sh:group dyn:IdentificationGroup ;
+        sh:order 3 ;
+        sh:message "Please enter a valid email address"
+    ] .
+
+# =============================================================================
+# VALIDATION MESSAGES AND SEVERITY LEVELS
+# =============================================================================
+
+# These can be used to customize validation behavior
+dyn:RequiredPropertyViolation
+    a sh:SPARQLConstraint ;
+    rdfs:label "Required Property Missing" ;
+    sh:severity sh:Violation ;
+    sh:message "This property is required and cannot be empty" .
+
+dyn:InvalidFormatWarning
+    a sh:SPARQLConstraint ;
+    rdfs:label "Invalid Format" ;
+    sh:severity sh:Warning ;
+    sh:message "The format of this field may not be correct" .

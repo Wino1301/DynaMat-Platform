@@ -1,0 +1,2552 @@
+@prefix : <https://github.com/Wino1301/DynaMat-Platform/ontology#> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix dyn: <https://github.com/Wino1301/DynaMat-Platform/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@base <https://github.com/Wino1301/DynaMat-Platform/ontology#> .
+
+<https://github.com/Wino1301/DynaMat-Platform/ontology#> rdf:type owl:Ontology ;
+                                                          owl:versionIRI <https://github.com/Wino1301/DynaMat-Platform/1.0.0> ;
+                                                          dct:creator "Erwin Cazares (UTEP DynaMat Lab)"@en ;
+                                                          dct:license "https://creativecommons.org/licenses/by/4.0/"^^xsd:anyURI .
+
+#################################################################
+#    Annotation properties
+#################################################################
+
+###  http://purl.org/dc/terms/created
+dct:created rdf:type owl:AnnotationProperty ;
+            rdfs:range xsd:date .
+
+
+###  http://purl.org/dc/terms/creator
+dct:creator rdf:type owl:AnnotationProperty ;
+            rdfs:range xsd:string .
+
+
+###  http://purl.org/dc/terms/license
+dct:license rdf:type owl:AnnotationProperty ;
+            rdfs:range xsd:anyURI .
+
+
+#################################################################
+#    Datatypes
+#################################################################
+
+###  http://www.w3.org/2001/XMLSchema#date
+xsd:date rdf:type rdfs:Datatype .
+
+
+#################################################################
+#    Object Properties
+#################################################################
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#CharacterizationProxyFor
+dyn:CharacterizationProxyFor rdf:type owl:ObjectProperty ;
+                             rdfs:subPropertyOf owl:topObjectProperty ;
+                             rdfs:comment "Indicates this specimen's characterization data can represent another"@en ;
+                             rdfs:label "CharacterizationProxyFor"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#ExhibitedDeformationMode
+dyn:ExhibitedDeformationMode rdf:type owl:ObjectProperty ;
+                             rdfs:domain dyn:MechanicalTest ;
+                             rdfs:range dyn:DeformationMode ;
+                             rdfs:comment "Links the material response with observable deformation modes"@en ;
+                             rdfs:label "ExhibitedDeformationMode"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#ExhibitedFailureMode
+dyn:ExhibitedFailureMode rdf:type owl:ObjectProperty ;
+                         rdfs:domain dyn:MechanicalTest ;
+                         rdfs:range dyn:FailureMode ;
+                         rdfs:label "ExhibitedFailureMode"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#SatisfiesValidationCriterion
+dyn:SatisfiesValidationCriterion rdf:type owl:ObjectProperty ;
+                                 rdfs:domain dyn:MechanicalTest ;
+                                 rdfs:range dyn:TestValidity ;
+                                 rdfs:comment "Links secondary data to the test criterion"@en ;
+                                 rdfs:label "SatisfiesValidationCriteria"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#SimilarToSpecimen
+dyn:SimilarToSpecimen rdf:type owl:ObjectProperty ;
+                      rdfs:domain dyn:Specimen ;
+                      rdfs:range dyn:Specimen ;
+                      rdfs:comment "Links specimens with similar properties/processing"@en ;
+                      rdfs:label "SimilarToSpecimen"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#TestType
+dyn:TestType rdf:type owl:ObjectProperty ;
+             rdfs:subPropertyOf dyn:hasTestingConditions ;
+             rdfs:domain dyn:TestingConditions ;
+             rdfs:range dyn:TestType .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#TestingTemperature
+dyn:TestingTemperature rdf:type owl:ObjectProperty ;
+                       rdfs:subPropertyOf dyn:hasTestingConditions ;
+                       rdfs:domain dyn:TestingConditions ;
+                       rdfs:range dyn:TestTemperature ;
+                       rdfs:comment "Links the testing temperature with the activity"@en ;
+                       rdfs:label "hasTestingTemperature"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#basedOn
+dyn:basedOn rdf:type owl:ObjectProperty ;
+            rdfs:subPropertyOf owl:topObjectProperty ;
+            rdfs:domain owl:Thing ;
+            rdfs:range dyn:Template ;
+            rdfs:label "basedOn"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#derivedFrom
+dyn:derivedFrom rdf:type owl:ObjectProperty ;
+                rdfs:subPropertyOf dyn:hasMechanicalProperty ;
+                rdfs:domain dyn:DerivedProperty ;
+                rdfs:range dyn:MechanicalProperty ;
+                rdfs:label "derivedFrom"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#fromBatch
+dyn:fromBatch rdf:type owl:ObjectProperty ;
+              rdfs:domain dyn:Specimen ;
+              rdfs:range dyn:SpecimenBatch ;
+              rdfs:label "fromBatch"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#generatedFromActivity
+dyn:generatedFromActivity rdf:type owl:ObjectProperty ;
+                          rdfs:domain dyn:DataFile ;
+                          rdfs:range dyn:Activity ;
+                          rdfs:comment "Refers the datafile to the activity from which is produced"@en ;
+                          rdfs:label "generatedFromActivity"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasBar
+dyn:hasBar rdf:type owl:ObjectProperty ;
+           rdfs:subPropertyOf dyn:hasEquipment ;
+           rdfs:domain dyn:Equipment ;
+           rdfs:range dyn:Bar ;
+           rdfs:comment "Refers the bar/s used for the specified activity"@en ;
+           rdfs:label "hasBar"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasComponents
+dyn:hasComponents rdf:type owl:ObjectProperty ;
+                  rdfs:subPropertyOf dyn:hasMaterial ;
+                  rdfs:domain dyn:Material ;
+                  rdfs:range dyn:CompositeMaterial ;
+                  rdfs:label "hasComponents"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasDimension
+dyn:hasDimension rdf:type owl:ObjectProperty ;
+                 rdfs:domain [ rdf:type owl:Class ;
+                               owl:unionOf ( dyn:Bar
+                                             dyn:PulseShaper
+                                             dyn:Specimen
+                                           )
+                             ] ;
+                 rdfs:range dyn:Geometry ;
+                 rdfs:comment "Refers a dimension value to an object"@en ;
+                 rdfs:label "hasDimension"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasEquipment
+dyn:hasEquipment rdf:type owl:ObjectProperty ;
+                 rdfs:domain dyn:Activity ;
+                 rdfs:range dyn:Equipment ;
+                 rdfs:comment "Refers an activity to the equipment used"@en ;
+                 rdfs:label "hasEquipment"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasFEModel
+dyn:hasFEModel rdf:type owl:ObjectProperty ;
+               rdfs:subPropertyOf dyn:hasSimulation ;
+               rdfs:domain dyn:Simulation ;
+               rdfs:range dyn:FEModel ;
+               rdfs:comment "Links the geometry model (mesh) used for the FE analysis"@en ;
+               rdfs:label "hasFEModel"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasLaboratory
+dyn:hasLaboratory rdf:type owl:ObjectProperty ;
+                  rdfs:domain dyn:Activity ;
+                  rdfs:range dyn:Laboratory ;
+                  rdfs:comment "Refers the activity to the laboratory where it took place"@en ;
+                  rdfs:label "hasLaboratory"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasMaterial
+dyn:hasMaterial rdf:type owl:ObjectProperty ,
+                         owl:FunctionalProperty ;
+                rdfs:domain [ rdf:type owl:Class ;
+                              owl:unionOf ( dyn:Bar
+                                            dyn:PulseShaper
+                                            dyn:Specimen
+                                          )
+                            ] ;
+                rdfs:range dyn:Material ;
+                rdfs:comment "Refers the material to the specified object"@en ;
+                rdfs:label "hasMaterial"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasMaterialClass
+dyn:hasMaterialClass rdf:type owl:ObjectProperty ;
+                     rdfs:subPropertyOf dyn:hasMaterial ;
+                     rdfs:domain dyn:Material ;
+                     rdfs:range [ rdf:type owl:Class ;
+                                  owl:unionOf ( dyn:AluminiumAlloy
+                                                dyn:CompositeMaterial
+                                                dyn:CopperAlloy
+                                                dyn:SteelAlloy
+                                              )
+                                ] ;
+                     rdfs:comment "Assigns the material class to the type of engineering material"@en ;
+                     rdfs:label "hasMaterialClass"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasMaterialModel
+dyn:hasMaterialModel rdf:type owl:ObjectProperty ;
+                     rdfs:subPropertyOf dyn:hasSimulation ;
+                     rdfs:domain dyn:Simulation ;
+                     rdfs:range dyn:MaterialModel ;
+                     rdfs:comment "Links the material model used to simulate the material response within FE analysis"@en ;
+                     rdfs:label "hasMaterialModel"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasMechanicalProperty
+dyn:hasMechanicalProperty rdf:type owl:ObjectProperty ;
+                          rdfs:domain [ rdf:type owl:Class ;
+                                        owl:unionOf ( dyn:Material
+                                                      dyn:Specimen
+                                                    )
+                                      ] ;
+                          rdfs:range dyn:MechanicalProperty ;
+                          rdfs:comment "Refers the specimen or material to its determined mechanical property"@en ;
+                          rdfs:label "hasMechanicalProperty"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasMomentumTrap
+dyn:hasMomentumTrap rdf:type owl:ObjectProperty ;
+                    rdfs:subPropertyOf dyn:hasEquipment ;
+                    rdfs:domain dyn:Activity ;
+                    rdfs:range dyn:MomentumTrap ;
+                    rdfs:comment "Refers the momentum trap to the activity done"@en ;
+                    rdfs:label "hasMomentumTrap"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasMomentumTrapConditions
+dyn:hasMomentumTrapConditions rdf:type owl:ObjectProperty ;
+                              rdfs:subPropertyOf dyn:hasTestingSetup ;
+                              rdfs:domain dyn:SHPBSetUp ;
+                              rdfs:range dyn:MomentumTrap ;
+                              rdfs:comment "Links the conditions of the Momentum Trap"@en ;
+                              rdfs:label "hasMomentumTrapConditions"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasMomentumTrapState
+dyn:hasMomentumTrapState rdf:type owl:ObjectProperty ;
+                         rdfs:subPropertyOf dyn:hasMomentumTrapConditions ;
+                         rdfs:domain dyn:MomentumTrap ;
+                         rdfs:range dyn:MomentumTrapState ;
+                         rdfs:comment "Links the state of the momentum trap to test conditions"@en ;
+                         rdfs:label "hasMomentumTrapState"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasMomentumTrapTechnique
+dyn:hasMomentumTrapTechnique rdf:type owl:ObjectProperty ;
+                             rdfs:subPropertyOf dyn:hasMomentumTrapConditions ;
+                             rdfs:domain dyn:MomentumTrap ;
+                             rdfs:range dyn:MomentumTrapTechnique ;
+                             rdfs:comment "Defines the technique used for MomentumTrap"@en ;
+                             rdfs:label "hasMomentumTrapTechnique"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasPhaseDistribution
+dyn:hasPhaseDistribution rdf:type owl:ObjectProperty ;
+                         rdfs:subPropertyOf dyn:hasMaterial ;
+                         rdfs:domain dyn:CompositeMaterial ;
+                         rdfs:range dyn:PhaseDistribution ;
+                         rdfs:label "hasPhaseDistribution"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasPrimaryDataFile
+dyn:hasPrimaryDataFile rdf:type owl:ObjectProperty ;
+                       rdfs:subPropertyOf dyn:hasPrimaryDataFile ;
+                       rdfs:domain dyn:Activity ;
+                       rdfs:range dyn:DataFile ;
+                       rdfs:comment "Refers the primary data (raw) file to the activity"@en ;
+                       rdfs:label "hasPrimaryDataFile"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasProcessedSignal
+dyn:hasProcessedSignal rdf:type owl:ObjectProperty ;
+                       rdfs:subPropertyOf dyn:hasSecondaryDataFile ;
+                       rdfs:domain dyn:Activity ;
+                       rdfs:range dyn:ProcessedSignal ;
+                       rdfs:comment "Defines the extracted / clean sensor signals available in the datafile"@en ;
+                       rdfs:label "hasProcessedSignal"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasProcessingParameter
+dyn:hasProcessingParameter rdf:type owl:ObjectProperty ;
+                           rdfs:subPropertyOf dyn:hasProcessingStep ;
+                           rdfs:domain dyn:ProcessingStep ;
+                           rdfs:range [ rdf:type owl:Class ;
+                                        owl:unionOf ( dyn:HeatTreatment
+                                                      dyn:PrintingProcess
+                                                    )
+                                      ] ;
+                           rdfs:label "hasProcessingParameter"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasProcessingStep
+dyn:hasProcessingStep rdf:type owl:ObjectProperty ;
+                      rdfs:subPropertyOf owl:topObjectProperty ;
+                      rdfs:domain dyn:Material ;
+                      rdfs:range dyn:ProcessingStep ;
+                      rdfs:comment "Refers to the subsequent heat treatment done to the specimen"@en ;
+                      rdfs:label "hasProcessingStep"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasPulseShaper
+dyn:hasPulseShaper rdf:type owl:ObjectProperty ;
+                   rdfs:subPropertyOf dyn:hasTestingSetup ;
+                   rdfs:domain dyn:SHPBSetUp ;
+                   rdfs:range dyn:PulseShaper ;
+                   rdfs:comment "Links the pulse shaper used on with the testing conditions"@en ;
+                   rdfs:label "hasPulseShaper"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasSecondaryDataFile
+dyn:hasSecondaryDataFile rdf:type owl:ObjectProperty ;
+                         rdfs:domain dyn:Activity ;
+                         rdfs:range dyn:DataFile ;
+                         rdfs:comment "Refers the secondary data (processed) file to the Activity"@en ;
+                         rdfs:label "hasSecondaryDataFile"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasSensor
+dyn:hasSensor rdf:type owl:ObjectProperty ;
+              rdfs:domain dyn:Activity ;
+              rdfs:range dyn:Sensor ;
+              rdfs:comment "Links the sensors used for the activity"@en ;
+              rdfs:label "hasSensor"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasSensorSignal
+dyn:hasSensorSignal rdf:type owl:ObjectProperty ;
+                    rdfs:subPropertyOf dyn:hasPrimaryDataFile ;
+                    rdfs:domain dyn:Activity ;
+                    rdfs:range dyn:SensorSignal ;
+                    rdfs:comment "Refers to the sensor signals within the datafile"@en ;
+                    rdfs:label "hasSensorSignal"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasSensorType
+dyn:hasSensorType rdf:type owl:ObjectProperty ;
+                  rdfs:subPropertyOf dyn:hasSensor ;
+                  rdfs:domain dyn:Sensor ;
+                  rdfs:range dyn:StrainGauge ;
+                  rdfs:comment "Links the sensor type to the sensor used"@en ;
+                  rdfs:label "hasSensorType"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasSeriesData
+dyn:hasSeriesData rdf:type owl:ObjectProperty ;
+                  rdfs:subPropertyOf dyn:hasSecondaryDataFile ;
+                  rdfs:domain dyn:Activity ;
+                  rdfs:range dyn:SeriesData ;
+                  rdfs:comment "Refers to the processed series data available in the datafile"@en ;
+                  rdfs:label "hasSeriesData"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasShape
+dyn:hasShape rdf:type owl:ObjectProperty ;
+             rdfs:domain dyn:Specimen ;
+             rdfs:range dyn:Shape ;
+             rdfs:comment "Links the shape of the specimen prior to testing"@en ;
+             rdfs:label "hasShape"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasSimulation
+dyn:hasSimulation rdf:type owl:ObjectProperty ;
+                  rdfs:domain dyn:MechanicalTest ;
+                  rdfs:range dyn:Simulation ;
+                  rdfs:comment "Links the activity to the equivalent FE analysis"@en ;
+                  rdfs:label "hasSimulation"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasSoftwareModel
+dyn:hasSoftwareModel rdf:type owl:ObjectProperty ;
+                     rdfs:subPropertyOf dyn:hasSimulation ;
+                     rdfs:domain dyn:Simulation ;
+                     rdfs:range dyn:SoftwareModel ;
+                     rdfs:comment "Links the software used to conduct the FE analysis"@en ;
+                     rdfs:label "hasSoftwareModel"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasSpecimenRole
+dyn:hasSpecimenRole rdf:type owl:ObjectProperty ;
+                    rdfs:domain dyn:Specimen ;
+                    rdfs:range dyn:SpecimenRole ;
+                    rdfs:label "hasSpecimenRole"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasStrainRateRegime
+dyn:hasStrainRateRegime rdf:type owl:ObjectProperty ;
+                        rdfs:domain dyn:MechanicalTest ;
+                        rdfs:range dyn:StrainRateRegime ;
+                        rdfs:comment "Links the mechanical test to the strain rate regime"@en ;
+                        rdfs:label "hasStrainGauge"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasStructure
+dyn:hasStructure rdf:type owl:ObjectProperty ,
+                          owl:FunctionalProperty ;
+                 rdfs:domain dyn:Specimen ;
+                 rdfs:range dyn:Structure ;
+                 rdfs:comment "Links specimen to its structure"@en ;
+                 rdfs:label "hasStructure"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasTestingConditions
+dyn:hasTestingConditions rdf:type owl:ObjectProperty ;
+                         rdfs:domain dyn:Activity ;
+                         rdfs:range dyn:TestingConditions ;
+                         rdfs:comment "Links the activity with the conditions / process that describe the method used"@en ;
+                         rdfs:label "hasTestingConditions"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasTestingSetup
+dyn:hasTestingSetup rdf:type owl:ObjectProperty ;
+                    rdfs:subPropertyOf dyn:hasTestingConditions ;
+                    rdfs:domain [ rdf:type owl:Class ;
+                                  owl:unionOf ( dyn:Characterization
+                                                dyn:MechanicalTest
+                                              )
+                                ] ;
+                    rdfs:range dyn:MechanicalTestingConditions ;
+                    rdfs:comment "Links the activity to the test-specific variables"@en ;
+                    rdfs:label "hasTestingSetup"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasUnits
+dyn:hasUnits rdf:type owl:ObjectProperty ;
+             rdfs:range dyn:Unit ;
+             rdfs:comment "Links units to the required classes"@en ;
+             rdfs:label "hasUnits"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasUser
+dyn:hasUser rdf:type owl:ObjectProperty ;
+            rdfs:domain dyn:Activity ;
+            rdfs:range dyn:User ;
+            rdfs:comment "Defines the user who took place in the activity"@en ;
+            rdfs:label "hasUser"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#performedOn
+dyn:performedOn rdf:type owl:ObjectProperty ;
+                rdfs:domain dyn:Activity ;
+                rdfs:range dyn:Specimen ;
+                rdfs:comment "Links the activity done to a specific specimen"@en ;
+                rdfs:label "performedOn"@en .
+
+
+#################################################################
+#    Data properties
+#################################################################
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#FailureLocation
+dyn:FailureLocation rdf:type owl:DatatypeProperty ;
+                    rdfs:domain dyn:FailureMode ;
+                    rdfs:range xsd:string ;
+                    rdfs:label "FailureLocation"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#calibrationDate
+dyn:calibrationDate rdf:type owl:DatatypeProperty ;
+                    rdfs:domain dyn:Sensor ;
+                    rdfs:range xsd:date ;
+                    rdfs:comment "Calibration date of the instrument"@en ;
+                    rdfs:label "calibrationDate"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#fileEncoding
+dyn:fileEncoding rdf:type owl:DatatypeProperty ;
+                 rdfs:domain dyn:DataFile ;
+                 rdfs:comment "Defines the encoding of the datafile. Ex - UTF-8"@en ;
+                 rdfs:label "fileEncoding"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#fileFormat
+dyn:fileFormat rdf:type owl:DatatypeProperty ;
+               rdfs:domain dyn:DataFile ;
+               rdfs:comment "Defines the file extension"@en ;
+               rdfs:label "fileFormat"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#filePath
+dyn:filePath rdf:type owl:DatatypeProperty ;
+             rdfs:domain dyn:DataFile ;
+             rdfs:comment "Defines the relative path for the file"@en ;
+             rdfs:label "filePath"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#fileSize
+dyn:fileSize rdf:type owl:DatatypeProperty ;
+             rdfs:domain dyn:DataFile ;
+             rdfs:comment "Defines the size of the file, relates to the shape when imported"@en ;
+             rdfs:label "fileSize"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasAffilliation
+dyn:hasAffilliation rdf:type owl:DatatypeProperty ;
+                    rdfs:range xsd:string ;
+                    rdfs:comment "Defines the user's affiliation"@en ;
+                    rdfs:label "hasAffiliation"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasDate
+dyn:hasDate rdf:type owl:DatatypeProperty ;
+            rdfs:range xsd:date ;
+            rdfs:comment "Defines the data an activity took place"@en ;
+            rdfs:label "hasDate"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasLocation
+dyn:hasLocation rdf:type owl:DatatypeProperty ;
+                rdfs:range xsd:string ;
+                rdfs:comment "Defines the location of an object"@en ;
+                rdfs:label "hasLocation"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasName
+dyn:hasName rdf:type owl:DatatypeProperty ;
+            rdfs:comment "Defines the name of an instance"@en ;
+            rdfs:label "hasName"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasPlottingLabel
+dyn:hasPlottingLabel rdf:type owl:DatatypeProperty ;
+                     rdfs:range xsd:string ;
+                     rdfs:comment "Defines the string used for plotting purposes"@en ;
+                     rdfs:label "hasPlottingLabel"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasSPN
+dyn:hasSPN rdf:type owl:DatatypeProperty ,
+                    owl:FunctionalProperty ;
+           rdfs:domain dyn:Specimen ;
+           rdfs:comment "Defines the unique Specimen Number"@en ;
+           rdfs:label "hasSPN"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasSymbol
+dyn:hasSymbol rdf:type owl:DatatypeProperty ;
+              rdfs:range xsd:string ;
+              rdfs:comment "defines the short hand symbol for a unit"@en ;
+              rdfs:label "hasSymbol"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasValue
+dyn:hasValue rdf:type owl:DatatypeProperty ;
+             rdfs:range xsd:float ;
+             rdfs:comment "defines the value of a instance"@en ;
+             rdfs:label "hasValue"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasVolumeFraction
+dyn:hasVolumeFraction rdf:type owl:DatatypeProperty ;
+                      rdfs:range xsd:float ;
+                      rdfs:label "hasVolumeFraction"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#hasVoxelSize
+dyn:hasVoxelSize rdf:type owl:DatatypeProperty ;
+                 rdfs:domain dyn:PhaseDistribution ;
+                 rdfs:range xsd:float ;
+                 rdfs:comment "Defined Voxel Size"@en ;
+                 rdfs:label "hasVoxelSize"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#instrumentAccuracy
+dyn:instrumentAccuracy rdf:type owl:DatatypeProperty ;
+                       rdfs:domain dyn:Sensor ;
+                       rdfs:range xsd:float ;
+                       rdfs:comment "Manufacturer-specified accuracy as percentage"@en ;
+                       rdfs:label "instrumentAccuracy"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#pochhammerChreeCorrection
+dyn:pochhammerChreeCorrection rdf:type owl:DatatypeProperty ;
+                              rdfs:domain dyn:WavePropagationQuality ;
+                              rdfs:range xsd:boolean ;
+                              rdfs:label "pochhammerChreeCorrection"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#sha256
+dyn:sha256 rdf:type owl:DatatypeProperty ;
+           rdfs:domain dyn:DataFile ;
+           rdfs:label "sha256"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#wasCalculated
+dyn:wasCalculated rdf:type owl:DatatypeProperty ;
+                  rdfs:domain [ rdf:type owl:Class ;
+                                owl:unionOf ( dyn:Geometry
+                                              dyn:MechanicalProperty
+                                            )
+                              ] ;
+                  rdfs:range xsd:boolean ;
+                  rdfs:comment "Refers to a property that has been determined by means of an activity"@en ;
+                  rdfs:label "wasCalculated"@en .
+
+
+#################################################################
+#    Classes
+#################################################################
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Activity
+dyn:Activity rdf:type owl:Class ;
+             rdfs:comment "Object for Activity Class"@en ;
+             rdfs:label "Activity"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#AluminiumAlloy
+dyn:AluminiumAlloy rdf:type owl:Class ;
+                   rdfs:subClassOf dyn:Material ;
+                   rdfs:label "AlluminiumAlloy"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#AreaUnit
+dyn:AreaUnit rdf:type owl:Class ;
+             rdfs:subClassOf dyn:Unit ;
+             rdfs:label "AreaUnit"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Bar
+dyn:Bar rdf:type owl:Class ;
+        rdfs:subClassOf dyn:Equipment ;
+        rdfs:label "Bar"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Characterization
+dyn:Characterization rdf:type owl:Class ;
+                     rdfs:subClassOf dyn:Activity ;
+                     rdfs:comment "Object for Characterization activity"@en ;
+                     rdfs:label "Characterization"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#CompositeMaterial
+dyn:CompositeMaterial rdf:type owl:Class ;
+                      rdfs:subClassOf dyn:Material ;
+                      rdfs:label "CompositeMaterial"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#CompressionTest
+dyn:CompressionTest rdf:type owl:Class ;
+                    rdfs:subClassOf dyn:MechanicalTest ;
+                    rdfs:label "CompressionTest"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#CopperAlloy
+dyn:CopperAlloy rdf:type owl:Class ;
+                rdfs:subClassOf dyn:Material ;
+                rdfs:label "CopperAlloy"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#DataFile
+dyn:DataFile rdf:type owl:Class ;
+             rdfs:label "DataFile"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#DeformationMode
+dyn:DeformationMode rdf:type owl:Class ;
+                    rdfs:comment "Observable deformation patterns in tested specimens"@en ;
+                    rdfs:label "DeformationMode"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#DensityUnit
+dyn:DensityUnit rdf:type owl:Class ;
+                rdfs:subClassOf dyn:Unit ;
+                rdfs:label "DensityUnit"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#DerivedProperty
+dyn:DerivedProperty rdf:type owl:Class ;
+                    rdfs:subClassOf dyn:MechanicalProperty ;
+                    rdfs:comment "Properties calculated from primary measurements"@en ;
+                    rdfs:label "DerivedProperty"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#DynamicIndentationTest
+dyn:DynamicIndentationTest rdf:type owl:Class ;
+                           rdfs:subClassOf dyn:MechanicalTest ;
+                           rdfs:label "DynamicIndentationTest"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#EBSDMap
+dyn:EBSDMap rdf:type owl:Class ;
+            rdfs:subClassOf dyn:Characterization ;
+            rdfs:label "EBSDMap"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#EDSMap
+dyn:EDSMap rdf:type owl:Class ;
+           rdfs:subClassOf dyn:Characterization ;
+           rdfs:label "EDSMap"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#ElectricPotentialUnit
+dyn:ElectricPotentialUnit rdf:type owl:Class ;
+                          rdfs:subClassOf dyn:Unit ;
+                          rdfs:label "ElectricalPotentialUnit"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#ElectricalResistanceUnits
+dyn:ElectricalResistanceUnits rdf:type owl:Class ;
+                              rdfs:subClassOf dyn:Unit ;
+                              rdfs:label "ElectricalResistanceUnit"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#EnergyUnit
+dyn:EnergyUnit rdf:type owl:Class ;
+               rdfs:subClassOf dyn:Unit ;
+               rdfs:label "EneergyUnit"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Equipment
+dyn:Equipment rdf:type owl:Class ;
+              rdfs:label "Equipment"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#FEModel
+dyn:FEModel rdf:type owl:Class ;
+            rdfs:subClassOf dyn:Simulation ;
+            rdfs:comment "Object for FE Mesh"@en ;
+            rdfs:label "FEModel"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#FailureMode
+dyn:FailureMode rdf:type owl:Class ;
+                rdfs:comment "Described how specimens fail to provide valuable insights"@en ;
+                rdfs:label "FailureMode"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#ForceUnit
+dyn:ForceUnit rdf:type owl:Class ;
+              rdfs:subClassOf dyn:Unit ;
+              rdfs:label "ForceUnit"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#FrequencyUnit
+dyn:FrequencyUnit rdf:type owl:Class ;
+                  rdfs:subClassOf dyn:Unit ;
+                  rdfs:label "FrequencyUnit"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Geometry
+dyn:Geometry rdf:type owl:Class ;
+             rdfs:label "Dimension"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#HeatTreatment
+dyn:HeatTreatment rdf:type owl:Class ;
+                  rdfs:subClassOf dyn:ProcessingStep ;
+                  rdfs:label "HeatTreatment"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#LSDYNA_Run
+dyn:LSDYNA_Run rdf:type owl:Class ;
+               rdfs:subClassOf dyn:Simulation ;
+               rdfs:comment "Object for LSDYNA Analysis"@en ;
+               rdfs:label "LSDYNAFile"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Laboratory
+dyn:Laboratory rdf:type owl:Class ;
+               rdfs:label "Laboratory"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#LatticeStructure
+dyn:LatticeStructure rdf:type owl:Class ;
+                     rdfs:subClassOf dyn:Structure ;
+                     rdfs:label "LatticeStructure"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#LengthUnit
+dyn:LengthUnit rdf:type owl:Class ;
+               rdfs:subClassOf dyn:Unit ;
+               rdfs:label "LengthUnit"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MassUnits
+dyn:MassUnits rdf:type owl:Class ;
+              rdfs:subClassOf dyn:Unit ;
+              rdfs:label "MassUnit"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Material
+dyn:Material rdf:type owl:Class ;
+             rdfs:label "Material"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MaterialModel
+dyn:MaterialModel rdf:type owl:Class ;
+                  rdfs:subClassOf dyn:Simulation ;
+                  rdfs:label "MaterialModel"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MechanicalProperty
+dyn:MechanicalProperty rdf:type owl:Class ;
+                       rdfs:label "MechanicalProperty"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MechanicalTest
+dyn:MechanicalTest rdf:type owl:Class ;
+                   rdfs:subClassOf dyn:Activity ;
+                   rdfs:label "MechanicalTest"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MechanicalTestingConditions
+dyn:MechanicalTestingConditions rdf:type owl:Class ;
+                                rdfs:subClassOf dyn:TestingConditions ;
+                                rdfs:label "MechanicalTestingConditions"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MomentumTrap
+dyn:MomentumTrap rdf:type owl:Class ;
+                 rdfs:subClassOf dyn:Equipment ;
+                 rdfs:label "MomentumTrap"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MomentumTrapState
+dyn:MomentumTrapState rdf:type owl:Class ;
+                      rdfs:subClassOf dyn:MomentumTrap ;
+                      rdfs:label "MomentumTrapState"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MomentumTrapTechnique
+dyn:MomentumTrapTechnique rdf:type owl:Class ;
+                          rdfs:subClassOf dyn:MomentumTrap ;
+                          rdfs:label "MomentumTrapTechnique"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#OpticalImageSet
+dyn:OpticalImageSet rdf:type owl:Class ;
+                    rdfs:subClassOf dyn:Characterization ;
+                    rdfs:label "OpticalImageSet"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#PhaseDistribution
+dyn:PhaseDistribution rdf:type owl:Class ;
+                      rdfs:subClassOf dyn:CompositeMaterial ;
+                      rdfs:comment "Describes the interpenetrating phase composite specific properties"@en ;
+                      rdfs:label "PhaseDistribution"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#PressureUnit
+dyn:PressureUnit rdf:type owl:Class ;
+                 rdfs:subClassOf dyn:Unit ;
+                 rdfs:label "PressureUnit"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#PrintingProcess
+dyn:PrintingProcess rdf:type owl:Class ;
+                    rdfs:subClassOf dyn:ProcessingStep ;
+                    rdfs:label "PrintingProcess"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#ProcessedSignal
+dyn:ProcessedSignal rdf:type owl:Class ;
+                    rdfs:label "ProcessedSignal"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#ProcessingStep
+dyn:ProcessingStep rdf:type owl:Class ;
+                   rdfs:label "ProcessingStep"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#PulseProperties
+dyn:PulseProperties rdf:type owl:Class ;
+                    rdfs:subClassOf dyn:SHPBTest ;
+                    rdfs:label "PulseProperties"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#PulseShaper
+dyn:PulseShaper rdf:type owl:Class ;
+                rdfs:subClassOf dyn:Equipment ;
+                rdfs:label "PulseShaper"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#SEMImageSet
+dyn:SEMImageSet rdf:type owl:Class ;
+                rdfs:subClassOf dyn:Characterization ;
+                rdfs:label "SEMImageSet"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#SHPBSeriesData
+dyn:SHPBSeriesData rdf:type owl:Class ;
+                   rdfs:subClassOf dyn:SeriesData ;
+                   rdfs:label "SHPBSeriesData"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#SHPBSetUp
+dyn:SHPBSetUp rdf:type owl:Class ;
+              rdfs:subClassOf dyn:MechanicalTestingConditions ;
+              rdfs:label "SHPBSetUp"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#SHPBTest
+dyn:SHPBTest rdf:type owl:Class ;
+             rdfs:subClassOf dyn:MechanicalTest ;
+             rdfs:label "SHPBTest"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Sensor
+dyn:Sensor rdf:type owl:Class ;
+           rdfs:label "Sensor"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#SensorSignal
+dyn:SensorSignal rdf:type owl:Class ;
+                 rdfs:label "SensorSignal"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#SeriesData
+dyn:SeriesData rdf:type owl:Class ;
+               rdfs:label "SeriesData"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Shape
+dyn:Shape rdf:type owl:Class ;
+          rdfs:label "Shape"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Simulation
+dyn:Simulation rdf:type owl:Class ;
+               rdfs:subClassOf dyn:Activity ;
+               rdfs:comment "Simulation Class Object"@en ;
+               rdfs:label "Simulation"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#SoftwareModel
+dyn:SoftwareModel rdf:type owl:Class ;
+                  rdfs:subClassOf dyn:Simulation ;
+                  rdfs:label "SoftwareModel"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Specimen
+dyn:Specimen rdf:type owl:Class ;
+             rdfs:label "Specimen"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#SpecimenBatch
+dyn:SpecimenBatch rdf:type owl:Class ;
+                  rdfs:comment "Group of specimens from same material/processing batch"@en ;
+                  rdfs:label "SpecimenBatch"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#SpecimenRole
+dyn:SpecimenRole rdf:type owl:Class ;
+                 rdfs:comment "Defines the use of the specimen"@en ;
+                 rdfs:label "SpecimenRole"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#SteelAlloy
+dyn:SteelAlloy rdf:type owl:Class ;
+               rdfs:subClassOf dyn:Material ;
+               rdfs:label "SteelAlloy"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#StrainGauge
+dyn:StrainGauge rdf:type owl:Class ;
+                rdfs:subClassOf dyn:Sensor ;
+                rdfs:label "SHPBStrainGauge"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#StrainRateRegime
+dyn:StrainRateRegime rdf:type owl:Class ;
+                     rdfs:label "StrainRateRegime"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Structure
+dyn:Structure rdf:type owl:Class ;
+              rdfs:label "Structure"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#TemperatureUnit
+dyn:TemperatureUnit rdf:type owl:Class ;
+                    rdfs:subClassOf dyn:Unit ;
+                    rdfs:label "TemperatureUnit"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Template
+dyn:Template rdf:type owl:Class ;
+             rdfs:label "Template"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#TensileTest
+dyn:TensileTest rdf:type owl:Class ;
+                rdfs:subClassOf dyn:MechanicalTest ;
+                rdfs:label "TensileTest"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#TestTemperature
+dyn:TestTemperature rdf:type owl:Class ;
+                    rdfs:subClassOf dyn:TestingConditions ;
+                    rdfs:label "TestTemperature" .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#TestType
+dyn:TestType rdf:type owl:Class ;
+             rdfs:subClassOf dyn:TestingConditions .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#TestValidity
+dyn:TestValidity rdf:type owl:Class ;
+                 rdfs:comment "Objective validity markers for the mechanical tests"@en ;
+                 rdfs:label "TestValidity"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#TestingConditions
+dyn:TestingConditions rdf:type owl:Class ;
+                      rdfs:label "TestingConditions" .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#TimeUnit
+dyn:TimeUnit rdf:type owl:Class ;
+             rdfs:subClassOf dyn:Unit ;
+             rdfs:label "TimeUnit"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#TriplyPeriodicStructure
+dyn:TriplyPeriodicStructure rdf:type owl:Class ;
+                            rdfs:subClassOf dyn:Structure ;
+                            rdfs:label "TriplyPeriodicStructure"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Unit
+dyn:Unit rdf:type owl:Class ;
+         rdfs:label "Unit"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#UnitCell
+dyn:UnitCell rdf:type owl:Class ;
+             rdfs:subClassOf dyn:Geometry ;
+             rdfs:label "UnitCell"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#UnitlessUnit
+dyn:UnitlessUnit rdf:type owl:Class ;
+                 rdfs:subClassOf dyn:Unit ;
+                 rdfs:label "UnitlessUnit"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#User
+dyn:User rdf:type owl:Class ;
+         rdfs:label "User"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#VelocityUnit
+dyn:VelocityUnit rdf:type owl:Class ;
+                 rdfs:subClassOf dyn:Unit ;
+                 rdfs:label "VelocityUnit"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#VolumeUnit
+dyn:VolumeUnit rdf:type owl:Class ;
+               rdfs:subClassOf dyn:Unit ;
+               rdfs:label "VolumeUnit"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#WavePropagationQuality
+dyn:WavePropagationQuality rdf:type owl:Class ;
+                           rdfs:subClassOf dyn:SHPBTest ;
+                           rdfs:label "WavePropagationQuality"@en .
+
+
+#################################################################
+#    Individuals
+#################################################################
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#AbsorbedEnergy
+dyn:AbsorbedEnergy rdf:type owl:NamedIndividual ,
+                            dyn:SHPBSeriesData ;
+                   dyn:hasUnits dyn:Joule ;
+                   dyn:hasPlottingLabel "Absorbed Energy (J)"@en ;
+                   rdfs:comment "Determined absorbed energy of the specimen"@en ;
+                   rdfs:label "AbsorbedEnergy"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Aluminium356
+dyn:Aluminium356 rdf:type owl:NamedIndividual ,
+                          dyn:AluminiumAlloy ;
+                 dyn:hasName "A356 Alloy"@en ;
+                 dyn:hasPlottingLabel "A356"@en ;
+                 rdfs:label "Aluminium356"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Aluminium6061T6
+dyn:Aluminium6061T6 rdf:type owl:NamedIndividual ,
+                             dyn:AluminiumAlloy ;
+                    dyn:hasName "Al6061-T6 Alloy"@en ;
+                    dyn:hasPlottingLabel "Al6061-T6"@en ;
+                    rdfs:label "Aluminium6061T6"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Aluminium7075T6
+dyn:Aluminium7075T6 rdf:type owl:NamedIndividual ,
+                             dyn:AluminiumAlloy ;
+                    dyn:hasName "Al7075-T6 Alloy"@en ;
+                    dyn:hasPlottingLabel "Al7075-T6"@en ;
+                    rdfs:label "Aluminium7075T6"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#BarDisplacement
+dyn:BarDisplacement rdf:type owl:NamedIndividual ,
+                             dyn:SHPBSeriesData ;
+                    dyn:hasUnits dyn:MeterPerSecond ;
+                    rdfs:label "BarDisplacement"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Barreling
+dyn:Barreling rdf:type owl:NamedIndividual ,
+                       dyn:DeformationMode ,
+                       dyn:FailureMode ;
+              dyn:hasName "Barreling"@en ;
+              rdfs:comment "Barrel-shaped deformation in compression"@en ;
+              rdfs:label "Barreling"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Brass414
+dyn:Brass414 rdf:type owl:NamedIndividual ,
+                      dyn:CopperAlloy ;
+             dyn:hasName "Brass414 Alloy"@en ;
+             dyn:hasPlottingLabel "Brass414"@en ;
+             rdfs:label "Brass414"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#BrianSchuster
+dyn:BrianSchuster rdf:type owl:NamedIndividual ,
+                           dyn:User ;
+                  dyn:hasAffilliation "University of Texas at El Paso"@en ;
+                  dyn:hasName "Brian Schuster"@en ;
+                  rdfs:label "BrianSchuster"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#BrittleFracture
+dyn:BrittleFracture rdf:type owl:NamedIndividual ,
+                             dyn:FailureMode ;
+                    dyn:hasName "BrittleFracture"@en ;
+                    rdfs:label "BrittleFracture"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Buckling
+dyn:Buckling rdf:type owl:NamedIndividual ,
+                      dyn:FailureMode ;
+             dyn:hasName "Buckling"@en ;
+             rdfs:label "Bucking"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#CalibrationResistance
+dyn:CalibrationResistance rdf:type owl:NamedIndividual ,
+                                   dyn:StrainGauge ;
+                          dyn:hasUnits dyn:MilliOhms ,
+                                       dyn:Ohms ;
+                          dyn:hasName "Strain Guage Calibration Resistance"@en ;
+                          rdfs:comment "Represents the calibration resistance of the strain gauge in ohms"@en ;
+                          rdfs:label "CalibrationResistance"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#CalibrationSpecimen
+dyn:CalibrationSpecimen rdf:type owl:NamedIndividual ,
+                                 dyn:SpecimenRole ;
+                        dyn:hasName "Calibration Specimen"@en ;
+                        rdfs:label "CalibrationSpecimen"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#CalibrationTest
+dyn:CalibrationTest rdf:type owl:NamedIndividual ,
+                             dyn:TestType ;
+                    dyn:hasName "Calibration Test"@en ;
+                    rdfs:label "CalibrationTest"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#CalibrationVoltage
+dyn:CalibrationVoltage rdf:type owl:NamedIndividual ,
+                                dyn:StrainGauge ;
+                       dyn:hasUnits dyn:MilliVolts ,
+                                    dyn:Volts ;
+                       dyn:hasName "Strain Gauge Calibration Voltage"@en ;
+                       rdfs:label "CalibrationVoltage"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#CastingProcess
+dyn:CastingProcess rdf:type owl:NamedIndividual ,
+                            dyn:ProcessingStep ;
+                   dyn:hasName "Casting Process"@en ;
+                   rdfs:label "CastingProcess"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#CharacterizationSpecimen
+dyn:CharacterizationSpecimen rdf:type owl:NamedIndividual ,
+                                      dyn:SpecimenRole ;
+                             dyn:hasName "Characterization Specimen"@en ;
+                             rdfs:label "CharacterizationSpecimen"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#CleanWavePropagation
+dyn:CleanWavePropagation rdf:type owl:NamedIndividual ,
+                                  dyn:WavePropagationQuality ;
+                         dyn:hasName "Clean Wave"@en ;
+                         rdfs:label "CleanWavePropagation"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Composite_SS316A356
+dyn:Composite_SS316A356 rdf:type owl:NamedIndividual ,
+                                 dyn:CompositeMaterial ;
+                        dyn:hasName "SS316 - A356 Composite"@en ;
+                        dyn:hasPlottingLabel "SS316-A356"@en ;
+                        rdfs:label "Composite_SS316A356"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#ConstantStrainRate
+dyn:ConstantStrainRate rdf:type owl:NamedIndividual ,
+                                dyn:TestValidity ;
+                       dyn:hasName "Constant Strain Rate"@en ;
+                       rdfs:comment "Strain rate remained constant during plastic deformation"@en ;
+                       rdfs:label "ConstantStrainRate"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#CoolingRate
+dyn:CoolingRate rdf:type owl:NamedIndividual ,
+                         dyn:HeatTreatment ;
+                dyn:hasName "Cooling Rate"@en ;
+                rdfs:label "CoolingRate"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Copper101
+dyn:Copper101 rdf:type owl:NamedIndividual ,
+                       dyn:CopperAlloy ;
+              dyn:hasName "Copper 101 Alloy"@en ;
+              dyn:hasPlottingLabel "Cu101"@en ;
+              rdfs:label "Copper101"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Cubic
+dyn:Cubic rdf:type owl:NamedIndividual ,
+                   dyn:Shape ;
+          dyn:hasName "Cubic Shape"@en ;
+          rdfs:label "Cubic"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#CubicCentimeter
+dyn:CubicCentimeter rdf:type owl:NamedIndividual ,
+                             dyn:VolumeUnit ;
+                    dyn:hasSymbol "cm^3"@en ;
+                    rdfs:label "CubicCentimeter"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#CubicFoot
+dyn:CubicFoot rdf:type owl:NamedIndividual ,
+                       dyn:VolumeUnit ;
+              dyn:hasSymbol "ft^3"@en ;
+              rdfs:label "CubicFoot"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#CubicInch
+dyn:CubicInch rdf:type owl:NamedIndividual ,
+                       dyn:VolumeUnit ;
+              dyn:hasSymbol "in^3"@en ;
+              rdfs:label "CubicInch"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#CubicMeter
+dyn:CubicMeter rdf:type owl:NamedIndividual ,
+                        dyn:VolumeUnit ;
+               dyn:hasSymbol "m^3"@en ;
+               rdfs:label "CubicMeter"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#CubicMillimeter
+dyn:CubicMillimeter rdf:type owl:NamedIndividual ,
+                             dyn:VolumeUnit ;
+                    dyn:hasSymbol "mm^3"@en ;
+                    rdfs:label "CubicMillimeter"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Cylindrical
+dyn:Cylindrical rdf:type owl:NamedIndividual ,
+                         dyn:Shape ;
+                dyn:hasSymbol "Cylindrical Shape"@en ;
+                rdfs:label "Cylindrical"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#CylindricalFrame
+dyn:CylindricalFrame rdf:type owl:NamedIndividual ,
+                              dyn:UnitCell ;
+                     dyn:hasName "Cylindrical Frame"@en ;
+                     rdfs:comment "Refers to the lattice cylindrical edge when enclosed"@en ;
+                     rdfs:label "CylindricalFrame"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#DataAcquisitionRate
+dyn:DataAcquisitionRate rdf:type owl:NamedIndividual ,
+                                 dyn:StrainGauge ;
+                        dyn:hasUnits dyn:GigaHertz ,
+                                     dyn:Hertz ,
+                                     dyn:KiloHertz ,
+                                     dyn:MegaHertz ;
+                        dyn:hasName "DAQ"@en ;
+                        rdfs:label "DataAcquisitionRate"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#DataBitResolution
+dyn:DataBitResolution rdf:type owl:NamedIndividual ,
+                               dyn:StrainGauge ;
+                      rdfs:label "DataBitResolution"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#DataTriggerDuration
+dyn:DataTriggerDuration rdf:type owl:NamedIndividual ,
+                                 dyn:StrainGauge ;
+                        rdfs:label "DataTriggerDuration"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#DataTriggerLevel
+dyn:DataTriggerLevel rdf:type owl:NamedIndividual ,
+                              dyn:StrainGauge ;
+                     rdfs:label "DataTriggerLevel"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#DavidSantacruz
+dyn:DavidSantacruz rdf:type owl:NamedIndividual ,
+                            dyn:User ;
+                   dyn:hasAffilliation "University of Texas at El Paso"@en ;
+                   dyn:hasName "David Santacruz"@en ;
+                   rdfs:label "DavidSantaCruz"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#DeformedCrossSectionalArea
+dyn:DeformedCrossSectionalArea rdf:type owl:NamedIndividual ,
+                                        dyn:Geometry ;
+                               dyn:hasUnits dyn:SquareInches ,
+                                            dyn:SquareMeters ,
+                                            dyn:SquareMillimeters ;
+                               dyn:hasName "Deformed Cross Section"@en ;
+                               rdfs:comment "Represents the measurement of the deformed cross sectional area, resulting from a specific activity"@en ;
+                               rdfs:label "DeformedCrossSectionalArea"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#DeformedDiameter
+dyn:DeformedDiameter rdf:type owl:NamedIndividual ,
+                              dyn:Geometry ;
+                     dyn:hasUnits dyn:Foot ,
+                                  dyn:Inch ,
+                                  dyn:Meter ,
+                                  dyn:Micrometer ,
+                                  dyn:Millimeter ;
+                     dyn:hasName "Deformed Diameter"@en ;
+                     rdfs:comment "Represents the measured deformed diameter after testing is conducted"@en ;
+                     rdfs:label "DeformedDiameter"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#DeformedLength
+dyn:DeformedLength rdf:type owl:NamedIndividual ,
+                            dyn:Geometry ;
+                   dyn:hasUnits dyn:Foot ,
+                                dyn:Inch ,
+                                dyn:Meter ,
+                                dyn:Micrometer ,
+                                dyn:Millimeter ;
+                   dyn:hasName "Deformed Length"@en ;
+                   rdfs:comment "Represent the measured deformed length (or gauge lenght) after testing"@en ;
+                   rdfs:label "DeformedLength"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#DegreesCelsius
+dyn:DegreesCelsius rdf:type owl:NamedIndividual ,
+                            dyn:TemperatureUnit ;
+                   dyn:hasSymbol "°C"@en ;
+                   rdfs:label "DegreesCelsius"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#DegreesFahrenheit
+dyn:DegreesFahrenheit rdf:type owl:NamedIndividual ,
+                               dyn:TemperatureUnit ;
+                      dyn:hasSymbol "°F"@en ;
+                      rdfs:label "DegreesFahrenheit"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#DegreesKelvin
+dyn:DegreesKelvin rdf:type owl:NamedIndividual ,
+                           dyn:TemperatureUnit ;
+                  dyn:hasSymbol "°K"@en ;
+                  rdfs:label "DegressKelvin"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Density
+dyn:Density rdf:type owl:NamedIndividual ,
+                     dyn:Geometry ;
+            dyn:hasUnits dyn:GramPerCubicMillimeter ,
+                         dyn:KilogramPerCubicMeter ,
+                         dyn:KilogramPerCubicMillimeter ;
+            dyn:hasName "Density"@en ;
+            rdfs:comment "Represents the measured density for the material / specimen"@en ;
+            rdfs:label "Density"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#DispersionObserved
+dyn:DispersionObserved rdf:type owl:NamedIndividual ,
+                                dyn:WavePropagationQuality ;
+                       dyn:hasName "Wave Dispersion Observed"@en ;
+                       rdfs:comment "Wave dispersion detected in signals"@en ;
+                       rdfs:label "DispersionObserved"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Distance
+dyn:Distance rdf:type owl:NamedIndividual ,
+                      dyn:Geometry ;
+             dyn:hasUnits dyn:Foot ,
+                          dyn:Inch ,
+                          dyn:Meter ,
+                          dyn:Micrometer ,
+                          dyn:Millimeter ;
+             dyn:hasName "Distance"@en ;
+             rdfs:comment "Represents the linear distance between two objects (normally strain gauges)"@en ;
+             rdfs:label "Distance"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#DuctileFracture
+dyn:DuctileFracture rdf:type owl:NamedIndividual ,
+                             dyn:FailureMode ;
+                    dyn:hasName "DuctileFracture"@en ;
+                    rdfs:label "DuctileFracture"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#DynaMatLab
+dyn:DynaMatLab rdf:type owl:NamedIndividual ,
+                        dyn:Laboratory ;
+               dyn:hasAffilliation "University of Texas at El Paso"@en ;
+               dyn:hasLocation "PHYS Bld, Room 412"@en ;
+               dyn:hasName "Dynamic Materials Laboratory"@en ;
+               rdfs:comment "Represents the DYNAMAT Lab"@en ;
+               rdfs:label "DynaMatLab"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Dynamic
+dyn:Dynamic rdf:type owl:NamedIndividual ,
+                     dyn:StrainRateRegime ;
+            rdfs:label "Dynamic"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#ElasticModulus
+dyn:ElasticModulus rdf:type owl:NamedIndividual ,
+                            dyn:MechanicalProperty ;
+                   dyn:hasUnits dyn:GigaPascal ,
+                                dyn:MegaPascal ,
+                                dyn:PSI ,
+                                dyn:Pascal ;
+                   dyn:hasName "Elastic Modulus"@en ;
+                   rdfs:label "ElasticModulus"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#ElasticRecovery
+dyn:ElasticRecovery rdf:type owl:NamedIndividual ,
+                             dyn:DeformationMode ;
+                    rdfs:label "ElasticRecovery"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#ElasticStrengthModel
+dyn:ElasticStrengthModel rdf:type owl:NamedIndividual ,
+                                  dyn:MaterialModel ;
+                         dyn:hasDimension dyn:Density ;
+                         dyn:hasMechanicalProperty dyn:ElasticModulus ,
+                                                   dyn:PoissonsRatio ;
+                         dyn:hasName "Elastic Model"@en ;
+                         rdfs:comment "Represents the Elastic Model (MAT_001) from LS-DYNA"@en ;
+                         rdfs:label "ElasticStrengthModel"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Engaged
+dyn:Engaged rdf:type owl:NamedIndividual ,
+                     dyn:MomentumTrapState ;
+            dyn:hasName "Engaged"@en ;
+            rdfs:comment "Represents the activate state of the Momentum Trap for dynamic tests"@en ;
+            rdfs:label "Engaged"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#EngineeringStrain
+dyn:EngineeringStrain rdf:type owl:NamedIndividual ,
+                               dyn:SHPBSeriesData ;
+                      dyn:hasUnits dyn:Unitless ;
+                      dyn:hasName "Engineering Strain"@en ;
+                      rdfs:label "EngineeringStrain"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#EngineeringStrainRate
+dyn:EngineeringStrainRate rdf:type owl:NamedIndividual ,
+                                   dyn:SHPBSeriesData ;
+                          dyn:hasUnits dyn:Hertz ;
+                          dyn:hasName "Engineering Strain Rate"@en ;
+                          rdfs:label "EngineeringStrainRate"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#EngineeringStress
+dyn:EngineeringStress rdf:type owl:NamedIndividual ,
+                               dyn:SHPBSeriesData ;
+                      dyn:hasUnits dyn:MegaPascal ;
+                      dyn:hasName "Engineering Stress"@en ;
+                      rdfs:label "EngineeringStress"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#EquilibriumAchieved
+dyn:EquilibriumAchieved rdf:type owl:NamedIndividual ,
+                                 dyn:TestValidity ;
+                        dyn:hasName "Equilibrium Achieved"@en ;
+                        rdfs:comment "Force equilibrium verified in dynamic tests"@en ;
+                        rdfs:label "EquillibriumAchieved"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#ErwinCazares
+dyn:ErwinCazares rdf:type owl:NamedIndividual ,
+                          dyn:User ;
+                 dyn:hasAffilliation "University of Texas at El Paso"@en ;
+                 dyn:hasName "Erwin Cazares"@en ;
+                 rdfs:label "ErwinCazares"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Foot
+dyn:Foot rdf:type owl:NamedIndividual ,
+                  dyn:LengthUnit ;
+         dyn:hasSymbol "ft"@en ;
+         rdfs:label "Foot"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#FootPerSecond
+dyn:FootPerSecond rdf:type owl:NamedIndividual ,
+                           dyn:VelocityUnit ;
+                  dyn:hasSymbol "ft / s"@en ;
+                  rdfs:label "FootPerSecond"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#GaugeFactor
+dyn:GaugeFactor rdf:type owl:NamedIndividual ,
+                         dyn:StrainGauge ;
+                dyn:hasUnits dyn:Unitless ;
+                dyn:hasName "Strain Gauge Factor"@en ;
+                rdfs:label "GaugeFactor"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#GigaHertz
+dyn:GigaHertz rdf:type owl:NamedIndividual ,
+                       dyn:FrequencyUnit ;
+              dyn:hasSymbol "GHz"@en ;
+              rdfs:label "GigaHertz"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#GigaPascal
+dyn:GigaPascal rdf:type owl:NamedIndividual ,
+                        dyn:PressureUnit ;
+               dyn:hasSymbol "GPa"@en ;
+               rdfs:label "GigaPascal"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#GradedDistribution
+dyn:GradedDistribution rdf:type owl:NamedIndividual ,
+                                dyn:PhaseDistribution ;
+                       rdfs:label "GradedDistribution"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Gram
+dyn:Gram rdf:type owl:NamedIndividual ,
+                  dyn:MassUnits ;
+         dyn:hasSymbol "g"@en ;
+         rdfs:label "Gram"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#GramPerCubicMillimeter
+dyn:GramPerCubicMillimeter rdf:type owl:NamedIndividual ,
+                                    dyn:DensityUnit ;
+                           dyn:hasSymbol "g / mm^3"@en ;
+                           rdfs:label "GramPerCubicMillimeter"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#GyroidLattice
+dyn:GyroidLattice rdf:type owl:NamedIndividual ,
+                           dyn:TriplyPeriodicStructure ;
+                  dyn:hasName "Gyroid Lattice"@en ;
+                  rdfs:label "GyroidLattice"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#HardeningConstant
+dyn:HardeningConstant rdf:type owl:NamedIndividual ,
+                               dyn:MechanicalProperty ;
+                      dyn:hasUnits dyn:GigaPascal ,
+                                   dyn:MegaPascal ,
+                                   dyn:PSI ,
+                                   dyn:Pascal ;
+                      dyn:hasName "Hardening Modulus"@en ;
+                      dyn:hasSymbol "B"@en ;
+                      rdfs:label "HardeningConstant"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#HardeningExponent
+dyn:HardeningExponent rdf:type owl:NamedIndividual ,
+                               dyn:MechanicalProperty ;
+                      dyn:hasUnits dyn:Unitless ;
+                      dyn:hasName "Hardening Exponent"@en ;
+                      dyn:hasSymbol "n"@en ;
+                      rdfs:label "HardeningExponent"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Hertz
+dyn:Hertz rdf:type owl:NamedIndividual ,
+                   dyn:FrequencyUnit ;
+          dyn:hasSymbol "Hz"@en ;
+          rdfs:label "Hertz"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Inch
+dyn:Inch rdf:type owl:NamedIndividual ,
+                  dyn:LengthUnit ;
+         dyn:hasSymbol "in"@en ;
+         rdfs:label "Inch"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#InchPerSecond
+dyn:InchPerSecond rdf:type owl:NamedIndividual ,
+                           dyn:VelocityUnit ;
+                  dyn:hasSymbol "in / s"@en ;
+                  rdfs:label "InchPerSecond"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#IncidentBar
+dyn:IncidentBar rdf:type owl:NamedIndividual ,
+                         dyn:Bar ;
+                dyn:hasDimension dyn:OriginalCrossSectionalArea ,
+                                 dyn:OriginalDiameter ,
+                                 dyn:OriginalLength ;
+                dyn:hasName "Incident Bar"@en ;
+                rdfs:comment "Represents the Incident Bar for dynamic set-ups"@en ;
+                rdfs:label "IncidentBar"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#IncidentSignal
+dyn:IncidentSignal rdf:type owl:NamedIndividual ,
+                            dyn:ProcessedSignal ,
+                            dyn:SensorSignal ;
+                   dyn:hasUnits dyn:MilliVolts ,
+                                dyn:Unitless ,
+                                dyn:Volts ;
+                   dyn:hasName "Incident Signal"@en ;
+                   rdfs:label "IncidentSignal"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Intermediate
+dyn:Intermediate rdf:type owl:NamedIndividual ,
+                          dyn:StrainRateRegime ;
+                 rdfs:label "Intermediate"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#JohnsonCookModel
+dyn:JohnsonCookModel rdf:type owl:NamedIndividual ,
+                              dyn:MaterialModel ;
+                     dyn:hasDimension dyn:Density ;
+                     dyn:hasMechanicalProperty dyn:ElasticModulus ,
+                                               dyn:HardeningConstant ,
+                                               dyn:HardeningExponent ,
+                                               dyn:PoissonsRatio ,
+                                               dyn:StrainRateCoefficient ,
+                                               dyn:ThermalSofteningCoefficient ,
+                                               dyn:YieldStrength ;
+                     dyn:hasName "Johnson-Cook Strength Model"@en ;
+                     rdfs:comment "Represents the simplified Johnson-Cook model (MAT_098) from LS-DYNA"@en ;
+                     rdfs:label "JohnsonCookModel"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Joule
+dyn:Joule rdf:type owl:NamedIndividual ,
+                   dyn:EnergyUnit ;
+          dyn:hasSymbol "J"@en ;
+          rdfs:label "Joule"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#KiloHertz
+dyn:KiloHertz rdf:type owl:NamedIndividual ,
+                       dyn:FrequencyUnit ;
+              dyn:hasSymbol "KHz"@en ;
+              rdfs:label "KiloHertz"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#KiloNewton
+dyn:KiloNewton rdf:type owl:NamedIndividual ,
+                        dyn:ForceUnit ;
+               dyn:hasSymbol "KN"@en ;
+               rdfs:label "KiloNewton"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Kilogram
+dyn:Kilogram rdf:type owl:NamedIndividual ,
+                      dyn:MassUnits ;
+             dyn:hasSymbol "Kg"@en ;
+             rdfs:label "Kilogram"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#KilogramPerCubicMeter
+dyn:KilogramPerCubicMeter rdf:type owl:NamedIndividual ,
+                                   dyn:DensityUnit ;
+                          dyn:hasSymbol "Kg / m^3"@en ;
+                          rdfs:label "KilogramPerCubicMeter"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#KilogramPerCubicMillimeter
+dyn:KilogramPerCubicMillimeter rdf:type owl:NamedIndividual ,
+                                        dyn:DensityUnit ;
+                               dyn:hasSymbol "Kg / mm^3"@en ;
+                               rdfs:label "KilogramPerCubicMillimeter"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#LatticeCellsX
+dyn:LatticeCellsX rdf:type owl:NamedIndividual ,
+                           dyn:UnitCell ;
+                  dyn:hasName "Lattice Cells X"@en ;
+                  rdfs:comment "Refers to the number of times the unit cell repeats on the X-direction"@en ;
+                  rdfs:label "LatticeCellsX"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#LatticeCellsY
+dyn:LatticeCellsY rdf:type owl:NamedIndividual ,
+                           dyn:UnitCell ;
+                  dyn:hasName "Lattice Cells Y"@en ;
+                  rdfs:comment "Refers to the number of times the unit cell repeats on the Y-direction"@en ;
+                  rdfs:label "LatticeCellsY"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#LatticeCellsZ
+dyn:LatticeCellsZ rdf:type owl:NamedIndividual ,
+                           dyn:UnitCell ;
+                  dyn:hasName "Lattice Cells Z"@en ;
+                  rdfs:comment "Refers to the number of times the unit cell repeats on the Z-direction"@en ;
+                  rdfs:label "LatticeCellsZ"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#LatticeNodeRadius
+dyn:LatticeNodeRadius rdf:type owl:NamedIndividual ,
+                               dyn:UnitCell ;
+                      dyn:hasName "Lattice Node Radius"@en ;
+                      rdfs:comment "Refers to the size of the spherical radius on the nodes"@en ;
+                      rdfs:label "LatticeNodeRadius"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#LatticeNx
+dyn:LatticeNx rdf:type owl:NamedIndividual ,
+                       dyn:UnitCell ;
+              dyn:hasName "Lattice Nx"@en ;
+              rdfs:comment "Refers to the number of resolution  points in the X-direction"@en ;
+              rdfs:label "LatticeNx"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#LatticeNy
+dyn:LatticeNy rdf:type owl:NamedIndividual ,
+                       dyn:UnitCell ;
+              dyn:hasName "Lattice Ny"@en ;
+              rdfs:comment "Refers to the number of resolution  points in the Y-direction"@en ;
+              rdfs:label "LatticeNy"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#LatticeNz
+dyn:LatticeNz rdf:type owl:NamedIndividual ,
+                       dyn:UnitCell ;
+              dyn:hasName "Lattice Nz"@en ;
+              rdfs:comment "Refers to the number of resolution  points in the Z-direction"@en ;
+              rdfs:label "LatticeNz"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#LatticeStrutMaxX
+dyn:LatticeStrutMaxX rdf:type owl:NamedIndividual ,
+                              dyn:UnitCell ;
+                     dyn:hasName "Lattice Max X Strut"@en ;
+                     rdfs:label "LatticeStrutMaxX"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#LatticeStrutMaxY
+dyn:LatticeStrutMaxY rdf:type owl:NamedIndividual ,
+                              dyn:UnitCell ;
+                     dyn:hasName "Lattice Max Y Strut"@en ;
+                     rdfs:label "LatticeStrutMaxY"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#LatticeStrutMaxZ
+dyn:LatticeStrutMaxZ rdf:type owl:NamedIndividual ,
+                              dyn:UnitCell ;
+                     dyn:hasName "Lattice Max Z Strut"@en ;
+                     rdfs:label "LatticeStrutMaxZ"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#LatticeStrutMinX
+dyn:LatticeStrutMinX rdf:type owl:NamedIndividual ,
+                              dyn:UnitCell ;
+                     dyn:hasName "Lattice Min X Strut"@en ;
+                     rdfs:label "LatticeStrutMinX"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#LatticeStrutMinY
+dyn:LatticeStrutMinY rdf:type owl:NamedIndividual ,
+                              dyn:UnitCell ;
+                     dyn:hasName "Lattice Min Y Strut"@en ;
+                     rdfs:label "LatticeStrutMinY"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#LatticeStrutMinZ
+dyn:LatticeStrutMinZ rdf:type owl:NamedIndividual ,
+                              dyn:UnitCell ;
+                     dyn:hasName "Lattice Max Z Strut"@en ;
+                     rdfs:label "LatticeStrutMinZ"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#LayerThickness
+dyn:LayerThickness rdf:type owl:NamedIndividual ,
+                            dyn:PrintingProcess ;
+                   dyn:hasName "Layer Thickness"@en ;
+                   rdfs:label "LayerThickness"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#LocalizedShearBand
+dyn:LocalizedShearBand rdf:type owl:NamedIndividual ,
+                                dyn:DeformationMode ;
+                       dyn:hasName "Localized Shear Band"@en ;
+                       rdfs:comment "Formation of adiabatic shear bands"@en ;
+                       rdfs:label "LocalizedShearBand"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MachiningProcess
+dyn:MachiningProcess rdf:type owl:NamedIndividual ,
+                              dyn:ProcessingStep ;
+                     dyn:hasName "Machined"@en ;
+                     rdfs:label "MachiningProcess"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Mass
+dyn:Mass rdf:type owl:NamedIndividual ,
+                  dyn:Geometry ;
+         dyn:hasUnits dyn:Gram ,
+                      dyn:Kilogram ;
+         dyn:hasName "Mass"@en ;
+         rdfs:label "Mass"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MegaHertz
+dyn:MegaHertz rdf:type owl:NamedIndividual ,
+                       dyn:FrequencyUnit ;
+              dyn:hasSymbol "MHz"@en ;
+              rdfs:label "MegaHertz"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MegaPascal
+dyn:MegaPascal rdf:type owl:NamedIndividual ,
+                        dyn:PressureUnit ;
+               dyn:hasSymbol "MPa"@en ;
+               rdfs:label "MegaPascal"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Meter
+dyn:Meter rdf:type owl:NamedIndividual ,
+                   dyn:LengthUnit ;
+          dyn:hasSymbol "m"@en ;
+          rdfs:label "Meter"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MeterPerSecond
+dyn:MeterPerSecond rdf:type owl:NamedIndividual ,
+                            dyn:VelocityUnit ;
+                   dyn:hasSymbol "m / s"@en ;
+                   rdfs:label "MeterPerSecond"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MicroSecond
+dyn:MicroSecond rdf:type owl:NamedIndividual ,
+                         dyn:TimeUnit ;
+                dyn:hasSymbol "us"@en ;
+                rdfs:label "MicroSecond"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Micrometer
+dyn:Micrometer rdf:type owl:NamedIndividual ,
+                        dyn:LengthUnit ;
+               dyn:hasSymbol "um"@en ;
+               rdfs:label "Micrometer"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MilliJoule
+dyn:MilliJoule rdf:type owl:NamedIndividual ,
+                        dyn:EnergyUnit ;
+               dyn:hasSymbol "mJ"@en ;
+               rdfs:label "MilliJoule"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MilliOhms
+dyn:MilliOhms rdf:type owl:NamedIndividual ,
+                       dyn:ElectricalResistanceUnits ;
+              dyn:hasSymbol "mOhms"@en ;
+              rdfs:label "MilliOhms"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MilliSecond
+dyn:MilliSecond rdf:type owl:NamedIndividual ,
+                         dyn:TimeUnit ;
+                dyn:hasSymbol "ms"@en ;
+                rdfs:label "MilliSecond"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MilliVolts
+dyn:MilliVolts rdf:type owl:NamedIndividual ,
+                        dyn:ElectricPotentialUnit ;
+               dyn:hasSymbol "mV"@en ;
+               rdfs:label "MilliVolts"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Millimeter
+dyn:Millimeter rdf:type owl:NamedIndividual ,
+                        dyn:LengthUnit ;
+               dyn:hasSymbol "mm"@en ;
+               rdfs:label "Millimeter"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MillimeterPerSecond
+dyn:MillimeterPerSecond rdf:type owl:NamedIndividual ,
+                                 dyn:VelocityUnit ;
+                        dyn:hasSymbol "mm / s"@en ;
+                        rdfs:label "MillimeterPerSecond"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MomentumTaylorGap
+dyn:MomentumTaylorGap rdf:type owl:NamedIndividual ,
+                               dyn:SHPBSetUp ;
+                      dyn:hasDimension dyn:Distance ;
+                      dyn:hasName "Taylor Gap Distance"@en ;
+                      rdfs:label "MomentumTaylorGap"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MomentumTrapFull
+dyn:MomentumTrapFull rdf:type owl:NamedIndividual ,
+                              dyn:MomentumTrapTechnique ;
+                     dyn:hasName "Fully Engaged Momentum Trap"@en ;
+                     rdfs:comment "Represents the full engagement of the momentum trap in dynamic test"@en ;
+                     rdfs:label "MomentumTrapFull"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MomentumTrapTaylorGap
+dyn:MomentumTrapTaylorGap rdf:type owl:NamedIndividual ,
+                                   dyn:MomentumTrapTechnique ;
+                          dyn:hasName "Taylor Gap Momentum Trap"@en ;
+                          rdfs:comment "Represents the use of the Momentum Trap with a flange distance (Taylor Gap) in dynamic tests"@en ;
+                          rdfs:label "MomentumTrapTaylorGap"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MonolithicLattice
+dyn:MonolithicLattice rdf:type owl:NamedIndividual ,
+                               dyn:Structure ;
+                      dyn:hasName "Monolithic Specimen"@en ;
+                      rdfs:label "MonolithicLattice"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MultipleCracking
+dyn:MultipleCracking rdf:type owl:NamedIndividual ,
+                              dyn:FailureMode ;
+                     dyn:hasName "Multiple Cracking"@en ;
+                     rdfs:label "MultipleCracking"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#MushroomingAtInterface
+dyn:MushroomingAtInterface rdf:type owl:NamedIndividual ,
+                                    dyn:DeformationMode ;
+                           dyn:hasName "Mushrooming at Interface"@en ;
+                           rdfs:comment "Mushrooming at bar-specimen interface"@en ;
+                           rdfs:label "MushroomingAtInterface"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Newton
+dyn:Newton rdf:type owl:NamedIndividual ,
+                    dyn:ForceUnit ;
+           dyn:hasSymbol "N"@en ;
+           rdfs:label "Newton"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#NoVisibleDeformation
+dyn:NoVisibleDeformation rdf:type owl:NamedIndividual ,
+                                  dyn:DeformationMode ;
+                         dyn:hasName "No Visible Deformation"@en ;
+                         rdfs:label "NoVisibleDeformation"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#NoVisibleFracture
+dyn:NoVisibleFracture rdf:type owl:NamedIndividual ,
+                               dyn:FailureMode ;
+                      dyn:hasName "No Visible Fracture"@en ;
+                      rdfs:label "NoVisibleFracture"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#NotEngaged
+dyn:NotEngaged rdf:type owl:NamedIndividual ,
+                        dyn:MomentumTrapState ;
+               dyn:hasName "Not Engaged"@en ;
+               rdfs:comment "Represents the absence of Momentum trap in dynamic tests"@en ;
+               rdfs:label "NotEngaged"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Ohms
+dyn:Ohms rdf:type owl:NamedIndividual ,
+                  dyn:ElectricalResistanceUnits ;
+         dyn:hasSymbol "ohms"@en ;
+         rdfs:label "Ohms"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#OneDimensionalStress
+dyn:OneDimensionalStress rdf:type owl:NamedIndividual ,
+                                  dyn:TestValidity ;
+                         dyn:hasName "One Dimensional Stress"@en ;
+                         rdfs:comment "1D stress state assumption valid"@en ;
+                         rdfs:label "OneDimensionalStress"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#OriginalCrossSectionalArea
+dyn:OriginalCrossSectionalArea rdf:type owl:NamedIndividual ,
+                                        dyn:Geometry ;
+                               dyn:hasUnits dyn:SquareInches ,
+                                            dyn:SquareMeters ,
+                                            dyn:SquareMillimeters ;
+                               dyn:hasName "Original Cross Section"@en ;
+                               rdfs:comment "Represents the original cross sectional area prior to testing"@en ;
+                               rdfs:label "OriginalCrossSectionalArea"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#OriginalDiameter
+dyn:OriginalDiameter rdf:type owl:NamedIndividual ,
+                              dyn:Geometry ;
+                     dyn:hasUnits dyn:Foot ,
+                                  dyn:Inch ,
+                                  dyn:Meter ,
+                                  dyn:Micrometer ,
+                                  dyn:Millimeter ;
+                     dyn:hasName "Original Diameter"@en ;
+                     rdfs:comment "Represents the original diameter before testing"@en ;
+                     rdfs:label "OriginalDiameter"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#OriginalLength
+dyn:OriginalLength rdf:type owl:NamedIndividual ,
+                            dyn:Geometry ;
+                   dyn:hasUnits dyn:Foot ,
+                                dyn:Inch ,
+                                dyn:Meter ,
+                                dyn:Micrometer ,
+                                dyn:Millimeter ;
+                   dyn:hasName "Original Length"@en ;
+                   rdfs:comment "Represents the original length before testing"@en ;
+                   rdfs:label "OriginalLength"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#PSI
+dyn:PSI rdf:type owl:NamedIndividual ,
+                 dyn:PressureUnit ;
+        dyn:hasSymbol "psi"@en ;
+        rdfs:label "PSI"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Pascal
+dyn:Pascal rdf:type owl:NamedIndividual ,
+                    dyn:PressureUnit ;
+           dyn:hasSymbol "Pa"@en ;
+           rdfs:label "Pascal"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#PeriodicDistribution
+dyn:PeriodicDistribution rdf:type owl:NamedIndividual ,
+                                  dyn:PhaseDistribution ;
+                         rdfs:label "PeriodicDistribution"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#PoissonsRatio
+dyn:PoissonsRatio rdf:type owl:NamedIndividual ,
+                           dyn:MechanicalProperty ;
+                  dyn:hasUnits dyn:Unitless ;
+                  dyn:hasName "Poisson's Ratio"@en ;
+                  rdfs:label "PoissonsRatio"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#PowderMeanSize
+dyn:PowderMeanSize rdf:type owl:NamedIndividual ,
+                            dyn:PrintingProcess ;
+                   dyn:hasName "Powder Mean Size"@en ;
+                   rdfs:label "PowderMeanSize"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Pressure
+dyn:Pressure rdf:type owl:NamedIndividual ,
+                      dyn:Geometry ;
+             dyn:hasUnits dyn:GigaPascal ,
+                          dyn:MegaPascal ,
+                          dyn:PSI ,
+                          dyn:Pascal ;
+             dyn:hasName "Pressure"@en ;
+             rdfs:comment "Represents the measured pressure of an activity"@en ;
+             rdfs:label "Pressure"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#PrimaryDataFile
+dyn:PrimaryDataFile rdf:type owl:NamedIndividual ,
+                             dyn:DataFile ;
+                    rdfs:label "PrimaryDataFile"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#PrintCastProcess
+dyn:PrintCastProcess rdf:type owl:NamedIndividual ,
+                              dyn:ProcessingStep ;
+                     dyn:hasName "PrintCast"@en ;
+                     rdfs:label "PrintCastProcess"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#PrintOrientation
+dyn:PrintOrientation rdf:type owl:NamedIndividual ,
+                              dyn:PrintingProcess ;
+                     dyn:hasName "Print Orientation"@en ;
+                     rdfs:label "PrintOrientation"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#ProcessingDuration
+dyn:ProcessingDuration rdf:type owl:NamedIndividual ,
+                                dyn:HeatTreatment ;
+                       dyn:hasName "Processing Duration"@en ;
+                       rdfs:label "ProcessingDuration"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#ProcessingTemperature
+dyn:ProcessingTemperature rdf:type owl:NamedIndividual ,
+                                   dyn:HeatTreatment ;
+                          dyn:hasName "Processing Temperature"@en ;
+                          rdfs:label "ProcessingTemperature"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#PulseDuration
+dyn:PulseDuration rdf:type owl:NamedIndividual ,
+                           dyn:PulseProperties ;
+                  dyn:hasUnits dyn:MilliSecond ;
+                  dyn:hasName "Pulse Duration"@en ;
+                  rdfs:comment "Represents the pulse duration for dynamic tests"@en ;
+                  rdfs:label "PulseDuration"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#PulseLength
+dyn:PulseLength rdf:type owl:NamedIndividual ,
+                         dyn:PulseProperties ;
+                dyn:hasUnits dyn:Millimeter ;
+                dyn:hasName "Pulse Length"@en ;
+                rdfs:comment "Refers to the length of the pulse in dynamic tests"@en ;
+                rdfs:label "PulseLength"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#PulseSpeed
+dyn:PulseSpeed rdf:type owl:NamedIndividual ,
+                        dyn:PulseProperties ;
+               dyn:hasUnits dyn:MeterPerSecond ;
+               dyn:hasName "Pulse Speed"@en ;
+               rdfs:comment "Represents the pulse speed between strain gauges in dynamic tests"@en ;
+               rdfs:label "PulseSpeed"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#PulseStrainAmplitude
+dyn:PulseStrainAmplitude rdf:type owl:NamedIndividual ,
+                                  dyn:PulseProperties ;
+                         dyn:hasUnits dyn:Unitless ;
+                         dyn:hasName "Pulse Strain Amplitude"@en ;
+                         rdfs:comment "Represents the pulse strain amplitude from dynamic test"@en ;
+                         rdfs:label "PulseStrainAmplitude"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#PulseStressAmplitude
+dyn:PulseStressAmplitude rdf:type owl:NamedIndividual ,
+                                  dyn:PulseProperties ;
+                         dyn:hasUnits dyn:MegaPascal ;
+                         dyn:hasName "Pulse Stress Amplitude"@en ;
+                         rdfs:comment "Represents the stress amplitude from pulse in dynamic test"@en ;
+                         rdfs:label "PulseStressAmplitude"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#QuasiStatic
+dyn:QuasiStatic rdf:type owl:NamedIndividual ,
+                         dyn:StrainRateRegime ;
+                rdfs:label "QuasiStatic"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#ReflectedSignal
+dyn:ReflectedSignal rdf:type owl:NamedIndividual ,
+                             dyn:ProcessedSignal ;
+                    dyn:hasUnits dyn:MilliVolts ,
+                                 dyn:Unitless ,
+                                 dyn:Volts ;
+                    dyn:hasName "Reflected Signal"@en ;
+                    rdfs:label "ReflectedSignal"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Resistance
+dyn:Resistance rdf:type owl:NamedIndividual ,
+                        dyn:StrainGauge ;
+               dyn:hasUnits dyn:MilliOhms ,
+                            dyn:Ohms ;
+               dyn:hasName "Strain Gauge Resistance"@en ;
+               rdfs:label "Resistance"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#RiseTime
+dyn:RiseTime rdf:type owl:NamedIndividual ,
+                      dyn:PulseProperties ;
+             rdfs:label "RiseTime"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Second
+dyn:Second rdf:type owl:NamedIndividual ,
+                    dyn:TimeUnit ;
+           dyn:hasSymbol "s"@en ;
+           rdfs:label "Second"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#SecondaryDataFile
+dyn:SecondaryDataFile rdf:type owl:NamedIndividual ,
+                               dyn:DataFile ;
+                      rdfs:label "SecondaryDataFile"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Shear45Degree
+dyn:Shear45Degree rdf:type owl:NamedIndividual ,
+                           dyn:FailureMode ;
+                  dyn:hasName "Shear 45 Degree"@en ;
+                  rdfs:label "Shear45Degree"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#SimpleCubicLattice
+dyn:SimpleCubicLattice rdf:type owl:NamedIndividual ,
+                                dyn:LatticeStructure ;
+                       dyn:hasName "Simple Cubic Lattice"@en ;
+                       rdfs:label "SimpleCubicLattice"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#SpecimenTest
+dyn:SpecimenTest rdf:type owl:NamedIndividual ,
+                          dyn:TestType ;
+                 dyn:hasName "Specimen Test"@en ;
+                 rdfs:label "SpecimenTest"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#SquareInches
+dyn:SquareInches rdf:type owl:NamedIndividual ,
+                          dyn:AreaUnit ;
+                 dyn:hasSymbol "in^2"@en ;
+                 rdfs:label "SquareInches"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#SquareMeters
+dyn:SquareMeters rdf:type owl:NamedIndividual ,
+                          dyn:AreaUnit ;
+                 dyn:hasSymbol "m^2"@en ;
+                 rdfs:label "SquareMeters"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#SquareMillimeters
+dyn:SquareMillimeters rdf:type owl:NamedIndividual ,
+                               dyn:AreaUnit ;
+                      dyn:hasSymbol "mm^2"@en ;
+                      rdfs:label "SquareMillimeters"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#StainlessSteel316
+dyn:StainlessSteel316 rdf:type owl:NamedIndividual ,
+                               dyn:SteelAlloy ;
+                      dyn:hasName "Stainless Steel 316 Alloy"@en ;
+                      dyn:hasPlottingLabel "SS316"@en ;
+                      rdfs:label "StainlessSteel316"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Steel1018
+dyn:Steel1018 rdf:type owl:NamedIndividual ,
+                       dyn:SteelAlloy ;
+              dyn:hasName "Steel 1018 Alloy"@en ;
+              dyn:hasPlottingLabel "ST1018"@en ;
+              rdfs:label "Steel1018"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#SteelC350
+dyn:SteelC350 rdf:type owl:NamedIndividual ,
+                       dyn:SteelAlloy ;
+              dyn:hasName "Steel C350 Alloy"@en ;
+              dyn:hasPlottingLabel "ST-C350"@en ;
+              rdfs:label "SteelC350"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#StrainEnergy
+dyn:StrainEnergy rdf:type owl:NamedIndividual ,
+                          dyn:SHPBSeriesData ;
+                 dyn:hasUnits dyn:Joule ;
+                 dyn:hasName "Strain Energy"@en ;
+                 rdfs:label "StrainEnergy"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#StrainRateCoefficient
+dyn:StrainRateCoefficient rdf:type owl:NamedIndividual ,
+                                   dyn:MechanicalProperty ;
+                          dyn:hasUnits dyn:Unitless ;
+                          dyn:hasName "Strain Rate Coefficient"@en ;
+                          dyn:hasSymbol "C"@en ;
+                          rdfs:label "StrainRateCoefficient"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#StrikerBar
+dyn:StrikerBar rdf:type owl:NamedIndividual ,
+                        dyn:Bar ;
+               dyn:hasDimension dyn:OriginalCrossSectionalArea ,
+                                dyn:OriginalDiameter ,
+                                dyn:OriginalLength ;
+               dyn:hasName "Striker Bar"@en ;
+               rdfs:comment "Represent the Striker Bar for dynamic set-ups"@en ;
+               rdfs:label "StrikerBar"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#StrikerPressure
+dyn:StrikerPressure rdf:type owl:NamedIndividual ,
+                             dyn:SHPBSetUp ;
+                    dyn:hasUnits dyn:GigaPascal ,
+                                 dyn:MegaPascal ,
+                                 dyn:PSI ,
+                                 dyn:Pascal ;
+                    dyn:hasName "Striker Pressure"@en ;
+                    rdfs:label "StrikerPressure"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#StrikerVelocity
+dyn:StrikerVelocity rdf:type owl:NamedIndividual ,
+                             dyn:SHPBSetUp ;
+                    dyn:hasUnits dyn:InchPerSecond ,
+                                 dyn:MeterPerSecond ,
+                                 dyn:MillimeterPerSecond ;
+                    dyn:hasName "Striker Velocity"@en ;
+                    rdfs:label "StrikerVelocity"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#SurfaceForce
+dyn:SurfaceForce rdf:type owl:NamedIndividual ,
+                          dyn:SHPBSeriesData ;
+                 dyn:hasUnits dyn:KiloNewton ;
+                 dyn:hasName "Surface Force"@en ;
+                 rdfs:label "SurfaceForce"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#TemperatureSignal
+dyn:TemperatureSignal rdf:type owl:NamedIndividual ,
+                               dyn:ProcessedSignal ,
+                               dyn:SensorSignal ;
+                      dyn:hasUnits dyn:DegreesCelsius ,
+                                   dyn:DegreesFahrenheit ,
+                                   dyn:DegreesKelvin ;
+                      dyn:hasName "Temperature Signal"@en ;
+                      rdfs:label "TemperatureSignal"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#TestAndCharacterizationSpecimen
+dyn:TestAndCharacterizationSpecimen rdf:type owl:NamedIndividual ,
+                                             dyn:SpecimenRole ;
+                                    dyn:hasName "Test and Characterization Specimen"@en ;
+                                    rdfs:label "TestAndCharacterizationSpecimen"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#TestSpecimen
+dyn:TestSpecimen rdf:type owl:NamedIndividual ,
+                          dyn:SpecimenRole ;
+                 dyn:hasName "Test Specimen"@en ;
+                 rdfs:label "TestSpecimen"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#ThermalSofteningCoefficient
+dyn:ThermalSofteningCoefficient rdf:type owl:NamedIndividual ,
+                                         dyn:MechanicalProperty ;
+                                dyn:hasUnits dyn:Unitless ;
+                                dyn:hasName "Thermal Softening Coefficient"@en ;
+                                dyn:hasSymbol "m"@en ;
+                                rdfs:label "ThermalSofteningCoefficient"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Thickness
+dyn:Thickness rdf:type owl:NamedIndividual ,
+                       dyn:Geometry ;
+              dyn:hasUnits dyn:Foot ,
+                           dyn:Inch ,
+                           dyn:Meter ,
+                           dyn:Micrometer ,
+                           dyn:Millimeter ;
+              dyn:hasName "Thickness"@en ;
+              rdfs:comment "Represents a measured thickness of an object"@en ;
+              rdfs:label "Thickness"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#TimeSignal
+dyn:TimeSignal rdf:type owl:NamedIndividual ,
+                        dyn:ProcessedSignal ,
+                        dyn:SensorSignal ;
+               dyn:hasUnits dyn:MicroSecond ,
+                            dyn:MilliSecond ,
+                            dyn:Second ;
+               dyn:hasName "Time Signal"@en ;
+               rdfs:label "TimeSignal"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#TransmittedBar
+dyn:TransmittedBar rdf:type owl:NamedIndividual ,
+                            dyn:Bar ;
+                   dyn:hasDimension dyn:OriginalCrossSectionalArea ,
+                                    dyn:OriginalDiameter ,
+                                    dyn:OriginalLength ;
+                   dyn:hasName "Transmitted Bar"@en ;
+                   rdfs:comment "Represent the Transmitted Bar for dynamic set-ups"@en ;
+                   rdfs:label "TransmittedBar"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#TransmittedSignal
+dyn:TransmittedSignal rdf:type owl:NamedIndividual ,
+                               dyn:ProcessedSignal ,
+                               dyn:SensorSignal ;
+                      dyn:hasUnits dyn:MilliVolts ,
+                                   dyn:Unitless ,
+                                   dyn:Volts ;
+                      dyn:hasName "Transmitted Signal"@en ;
+                      rdfs:label "TransmittedSignal"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#TrueStrain
+dyn:TrueStrain rdf:type owl:NamedIndividual ,
+                        dyn:SHPBSeriesData ;
+               dyn:hasUnits dyn:Unitless ;
+               dyn:hasName "True Strain"@en ;
+               rdfs:label "TrueStrain"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#TrueStrainRate
+dyn:TrueStrainRate rdf:type owl:NamedIndividual ,
+                            dyn:SHPBSeriesData ;
+                   dyn:hasUnits dyn:Hertz ;
+                   dyn:hasName "True Strain Rate"@en ;
+                   rdfs:label "TrueStrainRate"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#TrueStress
+dyn:TrueStress rdf:type owl:NamedIndividual ,
+                        dyn:SHPBSeriesData ;
+               dyn:hasUnits dyn:MegaPascal ;
+               dyn:hasName "True Stress"@en ;
+               rdfs:label "TrueStress"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#UniformDeformation
+dyn:UniformDeformation rdf:type owl:NamedIndividual ,
+                                dyn:DeformationMode ;
+                       dyn:hasName "Uniform Deformation"@en ;
+                       rdfs:label "UniformDeformation"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#UniformDistribution
+dyn:UniformDistribution rdf:type owl:NamedIndividual ,
+                                 dyn:PhaseDistribution ;
+                        rdfs:label "UniformDistribution"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Unitless
+dyn:Unitless rdf:type owl:NamedIndividual ,
+                      dyn:UnitlessUnit ;
+             dyn:hasSymbol "Unitless"@en ;
+             rdfs:label "Unitless"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Velocity
+dyn:Velocity rdf:type owl:NamedIndividual ,
+                      dyn:Geometry ;
+             dyn:hasUnits dyn:InchPerSecond ,
+                          dyn:MeterPerSecond ,
+                          dyn:MillimeterPerSecond ;
+             dyn:hasName "Velocity"@en ;
+             rdfs:comment "Represents the velocity of an object"@en ;
+             rdfs:label "Velocity"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#VolatgeInputRange
+dyn:VolatgeInputRange rdf:type owl:NamedIndividual ,
+                               dyn:StrainGauge ;
+                      rdfs:label "VolatgeInputRange"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#Volts
+dyn:Volts rdf:type owl:NamedIndividual ,
+                   dyn:ElectricPotentialUnit ;
+          dyn:hasSymbol "V"@en ;
+          rdfs:label "Volts"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#VoxelSize
+dyn:VoxelSize rdf:type owl:NamedIndividual ,
+                       dyn:UnitCell ;
+              dyn:hasName "Voxel Size"@en ;
+              rdfs:comment "Refers to the physical size of the unit cell"@en ;
+              rdfs:label "VoxelSize"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#WaveSpeed
+dyn:WaveSpeed rdf:type owl:NamedIndividual ,
+                       dyn:MechanicalProperty ;
+              dyn:hasUnits dyn:InchPerSecond ,
+                           dyn:MeterPerSecond ,
+                           dyn:MillimeterPerSecond ;
+              dyn:hasName "Wave Speed"@en ;
+              rdfs:label "WaveSpeed"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#YieldStrength
+dyn:YieldStrength rdf:type owl:NamedIndividual ,
+                           dyn:MechanicalProperty ;
+                  dyn:hasUnits dyn:GigaPascal ,
+                               dyn:MegaPascal ,
+                               dyn:Pascal ;
+                  dyn:hasName "Yield Strenght"@en ;
+                  rdfs:label "YieldStrength"@en .
+
+
+###  https://github.com/Wino1301/DynaMat-Platform/ontology#3DPrintingProcess
+<https://github.com/Wino1301/DynaMat-Platform/ontology#3DPrintingProcess> rdf:type owl:NamedIndividual ,
+                                                                                   dyn:ProcessingStep ;
+                                                                          dyn:hasProcessingParameter dyn:LayerThickness ,
+                                                                                                     dyn:PowderMeanSize ,
+                                                                                                     dyn:PrintOrientation ;
+                                                                          dyn:hasName "3D Printing"@en ;
+                                                                          rdfs:comment "Refers to the process of additive manufacturing of the materials."@en ;
+                                                                          rdfs:label "3DPrintingProcess"@en .
+
+
+#################################################################
+#    Annotations
+#################################################################
+
+dyn:TestType rdfs:comment "Defines the type of test that was done"@en ;
+             rdfs:label "hasTestType"@en .
+
+
+###  Generated by the OWL API (version 4.5.29.2024-05-13T12:11:03Z) https://github.com/owlcs/owlapi
