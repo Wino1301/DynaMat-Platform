@@ -458,6 +458,74 @@ dyn:TestConfiguration rdf:type owl:Class ;
                       rdfs:comment "Configuration mapping CSV columns to data series"@en ;
                       rdfs:label "Test Configuration"@en .
 
+# PropertyValue class - Core to the provenance system
+dyn:PropertyValue rdf:type owl:Class ;
+    rdfs:label "Property Value"@en ;
+    rdfs:comment "A material property value with provenance and uncertainty information"@en .
+
+# Phase class - For material characterization
+dyn:Phase rdf:type owl:Class ;
+    rdfs:label "Phase"@en ;
+    rdfs:comment "Crystallographic or microstructural phase in materials"@en .
+
+# CharacterizationTest class - For linking materials to characterization
+dyn:CharacterizationTest rdf:type owl:Class ;
+    rdfs:subClassOf dyn:Activity ;
+    rdfs:label "Characterization Test"@en ;
+    rdfs:comment "Test or analysis to characterize material properties and microstructure"@en .
+
+# Specific characterization test subclasses
+dyn:XRDTest rdf:type owl:Class ;
+    rdfs:subClassOf dyn:CharacterizationTest ;
+    rdfs:label "XRD Test"@en ;
+    rdfs:comment "X-ray diffraction analysis for phase identification"@en .
+
+dyn:SEMTest rdf:type owl:Class ;
+    rdfs:subClassOf dyn:CharacterizationTest ;
+    rdfs:label "SEM Test"@en ;
+    rdfs:comment "Scanning electron microscopy analysis"@en .
+
+dyn:EDSTest rdf:type owl:Class ;
+    rdfs:subClassOf dyn:CharacterizationTest ;
+    rdfs:label "EDS Test"@en ;
+    rdfs:comment "Energy-dispersive X-ray spectroscopy for elemental analysis"@en .
+
+dyn:EBSDTest rdf:type owl:Class ;
+    rdfs:subClassOf dyn:CharacterizationTest ;
+    rdfs:label "EBSD Test"@en ;
+    rdfs:comment "Electron backscatter diffraction for crystallographic orientation"@en .
+
+dyn:OpticalMicroscopy rdf:type owl:Class ;
+    rdfs:subClassOf dyn:CharacterizationTest ;
+    rdfs:label "Optical Microscopy"@en ;
+    rdfs:comment "Optical microscopy for microstructure analysis"@en .
+
+# CharacterizationData class - For complex data structures
+dyn:CharacterizationData rdf:type owl:Class ;
+    rdfs:label "Characterization Data"@en ;
+    rdfs:comment "Complex characterization data (spectra, maps, images)"@en .
+
+# Specific data types
+dyn:XRDSpectrum rdf:type owl:Class ;
+    rdfs:subClassOf dyn:CharacterizationData ;
+    rdfs:label "XRD Spectrum"@en ;
+    rdfs:comment "X-ray diffraction intensity data"@en .
+
+dyn:SEMImage rdf:type owl:Class ;
+    rdfs:subClassOf dyn:CharacterizationData ;
+    rdfs:label "SEM Image"@en ;
+    rdfs:comment "Scanning electron microscopy image"@en .
+
+dyn:EDSMap rdf:type owl:Class ;
+    rdfs:subClassOf dyn:CharacterizationData ;
+    rdfs:label "EDS Map"@en ;
+    rdfs:comment "Energy-dispersive X-ray spectroscopy elemental map"@en .
+
+dyn:EBSDMap rdf:type owl:Class ;
+    rdfs:subClassOf dyn:CharacterizationData ;
+    rdfs:label "EBSD Map"@en ;
+    rdfs:comment "Electron backscatter diffraction orientation map"@en .
+
 
 ###  https://dynamat.utep.edu/ontology#User
 dyn:User rdf:type owl:Class ;

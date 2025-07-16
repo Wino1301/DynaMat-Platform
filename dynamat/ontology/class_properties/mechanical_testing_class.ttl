@@ -76,6 +76,38 @@ dyn:hasTransmissionBarLength rdf:type owl:DatatypeProperty, owl:FunctionalProper
     dyn:hasDefaultUnit "unit:MilliM" ;
     rdfs:comment "Length of transmission bar used"@en .
 
+dyn:hasBarrelOffset rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:subPropertyOf dyn:hasTestCondition ;
+    rdfs:domain dyn:SHPBCompression ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Barrel Offset"@en ;
+    dyn:hasDisplayName "Barrel Offset (mm)" ;
+    dyn:hasFormGroup "TestConditions" ;
+    dyn:hasDisplayOrder 13 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Separation distance between barrel end and incident bar"@en .
+
+dyn:hasLubricationUsed rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:subPropertyOf dyn:hasTestCondition ;
+    rdfs:domain dyn:SHPBCompression ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "Lubrication Used"@en ;
+    dyn:hasDisplayName "Grease/Lubrication Applied" ;
+    dyn:hasFormGroup "TestConditions" ;
+    dyn:hasDisplayOrder 14 ;
+    rdfs:comment "Whether grease or lubrication was applied during test setup"@en .
+
+dyn:hasLubricationType rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:SHPBCompression ;
+    rdfs:range xsd:string ;
+    rdfs:label "Lubrication Type"@en ;
+    dyn:hasDisplayName "Lubrication Type" ;
+    dyn:hasFormGroup "TestConditions" ;
+    dyn:hasDisplayOrder 15 ;
+    dyn:hasValidValues "White Lithium Grease, Molybdenum Disulfide, Graphite, Other" ;
+    rdfs:comment "Type of lubrication/grease used (if applicable)"@en .
+
 #################################################################
 #    Pulse Shaping Properties
 #################################################################
@@ -92,21 +124,12 @@ dyn:hasPulseShaping rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
 
 dyn:hasPulseShaper rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:SHPBCompression ;
-    rdfs:range dyn:Equipment ;
+    rdfs:range dyn:PulseShaper ;  
     rdfs:label "Pulse Shaper"@en ;
     dyn:hasDisplayName "Pulse Shaper" ;
     dyn:hasFormGroup "TestConditions" ;
     dyn:hasDisplayOrder 6 ;
-    rdfs:comment "Pulse shaper equipment used (if applicable)"@en .
-
-dyn:hasPulseShaperMaterial rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:SHPBCompression ;
-    rdfs:range xsd:string ;
-    rdfs:label "Pulse Shaper Material"@en ;
-    dyn:hasDisplayName "Pulse Shaper Material" ;
-    dyn:hasFormGroup "TestConditions" ;
-    dyn:hasDisplayOrder 7 ;
-    rdfs:comment "Material name used for pulse shaping"@en .
+    rdfs:comment "Pulse shaper instance used (material accessed via hasMaterial)"@en .
 
 dyn:hasPulseShaperDiameter rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:subPropertyOf dyn:hasTestCondition ;
