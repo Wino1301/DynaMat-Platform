@@ -339,3 +339,74 @@ dyn:isActive rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     dyn:hasFormGroup "ConfigurationInfo" ;
     dyn:hasDisplayOrder 4 ;
     rdfs:comment "Whether this configuration is currently active/enabled"@en .
+
+# =============================================================================
+# TUKEY FACTOR DATA STRUCTURE
+# Extension to DataSeries for PINN training data
+# =============================================================================
+
+dyn:hasTukeyFactor rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:DataSeries ;
+    rdfs:range xsd:double ;
+    rdfs:label "Tukey Factor"@en ;
+    dyn:hasDisplayName "Tukey Factor" ;
+    dyn:hasFormGroup "ProcessingInfo" ;
+    dyn:hasDisplayOrder 5 ;
+    rdfs:comment "Tukey windowing factor used for PINN loss calculation"@en .
+
+dyn:hasTukeyWindowLength rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:DataSeries ;
+    rdfs:range xsd:integer ;
+    rdfs:label "Tukey Window Length"@en ;
+    dyn:hasDisplayName "Tukey Window Length" ;
+    dyn:hasFormGroup "ProcessingInfo" ;
+    dyn:hasDisplayOrder 6 ;
+    rdfs:comment "Length of Tukey window applied to pulse data"@en .
+
+dyn:isCenteredPulse rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:DataSeries ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "Centered Pulse"@en ;
+    dyn:hasDisplayName "Centered Pulse" ;
+    dyn:hasFormGroup "ProcessingInfo" ;
+    dyn:hasDisplayOrder 7 ;
+    rdfs:comment "Whether pulse data has been centered and aligned"@en .
+
+dyn:isAlignedPulse rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:DataSeries ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "Aligned Pulse"@en ;
+    dyn:hasDisplayName "Aligned Pulse" ;
+    dyn:hasFormGroup "ProcessingInfo" ;
+    dyn:hasDisplayOrder 8 ;
+    rdfs:comment "Whether pulse data has been time-aligned"@en .
+
+# Machine learning specific properties
+dyn:isTrainingData rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:DataSeries ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "Training Data"@en ;
+    dyn:hasDisplayName "Training Data" ;
+    dyn:hasFormGroup "MachineLearning" ;
+    dyn:hasDisplayOrder 1 ;
+    rdfs:comment "Whether this data series is used for PINN training"@en .
+
+dyn:isReferencePulse rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:DataSeries ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "Reference Pulse"@en ;
+    dyn:hasDisplayName "Reference Pulse" ;
+    dyn:hasFormGroup "DataQuality" ;
+    dyn:hasDisplayOrder 1 ;
+    rdfs:comment "High-quality pulse data used as template for window selection"@en .
+
+# Specific data series subclasses
+dyn:TukeyProcessedSeries rdf:type owl:Class ;
+    rdfs:subClassOf dyn:ProcessedData ;
+    rdfs:comment "Data series processed with Tukey windowing for PINN training"@en ;
+    rdfs:label "Tukey Processed Series"@en .
+
+dyn:CenteredPulseSeries rdf:type owl:Class ;
+    rdfs:subClassOf dyn:ProcessedData ;
+    rdfs:comment "Centered and aligned pulse data series"@en ;
+    rdfs:label "Centered Pulse Series"@en .

@@ -109,16 +109,67 @@ dyn:hasMeasurement rdf:type owl:ObjectProperty ;
                    rdfs:label "Measurement"@en .
 
 
-###  https://dynamat.utep.edu/ontology#hasUser
-dyn:hasUser rdf:type owl:ObjectProperty ,
-                     owl:FunctionalProperty ;
-            rdfs:domain dyn:Activity ;
-            rdfs:range dyn:User ;
-            rdfs:comment "Person who performed the activity"@en ;
-            rdfs:label "User"@en ;
-            dyn:hasDisplayName "Operator" ;
-            dyn:hasDisplayOrder 2 ;
-            dyn:hasFormGroup "TestSetup" .
+dyn:hasUser rdf:type owl:ObjectProperty ; 
+    rdfs:domain dyn:Activity ;
+    rdfs:range dyn:User ;
+    rdfs:comment "Person who performed the activity (multiple users allowed)"@en ;
+    rdfs:label "User"@en ;
+    dyn:hasDisplayName "Operator" ;
+    dyn:hasDisplayOrder 2 ;
+    dyn:hasFormGroup "TestSetup" .
+
+dyn:hasAffiliation rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:User ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Institutional affiliation of the user"@en ;
+    rdfs:label "Affiliation"@en ;
+    dyn:hasDisplayName "Affiliation" ;
+    dyn:hasDisplayOrder 1 ;
+    dyn:hasFormGroup "UserInfo" .
+
+dyn:hasEmail rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:User ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Email address of the user"@en ;
+    rdfs:label "Email"@en ;
+    dyn:hasDisplayName "Email" ;
+    dyn:hasDisplayOrder 2 ;
+    dyn:hasFormGroup "UserInfo" .
+
+dyn:hasRole rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:User ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Role or position of the user"@en ;
+    rdfs:label "Role"@en ;
+    dyn:hasDisplayName "Role" ;
+    dyn:hasDisplayOrder 3 ;
+    dyn:hasFormGroup "UserInfo" ;
+    dyn:hasValidValues "Principal Investigator,Postdoc,Graduate Student,Undergraduate Student,Research Scientist,Technician" .
+
+dyn:hasORCID rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:User ;
+    rdfs:range xsd:string ;
+    rdfs:comment "ORCID identifier for the user"@en ;
+    rdfs:label "ORCID"@en ;
+    dyn:hasDisplayName "ORCID" ;
+    dyn:hasDisplayOrder 4 ;
+    dyn:hasFormGroup "UserInfo" .
+
+# ADD: Laboratory relationship
+dyn:hasLaboratory rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:User ;
+    rdfs:range dyn:Laboratory ;
+    rdfs:comment "Laboratory where the user works"@en ;
+    rdfs:label "Laboratory"@en ;
+    dyn:hasDisplayName "Laboratory" ;
+    dyn:hasDisplayOrder 5 ;
+    dyn:hasFormGroup "UserInfo" .
+
+# ADD: Laboratory class (if not already present)
+dyn:Laboratory rdf:type owl:Class ;
+    rdfs:subClassOf dyn:Entity ;
+    rdfs:comment "Research laboratory or facility"@en ;
+    rdfs:label "Laboratory"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#isPartOf
@@ -541,6 +592,41 @@ dyn:ProcessedData rdf:type owl:Class ;
     rdfs:subClassOf dyn:DataSeries ;
     rdfs:comment "Calculated quantities (stress, strain, force)"@en ;
     rdfs:label "Processed Data"@en .
+
+dyn:Simulation rdf:type owl:Class ;
+    rdfs:subClassOf dyn:Activity ;
+    rdfs:comment "Computational simulation of material behavior"@en ;
+    rdfs:label "Simulation"@en .
+
+dyn:SoftwareModel rdf:type owl:Class ;
+    rdfs:subClassOf dyn:InformationObject ;
+    rdfs:comment "Software package and configuration"@en ;
+    rdfs:label "Software Model"@en .
+
+dyn:MaterialModel rdf:type owl:Class ;
+    rdfs:subClassOf dyn:InformationObject ;
+    rdfs:comment "Constitutive material model"@en ;
+    rdfs:label "Material Model"@en .
+
+dyn:FEMesh rdf:type owl:Class ;
+    rdfs:subClassOf dyn:InformationObject ;
+    rdfs:comment "Finite element mesh and geometry"@en ;
+    rdfs:label "FE Mesh"@en .
+
+dyn:PropertyValue rdf:type owl:Class ;
+    rdfs:subClassOf dyn:InformationObject ;
+    rdfs:comment "Material property value with provenance"@en ;
+    rdfs:label "Property Value"@en .
+
+dyn:Phase rdf:type owl:Class ;
+    rdfs:subClassOf dyn:Entity ;
+    rdfs:comment "Crystallographic phase"@en ;
+    rdfs:label "Phase"@en .
+
+dyn:CharacterizationData rdf:type owl:Class ;
+    rdfs:subClassOf dyn:InformationObject ;
+    rdfs:comment "Characterization data"@en ;
+    rdfs:label "Characterization Data"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#User
