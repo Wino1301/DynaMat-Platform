@@ -1,0 +1,1643 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@prefix qkdv: <http://qudt.org/vocab/quantitykind/> .
+@prefix dc: <http://purl.org/dc/terms/> .
+
+# =============================================================================
+# DynaMat Platform - Mechanical Testing Class SHACL Shapes
+# Based on properties defined in mechanical_testing_class.ttl
+# =============================================================================
+
+#################################################################
+#    MechanicalTest Shape (Base mechanical test class)
+#################################################################
+
+dyn:MechanicalTestShape a sh:NodeShape ;
+    sh:targetClass dyn:MechanicalTest ;
+    
+    # Core test identification and setup (from core ontology)
+    sh:property [
+        sh:path dyn:hasTestID ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Test ID" ;
+        sh:description "Unique test identifier (format: TEST-YYYY-Number)" ;
+        sh:group "Identification" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasTestDate ;
+        sh:datatype xsd:date ;
+        sh:maxCount 1 ;
+        sh:name "Test Date" ;
+        sh:description "Date when the test was performed" ;
+        sh:group "TestSetup" ;
+        sh:order 3 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasUser ;
+        sh:class dyn:User ;
+        sh:name "Operator" ;
+        sh:description "Person who performed the activity (multiple users allowed)" ;
+        sh:group "TestSetup" ;
+        sh:order 2 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:performedOn ;
+        sh:class dyn:Specimen ;
+        sh:maxCount 1 ;
+        sh:name "Test Specimen" ;
+        sh:description "Specimen that the test was performed on" ;
+        sh:group "TestSetup" ;
+        sh:order 1 ;
+    ] ;
+    
+    # Test type and classification
+    sh:property [@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@prefix qkdv: <http://qudt.org/vocab/quantitykind/> .
+@prefix dc: <http://purl.org/dc/terms/> .
+
+# =============================================================================
+# DynaMat Platform - Mechanical Testing Class SHACL Shapes
+# Based on properties defined in mechanical_testing_class.ttl
+# =============================================================================
+
+#################################################################
+#    MechanicalTest Shape (Base mechanical test class)
+#################################################################
+
+dyn:MechanicalTestShape a sh:NodeShape ;
+    sh:targetClass dyn:MechanicalTest ;
+    
+    # Core test identification and setup (from core ontology)
+    sh:property [
+        sh:path dyn:hasTestID ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Test ID" ;
+        sh:description "Unique test identifier (format: TEST-YYYY-Number)" ;
+        sh:group "Identification" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasTestDate ;
+        sh:datatype xsd:date ;
+        sh:maxCount 1 ;
+        sh:name "Test Date" ;
+        sh:description "Date when the test was performed" ;
+        sh:group "TestSetup" ;
+        sh:order 3 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasUser ;
+        sh:class dyn:User ;
+        sh:name "Operator" ;
+        sh:description "Person who performed the activity (multiple users allowed)" ;
+        sh:group "TestSetup" ;
+        sh:order 2 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:performedOn ;
+        sh:class dyn:Specimen ;
+        sh:maxCount 1 ;
+        sh:name "Test Specimen" ;
+        sh:description "Specimen that the test was performed on" ;
+        sh:group "TestSetup" ;
+        sh:order 1 ;
+    ] ;
+    
+    # Test type and classification
+    sh:property [
+        sh:path dyn:hasTestType ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Test Type" ;
+        sh:description "Type of test performed: calibration, elastic, or specimen test" ;
+        sh:group "Identification" ;
+        sh:order 5 ;
+    ] ;
+    
+    # Temperature testing properties
+    sh:property [
+        sh:path dyn:hasTestTemperature ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Temperature (°C)" ;
+        sh:description "Temperature during testing" ;
+        sh:group "TestConditions" ;
+        sh:order 10 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasHeatingRate ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Heating Rate (°C/min)" ;
+        sh:description "Rate of temperature increase for elevated temperature tests" ;
+        sh:group "TestConditions" ;
+        sh:order 11 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasTemperatureStabilizationTime ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Stabilization Time (min)" ;
+        sh:description "Time allowed for temperature stabilization before testing" ;
+        sh:group "TestConditions" ;
+        sh:order 12 ;
+        sh:minInclusive 0.0 ;
+    ] ;
+    
+    # Target strain rate
+    sh:property [
+        sh:path dyn:hasTargetStrainRate ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Target Strain Rate (1/s)" ;
+        sh:description "Target strain rate for the test" ;
+        sh:group "TestConditions" ;
+        sh:order 20 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    # Equipment configuration
+    sh:property [
+        sh:path dyn:hasLoadFrame ;
+        sh:class dyn:Equipment ;
+        sh:maxCount 1 ;
+        sh:name "Load Frame" ;
+        sh:description "Load frame or testing apparatus used" ;
+        sh:group "EquipmentConfiguration" ;
+        sh:order 4 ;
+    ] ;
+    
+    # Strain gauge configuration
+    sh:property [
+        sh:path dyn:hasStrainGauge ;
+        sh:class dyn:StrainGauge ;
+        sh:name "Strain Gauge" ;
+        sh:description "Strain gauge used in test" ;
+        sh:group "StrainGaugeConfiguration" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasCalibrationResistance ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Calibration Resistance (Ω)" ;
+        sh:description "Resistance used for strain gauge calibration" ;
+        sh:group "StrainGaugeConfiguration" ;
+        sh:order 2 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasCalibrationVoltage ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Calibration Voltage (V)" ;
+        sh:description "Voltage used for strain gauge calibration" ;
+        sh:group "StrainGaugeConfiguration" ;
+        sh:order 3 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasDataBitResolution ;
+        sh:datatype xsd:integer ;
+        sh:maxCount 1 ;
+        sh:name "Data Bit Resolution (bits)" ;
+        sh:description "Bit resolution of data acquisition system" ;
+        sh:group "StrainGaugeConfiguration" ;
+        sh:order 4 ;
+        sh:minInclusive 8 ;
+        sh:maxInclusive 32 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasDataTriggerDuration ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Trigger Duration (μs)" ;
+        sh:description "Duration of data acquisition trigger" ;
+        sh:group "StrainGaugeConfiguration" ;
+        sh:order 5 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasCompressionSign ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Compression Sign Convention" ;
+        sh:description "Sign convention for compression (positive or negative)" ;
+        sh:group "StrainGaugeConfiguration" ;
+        sh:order 6 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasGaugeFactor ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Gauge Factor" ;
+        sh:description "Strain gauge sensitivity factor" ;
+        sh:group "StrainGaugeConfiguration" ;
+        sh:order 7 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasGaugeResistance ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Gauge Resistance (Ω)" ;
+        sh:description "Nominal resistance of strain gauge" ;
+        sh:group "StrainGaugeConfiguration" ;
+        sh:order 8 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasGaugeVoltageInputRange ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Voltage Input Range (V)" ;
+        sh:description "Voltage input range for strain gauge measurement" ;
+        sh:group "StrainGaugeConfiguration" ;
+        sh:order 9 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    # Data acquisition properties
+    sh:property [
+        sh:path dyn:hasSamplingRate ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Sampling Rate (Hz)" ;
+        sh:description "Data acquisition sampling rate" ;
+        sh:group "DataAcquisition" ;
+        sh:order 1 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasDataAcquisitionSystem ;
+        sh:class dyn:Equipment ;
+        sh:maxCount 1 ;
+        sh:name "DAQ System" ;
+        sh:description "Data acquisition system used" ;
+        sh:group "DataAcquisition" ;
+        sh:order 2 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasFilterFrequency ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Filter Frequency (Hz)" ;
+        sh:description "Low-pass filter frequency applied to data" ;
+        sh:group "DataAcquisition" ;
+        sh:order 3 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    # Qualitative assessment
+    sh:property [
+        sh:path dyn:hasDeformationMode ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Deformation Mode" ;
+        sh:description "Observed mode of specimen deformation" ;
+        sh:group "QualitativeAssessment" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasFailureMode ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Failure Mode" ;
+        sh:description "Mode of specimen failure" ;
+        sh:group "QualitativeAssessment" ;
+        sh:order 2 ;
+    ] ;
+    
+    # Test validation
+    sh:property [
+        sh:path dyn:hasTestValidity ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Test Validity" ;
+        sh:description "Overall assessment of test validity" ;
+        sh:group "TestValidation" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasValidityNotes ;
+        sh:datatype xsd:string ;
+        sh:name "Validity Notes" ;
+        sh:description "Notes regarding test validity assessment" ;
+        sh:group "TestValidation" ;
+        sh:order 2 ;
+    ] .
+
+#################################################################
+#    SHPBCompression Shape (SHPB-specific properties)
+#################################################################
+
+dyn:SHPBCompressionShape a sh:NodeShape ;
+    sh:targetClass dyn:SHPBCompression ;
+    
+    # Striker conditions
+    sh:property [
+        sh:path dyn:hasStrikerVelocity ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Striker Velocity (m/s)" ;
+        sh:description "Impact velocity of striker bar" ;
+        sh:group "TestConditions" ;
+        sh:order 1 ;
+        sh:minExclusive 0.0 ;
+        sh:maxInclusive 100.0 ;  # Reasonable upper limit
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasStrikerLength ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Striker Length (mm)" ;
+        sh:description "Length of striker bar used" ;
+        sh:group "TestConditions" ;
+        sh:order 2 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasIncidentBarLength ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Incident Bar Length (mm)" ;
+        sh:description "Length of incident bar used" ;
+        sh:group "TestConditions" ;
+        sh:order 3 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasTransmissionBarLength ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Transmission Bar Length (mm)" ;
+        sh:description "Length of transmission bar used" ;
+        sh:group "TestConditions" ;
+        sh:order 4 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasBarrelOffset ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Barrel Offset (mm)" ;
+        sh:description "Separation distance between barrel end and incident bar" ;
+        sh:group "TestConditions" ;
+        sh:order 13 ;
+        sh:minInclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasLubricationUsed ;
+        sh:datatype xsd:boolean ;
+        sh:maxCount 1 ;
+        sh:name "Grease/Lubrication Applied" ;
+        sh:description "Whether grease or lubrication was applied during test setup" ;
+        sh:group "TestConditions" ;
+        sh:order 14 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasLubricationType ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Lubrication Type" ;
+        sh:description "Type of lubrication/grease used (if applicable)" ;
+        sh:group "TestConditions" ;
+        sh:order 15 ;
+    ] ;
+    
+    # Pulse shaping properties
+    sh:property [
+        sh:path dyn:hasPulseShaping ;
+        sh:datatype xsd:boolean ;
+        sh:maxCount 1 ;
+        sh:name "Pulse Shaping Used" ;
+        sh:description "Whether pulse shaping technique was used" ;
+        sh:group "TestConditions" ;
+        sh:order 5 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasPulseShaper ;
+        sh:class dyn:PulseShaper ;
+        sh:maxCount 1 ;
+        sh:name "Pulse Shaper" ;
+        sh:description "Pulse shaper instance used (material accessed via hasMaterial)" ;
+        sh:group "TestConditions" ;
+        sh:order 6 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasPulseShaperDiameter ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Pulse Shaper Diameter (mm)" ;
+        sh:description "Diameter of pulse shaper material" ;
+        sh:group "TestConditions" ;
+        sh:order 8 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasPulseShaperThickness ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Pulse Shaper Thickness (mm)" ;
+        sh:description "Thickness of pulse shaper material" ;
+        sh:group "TestConditions" ;
+        sh:order 9 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    # Pulse characteristics (achieved test conditions)
+    sh:property [
+        sh:path dyn:hasPulseDuration ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Pulse Duration (μs)" ;
+        sh:description "Duration of the stress pulse generated" ;
+        sh:group "PulseCharacteristics" ;
+        sh:order 1 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasPulseLength ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Pulse Length (mm)" ;
+        sh:description "Physical length of the stress pulse in the bar" ;
+        sh:group "PulseCharacteristics" ;
+        sh:order 2 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasPulseSpeed ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Pulse Speed (m/s)" ;
+        sh:description "Propagation speed of the stress pulse in the bar" ;
+        sh:group "PulseCharacteristics" ;
+        sh:order 3 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasPulseStrainAmplitude ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Pulse Strain Amplitude (μɛ)" ;
+        sh:description "Maximum strain amplitude of the incident pulse" ;
+        sh:group "PulseCharacteristics" ;
+        sh:order 4 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasPulseStressAmplitude ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Pulse Stress Amplitude (MPa)" ;
+        sh:description "Maximum stress amplitude of the incident pulse" ;
+        sh:group "PulseCharacteristics" ;
+        sh:order 5 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasPulseRiseTime ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Pulse Rise Time (μs)" ;
+        sh:description "Time for pulse to rise from 10% to 90% of maximum amplitude" ;
+        sh:group "PulseCharacteristics" ;
+        sh:order 6 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    # Equipment configuration (SHPB-specific)
+    sh:property [
+        sh:path dyn:hasStrikerBar ;
+        sh:class dyn:Bar ;
+        sh:maxCount 1 ;
+        sh:name "Striker Bar" ;
+        sh:description "Striker bar used in SHPB test" ;
+        sh:group "EquipmentConfiguration" ;
+        sh:order 0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasIncidentBar ;
+        sh:class dyn:Bar ;
+        sh:maxCount 1 ;
+        sh:name "Incident Bar" ;
+        sh:description "Incident bar used in SHPB test" ;
+        sh:group "EquipmentConfiguration" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasTransmissionBar ;
+        sh:class dyn:Bar ;
+        sh:maxCount 1 ;
+        sh:name "Transmission Bar" ;
+        sh:description "Transmission bar used in SHPB test" ;
+        sh:group "EquipmentConfiguration" ;
+        sh:order 2 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasMomentumTrap ;
+        sh:class dyn:MomentumTrap ;
+        sh:maxCount 1 ;
+        sh:name "Momentum Trap" ;
+        sh:description "Momentum trap configuration used" ;
+        sh:group "EquipmentConfiguration" ;
+        sh:order 3 ;
+    ] ;
+    
+    # SHPB-specific qualitative assessment
+    sh:property [
+        sh:path dyn:hasWaveDispersion ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Wave Dispersion Assessment" ;
+        sh:description "Assessment of wave pulse dispersion quality" ;
+        sh:group "QualitativeAssessment" ;
+        sh:order 3 ;
+    ] .
+
+#################################################################
+#    QuasistaticTest Shape (QS-specific properties)
+#################################################################
+
+dyn:QuasistaticTestShape a sh:NodeShape ;
+    sh:targetClass dyn:QuasistaticTest ;
+    
+    sh:property [
+        sh:path dyn:hasLoadingRate ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Loading Rate (N/s)" ;
+        sh:description "Rate of force application" ;
+        sh:group "TestConditions" ;
+        sh:order 1 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasDisplacementRate ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Crosshead Speed (mm/s)" ;
+        sh:description "Crosshead displacement rate" ;
+        sh:group "TestConditions" ;
+        sh:order 2 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasMaximumLoad ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Maximum Load (N)" ;
+        sh:description "Maximum load to be applied during test" ;
+        sh:group "TestConditions" ;
+        sh:order 3 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasTestTerminationCriterion ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Test Termination" ;
+        sh:description "Criterion for test termination" ;
+        sh:group "TestConditions" ;
+        sh:order 4 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasTestingMachine ;
+        sh:class dyn:Equipment ;
+        sh:maxCount 1 ;
+        sh:name "Testing Machine" ;
+        sh:description "Universal testing machine used" ;
+        sh:group "EquipmentConfiguration" ;
+        sh:order 1 ;
+    ] .
+
+#################################################################
+#    TensileTest Shape (Tensile-specific properties)
+#################################################################
+
+dyn:TensileTestShape a sh:NodeShape ;
+    sh:targetClass dyn:TensileTest ;
+    
+    sh:property [
+        sh:path dyn:hasGaugeLength ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Gauge Length (mm)" ;
+        sh:description "Length of the gauge section for strain measurement" ;
+        sh:group "TestConditions" ;
+        sh:order 1 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasExtensometerType ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Extensometer Type" ;
+        sh:description "Type of extensometer used for strain measurement" ;
+        sh:group "EquipmentConfiguration" ;
+        sh:order 1 ;
+    ] .
+
+#################################################################
+#    Validation Rules and Constraints
+#################################################################
+
+# Ensure test has at least one operator
+dyn:TestOperatorConstraint a sh:NodeShape ;
+    sh:targetClass dyn:MechanicalTest ;
+    sh:property [
+        sh:path dyn:hasUser ;
+        sh:minCount 1 ;
+    ] ;
+    sh:message "At least one operator must be assigned to the test" .
+
+# Ensure test date is not in the future
+dyn:TestDateConstraint a sh:NodeShape ;
+    sh:targetClass dyn:MechanicalTest ;
+    sh:if [
+        sh:property [ sh:path dyn:hasTestDate ; sh:minCount 1 ]
+    ] ;
+    sh:then [
+        sh:sparql [
+            a sh:SPARQLConstraint ;
+            sh:message "Test date cannot be in the future" ;
+            sh:prefixes [
+                sh:declare [
+                    sh:prefix "dyn" ;
+                    sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                ]
+            ] ;
+            sh:select """
+                SELECT ?this WHERE {
+                    ?this dyn:hasTestDate ?date .
+                    FILTER(?date > NOW())
+                }
+            """ ;
+        ]
+    ] .
+
+# Ensure pulse shaper details are provided when pulse shaping is used
+dyn:PulseShaperConstraint a sh:NodeShape ;
+    sh:targetClass dyn:SHPBCompression ;
+    sh:if [
+        sh:property [
+            sh:path dyn:hasPulseShaping ;
+            sh:hasValue true ;
+        ]
+    ] ;
+    sh:then [
+        sh:property [
+            sh:path dyn:hasPulseShaper ;
+            sh:minCount 1 ;
+        ]
+    ] ;
+    sh:message "Pulse shaper must be specified when pulse shaping is used" .
+
+# Ensure lubrication type is specified when lubrication is used
+dyn:LubricationConstraint a sh:NodeShape ;
+    sh:targetClass dyn:SHPBCompression ;
+    sh:if [
+        sh:property [
+            sh:path dyn:hasLubricationUsed ;
+            sh:hasValue true ;
+        ]
+    ] ;
+    sh:then [
+        sh:property [
+            sh:path dyn:hasLubricationType ;
+            sh:minCount 1 ;
+        ]
+    ] ;
+    sh:message "Lubrication type must be specified when lubrication is used" .
+
+# Ensure pulse shaper dimensions are consistent
+dyn:PulseShaperDimensionConstraint a sh:NodeShape ;
+    sh:targetClass dyn:SHPBCompression ;
+    sh:if [
+        sh:and (
+            [ sh:property [ sh:path dyn:hasPulseShaperDiameter ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasPulseShaperThickness ; sh:minCount 1 ] ]
+        )
+    ] ;
+    sh:then [
+        sh:sparql [
+            a sh:SPARQLConstraint ;
+            sh:message "Pulse shaper thickness must be less than diameter" ;
+            sh:prefixes [
+                sh:declare [
+                    sh:prefix "dyn" ;
+                    sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                ]
+            ] ;
+            sh:select """
+                SELECT ?this WHERE {
+                    ?this dyn:hasPulseShaperDiameter ?diameter .
+                    ?this dyn:hasPulseShaperThickness ?thickness .
+                    FILTER(?thickness >= ?diameter)
+                }
+            """ ;
+        ]
+    ] .
+
+# Ensure sampling rate is reasonable for test type
+dyn:SamplingRateConstraint a sh:NodeShape ;
+    sh:targetClass dyn:MechanicalTest ;
+    sh:if [
+        sh:property [ sh:path dyn:hasSamplingRate ; sh:minCount 1 ]
+    ] ;
+    sh:then [
+        sh:property [
+            sh:path dyn:hasSamplingRate ;
+            sh:minInclusive 1.0 ;      # At least 1 Hz
+            sh:maxInclusive 10000000.0 ; # Max 10 MHz
+        ]
+    ] ;
+    sh:message "Sampling rate must be between 1 Hz and 10 MHz" .
+
+# Ensure temperature stabilization time is provided for elevated temperature tests
+dyn:TemperatureStabilizationConstraint a sh:NodeShape ;
+    sh:targetClass dyn:MechanicalTest ;
+    sh:if [
+        sh:property [
+            sh:path dyn:hasTestTemperature ;
+            sh:minInclusive 50.0 ;  # Elevated temperature threshold
+        ]
+    ] ;
+    sh:then [
+        sh:property [
+            sh:path dyn:hasTemperatureStabilizationTime ;
+            sh:minCount 1 ;
+        ]
+    ] ;
+    sh:message "Temperature stabilization time must be specified for elevated temperature tests (≥50°C)" .
+
+# Ensure gauge length is specified for tensile tests
+dyn:TensileGaugeLengthConstraint a sh:NodeShape ;
+    sh:targetClass dyn:TensileTest ;
+    sh:property [
+        sh:path dyn:hasGaugeLength ;
+        sh:minCount 1 ;
+    ] ;
+    sh:message "Gauge length must be specified for tensile tests" .
+
+# Ensure reasonable pulse characteristics relationships
+dyn:PulseCharacteristicsConstraint a sh:NodeShape ;
+    sh:targetClass dyn:SHPBCompression ;
+    sh:if [
+        sh:and (
+            [ sh:property [ sh:path dyn:hasPulseDuration ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasPulseSpeed ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasPulseLength ; sh:minCount 1 ] ]
+        )
+    ] ;
+    sh:then [
+        sh:sparql [
+            a sh:SPARQLConstraint ;
+            sh:message "Pulse length should approximately equal pulse duration × pulse speed" ;
+            sh:prefixes [
+                sh:declare [
+                    sh:prefix "dyn" ;
+                    sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                ]
+            ] ;
+            sh:select """
+                SELECT ?this WHERE {
+                    ?this dyn:hasPulseDuration ?duration .
+                    ?this dyn:hasPulseSpeed ?speed .
+                    ?this dyn:hasPulseLength ?length .
+                    # Convert duration from μs to s, speed from m/s to mm/s
+                    BIND((?duration / 1000000) * (?speed * 1000) AS ?calculatedLength)
+                    # Allow 50% tolerance for measurement uncertainty
+                    FILTER(ABS(?length - ?calculatedLength) > (?calculatedLength * 0.5))
+                }
+            """ ;
+        ]
+    ] .
+        sh:path dyn:hasTestType ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Test Type" ;
+        sh:description "Type of test performed: calibration, elastic, or specimen test" ;
+        sh:group "Identification" ;
+        sh:order 5 ;
+    ] ;
+    
+    # Temperature testing properties
+    sh:property [
+        sh:path dyn:hasTestTemperature ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Temperature (°C)" ;
+        sh:description "Temperature during testing" ;
+        sh:group "TestConditions" ;
+        sh:order 10 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasHeatingRate ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Heating Rate (°C/min)" ;
+        sh:description "Rate of temperature increase for elevated temperature tests" ;
+        sh:group "TestConditions" ;
+        sh:order 11 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasTemperatureStabilizationTime ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Stabilization Time (min)" ;
+        sh:description "Time allowed for temperature stabilization before testing" ;
+        sh:group "TestConditions" ;
+        sh:order 12 ;
+        sh:minInclusive 0.0 ;
+    ] ;
+    
+    # Target strain rate
+    sh:property [
+        sh:path dyn:hasTargetStrainRate ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Target Strain Rate (1/s)" ;
+        sh:description "Target strain rate for the test" ;
+        sh:group "TestConditions" ;
+        sh:order 20 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    # Equipment configuration
+    sh:property [
+        sh:path dyn:hasLoadFrame ;
+        sh:class dyn:Equipment ;
+        sh:maxCount 1 ;
+        sh:name "Load Frame" ;
+        sh:description "Load frame or testing apparatus used" ;
+        sh:group "EquipmentConfiguration" ;
+        sh:order 4 ;
+    ] ;
+    
+    # Strain gauge configuration
+    sh:property [
+        sh:path dyn:hasStrainGauge ;
+        sh:class dyn:StrainGauge ;
+        sh:name "Strain Gauge" ;
+        sh:description "Strain gauge used in test" ;
+        sh:group "StrainGaugeConfiguration" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasCalibrationResistance ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Calibration Resistance (Ω)" ;
+        sh:description "Resistance used for strain gauge calibration" ;
+        sh:group "StrainGaugeConfiguration" ;
+        sh:order 2 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasCalibrationVoltage ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Calibration Voltage (V)" ;
+        sh:description "Voltage used for strain gauge calibration" ;
+        sh:group "StrainGaugeConfiguration" ;
+        sh:order 3 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasDataBitResolution ;
+        sh:datatype xsd:integer ;
+        sh:maxCount 1 ;
+        sh:name "Data Bit Resolution (bits)" ;
+        sh:description "Bit resolution of data acquisition system" ;
+        sh:group "StrainGaugeConfiguration" ;
+        sh:order 4 ;
+        sh:minInclusive 8 ;
+        sh:maxInclusive 32 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasDataTriggerDuration ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Trigger Duration (ms)" ;
+        sh:description "Duration of data acquisition trigger" ;
+        sh:group "StrainGaugeConfiguration" ;
+        sh:order 5 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasCompressionSign ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Compression Sign Convention" ;
+        sh:description "Sign convention for compression (positive or negative)" ;
+        sh:group "StrainGaugeConfiguration" ;
+        sh:order 6 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasGaugeFactor ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Gauge Factor" ;
+        sh:description "Strain gauge sensitivity factor" ;
+        sh:group "StrainGaugeConfiguration" ;
+        sh:order 7 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasGaugeResistance ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Gauge Resistance (Ω)" ;
+        sh:description "Nominal resistance of strain gauge" ;
+        sh:group "StrainGaugeConfiguration" ;
+        sh:order 8 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasGaugeVoltageInputRange ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Voltage Input Range (V)" ;
+        sh:description "Voltage input range for strain gauge measurement" ;
+        sh:group "StrainGaugeConfiguration" ;
+        sh:order 9 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    # Data acquisition properties
+    sh:property [
+        sh:path dyn:hasSamplingRate ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Sampling Rate (Hz)" ;
+        sh:description "Data acquisition sampling rate" ;
+        sh:group "DataAcquisition" ;
+        sh:order 1 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasDataAcquisitionSystem ;
+        sh:class dyn:Equipment ;
+        sh:maxCount 1 ;
+        sh:name "DAQ System" ;
+        sh:description "Data acquisition system used" ;
+        sh:group "DataAcquisition" ;
+        sh:order 2 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasFilterFrequency ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Filter Frequency (Hz)" ;
+        sh:description "Low-pass filter frequency applied to data" ;
+        sh:group "DataAcquisition" ;
+        sh:order 3 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    # Qualitative assessment
+    sh:property [
+        sh:path dyn:hasDeformationMode ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Deformation Mode" ;
+        sh:description "Observed mode of specimen deformation" ;
+        sh:group "QualitativeAssessment" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasFailureMode ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Failure Mode" ;
+        sh:description "Mode of specimen failure" ;
+        sh:group "QualitativeAssessment" ;
+        sh:order 2 ;
+    ] ;
+    
+    # Test validation
+    sh:property [
+        sh:path dyn:hasTestValidity ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Test Validity" ;
+        sh:description "Overall assessment of test validity" ;
+        sh:group "TestValidation" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasValidityNotes ;
+        sh:datatype xsd:string ;
+        sh:name "Validity Notes" ;
+        sh:description "Notes regarding test validity assessment" ;
+        sh:group "TestValidation" ;
+        sh:order 2 ;
+    ] .
+
+#################################################################
+#    SHPBCompression Shape (SHPB-specific properties)
+#################################################################
+
+dyn:SHPBCompressionShape a sh:NodeShape ;
+    sh:targetClass dyn:SHPBCompression ;
+    
+    # Striker conditions
+    sh:property [
+        sh:path dyn:hasStrikerVelocity ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Striker Velocity (m/s)" ;
+        sh:description "Impact velocity of striker bar" ;
+        sh:group "TestConditions" ;
+        sh:order 1 ;
+        sh:minExclusive 0.0 ;
+        sh:maxInclusive 100.0 ;  # Reasonable upper limit
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasStrikerLength ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Striker Length (mm)" ;
+        sh:description "Length of striker bar used" ;
+        sh:group "TestConditions" ;
+        sh:order 2 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasIncidentBarLength ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Incident Bar Length (mm)" ;
+        sh:description "Length of incident bar used" ;
+        sh:group "TestConditions" ;
+        sh:order 3 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasTransmissionBarLength ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Transmission Bar Length (mm)" ;
+        sh:description "Length of transmission bar used" ;
+        sh:group "TestConditions" ;
+        sh:order 4 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasBarrelOffset ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Barrel Offset (mm)" ;
+        sh:description "Separation distance between barrel end and incident bar" ;
+        sh:group "TestConditions" ;
+        sh:order 13 ;
+        sh:minInclusive 0.0 ;
+    ] ;
+
+    sh:property [
+        sh:path dyn:hasIncidentStrainGaugeDistance ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Incident Strain Gauge Distance (mm)" ;
+        sh:description "Distance from incident bar strain gauge to specimen interface" ;
+        sh:group "StrainGaugeConfiguration" ;
+        sh:order 10 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasTransmissionStrainGaugeDistance ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Transmission Strain Gauge Distance (mm)" ;
+        sh:description "Distance from transmission bar strain gauge to specimen interface" ;
+        sh:group "StrainGaugeConfiguration" ;
+        sh:order 11 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasLubricationUsed ;
+        sh:datatype xsd:boolean ;
+        sh:maxCount 1 ;
+        sh:name "Grease/Lubrication Applied" ;
+        sh:description "Whether grease or lubrication was applied during test setup" ;
+        sh:group "TestConditions" ;
+        sh:order 14 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasLubricationType ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Lubrication Type" ;
+        sh:description "Type of lubrication/grease used (if applicable)" ;
+        sh:group "TestConditions" ;
+        sh:order 15 ;
+    ] ;
+    
+    # Pulse shaping properties
+    sh:property [
+        sh:path dyn:hasPulseShaping ;
+        sh:datatype xsd:boolean ;
+        sh:maxCount 1 ;
+        sh:name "Pulse Shaping Used" ;
+        sh:description "Whether pulse shaping technique was used" ;
+        sh:group "TestConditions" ;
+        sh:order 5 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasPulseShaper ;
+        sh:class dyn:PulseShaper ;
+        sh:maxCount 1 ;
+        sh:name "Pulse Shaper" ;
+        sh:description "Pulse shaper instance used (material accessed via hasMaterial)" ;
+        sh:group "TestConditions" ;
+        sh:order 6 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasPulseShaperDiameter ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Pulse Shaper Diameter (mm)" ;
+        sh:description "Diameter of pulse shaper material" ;
+        sh:group "TestConditions" ;
+        sh:order 8 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasPulseShaperThickness ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Pulse Shaper Thickness (mm)" ;
+        sh:description "Thickness of pulse shaper material" ;
+        sh:group "TestConditions" ;
+        sh:order 9 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    # Pulse characteristics (achieved test conditions)
+    sh:property [
+        sh:path dyn:hasPulseDuration ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Pulse Duration (μs)" ;
+        sh:description "Duration of the stress pulse generated" ;
+        sh:group "PulseCharacteristics" ;
+        sh:order 1 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasPulseLength ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Pulse Length (mm)" ;
+        sh:description "Physical length of the stress pulse in the bar" ;
+        sh:group "PulseCharacteristics" ;
+        sh:order 2 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasPulseSpeed ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Pulse Speed (m/s)" ;
+        sh:description "Propagation speed of the stress pulse in the bar" ;
+        sh:group "PulseCharacteristics" ;
+        sh:order 3 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasPulseStrainAmplitude ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Pulse Strain Amplitude (μɛ)" ;
+        sh:description "Maximum strain amplitude of the incident pulse" ;
+        sh:group "PulseCharacteristics" ;
+        sh:order 4 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasPulseStressAmplitude ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Pulse Stress Amplitude (MPa)" ;
+        sh:description "Maximum stress amplitude of the incident pulse" ;
+        sh:group "PulseCharacteristics" ;
+        sh:order 5 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasPulseRiseTime ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Pulse Rise Time (μs)" ;
+        sh:description "Time for pulse to rise from 10% to 90% of maximum amplitude" ;
+        sh:group "PulseCharacteristics" ;
+        sh:order 6 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    # Equipment configuration (SHPB-specific)
+    sh:property [
+        sh:path dyn:hasStrikerBar ;
+        sh:class dyn:Bar ;
+        sh:maxCount 1 ;
+        sh:name "Striker Bar" ;
+        sh:description "Striker bar used in SHPB test" ;
+        sh:group "EquipmentConfiguration" ;
+        sh:order 0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasIncidentBar ;
+        sh:class dyn:Bar ;
+        sh:maxCount 1 ;
+        sh:name "Incident Bar" ;
+        sh:description "Incident bar used in SHPB test" ;
+        sh:group "EquipmentConfiguration" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasTransmissionBar ;
+        sh:class dyn:Bar ;
+        sh:maxCount 1 ;
+        sh:name "Transmission Bar" ;
+        sh:description "Transmission bar used in SHPB test" ;
+        sh:group "EquipmentConfiguration" ;
+        sh:order 2 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasMomentumTrap ;
+        sh:class dyn:MomentumTrap ;
+        sh:maxCount 1 ;
+        sh:name "Momentum Trap" ;
+        sh:description "Momentum trap configuration used" ;
+        sh:group "EquipmentConfiguration" ;
+        sh:order 3 ;
+    ] ;
+    
+    # SHPB-specific qualitative assessment
+    sh:property [
+        sh:path dyn:hasWaveDispersion ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Wave Dispersion Assessment" ;
+        sh:description "Assessment of wave pulse dispersion quality" ;
+        sh:group "QualitativeAssessment" ;
+        sh:order 3 ;
+    ] .
+
+#################################################################
+#    QuasistaticTest Shape (QS-specific properties)
+#################################################################
+
+dyn:QuasistaticTestShape a sh:NodeShape ;
+    sh:targetClass dyn:QuasistaticTest ;
+    
+    sh:property [
+        sh:path dyn:hasLoadingRate ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Loading Rate (N/s)" ;
+        sh:description "Rate of force application" ;
+        sh:group "TestConditions" ;
+        sh:order 1 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasDisplacementRate ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Crosshead Speed (mm/s)" ;
+        sh:description "Crosshead displacement rate" ;
+        sh:group "TestConditions" ;
+        sh:order 2 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasMaximumLoad ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Maximum Load (N)" ;
+        sh:description "Maximum load to be applied during test" ;
+        sh:group "TestConditions" ;
+        sh:order 3 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasTestTerminationCriterion ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Test Termination" ;
+        sh:description "Criterion for test termination" ;
+        sh:group "TestConditions" ;
+        sh:order 4 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasTestingMachine ;
+        sh:class dyn:Equipment ;
+        sh:maxCount 1 ;
+        sh:name "Testing Machine" ;
+        sh:description "Universal testing machine used" ;
+        sh:group "EquipmentConfiguration" ;
+        sh:order 1 ;
+    ] .
+
+#################################################################
+#    TensileTest Shape (Tensile-specific properties)
+#################################################################
+
+dyn:TensileTestShape a sh:NodeShape ;
+    sh:targetClass dyn:TensileTest ;
+    
+    sh:property [
+        sh:path dyn:hasGaugeLength ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Gauge Length (mm)" ;
+        sh:description "Length of the gauge section for strain measurement" ;
+        sh:group "TestConditions" ;
+        sh:order 1 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasExtensometerType ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Extensometer Type" ;
+        sh:description "Type of extensometer used for strain measurement" ;
+        sh:group "EquipmentConfiguration" ;
+        sh:order 1 ;
+    ] .
+
+#################################################################
+#    Validation Rules and Constraints
+#################################################################
+
+# Ensure test has at least one operator
+dyn:TestOperatorConstraint a sh:NodeShape ;
+    sh:targetClass dyn:MechanicalTest ;
+    sh:property [
+        sh:path dyn:hasUser ;
+        sh:minCount 1 ;
+    ] ;
+    sh:message "At least one operator must be assigned to the test" .
+
+# Ensure test date is not in the future
+dyn:TestDateConstraint a sh:NodeShape ;
+    sh:targetClass dyn:MechanicalTest ;
+    sh:if [
+        sh:property [ sh:path dyn:hasTestDate ; sh:minCount 1 ]
+    ] ;
+    sh:then [
+        sh:sparql [
+            a sh:SPARQLConstraint ;
+            sh:message "Test date cannot be in the future" ;
+            sh:prefixes [
+                sh:declare [
+                    sh:prefix "dyn" ;
+                    sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                ]
+            ] ;
+            sh:select """
+                SELECT ?this WHERE {
+                    ?this dyn:hasTestDate ?date .
+                    FILTER(?date > NOW())
+                }
+            """ ;
+        ]
+    ] .
+
+# Ensure pulse shaper details are provided when pulse shaping is used
+dyn:PulseShaperConstraint a sh:NodeShape ;
+    sh:targetClass dyn:SHPBCompression ;
+    sh:if [
+        sh:property [
+            sh:path dyn:hasPulseShaping ;
+            sh:hasValue true ;
+        ]
+    ] ;
+    sh:then [
+        sh:property [
+            sh:path dyn:hasPulseShaper ;
+            sh:minCount 1 ;
+        ]
+    ] ;
+    sh:message "Pulse shaper must be specified when pulse shaping is used" .
+
+# Ensure lubrication type is specified when lubrication is used
+dyn:LubricationConstraint a sh:NodeShape ;
+    sh:targetClass dyn:SHPBCompression ;
+    sh:if [
+        sh:property [
+            sh:path dyn:hasLubricationUsed ;
+            sh:hasValue true ;
+        ]
+    ] ;
+    sh:then [
+        sh:property [
+            sh:path dyn:hasLubricationType ;
+            sh:minCount 1 ;
+        ]
+    ] ;
+    sh:message "Lubrication type must be specified when lubrication is used" .
+
+# Ensure pulse shaper dimensions are consistent
+dyn:PulseShaperDimensionConstraint a sh:NodeShape ;
+    sh:targetClass dyn:SHPBCompression ;
+    sh:if [
+        sh:and (
+            [ sh:property [ sh:path dyn:hasPulseShaperDiameter ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasPulseShaperThickness ; sh:minCount 1 ] ]
+        )
+    ] ;
+    sh:then [
+        sh:sparql [
+            a sh:SPARQLConstraint ;
+            sh:message "Pulse shaper thickness must be less than diameter" ;
+            sh:prefixes [
+                sh:declare [
+                    sh:prefix "dyn" ;
+                    sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                ]
+            ] ;
+            sh:select """
+                SELECT ?this WHERE {
+                    ?this dyn:hasPulseShaperDiameter ?diameter .
+                    ?this dyn:hasPulseShaperThickness ?thickness .
+                    FILTER(?thickness >= ?diameter)
+                }
+            """ ;
+        ]
+    ] .
+
+# Ensure sampling rate is reasonable for test type
+dyn:SamplingRateConstraint a sh:NodeShape ;
+    sh:targetClass dyn:MechanicalTest ;
+    sh:if [
+        sh:property [ sh:path dyn:hasSamplingRate ; sh:minCount 1 ]
+    ] ;
+    sh:then [
+        sh:property [
+            sh:path dyn:hasSamplingRate ;
+            sh:minInclusive 1.0 ;      # At least 1 Hz
+            sh:maxInclusive 10000000.0 ; # Max 10 MHz
+        ]
+    ] ;
+    sh:message "Sampling rate must be between 1 Hz and 10 MHz" .
+
+# Ensure temperature stabilization time is provided for elevated temperature tests
+dyn:TemperatureStabilizationConstraint a sh:NodeShape ;
+    sh:targetClass dyn:MechanicalTest ;
+    sh:if [
+        sh:property [
+            sh:path dyn:hasTestTemperature ;
+            sh:minInclusive 50.0 ;  # Elevated temperature threshold
+        ]
+    ] ;
+    sh:then [
+        sh:property [
+            sh:path dyn:hasTemperatureStabilizationTime ;
+            sh:minCount 1 ;
+        ]
+    ] ;
+    sh:message "Temperature stabilization time must be specified for elevated temperature tests (≥50°C)" .
+
+# Ensure gauge length is specified for tensile tests
+dyn:TensileGaugeLengthConstraint a sh:NodeShape ;
+    sh:targetClass dyn:TensileTest ;
+    sh:property [
+        sh:path dyn:hasGaugeLength ;
+        sh:minCount 1 ;
+    ] ;
+    sh:message "Gauge length must be specified for tensile tests" .
+
+# Ensure reasonable pulse characteristics relationships
+dyn:PulseCharacteristicsConstraint a sh:NodeShape ;
+    sh:targetClass dyn:SHPBCompression ;
+    sh:if [
+        sh:and (
+            [ sh:property [ sh:path dyn:hasPulseDuration ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasPulseSpeed ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasPulseLength ; sh:minCount 1 ] ]
+        )
+    ] ;
+    sh:then [
+        sh:sparql [
+            a sh:SPARQLConstraint ;
+            sh:message "Pulse length should approximately equal pulse duration × pulse speed" ;
+            sh:prefixes [
+                sh:declare [
+                    sh:prefix "dyn" ;
+                    sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                ]
+            ] ;
+            sh:select """
+                SELECT ?this WHERE {
+                    ?this dyn:hasPulseDuration ?duration .
+                    ?this dyn:hasPulseSpeed ?speed .
+                    ?this dyn:hasPulseLength ?length .
+                    # Convert duration from μs to s, speed from m/s to mm/s
+                    BIND((?duration / 1000000) * (?speed * 1000) AS ?calculatedLength)
+                    # Allow 50% tolerance for measurement uncertainty
+                    FILTER(ABS(?length - ?calculatedLength) > (?calculatedLength * 0.5))
+                }
+            """ ;
+        ]
+    ] .

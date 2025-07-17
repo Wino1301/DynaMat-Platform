@@ -1,0 +1,650 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@prefix qkdv: <http://qudt.org/vocab/quantitykind/> .
+@prefix dc: <http://purl.org/dc/terms/> .
+
+# =============================================================================
+# DynaMat Platform - Simulation Class SHACL Shapes
+# Based on properties defined in simulation_class.ttl
+# =============================================================================
+
+#################################################################
+#    Simulation Shape (Base simulation class)
+#################################################################
+
+dyn:SimulationShape a sh:NodeShape ;
+    sh:targetClass dyn:Simulation ;
+    
+    # Software and model relationships (required for any simulation)
+    sh:property [
+        sh:path dyn:hasSoftwareModel ;
+        sh:class dyn:SoftwareModel ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:name "Software Model" ;
+        sh:description "Software package used for simulation" ;
+        sh:group "SoftwareInfo" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasMaterialModel ;
+        sh:class dyn:MaterialModel ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:name "Material Model" ;
+        sh:description "Constitutive model used for material behavior" ;
+        sh:group "MaterialModel" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasFEMesh ;
+        sh:class dyn:FEMesh ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:name "FE Mesh" ;
+        sh:description "Finite element mesh used for simulation" ;
+        sh:group "MeshInfo" ;
+        sh:order 1 ;
+    ] ;
+    
+    # Specimen and test relationships
+    sh:property [
+        sh:path dyn:simulatesSpecimen ;
+        sh:class dyn:Specimen ;
+        sh:maxCount 1 ;
+        sh:name "Simulates Specimen" ;
+        sh:description "Physical specimen being simulated" ;
+        sh:group "SpecimenInfo" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:reproducesTest ;
+        sh:class dyn:MechanicalTest ;
+        sh:maxCount 1 ;
+        sh:name "Reproduces Test" ;
+        sh:description "Experimental test that simulation reproduces" ;
+        sh:group "SpecimenInfo" ;
+        sh:order 2 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:validatesAgainst ;
+        sh:class dyn:MechanicalTest ;
+        sh:maxCount 1 ;
+        sh:name "Validates Against Test" ;
+        sh:description "Experimental test used for validation" ;
+        sh:group "Validation" ;
+        sh:order 1 ;
+    ] ;
+    
+    # File relationships
+    sh:property [
+        sh:path dyn:hasKeywordFile ;
+        sh:class dyn:DataFile ;
+        sh:maxCount 1 ;
+        sh:name "Keyword File" ;
+        sh:description "Input file (e.g., LS-DYNA keyword file)" ;
+        sh:group "SimulationFiles" ;
+        sh:order 1 ;
+    ] ;
+    
+    # Runtime and performance data
+    sh:property [
+        sh:path dyn:hasRunTime ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Runtime (hours)" ;
+        sh:description "Computational time for simulation" ;
+        sh:group "Performance" ;
+        sh:order 1 ;
+        sh:minInclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasProcessorCount ;
+        sh:datatype xsd:integer ;
+        sh:maxCount 1 ;
+        sh:name "Number of Processors" ;
+        sh:description "Number of CPU cores/processors used" ;
+        sh:group "Performance" ;
+        sh:order 2 ;
+        sh:minInclusive 1 ;
+        sh:maxInclusive 10000 ;  # Reasonable upper limit
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasMemoryUsage ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Memory Usage (GB)" ;
+        sh:description "Peak memory usage during simulation" ;
+        sh:group "Performance" ;
+        sh:order 3 ;
+        sh:minExclusive 0.0 ;
+        sh:maxInclusive 10000.0 ;  # 10TB upper limit
+    ] ;
+    
+    # Simulation parameters
+    sh:property [
+        sh:path dyn:hasTimeStep ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Time Step (μs)" ;
+        sh:description "Simulation time step size" ;
+        sh:group "SimulationParameters" ;
+        sh:order 1 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasSimulationDuration ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Simulation Duration (ms)" ;
+        sh:description "Total simulated time duration" ;
+        sh:group "SimulationParameters" ;
+        sh:order 2 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasConvergenceCriteria ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Convergence Criteria" ;
+        sh:description "Convergence criteria for iterative solvers" ;
+        sh:group "SimulationParameters" ;
+        sh:order 3 ;
+    ] ;
+    
+    # Job identification and documentation
+    sh:property [
+        sh:path dyn:hasJobName ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Job Name" ;
+        sh:description "Name/identifier for simulation job" ;
+        sh:group "SimulationInfo" ;
+        sh:order 3 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasSimulationNotes ;
+        sh:datatype xsd:string ;
+        sh:name "Simulation Notes" ;
+        sh:description "Additional notes about simulation setup or results" ;
+        sh:group "SimulationInfo" ;
+        sh:order 4 ;
+    ] ;
+    
+    # Status and validation
+    sh:property [
+        sh:path dyn:hasSimulationStatus ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Status" ;
+        sh:description "Current status of simulation" ;
+        sh:group "SimulationInfo" ;
+        sh:order 5 ;
+        sh:in ("Planned" "Running" "Completed" "Failed" "Cancelled") ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:isValidated ;
+        sh:datatype xsd:boolean ;
+        sh:maxCount 1 ;
+        sh:name "Validated Against Experiment" ;
+        sh:description "Whether simulation has been validated against experimental data" ;
+        sh:group "Validation" ;
+        sh:order 2 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasValidationAccuracy ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Validation Accuracy (%)" ;
+        sh:description "Accuracy of simulation compared to experimental results" ;
+        sh:group "Validation" ;
+        sh:order 3 ;
+        sh:minInclusive 0.0 ;
+        sh:maxInclusive 100.0 ;
+    ] .
+
+#################################################################
+#    FEMesh Shape (Finite element mesh)
+#################################################################
+
+dyn:FEMeshShape a sh:NodeShape ;
+    sh:targetClass dyn:FEMesh ;
+    
+    # Mesh statistics (required)
+    sh:property [
+        sh:path dyn:hasElementCount ;
+        sh:datatype xsd:integer ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:name "Number of Elements" ;
+        sh:description "Total number of finite elements in mesh" ;
+        sh:group "MeshStatistics" ;
+        sh:order 1 ;
+        sh:minInclusive 1 ;
+        sh:maxInclusive 100000000 ;  # 100M elements max
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasNodeCount ;
+        sh:datatype xsd:integer ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:name "Number of Nodes" ;
+        sh:description "Total number of nodes in mesh" ;
+        sh:group "MeshStatistics" ;
+        sh:order 2 ;
+        sh:minInclusive 1 ;
+        sh:maxInclusive 1000000000 ;  # 1B nodes max
+    ] ;
+    
+    # Mesh characteristics
+    sh:property [
+        sh:path dyn:hasElementType ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Element Type" ;
+        sh:description "Type of finite elements used" ;
+        sh:group "MeshInfo" ;
+        sh:order 2 ;
+        sh:in ("Hex8" "Tet4" "Tet10" "Hex20" "Shell") ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasElementSize ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Element Size (mm)" ;
+        sh:description "Characteristic element size" ;
+        sh:group "MeshInfo" ;
+        sh:order 3 ;
+        sh:minExclusive 0.0 ;
+        sh:maxInclusive 1000.0 ;  # 1m max element size
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasMeshQuality ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Mesh Quality" ;
+        sh:description "Mesh quality metric (0-1, higher is better)" ;
+        sh:group "MeshStatistics" ;
+        sh:order 3 ;
+        sh:minInclusive 0.0 ;
+        sh:maxInclusive 1.0 ;
+    ] ;
+    
+    # Mesh file relationship
+    sh:property [
+        sh:path dyn:hasMeshFile ;
+        sh:class dyn:DataFile ;
+        sh:maxCount 1 ;
+        sh:name "Mesh File" ;
+        sh:description "Mesh geometry file (e.g., .k, .inp)" ;
+        sh:group "MeshFiles" ;
+        sh:order 1 ;
+    ] .
+
+#################################################################
+#    MaterialModel Shape (Constitutive material model)
+#################################################################
+
+dyn:MaterialModelShape a sh:NodeShape ;
+    sh:targetClass dyn:MaterialModel ;
+    
+    # Model parameters (required for material models)
+    sh:property [
+        sh:path dyn:hasModelParameter ;
+        sh:class dyn:PropertyValue ;
+        sh:name "Model Parameter" ;
+        sh:description "Parameter values for this material model" ;
+        sh:group "ModelParameters" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:requiresProperty ;
+        sh:class dyn:PropertyValue ;
+        sh:name "Required Property" ;
+        sh:description "Material property required by this model" ;
+        sh:group "ModelParameters" ;
+        sh:order 2 ;
+    ] .
+
+#################################################################
+#    SoftwareModel Shape (Software package configuration)
+#################################################################
+
+dyn:SoftwareModelShape a sh:NodeShape ;
+    sh:targetClass dyn:SoftwareModel ;
+    
+    # Basic software information (from base InformationObject)
+    sh:property [
+        sh:path dyn:hasName ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:name "Software Name" ;
+        sh:description "Name of the software package" ;
+        sh:group "SoftwareInfo" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasVersion ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Software Version" ;
+        sh:description "Version of the software used" ;
+        sh:group "SoftwareInfo" ;
+        sh:order 2 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasDescription ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Description" ;
+        sh:description "Description of software configuration" ;
+        sh:group "SoftwareInfo" ;
+        sh:order 3 ;
+    ] .
+
+#################################################################
+#    Validation Rules and Constraints
+#################################################################
+
+# Ensure simulation type consistency based on test relationships
+dyn:SimulationTypeConsistencyConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Simulation ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Simulation cannot both reproduce and validate against the same test" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#" ;
+            ]
+        ] ;
+        sh:select """
+            SELECT ?this WHERE {
+                ?this dyn:reproducesTest ?test .
+                ?this dyn:validatesAgainst ?test .
+            }
+        """ ;
+    ] .
+
+# Ensure validated simulations have validation accuracy
+dyn:ValidationAccuracyConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Simulation ;
+    sh:if [
+        sh:property [
+            sh:path dyn:isValidated ;
+            sh:hasValue true ;
+        ]
+    ] ;
+    sh:then [
+        sh:property [
+            sh:path dyn:hasValidationAccuracy ;
+            sh:minCount 1 ;
+        ]
+    ] ;
+    sh:message "Validated simulations must have validation accuracy specified" .
+
+# Ensure validation requires a test to validate against
+dyn:ValidationTestConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Simulation ;
+    sh:if [
+        sh:property [
+            sh:path dyn:isValidated ;
+            sh:hasValue true ;
+        ]
+    ] ;
+    sh:then [
+        sh:property [
+            sh:path dyn:validatesAgainst ;
+            sh:minCount 1 ;
+        ]
+    ] ;
+    sh:message "Validated simulations must specify a test to validate against" .
+
+# Ensure mesh node count is reasonable relative to element count
+dyn:MeshNodeElementRatioConstraint a sh:NodeShape ;
+    sh:targetClass dyn:FEMesh ;
+    sh:if [
+        sh:and (
+            [ sh:property [ sh:path dyn:hasElementCount ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasNodeCount ; sh:minCount 1 ] ]
+        )
+    ] ;
+    sh:then [
+        sh:sparql [
+            a sh:SPARQLConstraint ;
+            sh:message "Node count should be reasonable relative to element count (typically 1.1x to 8x)" ;
+            sh:prefixes [
+                sh:declare [
+                    sh:prefix "dyn" ;
+                    sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                ]
+            ] ;
+            sh:select """
+                SELECT ?this WHERE {
+                    ?this dyn:hasElementCount ?elements .
+                    ?this dyn:hasNodeCount ?nodes .
+                    # Nodes should be at least equal to elements and at most 8x (for complex elements)
+                    FILTER(?nodes < ?elements || ?nodes > (?elements * 8))
+                }
+            """ ;
+        ]
+    ] .
+
+# Ensure time step is reasonable relative to simulation duration
+dyn:TimeStepDurationConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Simulation ;
+    sh:if [
+        sh:and (
+            [ sh:property [ sh:path dyn:hasTimeStep ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasSimulationDuration ; sh:minCount 1 ] ]
+        )
+    ] ;
+    sh:then [
+        sh:sparql [
+            a sh:SPARQLConstraint ;
+            sh:message "Time step should be much smaller than simulation duration" ;
+            sh:prefixes [
+                sh:declare [
+                    sh:prefix "dyn" ;
+                    sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                ]
+            ] ;
+            sh:select """
+                SELECT ?this WHERE {
+                    ?this dyn:hasTimeStep ?timeStep .
+                    ?this dyn:hasSimulationDuration ?duration .
+                    # Convert timeStep from μs to ms, duration is already in ms
+                    BIND(?timeStep / 1000 AS ?timeStepMS)
+                    # Time step should be less than 1% of total duration
+                    FILTER(?timeStepMS >= (?duration * 0.01))
+                }
+            """ ;
+        ]
+    ] .
+
+# Ensure completed simulations have runtime information
+dyn:CompletedSimulationRuntimeConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Simulation ;
+    sh:if [
+        sh:property [
+            sh:path dyn:hasSimulationStatus ;
+            sh:hasValue "Completed" ;
+        ]
+    ] ;
+    sh:then [
+        sh:property [
+            sh:path dyn:hasRunTime ;
+            sh:minCount 1 ;
+        ]
+    ] ;
+    sh:message "Completed simulations must have runtime information" .
+
+# Ensure simulation job names are unique
+dyn:UniqueJobNameConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Simulation ;
+    sh:if [
+        sh:property [ sh:path dyn:hasJobName ; sh:minCount 1 ]
+    ] ;
+    sh:then [
+        sh:sparql [
+            a sh:SPARQLConstraint ;
+            sh:message "Simulation job names must be unique" ;
+            sh:prefixes [
+                sh:declare [
+                    sh:prefix "dyn" ;
+                    sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                ]
+            ] ;
+            sh:select """
+                SELECT ?this WHERE {
+                    ?this dyn:hasJobName ?jobName .
+                    ?other dyn:hasJobName ?jobName .
+                    FILTER(?this != ?other)
+                }
+            """ ;
+        ]
+    ] .
+
+# Ensure memory usage is reasonable for processor count
+dyn:MemoryProcessorRatioConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Simulation ;
+    sh:if [
+        sh:and (
+            [ sh:property [ sh:path dyn:hasMemoryUsage ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasProcessorCount ; sh:minCount 1 ] ]
+        )
+    ] ;
+    sh:then [
+        sh:sparql [
+            a sh:SPARQLConstraint ;
+            sh:message "Memory usage should be reasonable for processor count (typically 1-32 GB per processor)" ;
+            sh:prefixes [
+                sh:declare [
+                    sh:prefix "dyn" ;
+                    sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                ]
+            ] ;
+            sh:select """
+                SELECT ?this WHERE {
+                    ?this dyn:hasMemoryUsage ?memory .
+                    ?this dyn:hasProcessorCount ?processors .
+                    BIND(?memory / ?processors AS ?memoryPerProcessor)
+                    # Should be between 0.1 GB and 100 GB per processor
+                    FILTER(?memoryPerProcessor < 0.1 || ?memoryPerProcessor > 100.0)
+                }
+            """ ;
+        ]
+    ] .
+
+# Ensure mesh quality is good enough for reliable results
+dyn:MeshQualityThresholdConstraint a sh:NodeShape ;
+    sh:targetClass dyn:FEMesh ;
+    sh:if [
+        sh:property [ sh:path dyn:hasMeshQuality ; sh:minCount 1 ]
+    ] ;
+    sh:then [
+        sh:property [
+            sh:path dyn:hasMeshQuality ;
+            sh:minInclusive 0.3 ;  # Warn if mesh quality is below 0.3
+        ]
+    ] ;
+    sh:message "Mesh quality should be at least 0.3 for reliable simulation results" .
+
+# Ensure reproduction simulations have specimen relationship
+dyn:ReproductionSpecimenConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Simulation ;
+    sh:if [
+        sh:property [ sh:path dyn:reproducesTest ; sh:minCount 1 ]
+    ] ;
+    sh:then [
+        sh:property [
+            sh:path dyn:simulatesSpecimen ;
+            sh:minCount 1 ;
+        ]
+    ] ;
+    sh:message "Simulations that reproduce tests must specify the specimen being simulated" .
+
+# Ensure material model has required parameters
+dyn:MaterialModelParametersConstraint a sh:NodeShape ;
+    sh:targetClass dyn:MaterialModel ;
+    sh:property [
+        sh:path dyn:hasModelParameter ;
+        sh:minCount 1 ;
+    ] ;
+    sh:message "Material models must have at least one model parameter" .
+
+# Ensure mesh files have appropriate extensions
+dyn:MeshFileExtensionConstraint a sh:NodeShape ;
+    sh:targetClass dyn:FEMesh ;
+    sh:if [
+        sh:property [ sh:path dyn:hasMeshFile ; sh:minCount 1 ]
+    ] ;
+    sh:then [
+        sh:sparql [
+            a sh:SPARQLConstraint ;
+            sh:message "Mesh files should have appropriate extensions (.k, .inp, .msh, .e)" ;
+            sh:prefixes [
+                sh:declare [
+                    sh:prefix "dyn" ;
+                    sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                ]
+            ] ;
+            sh:select """
+                SELECT ?this WHERE {
+                    ?this dyn:hasMeshFile ?file .
+                    ?file dyn:hasFileName ?filename .
+                    FILTER(!REGEX(?filename, "\\.(k|inp|msh|e)$", "i"))
+                }
+            """ ;
+        ]
+    ] .
+
+# Ensure keyword files have appropriate extensions
+dyn:KeywordFileExtensionConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Simulation ;
+    sh:if [
+        sh:property [ sh:path dyn:hasKeywordFile ; sh:minCount 1 ]
+    ] ;
+    sh:then [
+        sh:sparql [
+            a sh:SPARQLConstraint ;
+            sh:message "Keyword files should have appropriate extensions (.k, .inp, .i)" ;
+            sh:prefixes [
+                sh:declare [
+                    sh:prefix "dyn" ;
+                    sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                ]
+            ] ;
+            sh:select """
+                SELECT ?this WHERE {
+                    ?this dyn:hasKeywordFile ?file .
+                    ?file dyn:hasFileName ?filename .
+                    FILTER(!REGEX(?filename, "\\.(k|inp|i)$", "i"))
+                }
+            """ ;
+        ]
+    ] .

@@ -1,0 +1,1005 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@prefix qkdv: <http://qudt.org/vocab/quantitykind/> .
+@prefix dc: <http://purl.org/dc/terms/> .
+
+# =============================================================================
+# DynaMat Platform - Information Object Class SHACL Shapes
+# Based on properties defined in information_object_class.ttl
+# =============================================================================
+
+#################################################################
+#    InformationObject Shape (Base class)
+#################################################################
+
+dyn:InformationObjectShape a sh:NodeShape ;
+    sh:targetClass dyn:InformationObject ;
+    
+    # Basic information object properties (from core shapes)
+    sh:property [
+        sh:path dyn:hasFormat ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Format" ;
+        sh:description "File format or data format" ;
+        sh:group "FileMetadata" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasSize ;
+        sh:datatype xsd:long ;
+        sh:maxCount 1 ;
+        sh:name "Size" ;
+        sh:description "Size in bytes" ;
+        sh:group "FileMetadata" ;
+        sh:order 2 ;
+        sh:minInclusive 0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasChecksum ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Checksum" ;
+        sh:description "File checksum for integrity verification" ;
+        sh:group "FileMetadata" ;
+        sh:order 3 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasFilePath ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "File Path" ;
+        sh:description "Path to the file on the file system" ;
+        sh:group "FileMetadata" ;
+        sh:order 4 ;
+    ] .
+
+#################################################################
+#    DataFile Shape (CSV and other data files)
+#################################################################
+
+dyn:DataFileShape a sh:NodeShape ;
+    sh:targetClass dyn:DataFile ;
+    
+    # File identification and location
+    sh:property [
+        sh:path dyn:hasFileName ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:name "File Name" ;
+        sh:description "CSV filename (e.g., raw_data.csv)" ;
+        sh:group "FileMetadata" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasRelativePath ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Relative Path" ;
+        sh:description "Path relative to specimen folder (e.g., raw/)" ;
+        sh:group "FileMetadata" ;
+        sh:order 2 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasFileEncoding ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "File Encoding" ;
+        sh:description "Character encoding of the file (e.g., UTF-8)" ;
+        sh:group "FileMetadata" ;
+        sh:order 3 ;
+        sh:in ("UTF-8" "ASCII" "ISO-8859-1") ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasFileSize ;
+        sh:datatype xsd:integer ;
+        sh:maxCount 1 ;
+        sh:name "File Size (bytes)" ;
+        sh:description "Size of file in bytes" ;
+        sh:group "FileMetadata" ;
+        sh:order 4 ;
+        sh:minInclusive 0 ;
+    ] ;
+    
+    # CSV structure and format
+    sh:property [
+        sh:path dyn:hasDelimiter ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "CSV Delimiter" ;
+        sh:description "CSV delimiter character (comma, semicolon, tab, pipe)" ;
+        sh:group "FileFormat" ;
+        sh:order 1 ;
+        sh:in ("," ";" "|" "\t") ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasHeaderRow ;
+        sh:datatype xsd:boolean ;
+        sh:maxCount 1 ;
+        sh:name "Has Header Row" ;
+        sh:description "Whether CSV file contains column headers" ;
+        sh:group "FileFormat" ;
+        sh:order 2 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasSkipRows ;
+        sh:datatype xsd:integer ;
+        sh:maxCount 1 ;
+        sh:name "Rows to Skip" ;
+        sh:description "Number of initial rows to skip when reading" ;
+        sh:group "FileFormat" ;
+        sh:order 3 ;
+        sh:minInclusive 0 ;
+    ] ;
+    
+    # Data series relationships
+    sh:property [
+        sh:path dyn:hasDataColumn ;
+        sh:class dyn:DataSeries ;
+        sh:name "Data Column" ;
+        sh:description "Data columns available in this CSV file" ;
+        sh:group "DataStructure" ;
+        sh:order 1 ;
+    ] .
+
+#################################################################
+#    DataSeries Shape (CSV Column metadata and data characteristics)
+#################################################################
+
+dyn:DataSeriesShape a sh:NodeShape ;
+    sh:targetClass dyn:DataSeries ;
+    
+    # Column identification
+    sh:property [
+        sh:path dyn:hasColumnName ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:name "CSV Column Name" ;
+        sh:description "Exact CSV column header name" ;
+        sh:group "ColumnMetadata" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasColumnIndex ;
+        sh:datatype xsd:integer ;
+        sh:maxCount 1 ;
+        sh:name "Column Index" ;
+        sh:description "Zero-based column position in CSV" ;
+        sh:group "ColumnMetadata" ;
+        sh:order 2 ;
+        sh:minInclusive 0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasLegendName ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Display Name" ;
+        sh:description "Human-readable name for plots and displays" ;
+        sh:group "ColumnMetadata" ;
+        sh:order 3 ;
+    ] ;
+    
+    # Data characteristics
+    sh:property [
+        sh:path dyn:hasDataPoints ;
+        sh:datatype xsd:integer ;
+        sh:maxCount 1 ;
+        sh:name "Number of Data Points" ;
+        sh:description "Number of data points in this series" ;
+        sh:group "DataCharacteristics" ;
+        sh:order 1 ;
+        sh:minInclusive 0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasSamplingRate ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Sampling Rate (Hz)" ;
+        sh:description "Data acquisition frequency for this series" ;
+        sh:group "DataCharacteristics" ;
+        sh:order 2 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasDataType ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Data Type" ;
+        sh:description "Type of data in this series" ;
+        sh:group "DataCharacteristics" ;
+        sh:order 3 ;
+        sh:in ("RawSignal" "ProcessedData" "CalculatedProperty" "Timestamp") ;
+    ] ;
+    
+    # Processing and analysis metadata
+    sh:property [
+        sh:path dyn:hasProcessingMethod ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Processing Method" ;
+        sh:description "Algorithm or method used to calculate this data" ;
+        sh:group "ProcessingInfo" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasFilterApplied ;
+        sh:datatype xsd:boolean ;
+        sh:maxCount 1 ;
+        sh:name "Filter Applied" ;
+        sh:description "Whether filtering was applied to this data" ;
+        sh:group "ProcessingInfo" ;
+        sh:order 2 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasFilterType ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Filter Type" ;
+        sh:description "Type of filter applied (if any)" ;
+        sh:group "ProcessingInfo" ;
+        sh:order 3 ;
+        sh:in ("LowPass" "HighPass" "BandPass" "Butterworth" "Savitzky-Golay") ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasFilterFrequency ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Filter Frequency (Hz)" ;
+        sh:description "Cutoff frequency for applied filter" ;
+        sh:group "ProcessingInfo" ;
+        sh:order 4 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    # Tukey Factor Data Structure (PINN training data)
+    sh:property [
+        sh:path dyn:hasTukeyFactor ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Tukey Factor" ;
+        sh:description "Tukey windowing factor used for PINN loss calculation" ;
+        sh:group "ProcessingInfo" ;
+        sh:order 5 ;
+        sh:minInclusive 0.0 ;
+        sh:maxInclusive 1.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasTukeyWindowLength ;
+        sh:datatype xsd:integer ;
+        sh:maxCount 1 ;
+        sh:name "Tukey Window Length" ;
+        sh:description "Length of Tukey window applied to pulse data" ;
+        sh:group "ProcessingInfo" ;
+        sh:order 6 ;
+        sh:minInclusive 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:isCenteredPulse ;
+        sh:datatype xsd:boolean ;
+        sh:maxCount 1 ;
+        sh:name "Centered Pulse" ;
+        sh:description "Whether pulse data has been centered and aligned" ;
+        sh:group "ProcessingInfo" ;
+        sh:order 7 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:isAlignedPulse ;
+        sh:datatype xsd:boolean ;
+        sh:maxCount 1 ;
+        sh:name "Aligned Pulse" ;
+        sh:description "Whether pulse data has been time-aligned" ;
+        sh:group "ProcessingInfo" ;
+        sh:order 8 ;
+    ] ;
+    
+    # Machine learning specific properties
+    sh:property [
+        sh:path dyn:isTrainingData ;
+        sh:datatype xsd:boolean ;
+        sh:maxCount 1 ;
+        sh:name "Training Data" ;
+        sh:description "Whether this data series is used for PINN training" ;
+        sh:group "MachineLearning" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:isReferencePulse ;
+        sh:datatype xsd:boolean ;
+        sh:maxCount 1 ;
+        sh:name "Reference Pulse" ;
+        sh:description "High-quality pulse data used as template for window selection" ;
+        sh:group "DataQuality" ;
+        sh:order 1 ;
+    ] ;
+    
+    # Equipment and sensor relationships for data traceability
+    sh:property [
+        sh:path dyn:measuredBy ;
+        sh:class dyn:MeasurementEquipment ;
+        sh:name "Measured By" ;
+        sh:description "Which sensor/equipment collected this data" ;
+        sh:group "DataProvenance" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:derivedFrom ;
+        sh:class dyn:DataSeries ;
+        sh:name "Derived From" ;
+        sh:description "Raw data series used to calculate this processed data" ;
+        sh:group "DataProvenance" ;
+        sh:order 2 ;
+    ] .
+
+#################################################################
+#    TestConfiguration Shape (Configuration mapping)
+#################################################################
+
+dyn:TestConfigurationShape a sh:NodeShape ;
+    sh:targetClass dyn:TestConfiguration ;
+    
+    # Configuration identification
+    sh:property [
+        sh:path dyn:hasConfigurationName ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:name "Configuration Name" ;
+        sh:description "Name of this test configuration" ;
+        sh:group "ConfigurationInfo" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasConfigurationVersion ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Version" ;
+        sh:description "Version number of this configuration" ;
+        sh:group "ConfigurationInfo" ;
+        sh:order 2 ;
+    ] ;
+    
+    # Column mapping and requirements
+    sh:property [
+        sh:path dyn:hasRequiredColumns ;
+        sh:datatype xsd:string ;
+        sh:name "Required Columns" ;
+        sh:description "CSV column names that must be present" ;
+        sh:group "ColumnMapping" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasOptionalColumns ;
+        sh:datatype xsd:string ;
+        sh:name "Optional Columns" ;
+        sh:description "CSV column names that may be present" ;
+        sh:group "ColumnMapping" ;
+        sh:order 2 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasStandardColumnNames ;
+        sh:datatype xsd:string ;
+        sh:name "Standard Columns" ;
+        sh:description "Recommended standard column naming" ;
+        sh:group "ColumnMapping" ;
+        sh:order 3 ;
+    ] ;
+    
+    # Configuration metadata
+    sh:property [
+        sh:path dyn:isTemplate ;
+        sh:datatype xsd:boolean ;
+        sh:maxCount 1 ;
+        sh:name "Is Template" ;
+        sh:description "Whether this is a reusable template configuration" ;
+        sh:group "ConfigurationInfo" ;
+        sh:order 3 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:isActive ;
+        sh:datatype xsd:boolean ;
+        sh:maxCount 1 ;
+        sh:name "Active" ;
+        sh:description "Whether this configuration is currently active/enabled" ;
+        sh:group "ConfigurationInfo" ;
+        sh:order 4 ;
+    ] ;
+    
+    # Template relationships
+    sh:property [
+        sh:path dyn:hasConfigurationTemplate ;
+        sh:class dyn:TestConfiguration ;
+        sh:maxCount 1 ;
+        sh:name "Based on Template" ;
+        sh:description "Parent template this configuration extends" ;
+        sh:group "Configuration" ;
+        sh:order 1 ;
+    ] .
+
+#################################################################
+#    ProcessedData Shape (Calculated quantities)
+#################################################################
+
+dyn:ProcessedDataShape a sh:NodeShape ;
+    sh:targetClass dyn:ProcessedData ;
+    
+    # Processing must be documented
+    sh:property [
+        sh:path dyn:hasProcessingMethod ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:name "Processing Method" ;
+        sh:description "Algorithm or method used to calculate this data" ;
+        sh:group "ProcessingInfo" ;
+        sh:order 1 ;
+    ] ;
+    
+    # Must be derived from raw data
+    sh:property [
+        sh:path dyn:derivedFrom ;
+        sh:class dyn:DataSeries ;
+        sh:minCount 1 ;
+        sh:name "Derived From" ;
+        sh:description "Raw data series used to calculate this processed data" ;
+        sh:group "DataProvenance" ;
+        sh:order 2 ;
+    ] .
+
+#################################################################
+#    RawSignal Shape (Raw sensor data)
+#################################################################
+
+dyn:RawSignalShape a sh:NodeShape ;
+    sh:targetClass dyn:RawSignal ;
+    
+    # Must have sensor information
+    sh:property [
+        sh:path dyn:measuredBy ;
+        sh:class dyn:MeasurementEquipment ;
+        sh:minCount 1 ;
+        sh:name "Measured By" ;
+        sh:description "Which sensor/equipment collected this data" ;
+        sh:group "DataProvenance" ;
+        sh:order 1 ;
+    ] ;
+    
+    # Sampling rate is required for raw signals
+    sh:property [
+        sh:path dyn:hasSamplingRate ;
+        sh:datatype xsd:double ;
+        sh:minCount 1 ;
+        sh:name "Sampling Rate (Hz)" ;
+        sh:description "Data acquisition frequency for this series" ;
+        sh:group "DataCharacteristics" ;
+        sh:order 2 ;
+        sh:minExclusive 0.0 ;
+    ] .
+
+#################################################################
+#    TukeyProcessedSeries Shape (PINN training data)
+#################################################################
+
+dyn:TukeyProcessedSeriesShape a sh:NodeShape ;
+    sh:targetClass dyn:TukeyProcessedSeries ;
+    
+    # Must have Tukey parameters
+    sh:property [
+        sh:path dyn:hasTukeyFactor ;
+        sh:datatype xsd:double ;
+        sh:minCount 1 ;
+        sh:name "Tukey Factor" ;
+        sh:description "Tukey windowing factor used for PINN loss calculation" ;
+        sh:group "ProcessingInfo" ;
+        sh:order 5 ;
+        sh:minInclusive 0.0 ;
+        sh:maxInclusive 1.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasTukeyWindowLength ;
+        sh:datatype xsd:integer ;
+        sh:minCount 1 ;
+        sh:name "Tukey Window Length" ;
+        sh:description "Length of Tukey window applied to pulse data" ;
+        sh:group "ProcessingInfo" ;
+        sh:order 6 ;
+        sh:minInclusive 1 ;
+    ] .
+
+#################################################################
+#    CenteredPulseSeries Shape (Aligned pulse data)
+#################################################################
+
+dyn:CenteredPulseSeriesShape a sh:NodeShape ;
+    sh:targetClass dyn:CenteredPulseSeries ;
+    
+    # Must be centered and aligned
+    sh:property [
+        sh:path dyn:isCenteredPulse ;
+        sh:datatype xsd:boolean ;
+        sh:hasValue true ;
+        sh:name "Centered Pulse" ;
+        sh:description "Whether pulse data has been centered and aligned" ;
+        sh:group "ProcessingInfo" ;
+        sh:order 7 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:isAlignedPulse ;
+        sh:datatype xsd:boolean ;
+        sh:hasValue true ;
+        sh:name "Aligned Pulse" ;
+        sh:description "Whether pulse data has been time-aligned" ;
+        sh:group "ProcessingInfo" ;
+        sh:order 8 ;
+    ] .
+
+#################################################################
+#    Validation Rules and Constraints
+#################################################################
+
+# Ensure file name has appropriate extension
+dyn:FileNameExtensionConstraint a sh:NodeShape ;
+    sh:targetClass dyn:DataFile ;
+    sh:if [
+        sh:property [ sh:path dyn:hasFileName ; sh:minCount 1 ]
+    ] ;
+    sh:then [
+        sh:sparql [
+            a sh:SPARQLConstraint ;
+            sh:message "Data file should have appropriate extension (.csv, .txt, .dat)" ;
+            sh:prefixes [
+                sh:declare [
+                    sh:prefix "dyn" ;
+                    sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                ]
+            ] ;
+            sh:select """
+                SELECT ?this WHERE {
+                    ?this dyn:hasFileName ?filename .
+                    FILTER(!REGEX(?filename, "\\.(csv|txt|dat)$", "i"))
+                }
+            """ ;
+        ]
+    ] .
+
+# Ensure filter type is specified when filter is applied
+dyn:FilterTypeConstraint a sh:NodeShape ;
+    sh:targetClass dyn:DataSeries ;
+    sh:if [
+        sh:property [
+            sh:path dyn:hasFilterApplied ;
+            sh:hasValue true ;
+        ]
+    ] ;
+    sh:then [
+        sh:property [
+            sh:path dyn:hasFilterType ;
+            sh:minCount 1 ;
+        ]
+    ] ;
+    sh:message "Filter type must be specified when filter is applied" .
+
+# Ensure filter frequency is provided for frequency-based filters
+dyn:FilterFrequencyConstraint a sh:NodeShape ;
+    sh:targetClass dyn:DataSeries ;
+    sh:if [
+        sh:property [
+            sh:path dyn:hasFilterType ;
+            sh:in ("LowPass" "HighPass" "BandPass" "Butterworth") ;
+        ]
+    ] ;
+    sh:then [
+        sh:property [
+            sh:path dyn:hasFilterFrequency ;
+            sh:minCount 1 ;
+        ]
+    ] ;
+    sh:message "Filter frequency must be specified for frequency-based filters" .
+
+# Ensure column index matches column count in file
+dyn:ColumnIndexConstraint a sh:NodeShape ;
+    sh:targetClass dyn:DataSeries ;
+    sh:if [
+        sh:property [ sh:path dyn:hasColumnIndex ; sh:minCount 1 ]
+    ] ;
+    sh:then [
+        sh:property [
+            sh:path dyn:hasColumnIndex ;
+            sh:minInclusive 0 ;
+            sh:maxInclusive 1000 ;  # Reasonable upper limit
+        ]
+    ] ;
+    sh:message "Column index must be a reasonable value (0-1000)" .
+
+# Ensure Tukey window length is reasonable for data points
+dyn:TukeyWindowConstraint a sh:NodeShape ;
+    sh:targetClass dyn:DataSeries ;
+    sh:if [
+        sh:and (
+            [ sh:property [ sh:path dyn:hasTukeyWindowLength ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasDataPoints ; sh:minCount 1 ] ]
+        )
+    ] ;
+    sh:then [
+        sh:sparql [
+            a sh:SPARQLConstraint ;
+            sh:message "Tukey window length should not exceed number of data points" ;
+            sh:prefixes [
+                sh:declare [
+                    sh:prefix "dyn" ;
+                    sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                ]
+            ] ;
+            sh:select """
+                SELECT ?this WHERE {
+                    ?this dyn:hasTukeyWindowLength ?windowLength .
+                    ?this dyn:hasDataPoints ?dataPoints .
+                    FILTER(?windowLength > ?dataPoints)
+                }
+            """ ;
+        ]
+    ] .
+
+# Ensure configuration template relationship is not circular
+dyn:ConfigurationTemplateCircularConstraint a sh:NodeShape ;
+    sh:targetClass dyn:TestConfiguration ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Configuration template relationship cannot be circular" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#" ;
+            ]
+        ] ;
+        sh:select """
+            SELECT ?this WHERE {
+                ?this dyn:hasConfigurationTemplate+ ?this .
+            }
+        """ ;
+    ] .
+
+# Ensure derived data series relationship is not circular
+dyn:DataSeriesCircularConstraint a sh:NodeShape ;
+    sh:targetClass dyn:DataSeries ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Data series derivation relationship cannot be circular" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#" ;
+            ]
+        ] ;
+        sh:select """
+            SELECT ?this WHERE {
+                ?this dyn:derivedFrom+ ?this .
+            }
+        """ ;
+    ] .
+
+# Ensure sampling rate is consistent between related series
+dyn:SamplingRateConsistencyConstraint a sh:NodeShape ;
+    sh:targetClass dyn:DataSeries ;
+    sh:if [
+        sh:and (
+            [ sh:property [ sh:path dyn:derivedFrom ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasSamplingRate ; sh:minCount 1 ] ]
+        )
+    ] ;
+    sh:then [
+        sh:sparql [
+            a sh:SPARQLConstraint ;
+            sh:message "Derived data series should have compatible sampling rate with source" ;
+            sh:prefixes [
+                sh:declare [
+                    sh:prefix "dyn" ;
+                    sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                ]
+            ] ;
+            sh:select """
+                SELECT ?this WHERE {
+                    ?this dyn:derivedFrom ?source .
+                    ?this dyn:hasSamplingRate ?thisSR .
+                    ?source dyn:hasSamplingRate ?sourceSR .
+                    # Derived should be same or lower (downsampled)
+                    FILTER(?thisSR > ?sourceSR)
+                }
+            """ ;
+        ]
+    ] .
+
+# Ensure reference pulse is also training data
+dyn:ReferencePulseConstraint a sh:NodeShape ;
+    sh:targetClass dyn:DataSeries ;
+    sh:if [
+        sh:property [
+            sh:path dyn:isReferencePulse ;
+            sh:hasValue true ;
+        ]
+    ] ;
+    sh:then [
+        sh:property [
+            sh:path dyn:isTrainingData ;
+            sh:hasValue true ;
+        ]
+    ] ;
+    sh:message "Reference pulse must also be marked as training data" .
+
+# Ensure column names are unique within a data file
+dyn:UniqueColumnNameConstraint a sh:NodeShape ;
+    sh:targetClass dyn:DataFile ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Column names must be unique within a data file" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#" ;
+            ]
+        ] ;
+        sh:select """
+            SELECT ?this WHERE {
+                ?this dyn:hasDataColumn ?series1 .
+                ?this dyn:hasDataColumn ?series2 .
+                ?series1 dyn:hasColumnName ?columnName .
+                ?series2 dyn:hasColumnName ?columnName .
+                FILTER(?series1 != ?series2)
+            }
+        """ ;
+    ] .
+
+# Ensure column indices are unique within a data file
+dyn:UniqueColumnIndexConstraint a sh:NodeShape ;
+    sh:targetClass dyn:DataFile ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Column indices must be unique within a data file" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#" ;
+            ]
+        ] ;
+        sh:select """
+            SELECT ?this WHERE {
+                ?this dyn:hasDataColumn ?series1 .
+                ?this dyn:hasDataColumn ?series2 .
+                ?series1 dyn:hasColumnIndex ?index .
+                ?series2 dyn:hasColumnIndex ?index .
+                FILTER(?series1 != ?series2)
+            }
+        """ ;
+    ] .
+
+# Ensure data series have equal length within the same file
+dyn:EqualDataLengthConstraint a sh:NodeShape ;
+    sh:targetClass dyn:DataFile ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "All data series within a file must have equal number of data points" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#" ;
+            ]
+        ] ;
+        sh:select """
+            SELECT ?this WHERE {
+                ?this dyn:hasDataColumn ?series1 .
+                ?this dyn:hasDataColumn ?series2 .
+                ?series1 dyn:hasDataPoints ?points1 .
+                ?series2 dyn:hasDataPoints ?points2 .
+                FILTER(?series1 != ?series2 && ?points1 != ?points2)
+            }
+        """ ;
+    ] .
+
+# Ensure filenames are unique across the entire system
+dyn:UniqueFileNameConstraint a sh:NodeShape ;
+    sh:targetClass dyn:DataFile ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Filename must be unique across the system" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#" ;
+            ]
+        ] ;
+        sh:select """
+            SELECT ?this WHERE {
+                ?this dyn:hasFileName ?filename .
+                ?other dyn:hasFileName ?filename .
+                FILTER(?this != ?other)
+            }
+        """ ;
+    ] .
+
+# Ensure filename and relative path combination is unique (alternative to global uniqueness)
+dyn:UniqueFilePathConstraint a sh:NodeShape ;
+    sh:targetClass dyn:DataFile ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Combination of filename and relative path must be unique" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#" ;
+            ]
+        ] ;
+        sh:select """
+            SELECT ?this WHERE {
+                ?this dyn:hasFileName ?filename .
+                ?this dyn:hasRelativePath ?path .
+                ?other dyn:hasFileName ?filename .
+                ?other dyn:hasRelativePath ?path .
+                FILTER(?this != ?other)
+            }
+        """ ;
+    ] .
+
+# Ensure column indices are sequential (no gaps) within a file
+dyn:SequentialColumnIndexConstraint a sh:NodeShape ;
+    sh:targetClass dyn:DataFile ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Column indices should be sequential starting from 0 with no gaps" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#" ;
+            ]
+        ] ;
+        sh:select """
+            SELECT ?this WHERE {
+                ?this dyn:hasDataColumn ?series .
+                ?series dyn:hasColumnIndex ?index .
+                
+                # Count total columns in this file
+                {
+                    SELECT ?this (COUNT(?col) AS ?totalCols) WHERE {
+                        ?this dyn:hasDataColumn ?col .
+                        ?col dyn:hasColumnIndex ?idx .
+                    } GROUP BY ?this
+                }
+                
+                # Check if max index equals total columns - 1 (0-based indexing)
+                {
+                    SELECT ?this (MAX(?idx) AS ?maxIndex) WHERE {
+                        ?this dyn:hasDataColumn ?col .
+                        ?col dyn:hasColumnIndex ?idx .
+                    } GROUP BY ?this
+                }
+                
+                FILTER(?maxIndex != (?totalCols - 1))
+            }
+        """ ;
+    ] .
+
+# Ensure data series that share the same equipment have compatible sampling rates
+dyn:EquipmentSamplingRateConstraint a sh:NodeShape ;
+    sh:targetClass dyn:DataSeries ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Data series from the same measurement equipment should have the same sampling rate" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#" ;
+            ]
+        ] ;
+        sh:select """
+            SELECT ?this WHERE {
+                ?this dyn:measuredBy ?equipment .
+                ?this dyn:hasSamplingRate ?rate1 .
+                ?other dyn:measuredBy ?equipment .
+                ?other dyn:hasSamplingRate ?rate2 .
+                FILTER(?this != ?other && ?rate1 != ?rate2)
+            }
+        """ ;
+    ] .
+
+# Ensure processed data has more recent timestamp than its source
+dyn:ProcessingTimestampConstraint a sh:NodeShape ;
+    sh:targetClass dyn:ProcessedData ;
+    sh:if [
+        sh:and (
+            [ sh:property [ sh:path dyn:derivedFrom ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dc:created ; sh:minCount 1 ] ]
+        )
+    ] ;
+    sh:then [
+        sh:sparql [
+            a sh:SPARQLConstraint ;
+            sh:message "Processed data should have creation timestamp after its source data" ;
+            sh:prefixes [
+                sh:declare [
+                    sh:prefix "dyn" ;
+                    sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                ] ;
+                sh:declare [
+                    sh:prefix "dc" ;
+                    sh:namespace "http://purl.org/dc/terms/" ;
+                ]
+            ] ;
+            sh:select """
+                SELECT ?this WHERE {
+                    ?this dyn:derivedFrom ?source .
+                    ?this dc:created ?processedTime .
+                    ?source dc:created ?sourceTime .
+                    FILTER(?processedTime <= ?sourceTime)
+                }
+            """ ;
+        ]
+    ] .
+
+# Ensure configuration name is unique among configurations
+dyn:UniqueConfigurationNameConstraint a sh:NodeShape ;
+    sh:targetClass dyn:TestConfiguration ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Configuration name must be unique" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#" ;
+            ]
+        ] ;
+        sh:select """
+            SELECT ?this WHERE {
+                ?this dyn:hasConfigurationName ?name .
+                ?other dyn:hasConfigurationName ?name .
+                FILTER(?this != ?other)
+            }
+        """ ;
+    ] .
+
+# Ensure template configurations are not based on other templates (prevent deep nesting)
+dyn:TemplateNestingConstraint a sh:NodeShape ;
+    sh:targetClass dyn:TestConfiguration ;
+    sh:if [
+        sh:property [
+            sh:path dyn:isTemplate ;
+            sh:hasValue true ;
+        ]
+    ] ;
+    sh:then [
+        sh:property [
+            sh:path dyn:hasConfigurationTemplate ;
+            sh:maxCount 0 ;
+        ]
+    ] ;
+    sh:message "Template configurations cannot be based on other templates (prevents deep nesting)" .
