@@ -1,0 +1,232 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dc: <http://purl.org/dc/terms/> .
+
+# =============================================================================
+# DynaMat Platform - Mechanical Testing Individual Instances
+# For ontology/class_individuals/mechanical_testing_individuals.ttl
+# =============================================================================
+
+#################################################################
+#    SHPB Equipment Individuals
+#################################################################
+
+# SHPB Bars
+dyn:SteelBar_Striker_1 rdf:type owl:NamedIndividual, dyn:Bar ;
+    rdfs:label "Steel Striker Bar #1"@en ;
+    dyn:hasName "Steel Striker Bar #1"@en ;
+    dyn:hasBarID "STR-001"@en ;
+    dyn:hasMaterial dyn:SteelBar_Material ;
+    dyn:hasLength 600.0e0 ;
+    dyn:hasDiameter 19.05e0 ;
+    dyn:hasElasticModulus 200.0e9 ;
+    dyn:hasDensity 7870.0e0 ;
+    dyn:hasWaveSpeed 5080.0e0 ;
+    dyn:hasDescription "Steel striker bar for SHPB compression tests"@en .
+
+dyn:SteelBar_Incident_1 rdf:type owl:NamedIndividual, dyn:Bar ;
+    rdfs:label "Steel Incident Bar #1"@en ;
+    dyn:hasName "Steel Incident Bar #1"@en ;
+    dyn:hasBarID "INC-001"@en ;
+    dyn:hasMaterial dyn:SteelBar_Material ;
+    dyn:hasLength 1830.0e0 ;
+    dyn:hasDiameter 19.05e0 ;
+    dyn:hasElasticModulus 200.0e9 ;
+    dyn:hasDensity 7870.0e0 ;
+    dyn:hasWaveSpeed 5080.0e0 ;
+    dyn:hasDescription "Steel incident bar for SHPB compression tests"@en .
+
+dyn:SteelBar_Transmission_1 rdf:type owl:NamedIndividual, dyn:Bar ;
+    rdfs:label "Steel Transmission Bar #1"@en ;
+    dyn:hasName "Steel Transmission Bar #1"@en ;
+    dyn:hasBarID "TRA-001"@en ;
+    dyn:hasMaterial dyn:SteelBar_Material ;
+    dyn:hasLength 1830.0e0 ;
+    dyn:hasDiameter 19.05e0 ;
+    dyn:hasElasticModulus 200.0e9 ;
+    dyn:hasDensity 7870.0e0 ;
+    dyn:hasWaveSpeed 5080.0e0 ;
+    dyn:hasDescription "Steel transmission bar for SHPB compression tests"@en .
+
+# Momentum Trap Configurations
+dyn:MomentumTrap_Full rdf:type owl:NamedIndividual, dyn:MomentumTrap ;
+    rdfs:label "Full Momentum Trap"@en ;
+    dyn:hasName "Fully Engaged Momentum Trap"@en ;
+    dyn:hasDescription "Momentum trap fully engaged for complete energy absorption"@en ;
+    dyn:hasTrapState "Fully Engaged"@en ;
+    dyn:hasTaylorGapDistance 0.0e0 .
+
+dyn:MomentumTrap_TaylorGap rdf:type owl:NamedIndividual, dyn:MomentumTrap ;
+    rdfs:label "Taylor Gap Momentum Trap"@en ;
+    dyn:hasName "Taylor Gap Momentum Trap"@en ;
+    dyn:hasDescription "Momentum trap with Taylor gap for partial engagement"@en ;
+    dyn:hasTrapState "Taylor Gap"@en ;
+    dyn:hasTaylorGapDistance 3.0e0 .
+
+# Pulse Shapers
+dyn:PulseShaper_Copper_1mm rdf:type owl:NamedIndividual, dyn:PulseShaper ;
+    rdfs:label "Copper Pulse Shaper 1mm"@en ;
+    dyn:hasName "Copper Pulse Shaper 1mm"@en ;
+    dyn:hasMaterial dyn:Copper_C110 ;
+    dyn:hasThickness 1.0e0 ;
+    dyn:hasDiameter 6.35e0 ;
+    dyn:hasDescription "1mm thick copper disc for pulse shaping"@en .
+
+dyn:PulseShaper_Copper_2mm rdf:type owl:NamedIndividual, dyn:PulseShaper ;
+    rdfs:label "Copper Pulse Shaper 2mm"@en ;
+    dyn:hasName "Copper Pulse Shaper 2mm"@en ;
+    dyn:hasMaterial dyn:Copper_C110 ;
+    dyn:hasThickness 2.0e0 ;
+    dyn:hasDiameter 6.35e0 ;
+    dyn:hasDescription "2mm thick copper disc for pulse shaping"@en .
+
+# Strain Gauges
+dyn:StrainGauge_SG1 rdf:type owl:NamedIndividual, dyn:StrainGauge ;
+    rdfs:label "Strain Gauge SG1"@en ;
+    dyn:hasName "Incident Bar Strain Gauge SG1"@en ;
+    dyn:hasGaugeResistance 350.0e0 ;
+    dyn:hasGaugeFactor 2.12e0 ;
+    dyn:hasGaugeLocation "Incident Bar"@en ;
+    dyn:hasDistanceFromSpecimen 915.0e0 ;
+    dyn:hasDescription "Strain gauge on incident bar for pulse measurement"@en .
+
+dyn:StrainGauge_SG2 rdf:type owl:NamedIndividual, dyn:StrainGauge ;
+    rdfs:label "Strain Gauge SG2"@en ;
+    dyn:hasName "Transmission Bar Strain Gauge SG2"@en ;
+    dyn:hasGaugeResistance 350.0e0 ;
+    dyn:hasGaugeFactor 2.12e0 ;
+    dyn:hasGaugeLocation "Transmission Bar"@en ;
+    dyn:hasDistanceFromSpecimen 915.0e0 ;
+    dyn:hasDescription "Strain gauge on transmission bar for pulse measurement"@en .
+
+#################################################################
+#    SHPB Test Configurations
+#################################################################
+
+# Standard SHPB Setup
+dyn:SHPB_Standard_Setup rdf:type owl:NamedIndividual, dyn:SHPBConfiguration ;
+    rdfs:label "Standard SHPB Setup"@en ;
+    dyn:hasName "Standard Steel Bar SHPB Configuration"@en ;
+    dyn:hasStrikerBar dyn:SteelBar_Striker_1 ;
+    dyn:hasIncidentBar dyn:SteelBar_Incident_1 ;
+    dyn:hasTransmissionBar dyn:SteelBar_Transmission_1 ;
+    dyn:hasMomentumTrap dyn:MomentumTrap_Full ;
+    dyn:hasStrainGauge dyn:StrainGauge_SG1, dyn:StrainGauge_SG2 ;
+    dyn:hasDescription "Standard SHPB configuration with steel bars"@en .
+
+# SHPB Test Types
+dyn:SHPB_Calibration rdf:type owl:NamedIndividual, dyn:TestType ;
+    rdfs:label "SHPB Calibration"@en ;
+    dyn:hasName "SHPB Calibration Test"@en ;
+    dyn:hasDescription "Calibration test for SHPB system validation"@en .
+
+dyn:SHPB_Material_Test rdf:type owl:NamedIndividual, dyn:TestType ;
+    rdfs:label "SHPB Material Test"@en ;
+    dyn:hasName "SHPB Material Characterization Test"@en ;
+    dyn:hasDescription "Material characterization using SHPB"@en .
+
+#################################################################
+#    Quasi-static Testing Equipment
+#################################################################
+
+# Universal Testing Machines
+dyn:UTM_Instron_5982 rdf:type owl:NamedIndividual, dyn:Equipment ;
+    rdfs:label "Instron 5982"@en ;
+    dyn:hasName "Instron 5982 Universal Testing Machine"@en ;
+    dyn:hasModel "5982"@en ;
+    dyn:hasManufacturer "Instron"@en ;
+    dyn:hasMaxLoad 100000.0e0 ;
+    dyn:hasLoadResolution 0.5e0 ;
+    dyn:hasDescription "100kN dual column universal testing machine"@en .
+
+dyn:UTM_MTS_810 rdf:type owl:NamedIndividual, dyn:Equipment ;
+    rdfs:label "MTS 810"@en ;
+    dyn:hasName "MTS 810 Material Testing System"@en ;
+    dyn:hasModel "810"@en ;
+    dyn:hasManufacturer "MTS Systems"@en ;
+    dyn:hasMaxLoad 250000.0e0 ;
+    dyn:hasLoadResolution 1.0e0 ;
+    dyn:hasDescription "250kN servohydraulic testing system"@en .
+
+#################################################################
+#    Test Validity Criteria
+#################################################################
+
+# Test Validity Markers
+dyn:ConstantStrainRate rdf:type owl:NamedIndividual, dyn:TestValidity ;
+    rdfs:label "Constant Strain Rate"@en ;
+    dyn:hasName "Constant Strain Rate"@en ;
+    dyn:hasDescription "Strain rate remained constant during plastic deformation"@en .
+
+dyn:ForceEquilibrium rdf:type owl:NamedIndividual, dyn:TestValidity ;
+    rdfs:label "Force Equilibrium"@en ;
+    dyn:hasName "Force Equilibrium"@en ;
+    dyn:hasDescription "Force equilibrium achieved during test"@en .
+
+dyn:CleanWavePropagation rdf:type owl:NamedIndividual, dyn:WavePropagationQuality ;
+    rdfs:label "Clean Wave Propagation"@en ;
+    dyn:hasName "Clean Wave"@en ;
+    dyn:hasDescription "Wave propagation without significant dispersion or noise"@en .
+
+dyn:DispersedWavePropagation rdf:type owl:NamedIndividual, dyn:WavePropagationQuality ;
+    rdfs:label "Dispersed Wave Propagation"@en ;
+    dyn:hasName "Dispersed Wave"@en ;
+    dyn:hasDescription "Wave propagation with noticeable dispersion effects"@en .
+
+#################################################################
+#    Environmental Conditions
+#################################################################
+
+# Temperature Conditions
+dyn:RoomTemperature rdf:type owl:NamedIndividual, dyn:EnvironmentalCondition ;
+    rdfs:label "Room Temperature"@en ;
+    dyn:hasName "Room Temperature"@en ;
+    dyn:hasTemperature 23.0e0 ;
+    dyn:hasDescription "Standard laboratory room temperature (23°C)"@en .
+
+dyn:ElevatedTemperature_200C rdf:type owl:NamedIndividual, dyn:EnvironmentalCondition ;
+    rdfs:label "Elevated Temperature 200°C"@en ;
+    dyn:hasName "200°C Elevated Temperature"@en ;
+    dyn:hasTemperature 200.0e0 ;
+    dyn:hasDescription "Elevated temperature testing at 200°C"@en .
+
+dyn:CryogenicTemperature_LN2 rdf:type owl:NamedIndividual, dyn:EnvironmentalCondition ;
+    rdfs:label "Liquid Nitrogen Temperature"@en ;
+    dyn:hasName "Liquid Nitrogen Temperature"@en ;
+    dyn:hasTemperature -196.0e0 ;
+    dyn:hasDescription "Cryogenic testing at liquid nitrogen temperature"@en .
+
+# Humidity Conditions
+dyn:StandardHumidity rdf:type owl:NamedIndividual, dyn:EnvironmentalCondition ;
+    rdfs:label "Standard Humidity"@en ;
+    dyn:hasName "Standard Laboratory Humidity"@en ;
+    dyn:hasHumidity 45.0e0 ;
+    dyn:hasDescription "Standard laboratory humidity (45% RH)"@en .
+
+#################################################################
+#    Data Acquisition Systems
+#################################################################
+
+# DAQ Systems
+dyn:DAQ_NI_cDAQ rdf:type owl:NamedIndividual, dyn:Equipment ;
+    rdfs:label "NI cDAQ-9178"@en ;
+    dyn:hasName "National Instruments cDAQ-9178"@en ;
+    dyn:hasModel "cDAQ-9178"@en ;
+    dyn:hasManufacturer "National Instruments"@en ;
+    dyn:hasChannelCount 8 ;
+    dyn:hasSamplingRate 1000000.0e0 ;
+    dyn:hasResolution 24 ;
+    dyn:hasDescription "8-slot CompactDAQ chassis for high-speed data acquisition"@en .
+
+dyn:DAQ_Oscilloscope rdf:type owl:NamedIndividual, dyn:Equipment ;
+    rdfs:label "Tektronix DPO4104B"@en ;
+    dyn:hasName "Tektronix DPO4104B Oscilloscope"@en ;
+    dyn:hasModel "DPO4104B"@en ;
+    dyn:hasManufacturer "Tektronix"@en ;
+    dyn:hasChannelCount 4 ;
+    dyn:hasSamplingRate 5000000000.0e0 ;
+    dyn:hasResolution 8 ;
+    dyn:hasDescription "1 GHz mixed signal oscilloscope for high-speed measurements"@en .

@@ -1,0 +1,181 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dc: <http://purl.org/dc/terms/> .
+
+# =============================================================================
+# DynaMat Platform - Information Object Individual Instances
+# For ontology/class_individuals/information_object_individuals.ttl
+# =============================================================================
+
+#################################################################
+#    Data Collection Equipment Individuals
+#################################################################
+
+# Digital Acquisition Systems
+dyn:DAQ_HighSpeed rdf:type owl:NamedIndividual, dyn:DataAcquisitionSystem ;
+    rdfs:label "High-Speed DAQ System"@en ;
+    dyn:hasName "NI PXIe-6366 High-Speed DAQ"@en ;
+    dyn:hasModel "PXIe-6366"@en ;
+    dyn:hasManufacturer "National Instruments"@en ;
+    dyn:hasSamplingRate 2000000.0e0 ;
+    dyn:hasResolution 16 ;
+    dyn:hasChannelCount 8 ;
+    dyn:hasInputRange 10.0e0 ;
+    dyn:hasDescription "High-speed data acquisition for SHPB testing"@en .
+
+dyn:DAQ_Standard rdf:type owl:NamedIndividual, dyn:DataAcquisitionSystem ;
+    rdfs:label "Standard DAQ System"@en ;
+    dyn:hasName "NI USB-6218 Standard DAQ"@en ;
+    dyn:hasModel "USB-6218"@en ;
+    dyn:hasManufacturer "National Instruments"@en ;
+    dyn:hasSamplingRate 250000.0e0 ;
+    dyn:hasResolution 16 ;
+    dyn:hasChannelCount 16 ;
+    dyn:hasInputRange 10.0e0 ;
+    dyn:hasDescription "Standard data acquisition for quasi-static testing"@en .
+
+# Imaging Equipment
+dyn:OpticalMicroscope_Zeiss rdf:type owl:NamedIndividual, dyn:ImagingEquipment ;
+    rdfs:label "Zeiss Optical Microscope"@en ;
+    dyn:hasName "Zeiss Axio Observer 7"@en ;
+    dyn:hasModel "Axio Observer 7"@en ;
+    dyn:hasManufacturer "Carl Zeiss"@en ;
+    dyn:hasMaxMagnification 1000.0e0 ;
+    dyn:hasResolution 0.2e0 ;
+    dyn:hasCameraResolution "4096x4096"@en ;
+    dyn:hasDescription "High-resolution optical microscope for microstructure analysis"@en .
+
+dyn:SEM_JEOL rdf:type owl:NamedIndividual, dyn:ImagingEquipment ;
+    rdfs:label "JEOL SEM"@en ;
+    dyn:hasName "JEOL JSM-7800F SEM"@en ;
+    dyn:hasModel "JSM-7800F"@en ;
+    dyn:hasManufacturer "JEOL"@en ;
+    dyn:hasMaxMagnification 1000000.0e0 ;
+    dyn:hasResolution 1.0e-3 ;
+    dyn:hasAcceleratingVoltage 30000.0e0 ;
+    dyn:hasDescription "Field emission scanning electron microscope"@en .
+
+#################################################################
+#    Data Quality and Validation
+#################################################################
+
+# Data Quality Metrics
+dyn:DataQuality_Excellent rdf:type owl:NamedIndividual, dyn:DataQuality ;
+    rdfs:label "Excellent Data Quality"@en ;
+    dyn:hasName "Excellent"@en ;
+    dyn:hasQualityScore 0.95e0 ;
+    dyn:hasDescription "High-quality data with minimal noise and complete metadata"@en .
+
+dyn:DataQuality_Good rdf:type owl:NamedIndividual, dyn:DataQuality ;
+    rdfs:label "Good Data Quality"@en ;
+    dyn:hasName "Good"@en ;
+    dyn:hasQualityScore 0.80e0 ;
+    dyn:hasDescription "Good quality data with acceptable noise levels"@en .
+
+dyn:DataQuality_Acceptable rdf:type owl:NamedIndividual, dyn:DataQuality ;
+    rdfs:label "Acceptable Data Quality"@en ;
+    dyn:hasName "Acceptable"@en ;
+    dyn:hasQualityScore 0.65e0 ;
+    dyn:hasDescription "Acceptable data quality with some limitations"@en .
+
+# Validation Status
+dyn:ValidationStatus_Validated rdf:type owl:NamedIndividual, dyn:ValidationStatus ;
+    rdfs:label "Validated"@en ;
+    dyn:hasName "Validated"@en ;
+    dyn:hasDescription "Data has been validated and approved for use"@en ;
+    dyn:hasValidationDate "2024-12-15"^^xsd:date .
+
+dyn:ValidationStatus_Pending rdf:type owl:NamedIndividual, dyn:ValidationStatus ;
+    rdfs:label "Pending Validation"@en ;
+    dyn:hasName "Pending"@en ;
+    dyn:hasDescription "Data is pending validation review"@en .
+
+dyn:ValidationStatus_Rejected rdf:type owl:NamedIndividual, dyn:ValidationStatus ;
+    rdfs:label "Rejected"@en ;
+    dyn:hasName "Rejected"@en ;
+    dyn:hasDescription "Data has been rejected due to quality issues"@en .
+
+#################################################################
+#    Data Processing Workflows
+#################################################################
+
+# Standard Processing Workflows
+dyn:Workflow_SHPB_Processing rdf:type owl:NamedIndividual, dyn:DataProcessingWorkflow ;
+    rdfs:label "SHPB Data Processing"@en ;
+    dyn:hasName "Standard SHPB Data Processing Workflow"@en ;
+    dyn:hasDescription "Complete data processing pipeline for SHPB test data"@en ;
+    dyn:hasProcessingSteps "1. Raw data import, 2. Noise filtering, 3. Wave analysis, 4. Stress-strain calculation, 5. Validation"@en ;
+    dyn:hasEstimatedProcessingTime 2.0e0 ;
+    dyn:hasRequiredSoftware dyn:MATLAB_R2024a .
+
+dyn:Workflow_QS_Processing rdf:type owl:NamedIndividual, dyn:DataProcessingWorkflow ;
+    rdfs:label "Quasi-static Processing"@en ;
+    dyn:hasName "Quasi-static Data Processing Workflow"@en ;
+    dyn:hasDescription "Data processing pipeline for quasi-static test data"@en ;
+    dyn:hasProcessingSteps "1. Data import, 2. Offset correction, 3. Stress-strain calculation, 4. Property extraction"@en ;
+    dyn:hasEstimatedProcessingTime 0.5e0 ;
+    dyn:hasRequiredSoftware dyn:OriginPro_2024 .
+
+#################################################################
+#    File Naming Conventions
+#################################################################
+
+# Naming Conventions
+dyn:NamingConvention_Specimen rdf:type owl:NamedIndividual, dyn:NamingConvention ;
+    rdfs:label "Specimen File Naming"@en ;
+    dyn:hasName "Specimen File Naming Convention"@en ;
+    dyn:hasPattern "SPN-{MaterialID}-{SerialNumber}_{FileType}.{Extension}"@en ;
+    dyn:hasExample "SPN-AL001-001_specimen.ttl"@en ;
+    dyn:hasDescription "Standard naming convention for specimen-related files"@en .
+
+dyn:NamingConvention_Test rdf:type owl:NamedIndividual, dyn:NamingConvention ;
+    rdfs:label "Test File Naming"@en ;
+    dyn:hasName "Test File Naming Convention"@en ;
+    dyn:hasPattern "SPN-{MaterialID}-{SerialNumber}_{TestType}_{Date}.{Extension}"@en ;
+    dyn:hasExample "SPN-AL001-001_SHPB_2024-01-15.csv"@en ;
+    dyn:hasDescription "Standard naming convention for test data files"@en .
+
+dyn:NamingConvention_Simulation rdf:type owl:NamedIndividual, dyn:NamingConvention ;
+    rdfs:label "Simulation File Naming"@en ;
+    dyn:hasName "Simulation File Naming Convention"@en ;
+    dyn:hasPattern "SIM-{MaterialID}-{ConfigID}_{Date}.{Extension}"@en ;
+    dyn:hasExample "SIM-AL001-JC01_2024-01-15.k"@en ;
+    dyn:hasDescription "Standard naming convention for simulation files"@en .
+
+#################################################################
+#    Checksum and Integrity
+#################################################################
+
+# Checksum Algorithms
+dyn:SHA256_Checksum rdf:type owl:NamedIndividual, dyn:ChecksumAlgorithm ;
+    rdfs:label "SHA-256"@en ;
+    dyn:hasName "SHA-256 Hash Algorithm"@en ;
+    dyn:hasAlgorithmType "Cryptographic Hash"@en ;
+    dyn:hasHashLength 256 ;
+    dyn:hasDescription "SHA-256 cryptographic hash for file integrity verification"@en .
+
+#################################################################
+#    Data Provenance Tracking
+#################################################################
+
+# Provenance Activities
+dyn:Activity_DataCollection rdf:type owl:NamedIndividual, dyn:ProvenanceActivity ;
+    rdfs:label "Data Collection Activity"@en ;
+    dyn:hasName "Experimental Data Collection"@en ;
+    dyn:hasDescription "Activity representing the collection of experimental data"@en ;
+    dyn:hasActivityType "Data Collection"@en .
+
+dyn:Activity_DataProcessing rdf:type owl:NamedIndividual, dyn:ProvenanceActivity ;
+    rdfs:label "Data Processing Activity"@en ;
+    dyn:hasName "Data Processing and Analysis"@en ;
+    dyn:hasDescription "Activity representing data processing and analysis"@en ;
+    dyn:hasActivityType "Data Processing"@en .
+
+dyn:Activity_DataValidation rdf:type owl:NamedIndividual, dyn:ProvenanceActivity ;
+    rdfs:label "Data Validation Activity"@en ;
+    dyn:hasName "Data Quality Validation"@en ;
+    dyn:hasDescription "Activity representing data quality validation"@en ;
+    dyn:hasActivityType "Data Validation"@en .

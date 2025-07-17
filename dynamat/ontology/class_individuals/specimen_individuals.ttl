@@ -1,0 +1,130 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dc: <http://purl.org/dc/terms/> .
+
+# =============================================================================
+# DynaMat Platform - Specimen Individual Instances
+# For ontology/class_individuals/specimen_individuals.ttl
+# =============================================================================
+
+#################################################################
+#    Specimen Individuals
+#################################################################
+
+# Saved under folder specific SPN ttl file
+
+#################################################################
+#    Specimen Categories and Roles
+#################################################################
+
+# Specimen Roles
+dyn:CharacterizationSpecimen rdf:type owl:NamedIndividual, dyn:SpecimenRole ;
+    rdfs:label "Characterization Specimen"@en ;
+    dyn:hasName "Characterization Specimen"@en ;
+    dyn:hasDescription "Specimen used for material characterization"@en .
+
+dyn:TestSpecimen rdf:type owl:NamedIndividual, dyn:SpecimenRole ;
+    rdfs:label "Test Specimen"@en ;
+    dyn:hasName "Test Specimen"@en ;
+    dyn:hasDescription "Specimen used for mechanical testing"@en .
+
+dyn:CharacterizationandTestSpecimen rdf:type owl:NamedIndividual, dyn:SpecimenRole ;
+    rdfs:label "Characterization and Test Specimen"@en ;
+    dyn:hasName "Characterization and Test Specimen"@en ;
+    dyn:hasDescription "Specimen used for material testing and characterization"@en .
+
+dyn:CalibrationSpecimen rdf:type owl:NamedIndividual, dyn:SpecimenRole ;
+    rdfs:label "Calibration Specimen"@en ;
+    dyn:hasName "Calibration Specimen"@en ;
+    dyn:hasDescription "Specimen used for equipment calibration"@en .
+
+#################################################################
+#    Specimen Shapes
+#################################################################
+
+dyn:CylindricalShape rdf:type owl:NamedIndividual, dyn:Shape ;
+    rdfs:label "Cylindrical Shape"@en ;
+    dyn:hasName "Cylindrical"@en ;
+    dyn:hasDescription "Right circular cylinder geometry"@en .
+
+dyn:RectangularShape rdf:type owl:NamedIndividual, dyn:Shape ;
+    rdfs:label "Rectangular Shape"@en ;
+    dyn:hasName "Rectangular"@en ;
+    dyn:hasDescription "Rectangular prismatic geometry"@en .
+
+dyn:DogboneShape rdf:type owl:NamedIndividual, dyn:Shape ;
+    rdfs:label "Dogbone Shape"@en ;
+    dyn:hasName "Dogbone"@en ;
+    dyn:hasDescription "ASTM standard tensile test specimen geometry"@en .
+
+#################################################################
+#    Specimen Batches
+#################################################################
+
+dyn:Batch_AL001_2024_01 rdf:type owl:NamedIndividual, dyn:SpecimenBatch ;
+    rdfs:label "Batch AL001 2024-01"@en ;
+    dyn:hasName "Aluminum 6061-T6 Batch 2024-01"@en ;
+    dyn:hasBatchID "BATCH-AL001-2024-01"@en ;
+    dyn:hasDescription "First batch of Al6061-T6 specimens machined in 2024"@en ;
+    dyn:hasMachiningDate "2024-01-15"^^xsd:date ;
+    dyn:hasSupplierLot "MC-AL6061-2024-001"@en ;
+    dyn:hasSpecimenCount 25 .
+
+dyn:Batch_SS001_2024_01 rdf:type owl:NamedIndividual, dyn:SpecimenBatch ;
+    rdfs:label "Batch SS001 2024-01"@en ;
+    dyn:hasName "Stainless Steel 316L Batch 2024-01"@en ;
+    dyn:hasBatchID "BATCH-SS001-2024-01"@en ;
+    dyn:hasDescription "First batch of SS316L specimens machined in 2024"@en ;
+    dyn:hasMachiningDate "2024-02-01"^^xsd:date ;
+    dyn:hasSupplierLot "ATI-316L-2024-001"@en ;
+    dyn:hasSpecimenCount 20 .
+
+dyn:Batch_TI001_2024_01 rdf:type owl:NamedIndividual, dyn:SpecimenBatch ;
+    rdfs:label "Batch TI001 2024-01"@en ;
+    dyn:hasName "Titanium 6Al-4V Batch 2024-01"@en ;
+    dyn:hasBatchID "BATCH-TI001-2024-01"@en ;
+    dyn:hasDescription "First batch of Ti-6Al-4V specimens machined in 2024"@en ;
+    dyn:hasMachiningDate "2024-02-15"^^xsd:date ;
+    dyn:hasSupplierLot "TIM-6AL4V-2024-001"@en ;
+    dyn:hasSpecimenCount 15 .
+
+dyn:Batch_CF001_2024_01 rdf:type owl:NamedIndividual, dyn:SpecimenBatch ;
+    rdfs:label "Batch CF001 2024-01"@en ;
+    dyn:hasName "Carbon Fiber/Epoxy Batch 2024-01"@en ;
+    dyn:hasBatchID "BATCH-CF001-2024-01"@en ;
+    dyn:hasDescription "First batch of CF/Epoxy specimens cut in 2024"@en ;
+    dyn:hasMachiningDate "2024-03-01"^^xsd:date ;
+    dyn:hasSupplierLot "HEX-CF-2024-001"@en ;
+    dyn:hasSpecimenCount 12 .
+
+dyn:Batch_CAL_2024_01 rdf:type owl:NamedIndividual, dyn:SpecimenBatch ;
+    rdfs:label "Calibration Batch 2024-01"@en ;
+    dyn:hasName "Calibration Specimens Batch 2024-01"@en ;
+    dyn:hasBatchID "BATCH-CAL-2024-01"@en ;
+    dyn:hasDescription "Standard calibration specimens for equipment validation"@en ;
+    dyn:hasMachiningDate "2024-01-20"^^xsd:date ;
+    dyn:hasSupplierLot "MC-AL6061-2024-001"@en ;
+    dyn:hasSpecimenCount 10 .
+
+#################################################################
+#    Structure Types
+#################################################################
+
+dyn:MonolithicMaterial rdf:type owl:NamedIndividual, dyn:Structure ;
+    rdfs:label "Monolithic Material"@en ;
+    dyn:hasName "Monolithic Material"@en ;
+    dyn:hasDescription "Homogeneous monolithic (bulk) material structure"@en .
+
+dyn:FiberReinforcedStructure rdf:type owl:NamedIndividual, dyn:Structure ;
+    rdfs:label "Fiber Reinforced Structure"@en ;
+    dyn:hasName "Fiber Reinforced"@en ;
+    dyn:hasDescription "Continuous fiber reinforced composite structure"@en .
+
+dyn:LatticeStructure rdf:type owl:NamedIndividual, dyn:Structure ;
+    rdfs:label "Lattice Structure"@en ;
+    dyn:hasName "Lattice"@en ;
+    dyn:hasDescription "Periodic lattice or cellular structure"@en .
+

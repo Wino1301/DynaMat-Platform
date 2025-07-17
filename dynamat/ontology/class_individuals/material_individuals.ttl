@@ -1,0 +1,104 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dc: <http://purl.org/dc/terms/> .
+
+# =============================================================================
+# DynaMat Platform - Material Individual Instances
+# For ontology/class_individuals/material_individuals.ttl
+# =============================================================================
+
+#################################################################
+#    Material Individuals
+#################################################################
+
+# Aluminum Alloys
+dyn:Al6061_T6 rdf:type owl:NamedIndividual, dyn:AluminiumAlloy ;
+    rdfs:label "Al6061-T6"@en ;
+    dyn:hasName "Aluminum 6061-T6"@en ;
+    dyn:hasMaterialName "Al6061-T6"@en ;
+    dyn:hasMaterialCode "AL001"@en ;
+    dyn:hasAlloyDesignation "6061"@en ;
+    dyn:hasTemper "T6"@en ;
+    dyn:hasSupplier "McMaster-Carr"@en ;
+    dyn:hasLotNumber "MC-AL6061-2024-001"@en ;
+    dyn:hasDensity 2.70e0 ;
+    dyn:hasMeltingPoint 582.0e0 ;
+    dyn:hasThermalConductivity 167.0e0 ;
+    dyn:hasSpecificHeat 896.0e0 ;
+    dyn:hasChemicalComposition "Al-1.0Mg-0.6Si-0.28Cu-0.2Cr"@en ;
+    dyn:hasDescription "Structural aluminum alloy, heat treated T6 condition"@en ;
+    dyn:hasPlottingLabel "Al6061-T6"@en .
+
+dyn:Al7075_T6 rdf:type owl:NamedIndividual, dyn:AluminiumAlloy ;
+    rdfs:label "Al7075-T6"@en ;
+    dyn:hasName "Aluminum 7075-T6"@en ;
+    dyn:hasMaterialName "Al7075-T6"@en ;
+    dyn:hasMaterialCode "AL002"@en ;
+    dyn:hasAlloyDesignation "7075"@en ;
+    dyn:hasTemper "T6"@en ;
+    dyn:hasSupplier "Alcoa"@en ;
+    dyn:hasLotNumber "ALC-7075-2024-002"@en ;
+    dyn:hasDensity 2.81e0 ;
+    dyn:hasMeltingPoint 477.0e0 ;
+    dyn:hasThermalConductivity 130.0e0 ;
+    dyn:hasSpecificHeat 960.0e0 ;
+    dyn:hasChemicalComposition "Al-5.6Zn-2.5Mg-1.6Cu-0.23Cr"@en ;
+    dyn:hasDescription "High strength aluminum alloy, aerospace grade"@en ;
+    dyn:hasPlottingLabel "Al7075-T6"@en .
+
+# Steel Alloys
+dyn:SS316L rdf:type owl:NamedIndividual, dyn:SteelAlloy ;
+    rdfs:label "SS316L"@en ;
+    dyn:hasName "Stainless Steel 316L"@en ;
+    dyn:hasMaterialName "SS316L"@en ;
+    dyn:hasMaterialCode "SS001"@en ;
+    dyn:hasAlloyDesignation "316L"@en ;
+    dyn:hasTemper "Annealed"@en ;
+    dyn:hasSupplier "ATI Metals"@en ;
+    dyn:hasLotNumber "ATI-316L-2024-001"@en ;
+    dyn:hasDensity 8.00e0 ;
+    dyn:hasMeltingPoint 1375.0e0 ;
+    dyn:hasThermalConductivity 16.2e0 ;
+    dyn:hasSpecificHeat 500.0e0 ;
+    dyn:hasChemicalComposition "Fe-18Cr-10Ni-3Mo-2Mn-1Si-0.03C"@en ;
+    dyn:hasDescription "Austenitic stainless steel, low carbon content"@en ;
+    dyn:hasPlottingLabel "SS316L"@en .
+
+# Bar Materials (for SHPB equipment)
+dyn:STC350 rdf:type owl:NamedIndividual, dyn:SteelAlloy ;
+    rdfs:label "Maraging C350 Steel Material"@en ;
+    dyn:hasName "Maraging C350 Steel"@en ;
+    dyn:hasMaterialName "C350 Steel"@en ;
+    dyn:hasMaterialCode "C350"@en ;
+    dyn:hasAlloyDesignation "350"@en ;
+    dyn:hasTemper "Hot Rolled"@en ;
+    dyn:hasSupplier "Ryerson Steel"@en ;
+    dyn:hasLotNumber "RYE-C1018-2024-001"@en ;
+    dyn:hasDensity 7.87e0 ;
+    dyn:hasMeltingPoint 1515.0e0 ;
+    dyn:hasThermalConductivity 51.9e0 ;
+    dyn:hasSpecificHeat 486.0e0 ;
+    dyn:hasChemicalComposition "Fe-0.18C-0.6Mn-0.04P-0.05S"@en ;
+    dyn:hasDescription "Low carbon steel for SHPB bar applications"@en ;
+    dyn:hasPlottingLabel "C1018 Steel"@en .
+
+# Pulse Shaper Materials
+dyn:Copper_C110 rdf:type owl:NamedIndividual, dyn:Metal ;
+    rdfs:label "Copper C110"@en ;
+    dyn:hasName "Copper C110"@en ;
+    dyn:hasMaterialName "C110 Copper"@en ;
+    dyn:hasMaterialCode "CU001"@en ;
+    dyn:hasAlloyDesignation "C110"@en ;
+    dyn:hasTemper "Annealed"@en ;
+    dyn:hasSupplier "Mueller Industries"@en ;
+    dyn:hasLotNumber "MUE-C110-2024-001"@en ;
+    dyn:hasDensity 8.96e0 ;
+    dyn:hasMeltingPoint 1083.0e0 ;
+    dyn:hasThermalConductivity 391.0e0 ;
+    dyn:hasSpecificHeat 385.0e0 ;
+    dyn:hasChemicalComposition "Cu-99.9"@en ;
+    dyn:hasDescription "Oxygen-free electronic copper for pulse shapers"@en ;
+    dyn:hasPlottingLabel "Cu C110"@en .
