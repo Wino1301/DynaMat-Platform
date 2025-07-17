@@ -526,6 +526,22 @@ dyn:EBSDMap rdf:type owl:Class ;
     rdfs:label "EBSD Map"@en ;
     rdfs:comment "Electron backscatter diffraction orientation map"@en .
 
+# Add these classes if missing:
+dyn:DataFile rdf:type owl:Class ;
+    rdfs:subClassOf dyn:InformationObject ;
+    rdfs:comment "CSV data file with metadata"@en ;
+    rdfs:label "Data File"@en .
+
+dyn:RawSignal rdf:type owl:Class ;
+    rdfs:subClassOf dyn:DataSeries ;
+    rdfs:comment "Raw sensor voltage/signal data"@en ;
+    rdfs:label "Raw Signal"@en .
+
+dyn:ProcessedData rdf:type owl:Class ;
+    rdfs:subClassOf dyn:DataSeries ;
+    rdfs:comment "Calculated quantities (stress, strain, force)"@en ;
+    rdfs:label "Processed Data"@en .
+
 
 ###  https://dynamat.utep.edu/ontology#User
 dyn:User rdf:type owl:Class ;
