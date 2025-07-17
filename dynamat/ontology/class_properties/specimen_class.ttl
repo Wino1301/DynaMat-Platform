@@ -354,15 +354,6 @@ dyn:hasReinforcementVolumeFraction rdf:type owl:DatatypeProperty, owl:Functional
     dyn:hasDisplayOrder 4 ;
     rdfs:comment "Volume fraction of reinforcement material (0-100%)"@en .
 
-dyn:hasVolumeRatio rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    rdfs:label "Volume Ratio"@en ;
-    dyn:hasDisplayName "Volume Ratio" ;
-    dyn:hasFormGroup "CompositeProperties" ;
-    dyn:hasDisplayOrder 2 ;
-    rdfs:comment "Ratio of component volumes in interpenetrating phase composite"@en .
-
 dyn:hasPhaseDistributionID rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
     rdfs:range xsd:string ;
@@ -529,3 +520,70 @@ dyn:hasSpecialNotes rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     dyn:hasFormGroup "Notes" ;
     dyn:hasDisplayOrder 2 ;
     rdfs:comment "Special observations or considerations for this specimen"@en .
+
+dyn:hasOriginalThickness rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Original Thickness"@en ;
+    dyn:hasDisplayName "Original Thickness (mm)" ;
+    dyn:hasFormGroup "GeometryDimensions" ;
+    dyn:hasDisplayOrder 1 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Initial thickness of specimen before testing"@en .
+
+dyn:hasFinalThickness rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Final Thickness"@en ;
+    dyn:hasDisplayName "Final Thickness (mm)" ;
+    dyn:hasFormGroup "PostTestDimensions" ;
+    dyn:hasDisplayOrder 4 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Final thickness of specimen after testing"@en .
+
+dyn:hasFinalHeight rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Final Height"@en ;
+    dyn:hasDisplayName "Final Height (mm)" ;
+    dyn:hasFormGroup "PostTestDimensions" ;
+    dyn:hasDisplayOrder 5 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Final height for rectangular specimens after testing"@en .
+
+dyn:hasFinalWidth rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Final Width"@en ;
+    dyn:hasDisplayName "Final Width (mm)" ;
+    dyn:hasFormGroup "PostTestDimensions" ;
+    dyn:hasDisplayOrder 6 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Final width for rectangular specimens after testing"@en .
+
+dyn:hasFinalMass rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Mass ;
+    rdfs:label "Final Mass"@en ;
+    dyn:hasDisplayName "Final Mass (g)" ;
+    dyn:hasFormGroup "PostTestDimensions" ;
+    dyn:hasDisplayOrder 7 ;
+    dyn:hasDefaultUnit "unit:GM" ;
+    rdfs:comment "Final mass of specimen after testing"@en .
+
+dyn:hasLatticeRingThickness rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Lattice Ring Thickness"@en ;
+    dyn:hasDisplayName "Lattice Ring Thickness (mm)" ;
+    dyn:hasFormGroup "StructureParameters" ;
+    dyn:hasDisplayOrder 15 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Thickness of outer ring that encapsulates the lattice structure"@en .
+

@@ -1,0 +1,837 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@prefix qkdv: <http://qudt.org/vocab/quantitykind/> .
+@prefix dc: <http://purl.org/dc/terms/> .
+
+# =============================================================================
+# DynaMat Platform - Specimen Class SHACL Shapes
+# Based on actual properties defined in specimen_class.ttl
+# =============================================================================
+
+#################################################################
+#    Specimen Shape (Base specimen class)
+#################################################################
+
+dyn:SpecimenShape a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    
+    # Object Properties
+    sh:property [
+        sh:path dyn:hasMaterial ;
+        sh:class dyn:Material ;
+        sh:maxCount 1 ;
+        sh:name "Material" ;
+        sh:description "Material composition of the specimen" ;
+        sh:group "MaterialProperties" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasStructure ;
+        sh:class dyn:Structure ;
+        sh:maxCount 1 ;
+        sh:name "Structure" ;
+        sh:description "Structural configuration of the specimen" ;
+        sh:group "StructureInfo" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasShape ;
+        sh:class dyn:Shape ;
+        sh:maxCount 1 ;
+        sh:name "Shape" ;
+        sh:description "Geometric shape of the specimen" ;
+        sh:group "GeometryDimensions" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasSpecimenRole ;
+        sh:class dyn:SpecimenRole ;
+        sh:maxCount 1 ;
+        sh:name "Specimen Role" ;
+        sh:description "Purpose of specimen in testing" ;
+        sh:group "Identification" ;
+        sh:order 4 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasSpecimenBatch ;
+        sh:class dyn:SpecimenBatch ;
+        sh:maxCount 1 ;
+        sh:name "Specimen Batch" ;
+        sh:description "Manufacturing batch of the specimen" ;
+        sh:group "Identification" ;
+        sh:order 5 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasProcessingHistory ;
+        sh:class dyn:ProcessingStep ;
+        sh:name "Processing History" ;
+        sh:description "Complete processing sequence applied to specimen" ;
+        sh:group "ProcessingHistory" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasProcessingStep ;
+        sh:class dyn:ProcessingStep ;
+        sh:name "Processing Step" ;
+        sh:description "Individual processing step applied to specimen" ;
+        sh:group "ProcessingHistory" ;
+        sh:order 2 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasRepresentativeSpecimen ;
+        sh:class dyn:Specimen ;
+        sh:maxCount 1 ;
+        sh:name "Representative Specimen" ;
+        sh:description "Points to the specimen that was characterized to represent this specimen's group" ;
+        sh:group "Identification" ;
+        sh:order 8 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasSimilarProcessingConditions ;
+        sh:class dyn:Specimen ;
+        sh:name "Similar Processing Conditions" ;
+        sh:description "Links to specimens with similar processing history that can share characterization" ;
+        sh:group "Identification" ;
+        sh:order 10 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasMatrixMaterial ;
+        sh:class dyn:Material ;
+        sh:maxCount 1 ;
+        sh:name "Matrix Material" ;
+        sh:description "Primary matrix material in composite specimen" ;
+        sh:group "CompositeProperties" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasReinforcementMaterial ;
+        sh:class dyn:Material ;
+        sh:maxCount 1 ;
+        sh:name "Reinforcement Material" ;
+        sh:description "Reinforcement material in composite specimen" ;
+        sh:group "CompositeProperties" ;
+        sh:order 2 ;
+    ] ;
+    
+    # Data Properties - Identification
+    sh:property [
+        sh:path dyn:hasSpecimenID ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Specimen ID" ;
+        sh:description "Unique identifier for the specimen (e.g., SPN-AL001-001)" ;
+        sh:group "Identification" ;
+        sh:order 1 ;
+        sh:pattern "^SPN-[A-Z0-9]+-[0-9]+$" ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasMaterialID ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Material ID" ;
+        sh:description "Material identifier code (e.g., AL001, SS316)" ;
+        sh:group "Identification" ;
+        sh:order 2 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasSpecimenBatchID ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Specimen Batch ID" ;
+        sh:description "Batch identifier for specimens from same processing run" ;
+        sh:group "Identification" ;
+        sh:order 3 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasCharacterizationGroupID ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Characterization Group ID" ;
+        sh:description "Identifier for specimens that share similar conditions and can share characterization data" ;
+        sh:group "Identification" ;
+        sh:order 6 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:isCharacterizationRepresentative ;
+        sh:datatype xsd:boolean ;
+        sh:maxCount 1 ;
+        sh:name "Characterization Representative" ;
+        sh:description "True if this specimen underwent characterization representing its group" ;
+        sh:group "Identification" ;
+        sh:order 7 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasTestingConditionCode ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Testing Condition Code" ;
+        sh:description "Code representing similar testing conditions (material+structure+processing)" ;
+        sh:group "Identification" ;
+        sh:order 11 ;
+    ] ;
+    
+    # Data Properties - Original Dimensions
+    sh:property [
+        sh:path dyn:hasOriginalLength ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Original Length (mm)" ;
+        sh:description "Initial length of specimen before testing" ;
+        sh:group "GeometryDimensions" ;
+        sh:order 2 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasOriginalThickness ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Original Thickness (mm)" ;
+        sh:description "Initial thickness of specimen before testing" ;
+        sh:group "GeometryDimensions" ;
+        sh:order 3 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasOriginalDiameter ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Original Diameter (mm)" ;
+        sh:description "Initial diameter for cylindrical specimens" ;
+        sh:group "GeometryDimensions" ;
+        sh:order 4 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasOriginalWidth ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Original Width (mm)" ;
+        sh:description "Initial width for rectangular specimens" ;
+        sh:group "GeometryDimensions" ;
+        sh:order 5 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasOriginalHeight ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Original Height (mm)" ;
+        sh:description "Initial height for rectangular specimens" ;
+        sh:group "GeometryDimensions" ;
+        sh:order 6 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasOriginalCrossSection ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Original Cross Section (mm²)" ;
+        sh:description "Initial cross-sectional area of specimen" ;
+        sh:group "GeometryDimensions" ;
+        sh:order 7 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasOriginalMass ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Original Mass (g)" ;
+        sh:description "Initial mass of specimen before testing" ;
+        sh:group "GeometryDimensions" ;
+        sh:order 8 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    # Data Properties - Post-Test Dimensions
+    sh:property [
+        sh:path dyn:hasFinalLength ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Final Length (mm)" ;
+        sh:description "Final length of specimen after testing" ;
+        sh:group "PostTestDimensions" ;
+        sh:order 1 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasFinalDiameter ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Final Diameter (mm)" ;
+        sh:description "Final diameter for cylindrical specimens after testing" ;
+        sh:group "PostTestDimensions" ;
+        sh:order 2 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasFinalCrossSection ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Final Cross Section (mm²)" ;
+        sh:description "Final cross-sectional area after testing" ;
+        sh:group "PostTestDimensions" ;
+        sh:order 3 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasFinalThickness ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Final Thickness (mm)" ;
+        sh:description "Final thickness of specimen after testing" ;
+        sh:group "PostTestDimensions" ;
+        sh:order 4 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasFinalHeight ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Final Height (mm)" ;
+        sh:description "Final height for rectangular specimens after testing" ;
+        sh:group "PostTestDimensions" ;
+        sh:order 5 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasFinalWidth ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Final Width (mm)" ;
+        sh:description "Final width for rectangular specimens after testing" ;
+        sh:group "PostTestDimensions" ;
+        sh:order 6 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasFinalMass ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Final Mass (g)" ;
+        sh:description "Final mass of specimen after testing" ;
+        sh:group "PostTestDimensions" ;
+        sh:order 7 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    # Data Properties - Manufacturing and Metadata
+    sh:property [
+        sh:path dyn:hasCreationDate ;
+        sh:datatype xsd:date ;
+        sh:maxCount 1 ;
+        sh:name "Creation Date" ;
+        sh:description "Date when specimen was manufactured or prepared" ;
+        sh:group "Manufacturing" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasManufacturingMethod ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Manufacturing Method" ;
+        sh:description "Primary method used to create the specimen" ;
+        sh:group "Manufacturing" ;
+        sh:order 2 ;
+        sh:in ("Additive Manufacturing" "Machining" "Casting" "Forging" "Other") ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasSurfaceFinish ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Surface Finish" ;
+        sh:description "Surface finish condition of the specimen" ;
+        sh:group "Manufacturing" ;
+        sh:order 3 ;
+        sh:in ("As-Built" "Machined" "Polished" "Ground" "Other") ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasDescription ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Description" ;
+        sh:description "Additional description or notes about the specimen" ;
+        sh:group "Notes" ;
+        sh:order 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasSpecialNotes ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Special Notes" ;
+        sh:description "Special observations or considerations for this specimen" ;
+        sh:group "Notes" ;
+        sh:order 2 ;
+    ] ;
+    
+    # Data Properties - Structure Parameters (Lattice)
+    sh:property [
+        sh:path dyn:hasLatticeCellsX ;
+        sh:datatype xsd:integer ;
+        sh:maxCount 1 ;
+        sh:name "Lattice Cells X" ;
+        sh:description "Number of unit cells in X direction" ;
+        sh:group "StructureParameters" ;
+        sh:order 1 ;
+        sh:minInclusive 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasLatticeCellsY ;
+        sh:datatype xsd:integer ;
+        sh:maxCount 1 ;
+        sh:name "Lattice Cells Y" ;
+        sh:description "Number of unit cells in Y direction" ;
+        sh:group "StructureParameters" ;
+        sh:order 2 ;
+        sh:minInclusive 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasLatticeCellsZ ;
+        sh:datatype xsd:integer ;
+        sh:maxCount 1 ;
+        sh:name "Lattice Cells Z" ;
+        sh:description "Number of unit cells in Z direction" ;
+        sh:group "StructureParameters" ;
+        sh:order 3 ;
+        sh:minInclusive 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasVoxelSize ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Voxel Size (mm)" ;
+        sh:description "Physical size of each voxel/unit cell" ;
+        sh:group "StructureParameters" ;
+        sh:order 4 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasLatticeNodeRadius ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Node Radius (mm)" ;
+        sh:description "Radius of spherical nodes in lattice structure" ;
+        sh:group "StructureParameters" ;
+        sh:order 5 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasLatticeStrutMinX ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Min Strut Thickness X (mm)" ;
+        sh:description "Minimum strut thickness in X direction" ;
+        sh:group "StructureParameters" ;
+        sh:order 6 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasLatticeStrutMaxX ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Max Strut Thickness X (mm)" ;
+        sh:description "Maximum strut thickness in X direction" ;
+        sh:group "StructureParameters" ;
+        sh:order 7 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasLatticeStrutMinY ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Min Strut Thickness Y (mm)" ;
+        sh:description "Minimum strut thickness in Y direction" ;
+        sh:group "StructureParameters" ;
+        sh:order 8 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasLatticeStrutMaxY ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Max Strut Thickness Y (mm)" ;
+        sh:description "Maximum strut thickness in Y direction" ;
+        sh:group "StructureParameters" ;
+        sh:order 9 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasLatticeStrutMinZ ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Min Strut Thickness Z (mm)" ;
+        sh:description "Minimum strut thickness in Z direction" ;
+        sh:group "StructureParameters" ;
+        sh:order 10 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasLatticeStrutMaxZ ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Max Strut Thickness Z (mm)" ;
+        sh:description "Maximum strut thickness in Z direction" ;
+        sh:group "StructureParameters" ;
+        sh:order 11 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasLatticeNx ;
+        sh:datatype xsd:integer ;
+        sh:maxCount 1 ;
+        sh:name "Resolution Points X" ;
+        sh:description "Number of resolution points in X direction" ;
+        sh:group "StructureParameters" ;
+        sh:order 12 ;
+        sh:minInclusive 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasLatticeNy ;
+        sh:datatype xsd:integer ;
+        sh:maxCount 1 ;
+        sh:name "Resolution Points Y" ;
+        sh:description "Number of resolution points in Y direction" ;
+        sh:group "StructureParameters" ;
+        sh:order 13 ;
+        sh:minInclusive 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasLatticeNz ;
+        sh:datatype xsd:integer ;
+        sh:maxCount 1 ;
+        sh:name "Resolution Points Z" ;
+        sh:description "Number of resolution points in Z direction" ;
+        sh:group "StructureParameters" ;
+        sh:order 14 ;
+        sh:minInclusive 1 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasLatticeRingThickness ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Lattice Ring Thickness (mm)" ;
+        sh:description "Thickness of outer ring that encapsulates the lattice structure" ;
+        sh:group "StructureParameters" ;
+        sh:order 15 ;
+        sh:minExclusive 0.0 ;
+    ] ;
+    
+    # Data Properties - Composite Properties
+    sh:property [
+        sh:path dyn:hasMatrixVolumeFraction ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Matrix Volume Fraction (%)" ;
+        sh:description "Volume fraction of matrix material (0-100%)" ;
+        sh:group "CompositeProperties" ;
+        sh:order 3 ;
+        sh:minInclusive 0.0 ;
+        sh:maxInclusive 100.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasReinforcementVolumeFraction ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Reinforcement Volume Fraction (%)" ;
+        sh:description "Volume fraction of reinforcement material (0-100%)" ;
+        sh:group "CompositeProperties" ;
+        sh:order 4 ;
+        sh:minInclusive 0.0 ;
+        sh:maxInclusive 100.0 ;
+    ] ;
+    
+    sh:property [
+        sh:path dyn:hasPhaseDistributionID ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Phase Distribution ID" ;
+        sh:description "Identifier for the phase distribution pattern" ;
+        sh:group "CompositeProperties" ;
+        sh:order 5 ;
+    ] .
+
+#################################################################
+#    Validation Rules
+#################################################################
+
+# Ensure at least one dimension is specified
+dyn:SpecimenDimensionConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:or (
+        [ sh:property [ sh:path dyn:hasOriginalLength ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path dyn:hasOriginalDiameter ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path dyn:hasOriginalWidth ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path dyn:hasOriginalHeight ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path dyn:hasOriginalThickness ; sh:minCount 1 ] ]
+    ) ;
+    sh:message "At least one dimension must be specified for the specimen" .
+
+# Ensure volume fractions add up to 100% or less for composites
+dyn:CompositeVolumeFractionConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:if [
+        sh:and (
+            [ sh:property [ sh:path dyn:hasMatrixVolumeFraction ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasReinforcementVolumeFraction ; sh:minCount 1 ] ]
+        )
+    ] ;
+    sh:then [
+        sh:sparql [
+            a sh:SPARQLConstraint ;
+            sh:message "Matrix and reinforcement volume fractions must sum to 100% or less" ;
+            sh:prefixes [
+                sh:declare [
+                    sh:prefix "dyn" ;
+                    sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                ]
+            ] ;
+            sh:select """
+                SELECT ?this WHERE {
+                    ?this dyn:hasMatrixVolumeFraction ?matrix .
+                    ?this dyn:hasReinforcementVolumeFraction ?reinforcement .
+                    FILTER((?matrix + ?reinforcement) > 100)
+                }
+            """ ;
+        ]
+    ] .
+
+# Ensure strut max is greater than or equal to strut min for each direction
+dyn:StrutThicknessConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Maximum strut thickness must be greater than or equal to minimum strut thickness" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#" ;
+            ]
+        ] ;
+        sh:select """
+            SELECT ?this WHERE {
+                {
+                    ?this dyn:hasLatticeStrutMinX ?minX .
+                    ?this dyn:hasLatticeStrutMaxX ?maxX .
+                    FILTER(?maxX < ?minX)
+                } UNION {
+                    ?this dyn:hasLatticeStrutMinY ?minY .
+                    ?this dyn:hasLatticeStrutMaxY ?maxY .
+                    FILTER(?maxY < ?minY)
+                } UNION {
+                    ?this dyn:hasLatticeStrutMinZ ?minZ .
+                    ?this dyn:hasLatticeStrutMaxZ ?maxZ .
+                    FILTER(?maxZ < ?minZ)
+                }
+            }
+        """ ;
+    ] .
+
+# Ensure matrix and reinforcement materials are different
+dyn:CompositeMatrixReinforcementConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:if [
+        sh:and (
+            [ sh:property [ sh:path dyn:hasMatrixMaterial ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasReinforcementMaterial ; sh:minCount 1 ] ]
+        )
+    ] ;
+    sh:then [
+        sh:sparql [
+            a sh:SPARQLConstraint ;
+            sh:message "Matrix and reinforcement materials must be different" ;
+            sh:prefixes [
+                sh:declare [
+                    sh:prefix "dyn" ;
+                    sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                ]
+            ] ;
+            sh:select """
+                SELECT ?this WHERE {
+                    ?this dyn:hasMatrixMaterial ?matrix .
+                    ?this dyn:hasReinforcementMaterial ?reinforcement .
+                    FILTER(?matrix = ?reinforcement)
+                }
+            """ ;
+        ]
+    ] .
+
+# Ensure unique specimen ID within the dataset
+dyn:UniqueSpecimenIDConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Specimen ID must be unique within the dataset" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#" ;
+            ]
+        ] ;
+        sh:select """
+            SELECT ?this WHERE {
+                ?this dyn:hasSpecimenID ?id .
+                ?other dyn:hasSpecimenID ?id .
+                FILTER(?this != ?other)
+            }
+        """ ;
+    ] .
+
+# Ensure creation date is not in the future
+dyn:CreationDateConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:if [
+        sh:property [ sh:path dyn:hasCreationDate ; sh:minCount 1 ]
+    ] ;
+    sh:then [
+        sh:sparql [
+            a sh:SPARQLConstraint ;
+            sh:message "Creation date cannot be in the future" ;
+            sh:prefixes [
+                sh:declare [
+                    sh:prefix "dyn" ;
+                    sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                ]
+            ] ;
+            sh:select """
+                SELECT ?this WHERE {
+                    ?this dyn:hasCreationDate ?date .
+                    FILTER(?date > NOW())
+                }
+            """ ;
+        ]
+    ] .
+
+# Ensure dimensional consistency for cylindrical specimens
+dyn:CylindricalSpecimenConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:if [
+        sh:property [
+            sh:path dyn:hasShape ;
+            sh:hasValue "Cylindrical" ;
+        ]
+    ] ;
+    sh:then [
+        sh:and (
+            # Should have diameter, not width/height
+            [ sh:property [ sh:path dyn:hasOriginalDiameter ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasOriginalWidth ; sh:maxCount 0 ] ]
+            [ sh:property [ sh:path dyn:hasOriginalHeight ; sh:maxCount 0 ] ]
+        )
+    ] ;
+    sh:message "Cylindrical specimens must have diameter, not width/height" .
+
+# Ensure dimensional consistency for rectangular specimens
+dyn:RectangularSpecimenConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:if [
+        sh:property [
+            sh:path dyn:hasShape ;
+            sh:hasValue "Rectangular" ;
+        ]
+    ] ;
+    sh:then [
+        sh:and (
+            # Should have width and height, not diameter
+            [ sh:property [ sh:path dyn:hasOriginalWidth ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasOriginalHeight ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasOriginalDiameter ; sh:maxCount 0 ] ]
+        )
+    ] ;
+    sh:message "Rectangular specimens must have width and height, not diameter" .
+
+# Ensure lattice properties are only used for lattice structures
+dyn:LatticePropertiesConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:if [
+        sh:property [
+            sh:path dyn:hasStructure ;
+            sh:hasValue "Lattice" ;
+        ]
+    ] ;
+    sh:then [
+        # If structure is lattice, lattice properties are allowed
+        sh:property [ sh:path dyn:hasLatticeCellsX ; sh:minCount 0 ]
+    ] ;
+    sh:else [
+        # If structure is not lattice, no lattice properties should be used
+        sh:and (
+            [ sh:property [ sh:path dyn:hasLatticeCellsX ; sh:maxCount 0 ] ]
+            [ sh:property [ sh:path dyn:hasLatticeCellsY ; sh:maxCount 0 ] ]
+            [ sh:property [ sh:path dyn:hasLatticeCellsZ ; sh:maxCount 0 ] ]
+            [ sh:property [ sh:path dyn:hasVoxelSize ; sh:maxCount 0 ] ]
+            [ sh:property [ sh:path dyn:hasLatticeNodeRadius ; sh:maxCount 0 ] ]
+            [ sh:property [ sh:path dyn:hasLatticeRingThickness ; sh:maxCount 0 ] ]
+        )
+    ] ;
+    sh:message "Lattice properties should only be used for lattice structures" .
+
+# Ensure composite properties consistency
+dyn:CompositePropertiesConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:if [
+        sh:or (
+            [ sh:property [ sh:path dyn:hasMatrixMaterial ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasReinforcementMaterial ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasMatrixVolumeFraction ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasReinforcementVolumeFraction ; sh:minCount 1 ] ]
+        )
+    ] ;
+    sh:then [
+        # If any composite property is used, should have both materials
+        sh:and (
+            [ sh:property [ sh:path dyn:hasMatrixMaterial ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasReinforcementMaterial ; sh:minCount 1 ] ]
+        )
+    ] ;
+    sh:message "If using composite properties, both matrix and reinforcement materials must be specified" .

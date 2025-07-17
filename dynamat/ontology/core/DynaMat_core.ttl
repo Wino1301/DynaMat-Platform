@@ -89,6 +89,18 @@ dyn:hasDataSeries rdf:type owl:ObjectProperty ;
                   rdfs:label "Data Series"@en .
 
 
+###  https://dynamat.utep.edu/ontology#hasLaboratory
+dyn:hasLaboratory rdf:type owl:ObjectProperty ,
+                           owl:FunctionalProperty ;
+                  rdfs:domain dyn:User ;
+                  rdfs:range dyn:Laboratory ;
+                  rdfs:comment "Laboratory where the user works"@en ;
+                  rdfs:label "Laboratory"@en ;
+                  dyn:hasDisplayName "Laboratory" ;
+                  dyn:hasDisplayOrder 5 ;
+                  dyn:hasFormGroup "UserInfo" .
+
+
 ###  https://dynamat.utep.edu/ontology#hasMaterial
 dyn:hasMaterial rdf:type owl:ObjectProperty ,
                          owl:FunctionalProperty ;
@@ -109,67 +121,15 @@ dyn:hasMeasurement rdf:type owl:ObjectProperty ;
                    rdfs:label "Measurement"@en .
 
 
-dyn:hasUser rdf:type owl:ObjectProperty ; 
-    rdfs:domain dyn:Activity ;
-    rdfs:range dyn:User ;
-    rdfs:comment "Person who performed the activity (multiple users allowed)"@en ;
-    rdfs:label "User"@en ;
-    dyn:hasDisplayName "Operator" ;
-    dyn:hasDisplayOrder 2 ;
-    dyn:hasFormGroup "TestSetup" .
-
-dyn:hasAffiliation rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:User ;
-    rdfs:range xsd:string ;
-    rdfs:comment "Institutional affiliation of the user"@en ;
-    rdfs:label "Affiliation"@en ;
-    dyn:hasDisplayName "Affiliation" ;
-    dyn:hasDisplayOrder 1 ;
-    dyn:hasFormGroup "UserInfo" .
-
-dyn:hasEmail rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:User ;
-    rdfs:range xsd:string ;
-    rdfs:comment "Email address of the user"@en ;
-    rdfs:label "Email"@en ;
-    dyn:hasDisplayName "Email" ;
-    dyn:hasDisplayOrder 2 ;
-    dyn:hasFormGroup "UserInfo" .
-
-dyn:hasRole rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:User ;
-    rdfs:range xsd:string ;
-    rdfs:comment "Role or position of the user"@en ;
-    rdfs:label "Role"@en ;
-    dyn:hasDisplayName "Role" ;
-    dyn:hasDisplayOrder 3 ;
-    dyn:hasFormGroup "UserInfo" ;
-    dyn:hasValidValues "Principal Investigator,Postdoc,Graduate Student,Undergraduate Student,Research Scientist,Technician" .
-
-dyn:hasORCID rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:User ;
-    rdfs:range xsd:string ;
-    rdfs:comment "ORCID identifier for the user"@en ;
-    rdfs:label "ORCID"@en ;
-    dyn:hasDisplayName "ORCID" ;
-    dyn:hasDisplayOrder 4 ;
-    dyn:hasFormGroup "UserInfo" .
-
-# ADD: Laboratory relationship
-dyn:hasLaboratory rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:User ;
-    rdfs:range dyn:Laboratory ;
-    rdfs:comment "Laboratory where the user works"@en ;
-    rdfs:label "Laboratory"@en ;
-    dyn:hasDisplayName "Laboratory" ;
-    dyn:hasDisplayOrder 5 ;
-    dyn:hasFormGroup "UserInfo" .
-
-# ADD: Laboratory class (if not already present)
-dyn:Laboratory rdf:type owl:Class ;
-    rdfs:subClassOf dyn:Entity ;
-    rdfs:comment "Research laboratory or facility"@en ;
-    rdfs:label "Laboratory"@en .
+###  https://dynamat.utep.edu/ontology#hasUser
+dyn:hasUser rdf:type owl:ObjectProperty ;
+            rdfs:domain dyn:Activity ;
+            rdfs:range dyn:User ;
+            rdfs:comment "Person who performed the activity (multiple users allowed)"@en ;
+            rdfs:label "User"@en ;
+            dyn:hasDisplayName "Operator" ;
+            dyn:hasDisplayOrder 2 ;
+            dyn:hasFormGroup "TestSetup" .
 
 
 ###  https://dynamat.utep.edu/ontology#isPartOf
@@ -196,6 +156,18 @@ dyn:performedOn rdf:type owl:ObjectProperty ,
 #################################################################
 #    Data properties
 #################################################################
+
+###  https://dynamat.utep.edu/ontology#hasAffiliation
+dyn:hasAffiliation rdf:type owl:DatatypeProperty ,
+                            owl:FunctionalProperty ;
+                   rdfs:domain dyn:User ;
+                   rdfs:range xsd:string ;
+                   rdfs:comment "Institutional affiliation of the user"@en ;
+                   rdfs:label "Affiliation"@en ;
+                   dyn:hasDisplayName "Affiliation" ;
+                   dyn:hasDisplayOrder 1 ;
+                   dyn:hasFormGroup "UserInfo" .
+
 
 ###  https://dynamat.utep.edu/ontology#hasDate
 dyn:hasDate rdf:type owl:DatatypeProperty ;
@@ -224,6 +196,18 @@ dyn:hasDimension rdf:type owl:DatatypeProperty ;
                  rdfs:label "Dimension"@en .
 
 
+###  https://dynamat.utep.edu/ontology#hasEmail
+dyn:hasEmail rdf:type owl:DatatypeProperty ,
+                      owl:FunctionalProperty ;
+             rdfs:domain dyn:User ;
+             rdfs:range xsd:string ;
+             rdfs:comment "Email address of the user"@en ;
+             rdfs:label "Email"@en ;
+             dyn:hasDisplayName "Email" ;
+             dyn:hasDisplayOrder 2 ;
+             dyn:hasFormGroup "UserInfo" .
+
+
 ###  https://dynamat.utep.edu/ontology#hasName
 dyn:hasName rdf:type owl:DatatypeProperty ,
                      owl:FunctionalProperty ;
@@ -236,12 +220,37 @@ dyn:hasName rdf:type owl:DatatypeProperty ,
             dyn:hasFormGroup "Identification" .
 
 
+###  https://dynamat.utep.edu/ontology#hasORCID
+dyn:hasORCID rdf:type owl:DatatypeProperty ,
+                      owl:FunctionalProperty ;
+             rdfs:domain dyn:User ;
+             rdfs:range xsd:string ;
+             rdfs:comment "ORCID identifier for the user"@en ;
+             rdfs:label "ORCID"@en ;
+             dyn:hasDisplayName "ORCID" ;
+             dyn:hasDisplayOrder 4 ;
+             dyn:hasFormGroup "UserInfo" .
+
+
 ###  https://dynamat.utep.edu/ontology#hasProperty
 dyn:hasProperty rdf:type owl:DatatypeProperty ;
                 rdfs:domain dyn:Material ;
                 rdfs:range xsd:double ;
                 rdfs:comment "Measured or specified material property"@en ;
                 rdfs:label "Material Property"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasRole
+dyn:hasRole rdf:type owl:DatatypeProperty ,
+                     owl:FunctionalProperty ;
+            rdfs:domain dyn:User ;
+            rdfs:range xsd:string ;
+            rdfs:comment "Role or position of the user"@en ;
+            rdfs:label "Role"@en ;
+            dyn:hasDisplayName "Role" ;
+            dyn:hasDisplayOrder 3 ;
+            dyn:hasFormGroup "UserInfo" ;
+            dyn:hasValidValues "Principal Investigator,Postdoc,Graduate Student,Undergraduate Student,Research Scientist,Technician" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasSpecimenID
@@ -330,6 +339,21 @@ dyn:Bar rdf:type owl:Class ;
         rdfs:label "Bar"@en .
 
 
+###  https://dynamat.utep.edu/ontology#CharacterizationData
+dyn:CharacterizationData rdf:type owl:Class ;
+                         rdfs:subClassOf dyn:InformationObject ;
+                         rdfs:comment "Characterization data"@en ,
+                                      "Complex characterization data (spectra, maps, images)"@en ;
+                         rdfs:label "Characterization Data"@en .
+
+
+###  https://dynamat.utep.edu/ontology#CharacterizationTest
+dyn:CharacterizationTest rdf:type owl:Class ;
+                         rdfs:subClassOf dyn:Activity ;
+                         rdfs:comment "Test or analysis to characterize material properties and microstructure"@en ;
+                         rdfs:label "Characterization Test"@en .
+
+
 ###  https://dynamat.utep.edu/ontology#Composite
 dyn:Composite rdf:type owl:Class ;
               rdfs:subClassOf dyn:Material ;
@@ -343,6 +367,13 @@ dyn:CompressionTest rdf:type owl:Class ;
                     owl:disjointWith dyn:TensileTest ;
                     rdfs:comment "Compressive loading test"@en ;
                     rdfs:label "Compression Test"@en .
+
+
+###  https://dynamat.utep.edu/ontology#DataFile
+dyn:DataFile rdf:type owl:Class ;
+             rdfs:subClassOf dyn:InformationObject ;
+             rdfs:comment "CSV data file with metadata"@en ;
+             rdfs:label "Data File"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#DataSeries
@@ -360,6 +391,34 @@ dyn:DynamicTest rdf:type owl:Class ;
                 rdfs:label "Dynamic Test"@en .
 
 
+###  https://dynamat.utep.edu/ontology#EBSDMap
+dyn:EBSDMap rdf:type owl:Class ;
+            rdfs:subClassOf dyn:CharacterizationData ;
+            rdfs:comment "Electron backscatter diffraction orientation map"@en ;
+            rdfs:label "EBSD Map"@en .
+
+
+###  https://dynamat.utep.edu/ontology#EBSDTest
+dyn:EBSDTest rdf:type owl:Class ;
+             rdfs:subClassOf dyn:CharacterizationTest ;
+             rdfs:comment "Electron backscatter diffraction for crystallographic orientation"@en ;
+             rdfs:label "EBSD Test"@en .
+
+
+###  https://dynamat.utep.edu/ontology#EDSMap
+dyn:EDSMap rdf:type owl:Class ;
+           rdfs:subClassOf dyn:CharacterizationData ;
+           rdfs:comment "Energy-dispersive X-ray spectroscopy elemental map"@en ;
+           rdfs:label "EDS Map"@en .
+
+
+###  https://dynamat.utep.edu/ontology#EDSTest
+dyn:EDSTest rdf:type owl:Class ;
+            rdfs:subClassOf dyn:CharacterizationTest ;
+            rdfs:comment "Energy-dispersive X-ray spectroscopy for elemental analysis"@en ;
+            rdfs:label "EDS Test"@en .
+
+
 ###  https://dynamat.utep.edu/ontology#Entity
 dyn:Entity rdf:type owl:Class ;
            rdfs:comment "Top-level class for all entities in the system"@en ;
@@ -375,11 +434,25 @@ dyn:Equipment rdf:type owl:Class ;
               rdfs:label "Equipment"@en .
 
 
+###  https://dynamat.utep.edu/ontology#FEMesh
+dyn:FEMesh rdf:type owl:Class ;
+           rdfs:subClassOf dyn:InformationObject ;
+           rdfs:comment "Finite element mesh and geometry"@en ;
+           rdfs:label "FE Mesh"@en .
+
+
 ###  https://dynamat.utep.edu/ontology#InformationObject
 dyn:InformationObject rdf:type owl:Class ;
                       rdfs:subClassOf dyn:Entity ;
                       rdfs:comment "Data, documents, or other information artifacts"@en ;
                       rdfs:label "Information Object"@en .
+
+
+###  https://dynamat.utep.edu/ontology#Laboratory
+dyn:Laboratory rdf:type owl:Class ;
+               rdfs:subClassOf dyn:Entity ;
+               rdfs:comment "Research laboratory or facility"@en ;
+               rdfs:label "Laboratory"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#LoadCell
@@ -394,6 +467,13 @@ dyn:Material rdf:type owl:Class ;
              rdfs:subClassOf dyn:PhysicalObject ;
              rdfs:comment "Base class for all materials"@en ;
              rdfs:label "Material"@en .
+
+
+###  https://dynamat.utep.edu/ontology#MaterialModel
+dyn:MaterialModel rdf:type owl:Class ;
+                  rdfs:subClassOf dyn:InformationObject ;
+                  rdfs:comment "Constitutive material model"@en ;
+                  rdfs:label "Material Model"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#Measurement
@@ -435,6 +515,21 @@ dyn:MomentumTrap rdf:type owl:Class ;
                  rdfs:label "Momentum Trap"@en .
 
 
+###  https://dynamat.utep.edu/ontology#OpticalMicroscopy
+dyn:OpticalMicroscopy rdf:type owl:Class ;
+                      rdfs:subClassOf dyn:CharacterizationTest ;
+                      rdfs:comment "Optical microscopy for microstructure analysis"@en ;
+                      rdfs:label "Optical Microscopy"@en .
+
+
+###  https://dynamat.utep.edu/ontology#Phase
+dyn:Phase rdf:type owl:Class ;
+          rdfs:subClassOf dyn:InformationObject ;
+          rdfs:comment "Crystallographic or microstructural phase in materials"@en ,
+                       "Crystallographic phase"@en ;
+          rdfs:label "Phase"@en .
+
+
 ###  https://dynamat.utep.edu/ontology#PhysicalObject
 dyn:PhysicalObject rdf:type owl:Class ;
                    rdfs:subClassOf dyn:Entity ;
@@ -451,6 +546,21 @@ dyn:Polymer rdf:type owl:Class ;
             rdfs:label "Polymer"@en .
 
 
+###  https://dynamat.utep.edu/ontology#ProcessedData
+dyn:ProcessedData rdf:type owl:Class ;
+                  rdfs:subClassOf dyn:DataSeries ;
+                  rdfs:comment "Calculated quantities (stress, strain, force)"@en ;
+                  rdfs:label "Processed Data"@en .
+
+
+###  https://dynamat.utep.edu/ontology#PropertyValue
+dyn:PropertyValue rdf:type owl:Class ;
+                  rdfs:subClassOf dyn:InformationObject ;
+                  rdfs:comment "A material property value with provenance and uncertainty information"@en ,
+                               "Material property value with provenance"@en ;
+                  rdfs:label "Property Value"@en .
+
+
 ###  https://dynamat.utep.edu/ontology#PulseShaper
 dyn:PulseShaper rdf:type owl:Class ;
                 rdfs:subClassOf dyn:Equipment ;
@@ -465,11 +575,46 @@ dyn:QuasistaticTest rdf:type owl:Class ;
                     rdfs:label "Quasi-static Test"@en .
 
 
+###  https://dynamat.utep.edu/ontology#RawSignal
+dyn:RawSignal rdf:type owl:Class ;
+              rdfs:subClassOf dyn:DataSeries ;
+              rdfs:comment "Raw sensor voltage/signal data"@en ;
+              rdfs:label "Raw Signal"@en .
+
+
+###  https://dynamat.utep.edu/ontology#SEMImage
+dyn:SEMImage rdf:type owl:Class ;
+             rdfs:subClassOf dyn:CharacterizationData ;
+             rdfs:comment "Scanning electron microscopy image"@en ;
+             rdfs:label "SEM Image"@en .
+
+
+###  https://dynamat.utep.edu/ontology#SEMTest
+dyn:SEMTest rdf:type owl:Class ;
+            rdfs:subClassOf dyn:CharacterizationTest ;
+            rdfs:comment "Scanning electron microscopy analysis"@en ;
+            rdfs:label "SEM Test"@en .
+
+
 ###  https://dynamat.utep.edu/ontology#SHPBCompression
 dyn:SHPBCompression rdf:type owl:Class ;
                     rdfs:subClassOf dyn:DynamicTest ;
                     rdfs:comment "Split Hopkinson Pressure Bar compression test"@en ;
                     rdfs:label "SHPB Compression Test"@en .
+
+
+###  https://dynamat.utep.edu/ontology#Simulation
+dyn:Simulation rdf:type owl:Class ;
+               rdfs:subClassOf dyn:Activity ;
+               rdfs:comment "Computational simulation of material behavior"@en ;
+               rdfs:label "Simulation"@en .
+
+
+###  https://dynamat.utep.edu/ontology#SoftwareModel
+dyn:SoftwareModel rdf:type owl:Class ;
+                  rdfs:subClassOf dyn:InformationObject ;
+                  rdfs:comment "Software package and configuration"@en ;
+                  rdfs:label "Software Model"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#Specimen
@@ -509,131 +654,56 @@ dyn:TestConfiguration rdf:type owl:Class ;
                       rdfs:comment "Configuration mapping CSV columns to data series"@en ;
                       rdfs:label "Test Configuration"@en .
 
-# PropertyValue class - Core to the provenance system
-dyn:PropertyValue rdf:type owl:Class ;
-    rdfs:label "Property Value"@en ;
-    rdfs:comment "A material property value with provenance and uncertainty information"@en .
-
-# Phase class - For material characterization
-dyn:Phase rdf:type owl:Class ;
-    rdfs:label "Phase"@en ;
-    rdfs:comment "Crystallographic or microstructural phase in materials"@en .
-
-# CharacterizationTest class - For linking materials to characterization
-dyn:CharacterizationTest rdf:type owl:Class ;
-    rdfs:subClassOf dyn:Activity ;
-    rdfs:label "Characterization Test"@en ;
-    rdfs:comment "Test or analysis to characterize material properties and microstructure"@en .
-
-# Specific characterization test subclasses
-dyn:XRDTest rdf:type owl:Class ;
-    rdfs:subClassOf dyn:CharacterizationTest ;
-    rdfs:label "XRD Test"@en ;
-    rdfs:comment "X-ray diffraction analysis for phase identification"@en .
-
-dyn:SEMTest rdf:type owl:Class ;
-    rdfs:subClassOf dyn:CharacterizationTest ;
-    rdfs:label "SEM Test"@en ;
-    rdfs:comment "Scanning electron microscopy analysis"@en .
-
-dyn:EDSTest rdf:type owl:Class ;
-    rdfs:subClassOf dyn:CharacterizationTest ;
-    rdfs:label "EDS Test"@en ;
-    rdfs:comment "Energy-dispersive X-ray spectroscopy for elemental analysis"@en .
-
-dyn:EBSDTest rdf:type owl:Class ;
-    rdfs:subClassOf dyn:CharacterizationTest ;
-    rdfs:label "EBSD Test"@en ;
-    rdfs:comment "Electron backscatter diffraction for crystallographic orientation"@en .
-
-dyn:OpticalMicroscopy rdf:type owl:Class ;
-    rdfs:subClassOf dyn:CharacterizationTest ;
-    rdfs:label "Optical Microscopy"@en ;
-    rdfs:comment "Optical microscopy for microstructure analysis"@en .
-
-# CharacterizationData class - For complex data structures
-dyn:CharacterizationData rdf:type owl:Class ;
-    rdfs:label "Characterization Data"@en ;
-    rdfs:comment "Complex characterization data (spectra, maps, images)"@en .
-
-# Specific data types
-dyn:XRDSpectrum rdf:type owl:Class ;
-    rdfs:subClassOf dyn:CharacterizationData ;
-    rdfs:label "XRD Spectrum"@en ;
-    rdfs:comment "X-ray diffraction intensity data"@en .
-
-dyn:SEMImage rdf:type owl:Class ;
-    rdfs:subClassOf dyn:CharacterizationData ;
-    rdfs:label "SEM Image"@en ;
-    rdfs:comment "Scanning electron microscopy image"@en .
-
-dyn:EDSMap rdf:type owl:Class ;
-    rdfs:subClassOf dyn:CharacterizationData ;
-    rdfs:label "EDS Map"@en ;
-    rdfs:comment "Energy-dispersive X-ray spectroscopy elemental map"@en .
-
-dyn:EBSDMap rdf:type owl:Class ;
-    rdfs:subClassOf dyn:CharacterizationData ;
-    rdfs:label "EBSD Map"@en ;
-    rdfs:comment "Electron backscatter diffraction orientation map"@en .
-
-# Add these classes if missing:
-dyn:DataFile rdf:type owl:Class ;
-    rdfs:subClassOf dyn:InformationObject ;
-    rdfs:comment "CSV data file with metadata"@en ;
-    rdfs:label "Data File"@en .
-
-dyn:RawSignal rdf:type owl:Class ;
-    rdfs:subClassOf dyn:DataSeries ;
-    rdfs:comment "Raw sensor voltage/signal data"@en ;
-    rdfs:label "Raw Signal"@en .
-
-dyn:ProcessedData rdf:type owl:Class ;
-    rdfs:subClassOf dyn:DataSeries ;
-    rdfs:comment "Calculated quantities (stress, strain, force)"@en ;
-    rdfs:label "Processed Data"@en .
-
-dyn:Simulation rdf:type owl:Class ;
-    rdfs:subClassOf dyn:Activity ;
-    rdfs:comment "Computational simulation of material behavior"@en ;
-    rdfs:label "Simulation"@en .
-
-dyn:SoftwareModel rdf:type owl:Class ;
-    rdfs:subClassOf dyn:InformationObject ;
-    rdfs:comment "Software package and configuration"@en ;
-    rdfs:label "Software Model"@en .
-
-dyn:MaterialModel rdf:type owl:Class ;
-    rdfs:subClassOf dyn:InformationObject ;
-    rdfs:comment "Constitutive material model"@en ;
-    rdfs:label "Material Model"@en .
-
-dyn:FEMesh rdf:type owl:Class ;
-    rdfs:subClassOf dyn:InformationObject ;
-    rdfs:comment "Finite element mesh and geometry"@en ;
-    rdfs:label "FE Mesh"@en .
-
-dyn:PropertyValue rdf:type owl:Class ;
-    rdfs:subClassOf dyn:InformationObject ;
-    rdfs:comment "Material property value with provenance"@en ;
-    rdfs:label "Property Value"@en .
-
-dyn:Phase rdf:type owl:Class ;
-    rdfs:subClassOf dyn:Entity ;
-    rdfs:comment "Crystallographic phase"@en ;
-    rdfs:label "Phase"@en .
-
-dyn:CharacterizationData rdf:type owl:Class ;
-    rdfs:subClassOf dyn:InformationObject ;
-    rdfs:comment "Characterization data"@en ;
-    rdfs:label "Characterization Data"@en .
-
 
 ###  https://dynamat.utep.edu/ontology#User
 dyn:User rdf:type owl:Class ;
          rdfs:subClassOf dyn:Entity ;
          rdfs:comment "Person who performs tests or analysis"@en ;
          rdfs:label "User"@en .
+
+
+###  https://dynamat.utep.edu/ontology#XRDSpectrum
+dyn:XRDSpectrum rdf:type owl:Class ;
+                rdfs:subClassOf dyn:CharacterizationData ;
+                rdfs:comment "X-ray diffraction intensity data"@en ;
+                rdfs:label "XRD Spectrum"@en .
+
+
+###  https://dynamat.utep.edu/ontology#XRDTest
+dyn:XRDTest rdf:type owl:Class ;
+            rdfs:subClassOf dyn:CharacterizationTest ;
+            rdfs:comment "X-ray diffraction analysis for phase identification"@en ;
+            rdfs:label "XRD Test"@en .
+
+###  https://dynamat.utep.edu/ontology#ProcessingStep
+dyn:ProcessingStep rdf:type owl:Class ;
+                   rdfs:subClassOf dyn:Entity ;
+                   rdfs:comment "Individual step in specimen processing or manufacturing"@en ;
+                   rdfs:label "Processing Step"@en .
+
+###  https://dynamat.utep.edu/ontology#Shape
+dyn:Shape rdf:type owl:Class ;
+          rdfs:subClassOf dyn:Entity ;
+          rdfs:comment "Geometric shape of a specimen"@en ;
+          rdfs:label "Shape"@en .
+
+###  https://dynamat.utep.edu/ontology#Structure
+dyn:Structure rdf:type owl:Class ;
+              rdfs:subClassOf dyn:Entity ;
+              rdfs:comment "Internal structure type of a specimen"@en ;
+              rdfs:label "Structure"@en .
+
+###  https://dynamat.utep.edu/ontology#SpecimenBatch
+dyn:SpecimenBatch rdf:type owl:Class ;
+                  rdfs:subClassOf dyn:Entity ;
+                  rdfs:comment "Group of specimens from same material/processing batch"@en ;
+                  rdfs:label "Specimen Batch"@en .
+
+###  https://dynamat.utep.edu/ontology#SpecimenRole
+dyn:SpecimenRole rdf:type owl:Class ;
+                 rdfs:subClassOf dyn:Entity ;
+                 rdfs:comment "Defines the purpose/role of the specimen in testing"@en ;
+                 rdfs:label "Specimen Role"@en .
 
 
 ###  Generated by the OWL API (version 4.5.29.2024-05-13T12:11:03Z) https://github.com/owlcs/owlapi
