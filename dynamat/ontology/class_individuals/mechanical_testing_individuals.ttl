@@ -6,227 +6,269 @@
 @prefix dc: <http://purl.org/dc/terms/> .
 
 # =============================================================================
-# DynaMat Platform - Mechanical Testing Individual Instances
-# For ontology/class_individuals/mechanical_testing_individuals.ttl
+# DynaMat Platform - Equipment Individual Instances
+# For ontology/class_individuals/equipment_individuals.ttl
+# CORRECTED VERSION: Focus on SHPB compression system
 # =============================================================================
 
 #################################################################
-#    SHPB Equipment Individuals
+#    SHPB Bar Individuals (Improved Naming Convention)
 #################################################################
 
-# SHPB Bars
-dyn:SteelBar_Striker_1 rdf:type owl:NamedIndividual, dyn:Bar ;
-    rdfs:label "Steel Striker Bar #1"@en ;
-    dyn:hasName "Steel Striker Bar #1"@en ;
-    dyn:hasBarID "STR-001"@en ;
-    dyn:hasMaterial dyn:SteelBar_Material ;
-    dyn:hasLength 600.0e0 ;
-    dyn:hasDiameter 19.05e0 ;
-    dyn:hasElasticModulus 200.0e9 ;
-    dyn:hasDensity 7870.0e0 ;
-    dyn:hasWaveSpeed 5080.0e0 ;
-    dyn:hasDescription "Steel striker bar for SHPB compression tests"@en .
+# Striker Bars
+dyn:StrikerBar_C350_2ft rdf:type owl:NamedIndividual, dyn:Bar ;
+    rdfs:label "Striker Bar C350 2ft"@en ;
+    dyn:hasName "Steel C350 Striker Bar 2ft"@en ;
+    dyn:hasBarID "STR-C350-2FT-001"@en ;
+    dyn:hasMaterial dyn:SteelC350 ;
+    dyn:hasLength 609.6 ;  # 2 feet in mm
+    dyn:hasDiameter 19.05 ;  # 3/4 inch in mm
+    dyn:hasDescription "2-foot steel C350 striker bar for SHPB compression tests"@en .
 
-dyn:SteelBar_Incident_1 rdf:type owl:NamedIndividual, dyn:Bar ;
-    rdfs:label "Steel Incident Bar #1"@en ;
-    dyn:hasName "Steel Incident Bar #1"@en ;
-    dyn:hasBarID "INC-001"@en ;
-    dyn:hasMaterial dyn:SteelBar_Material ;
-    dyn:hasLength 1830.0e0 ;
-    dyn:hasDiameter 19.05e0 ;
-    dyn:hasElasticModulus 200.0e9 ;
-    dyn:hasDensity 7870.0e0 ;
-    dyn:hasWaveSpeed 5080.0e0 ;
-    dyn:hasDescription "Steel incident bar for SHPB compression tests"@en .
+dyn:StrikerBar_C350_1ft rdf:type owl:NamedIndividual, dyn:Bar ;
+    rdfs:label "Striker Bar C350 1ft"@en ;
+    dyn:hasName "Steel C350 Striker Bar 1ft"@en ;
+    dyn:hasBarID "STR-C350-1FT-001"@en ;
+    dyn:hasMaterial dyn:SteelC350 ;
+    dyn:hasLength 304.8 ;  # 1 foot in mm
+    dyn:hasDiameter 19.05 ;
+    dyn:hasDescription "1-foot steel C350 striker bar for SHPB compression tests"@en .
 
-dyn:SteelBar_Transmission_1 rdf:type owl:NamedIndividual, dyn:Bar ;
-    rdfs:label "Steel Transmission Bar #1"@en ;
-    dyn:hasName "Steel Transmission Bar #1"@en ;
-    dyn:hasBarID "TRA-001"@en ;
-    dyn:hasMaterial dyn:SteelBar_Material ;
-    dyn:hasLength 1830.0e0 ;
-    dyn:hasDiameter 19.05e0 ;
-    dyn:hasElasticModulus 200.0e9 ;
-    dyn:hasDensity 7870.0e0 ;
-    dyn:hasWaveSpeed 5080.0e0 ;
-    dyn:hasDescription "Steel transmission bar for SHPB compression tests"@en .
+# Incident Bars
+dyn:IncidentBar_C350_6ft rdf:type owl:NamedIndividual, dyn:Bar ;
+    rdfs:label "Incident Bar C350 6ft"@en ;
+    dyn:hasName "Steel C350 Incident Bar 6ft"@en ;
+    dyn:hasBarID "INC-C350-6FT-001"@en ;
+    dyn:hasMaterial dyn:SteelC350 ;
+    dyn:hasLength 1828.8 ;  # 6 feet in mm
+    dyn:hasDiameter 19.05 ;
+    dyn:hasDescription "6-foot steel C350 incident bar for SHPB compression tests"@en .
 
-# Momentum Trap Configurations
+dyn:IncidentBar_C350_4ft rdf:type owl:NamedIndividual, dyn:Bar ;
+    rdfs:label "Incident Bar C350 4ft"@en ;
+    dyn:hasName "Steel C350 Incident Bar 4ft"@en ;
+    dyn:hasBarID "INC-C350-4FT-001"@en ;
+    dyn:hasMaterial dyn:SteelC350 ;
+    dyn:hasLength 1219.2 ;  # 4 feet in mm
+    dyn:hasDiameter 19.05 ;
+    dyn:hasDescription "4-foot steel C350 incident bar for SHPB compression tests"@en .
+
+# Transmission Bars
+dyn:TransmissionBar_C350_6ft rdf:type owl:NamedIndividual, dyn:Bar ;
+    rdfs:label "Transmission Bar C350 6ft"@en ;
+    dyn:hasName "Steel C350 Transmission Bar 6ft"@en ;
+    dyn:hasBarID "TRA-C350-6FT-001"@en ;
+    dyn:hasMaterial dyn:SteelC350 ;
+    dyn:hasLength 1828.8 ;  # 6 feet in mm
+    dyn:hasDiameter 19.05 ;
+    dyn:hasDescription "6-foot steel C350 transmission bar for SHPB compression tests"@en .
+
+dyn:TransmissionBar_C350_4ft rdf:type owl:NamedIndividual, dyn:Bar ;
+    rdfs:label "Transmission Bar C350 4ft"@en ;
+    dyn:hasName "Steel C350 Transmission Bar 4ft"@en ;
+    dyn:hasBarID "TRA-C350-4FT-001"@en ;
+    dyn:hasMaterial dyn:SteelC350 ;
+    dyn:hasLength 1219.2 ;  # 4 feet in mm
+    dyn:hasDiameter 19.05 ;
+    dyn:hasDescription "4-foot steel C350 transmission bar for SHPB compression tests"@en .
+
+#################################################################
+#    Momentum Trap Configurations
+#################################################################
+
 dyn:MomentumTrap_Full rdf:type owl:NamedIndividual, dyn:MomentumTrap ;
     rdfs:label "Full Momentum Trap"@en ;
     dyn:hasName "Fully Engaged Momentum Trap"@en ;
     dyn:hasDescription "Momentum trap fully engaged for complete energy absorption"@en ;
     dyn:hasTrapState "Fully Engaged"@en ;
-    dyn:hasTaylorGapDistance 0.0e0 .
+    dyn:hasTaylorGapDistance 0.0 .
 
 dyn:MomentumTrap_TaylorGap rdf:type owl:NamedIndividual, dyn:MomentumTrap ;
     rdfs:label "Taylor Gap Momentum Trap"@en ;
     dyn:hasName "Taylor Gap Momentum Trap"@en ;
     dyn:hasDescription "Momentum trap with Taylor gap for partial engagement"@en ;
     dyn:hasTrapState "Taylor Gap"@en ;
-    dyn:hasTaylorGapDistance 3.0e0 .
+    dyn:hasTaylorGapDistance 3.0 .
 
-# Pulse Shapers
-dyn:PulseShaper_Copper_1mm rdf:type owl:NamedIndividual, dyn:PulseShaper ;
-    rdfs:label "Copper Pulse Shaper 1mm"@en ;
-    dyn:hasName "Copper Pulse Shaper 1mm"@en ;
-    dyn:hasMaterial dyn:Copper_C110 ;
-    dyn:hasThickness 1.0e0 ;
-    dyn:hasDiameter 6.35e0 ;
-    dyn:hasDescription "1mm thick copper disc for pulse shaping"@en .
-
-dyn:PulseShaper_Copper_2mm rdf:type owl:NamedIndividual, dyn:PulseShaper ;
-    rdfs:label "Copper Pulse Shaper 2mm"@en ;
-    dyn:hasName "Copper Pulse Shaper 2mm"@en ;
-    dyn:hasMaterial dyn:Copper_C110 ;
-    dyn:hasThickness 2.0e0 ;
-    dyn:hasDiameter 6.35e0 ;
-    dyn:hasDescription "2mm thick copper disc for pulse shaping"@en .
-
-# Strain Gauges
-dyn:StrainGauge_SG1 rdf:type owl:NamedIndividual, dyn:StrainGauge ;
-    rdfs:label "Strain Gauge SG1"@en ;
-    dyn:hasName "Incident Bar Strain Gauge SG1"@en ;
-    dyn:hasGaugeResistance 350.0e0 ;
-    dyn:hasGaugeFactor 2.12e0 ;
-    dyn:hasGaugeLocation "Incident Bar"@en ;
-    dyn:hasDistanceFromSpecimen 915.0e0 ;
-    dyn:hasDescription "Strain gauge on incident bar for pulse measurement"@en .
-
-dyn:StrainGauge_SG2 rdf:type owl:NamedIndividual, dyn:StrainGauge ;
-    rdfs:label "Strain Gauge SG2"@en ;
-    dyn:hasName "Transmission Bar Strain Gauge SG2"@en ;
-    dyn:hasGaugeResistance 350.0e0 ;
-    dyn:hasGaugeFactor 2.12e0 ;
-    dyn:hasGaugeLocation "Transmission Bar"@en ;
-    dyn:hasDistanceFromSpecimen 915.0e0 ;
-    dyn:hasDescription "Strain gauge on transmission bar for pulse measurement"@en .
+# Note: When no momentum trap is used, simply don't set the hasMomentumTrap property
+# The property is optional (maxCount 1) and its absence indicates no trap usage
 
 #################################################################
-#    SHPB Test Configurations
+#    Copper Pulse Shapers 
 #################################################################
 
-# Standard SHPB Setup
-dyn:SHPB_Standard_Setup rdf:type owl:NamedIndividual, dyn:SHPBConfiguration ;
-    rdfs:label "Standard SHPB Setup"@en ;
-    dyn:hasName "Standard Steel Bar SHPB Configuration"@en ;
-    dyn:hasStrikerBar dyn:SteelBar_Striker_1 ;
-    dyn:hasIncidentBar dyn:SteelBar_Incident_1 ;
-    dyn:hasTransmissionBar dyn:SteelBar_Transmission_1 ;
-    dyn:hasMomentumTrap dyn:MomentumTrap_Full ;
-    dyn:hasStrainGauge dyn:StrainGauge_SG1, dyn:StrainGauge_SG2 ;
-    dyn:hasDescription "Standard SHPB configuration with steel bars"@en .
+dyn:PulseShaper_Copper_0015in rdf:type owl:NamedIndividual, dyn:PulseShaper ;
+    rdfs:label "Copper Pulse Shaper 0.015in"@en ;
+    dyn:hasName "Copper Pulse Shaper 0.015 inch"@en ;
+    dyn:hasMaterial dyn:CU101 ;
+    dyn:hasThickness 0.381 ;  # 0.015 inch in mm
+    dyn:hasDiameter 3.0 ;     # 3 mm diameter
+    dyn:hasDescription "0.015-inch thick copper disc for pulse shaping"@en .
 
-# SHPB Test Types
-dyn:SHPB_Calibration rdf:type owl:NamedIndividual, dyn:TestType ;
-    rdfs:label "SHPB Calibration"@en ;
-    dyn:hasName "SHPB Calibration Test"@en ;
-    dyn:hasDescription "Calibration test for SHPB system validation"@en .
+dyn:PulseShaper_Copper_0020in rdf:type owl:NamedIndividual, dyn:PulseShaper ;
+    rdfs:label "Copper Pulse Shaper 0.020in"@en ;
+    dyn:hasName "Copper Pulse Shaper 0.020 inch"@en ;
+    dyn:hasMaterial dyn:CU101 ;
+    dyn:hasThickness 0.508 ;  # 0.020 inch in mm
+    dyn:hasDiameter 3.0 ;     # 3 mm diameter
+    dyn:hasDescription "0.020-inch thick copper disc for pulse shaping"@en .
 
-dyn:SHPB_Material_Test rdf:type owl:NamedIndividual, dyn:TestType ;
-    rdfs:label "SHPB Material Test"@en ;
-    dyn:hasName "SHPB Material Characterization Test"@en ;
-    dyn:hasDescription "Material characterization using SHPB"@en .
-
-#################################################################
-#    Quasi-static Testing Equipment
-#################################################################
-
-# Universal Testing Machines
-dyn:UTM_Instron_5982 rdf:type owl:NamedIndividual, dyn:Equipment ;
-    rdfs:label "Instron 5982"@en ;
-    dyn:hasName "Instron 5982 Universal Testing Machine"@en ;
-    dyn:hasModel "5982"@en ;
-    dyn:hasManufacturer "Instron"@en ;
-    dyn:hasMaxLoad 100000.0e0 ;
-    dyn:hasLoadResolution 0.5e0 ;
-    dyn:hasDescription "100kN dual column universal testing machine"@en .
-
-dyn:UTM_MTS_810 rdf:type owl:NamedIndividual, dyn:Equipment ;
-    rdfs:label "MTS 810"@en ;
-    dyn:hasName "MTS 810 Material Testing System"@en ;
-    dyn:hasModel "810"@en ;
-    dyn:hasManufacturer "MTS Systems"@en ;
-    dyn:hasMaxLoad 250000.0e0 ;
-    dyn:hasLoadResolution 1.0e0 ;
-    dyn:hasDescription "250kN servohydraulic testing system"@en .
+dyn:PulseShaper_Copper_0025in rdf:type owl:NamedIndividual, dyn:PulseShaper ;
+    rdfs:label "Copper Pulse Shaper 0.025in"@en ;
+    dyn:hasName "Copper Pulse Shaper 0.025 inch"@en ;
+    dyn:hasMaterial dyn:CU101 ;
+    dyn:hasThickness 0.635 ;  # 0.025 inch in mm
+    dyn:hasDiameter 3.0 ;     # 3 mm diameter
+    dyn:hasDescription "0.025-inch thick copper disc for pulse shaping"@en .
 
 #################################################################
-#    Test Validity Criteria
+#    Test Types 
 #################################################################
 
-# Test Validity Markers
+dyn:ElasticTest rdf:type owl:NamedIndividual, dyn:TestType ;
+    rdfs:label "Elastic Test"@en ;
+    dyn:hasName "Elastic Calibration Test"@en ;
+    dyn:hasDescription "Elastic test for system calibration and validation"@en .
+
+dyn:SpecimenTest rdf:type owl:NamedIndividual, dyn:TestType ;
+    rdfs:label "Specimen Test"@en ;
+    dyn:hasName "Material Specimen Test"@en ;
+    dyn:hasDescription "Material characterization test using specimens"@en .
+
+dyn:CalibrationTest rdf:type owl:NamedIndividual, dyn:TestType ;
+    rdfs:label "Calibration Test"@en ;
+    dyn:hasName "System Calibration Test"@en ;
+    dyn:hasDescription "Equipment calibration and system validation test"@en .
+
+#################################################################
+#    Test Validity Assessments
+#################################################################
+
+dyn:ValidTest rdf:type owl:NamedIndividual, dyn:TestValidity ;
+    rdfs:label "Valid Test"@en ;
+    dyn:hasName "Test Valid"@en ;
+    dyn:hasDescription "Test meets all validity criteria and is acceptable for analysis"@en .
+
+dyn:QuestionableTest rdf:type owl:NamedIndividual, dyn:TestValidity ;
+    rdfs:label "Questionable Test"@en ;
+    dyn:hasName "Test Questionable"@en ;
+    dyn:hasDescription "Test has some validity concerns but may be usable with caution"@en .
+
+dyn:InvalidTest rdf:type owl:NamedIndividual, dyn:TestValidity ;
+    rdfs:label "Invalid Test"@en ;
+    dyn:hasName "Test Invalid"@en ;
+    dyn:hasDescription "Test does not meet validity criteria and should not be used for analysis"@en .
+
+# Specific validity criteria for SHPB
 dyn:ConstantStrainRate rdf:type owl:NamedIndividual, dyn:TestValidity ;
     rdfs:label "Constant Strain Rate"@en ;
-    dyn:hasName "Constant Strain Rate"@en ;
+    dyn:hasName "Constant Strain Rate Achieved"@en ;
     dyn:hasDescription "Strain rate remained constant during plastic deformation"@en .
 
 dyn:ForceEquilibrium rdf:type owl:NamedIndividual, dyn:TestValidity ;
     rdfs:label "Force Equilibrium"@en ;
-    dyn:hasName "Force Equilibrium"@en ;
-    dyn:hasDescription "Force equilibrium achieved during test"@en .
-
-dyn:CleanWavePropagation rdf:type owl:NamedIndividual, dyn:WavePropagationQuality ;
-    rdfs:label "Clean Wave Propagation"@en ;
-    dyn:hasName "Clean Wave"@en ;
-    dyn:hasDescription "Wave propagation without significant dispersion or noise"@en .
-
-dyn:DispersedWavePropagation rdf:type owl:NamedIndividual, dyn:WavePropagationQuality ;
-    rdfs:label "Dispersed Wave Propagation"@en ;
-    dyn:hasName "Dispersed Wave"@en ;
-    dyn:hasDescription "Wave propagation with noticeable dispersion effects"@en .
-
-#################################################################
-#    Environmental Conditions
-#################################################################
-
-# Temperature Conditions
-dyn:RoomTemperature rdf:type owl:NamedIndividual, dyn:EnvironmentalCondition ;
-    rdfs:label "Room Temperature"@en ;
-    dyn:hasName "Room Temperature"@en ;
-    dyn:hasTemperature 23.0e0 ;
-    dyn:hasDescription "Standard laboratory room temperature (23°C)"@en .
-
-dyn:ElevatedTemperature_200C rdf:type owl:NamedIndividual, dyn:EnvironmentalCondition ;
-    rdfs:label "Elevated Temperature 200°C"@en ;
-    dyn:hasName "200°C Elevated Temperature"@en ;
-    dyn:hasTemperature 200.0e0 ;
-    dyn:hasDescription "Elevated temperature testing at 200°C"@en .
-
-dyn:CryogenicTemperature_LN2 rdf:type owl:NamedIndividual, dyn:EnvironmentalCondition ;
-    rdfs:label "Liquid Nitrogen Temperature"@en ;
-    dyn:hasName "Liquid Nitrogen Temperature"@en ;
-    dyn:hasTemperature -196.0e0 ;
-    dyn:hasDescription "Cryogenic testing at liquid nitrogen temperature"@en .
-
-# Humidity Conditions
-dyn:StandardHumidity rdf:type owl:NamedIndividual, dyn:EnvironmentalCondition ;
-    rdfs:label "Standard Humidity"@en ;
-    dyn:hasName "Standard Laboratory Humidity"@en ;
-    dyn:hasHumidity 45.0e0 ;
-    dyn:hasDescription "Standard laboratory humidity (45% RH)"@en .
+    dyn:hasName "Force Equilibrium Achieved"@en ;
+    dyn:hasDescription "Force equilibrium achieved between incident and transmission bars"@en .
 
 #################################################################
 #    Data Acquisition Systems
 #################################################################
 
-# DAQ Systems
-dyn:DAQ_NI_cDAQ rdf:type owl:NamedIndividual, dyn:Equipment ;
-    rdfs:label "NI cDAQ-9178"@en ;
-    dyn:hasName "National Instruments cDAQ-9178"@en ;
-    dyn:hasModel "cDAQ-9178"@en ;
+dyn:DAQ_HighSpeed rdf:type owl:NamedIndividual, dyn:Equipment ;
+    rdfs:label "NI PXIe-6366"@en ;
+    dyn:hasName "National Instruments PXIe-6366 High-Speed DAQ"@en ;
+    dyn:hasModel "PXIe-6366"@en ;
     dyn:hasManufacturer "National Instruments"@en ;
+    dyn:hasSamplingRate 2000000.0 ;  # 2 MHz
+    dyn:hasResolution 16 ;
     dyn:hasChannelCount 8 ;
-    dyn:hasSamplingRate 1000000.0e0 ;
-    dyn:hasResolution 24 ;
-    dyn:hasDescription "8-slot CompactDAQ chassis for high-speed data acquisition"@en .
+    dyn:hasDescription "High-speed data acquisition for SHPB testing"@en .
 
 dyn:DAQ_Oscilloscope rdf:type owl:NamedIndividual, dyn:Equipment ;
     rdfs:label "Tektronix DPO4104B"@en ;
     dyn:hasName "Tektronix DPO4104B Oscilloscope"@en ;
     dyn:hasModel "DPO4104B"@en ;
     dyn:hasManufacturer "Tektronix"@en ;
-    dyn:hasChannelCount 4 ;
-    dyn:hasSamplingRate 5000000000.0e0 ;
+    dyn:hasSamplingRate 5000000000.0 ;  # 5 GHz
     dyn:hasResolution 8 ;
-    dyn:hasDescription "1 GHz mixed signal oscilloscope for high-speed measurements"@en .
+    dyn:hasChannelCount 4 ;
+    dyn:hasDescription "1 GHz oscilloscope for high-speed SHPB measurements"@en .
+
+#################################################################
+#    Quasi-static Testing Equipment
+#################################################################
+
+dyn:UTM_Instron_5982 rdf:type owl:NamedIndividual, dyn:Equipment ;
+    rdfs:label "Instron 5982"@en ;
+    dyn:hasName "Instron 5982 Universal Testing Machine"@en ;
+    dyn:hasModel "5982"@en ;
+    dyn:hasManufacturer "Instron"@en ;
+    dyn:hasMaxLoad 100000.0 ;  # 100 kN
+    dyn:hasLoadResolution 0.5 ;
+    dyn:hasDescription "100kN dual column universal testing machine for quasi-static tests"@en .
+
+#################################################################
+#    STRAIN GAUGES MOVED TO SEPARATE FILE
+#################################################################
+
+# Note: Strain gauge definitions have been moved to:
+# consumables/strain_gauge_individuals.ttl
+# 
+# This is because strain gauges are consumables that are frequently 
+# changed depending on use, and should not be in the main equipment file.
+# 
+# Example format for the separate file:
+# 
+# dyn:StrainGauge_SG1 rdf:type owl:NamedIndividual, dyn:StrainGauge ;
+#     rdfs:label "Strain Gauge SG1"@en ;
+#     dyn:hasName "Incident Bar Strain Gauge SG1"@en ;
+#     dyn:hasGaugeResistance 350.0 ;
+#     dyn:hasGaugeFactor 2.12 ;
+#     dyn:hasGaugeLocation "Incident Bar"@en ;
+#     dyn:hasDistanceFromSpecimen 915.0 ;
+#     dyn:hasDescription "Strain gauge on incident bar for pulse measurement"@en .
+
+#################################################################
+#    ENVIRONMENTAL CONDITIONS REMOVED
+#################################################################
+
+# Note: Environmental conditions (temperature, humidity) are now 
+# handled as data properties in the test class, not as individuals.
+# 
+# Use these data properties instead:
+# - dyn:hasTestTemperature (°C)
+# - dyn:hasTestHumidity (% RH) 
+# - dyn:hasTestAtmosphericPressure (kPa)
+
+#################################################################
+#    STANDARD SHPB SETUP REMOVED
+#################################################################
+
+# Note: Standard SHPB setup configurations have been removed.
+# These will be replaced by the template feature where all 
+# configuration properties will be loaded from templates.
+
+#################################################################
+#    EXAMPLE EQUIPMENT USAGE (COMMENTED FOR REFERENCE)
+#################################################################
+
+# Example of how equipment individuals would be used in an actual test:
+# (Keep commented as reference)
+#
+# dyn:TEST_AL001_SHPB_001 rdf:type owl:NamedIndividual, dyn:SHPBCompression ;
+#     rdfs:label "TEST-AL001-SHPB-001"@en ;
+#     dyn:hasTestID "TEST-AL001-SHPB-001"@en ;
+#     # Equipment configuration using individuals
+#     dyn:hasStrikerBar dyn:StrikerBar_C350_2ft ;
+#     dyn:hasIncidentBar dyn:IncidentBar_C350_6ft ;
+#     dyn:hasTransmissionBar dyn:TransmissionBar_C350_6ft ;
+#     dyn:hasMomentumTrap dyn:MomentumTrap_Full ;
+#     dyn:hasPulseShaper dyn:PulseShaper_Copper_0020in ;
+#     dyn:hasDataAcquisitionSystem dyn:DAQ_HighSpeed ;
+#     # Test conditions as data properties
+#     dyn:hasTestType "specimen" ;
+#     dyn:hasTestValidity "valid" ;
+#     dyn:hasTestTemperature 23.0 ;
+#     dyn:hasStrikerVelocity 12.5 ;
+#     dyn:hasSamplingRate 2000000.0 ;
+#     # ... other properties

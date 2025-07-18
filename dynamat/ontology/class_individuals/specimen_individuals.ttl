@@ -6,194 +6,39 @@
 @prefix dc: <http://purl.org/dc/terms/> .
 
 # =============================================================================
-# DynaMat Platform - Specimen Individual Instances
+# DynaMat Platform - Specimen Supporting Individuals
 # For ontology/class_individuals/specimen_individuals.ttl
+# CORRECTED VERSION: Focuses on supporting individuals, not actual specimens
 # =============================================================================
 
 #################################################################
-#    Specimen Individuals
+#    Specimen Roles
 #################################################################
 
-# Al6061-T6 Specimens
-dyn:SPN_AL001_001 rdf:type owl:NamedIndividual, dyn:Specimen ;
-    rdfs:label "SPN-AL001-001"@en ;
-    dyn:hasName "Aluminum 6061-T6 Specimen #001"@en ;
-    dyn:hasSpecimenID "SPN-AL001-001"@en ;
-    dyn:hasMaterialID "AL001"@en ;
-    dyn:hasSpecimenBatchID "BATCH-AL001-2024-01"@en ;
-    dyn:hasCharacterizationGroupID "AL001-T6-Group1"@en ;
-    dyn:isCharacterizationRepresentative true ;
-    dyn:hasTestingConditionCode "AL001-BULK-T6"@en ;
-    dyn:hasMaterial dyn:Al6061_T6 ;
-    dyn:hasStructure dyn:BulkMaterial ;
-    dyn:hasShape dyn:CylindricalShape ;
-    dyn:hasSpecimenRole dyn:CharacterizationSpecimen ;
-    dyn:hasSpecimenBatch dyn:Batch_AL001_2024_01 ;
-    dyn:hasOriginalLength 10.0e0 ;
-    dyn:hasOriginalDiameter 6.35e0 ;
-    dyn:hasOriginalMass 0.851e0 ;
-    dyn:hasDescription "Cylindrical Al6061-T6 specimen for characterization"@en .
-
-dyn:SPN_AL001_002 rdf:type owl:NamedIndividual, dyn:Specimen ;
-    rdfs:label "SPN-AL001-002"@en ;
-    dyn:hasName "Aluminum 6061-T6 Specimen #002"@en ;
-    dyn:hasSpecimenID "SPN-AL001-002"@en ;
-    dyn:hasMaterialID "AL001"@en ;
-    dyn:hasSpecimenBatchID "BATCH-AL001-2024-01"@en ;
-    dyn:hasCharacterizationGroupID "AL001-T6-Group1"@en ;
-    dyn:isCharacterizationRepresentative false ;
-    dyn:hasTestingConditionCode "AL001-BULK-T6"@en ;
-    dyn:hasMaterial dyn:Al6061_T6 ;
-    dyn:hasStructure dyn:BulkMaterial ;
-    dyn:hasShape dyn:CylindricalShape ;
-    dyn:hasSpecimenRole dyn:TestSpecimen ;
-    dyn:hasSpecimenBatch dyn:Batch_AL001_2024_01 ;
-    dyn:hasRepresentativeSpecimen dyn:SPN_AL001_001 ;
-    dyn:hasOriginalLength 10.0e0 ;
-    dyn:hasOriginalDiameter 6.35e0 ;
-    dyn:hasOriginalMass 0.848e0 ;
-    dyn:hasDescription "Cylindrical Al6061-T6 specimen for mechanical testing"@en .
-
-dyn:SPN_AL001_003 rdf:type owl:NamedIndividual, dyn:Specimen ;
-    rdfs:label "SPN-AL001-003"@en ;
-    dyn:hasName "Aluminum 6061-T6 Specimen #003"@en ;
-    dyn:hasSpecimenID "SPN-AL001-003"@en ;
-    dyn:hasMaterialID "AL001"@en ;
-    dyn:hasSpecimenBatchID "BATCH-AL001-2024-01"@en ;
-    dyn:hasCharacterizationGroupID "AL001-T6-Group1"@en ;
-    dyn:isCharacterizationRepresentative false ;
-    dyn:hasTestingConditionCode "AL001-BULK-T6"@en ;
-    dyn:hasMaterial dyn:Al6061_T6 ;
-    dyn:hasStructure dyn:BulkMaterial ;
-    dyn:hasShape dyn:CylindricalShape ;
-    dyn:hasSpecimenRole dyn:TestSpecimen ;
-    dyn:hasSpecimenBatch dyn:Batch_AL001_2024_01 ;
-    dyn:hasRepresentativeSpecimen dyn:SPN_AL001_001 ;
-    dyn:hasOriginalLength 10.0e0 ;
-    dyn:hasOriginalDiameter 6.35e0 ;
-    dyn:hasOriginalMass 0.853e0 ;
-    dyn:hasDescription "Cylindrical Al6061-T6 specimen for calibration testing"@en .
-
-# SS316L Specimens
-dyn:SPN_SS001_001 rdf:type owl:NamedIndividual, dyn:Specimen ;
-    rdfs:label "SPN-SS001-001"@en ;
-    dyn:hasName "Stainless Steel 316L Specimen #001"@en ;
-    dyn:hasSpecimenID "SPN-SS001-001"@en ;
-    dyn:hasMaterialID "SS001"@en ;
-    dyn:hasSpecimenBatchID "BATCH-SS001-2024-01"@en ;
-    dyn:hasCharacterizationGroupID "SS001-Annealed-Group1"@en ;
-    dyn:isCharacterizationRepresentative true ;
-    dyn:hasTestingConditionCode "SS001-BULK-ANN"@en ;
-    dyn:hasMaterial dyn:SS316L ;
-    dyn:hasStructure dyn:BulkMaterial ;
-    dyn:hasShape dyn:CylindricalShape ;
-    dyn:hasSpecimenRole dyn:CharacterizationSpecimen ;
-    dyn:hasSpecimenBatch dyn:Batch_SS001_2024_01 ;
-    dyn:hasOriginalLength 8.0e0 ;
-    dyn:hasOriginalDiameter 6.35e0 ;
-    dyn:hasOriginalMass 2.012e0 ;
-    dyn:hasDescription "Cylindrical SS316L specimen for characterization"@en .
-
-dyn:SPN_SS001_002 rdf:type owl:NamedIndividual, dyn:Specimen ;
-    rdfs:label "SPN-SS001-002"@en ;
-    dyn:hasName "Stainless Steel 316L Specimen #002"@en ;
-    dyn:hasSpecimenID "SPN-SS001-002"@en ;
-    dyn:hasMaterialID "SS001"@en ;
-    dyn:hasSpecimenBatchID "BATCH-SS001-2024-01"@en ;
-    dyn:hasCharacterizationGroupID "SS001-Annealed-Group1"@en ;
-    dyn:isCharacterizationRepresentative false ;
-    dyn:hasTestingConditionCode "SS001-BULK-ANN"@en ;
-    dyn:hasMaterial dyn:SS316L ;
-    dyn:hasStructure dyn:BulkMaterial ;
-    dyn:hasShape dyn:CylindricalShape ;
-    dyn:hasSpecimenRole dyn:TestSpecimen ;
-    dyn:hasSpecimenBatch dyn:Batch_SS001_2024_01 ;
-    dyn:hasRepresentativeSpecimen dyn:SPN_SS001_001 ;
-    dyn:hasOriginalLength 8.0e0 ;
-    dyn:hasOriginalDiameter 6.35e0 ;
-    dyn:hasOriginalMass 2.018e0 ;
-    dyn:hasDescription "Cylindrical SS316L specimen for high strain rate testing"@en .
-
-# Ti-6Al-4V Specimens
-dyn:SPN_TI001_001 rdf:type owl:NamedIndividual, dyn:Specimen ;
-    rdfs:label "SPN-TI001-001"@en ;
-    dyn:hasName "Titanium 6Al-4V Specimen #001"@en ;
-    dyn:hasSpecimenID "SPN-TI001-001"@en ;
-    dyn:hasMaterialID "TI001"@en ;
-    dyn:hasSpecimenBatchID "BATCH-TI001-2024-01"@en ;
-    dyn:hasCharacterizationGroupID "TI001-MillAnnealed-Group1"@en ;
-    dyn:isCharacterizationRepresentative true ;
-    dyn:hasTestingConditionCode "TI001-BULK-MA"@en ;
-    dyn:hasMaterial dyn:Ti6Al4V ;
-    dyn:hasStructure dyn:BulkMaterial ;
-    dyn:hasShape dyn:CylindricalShape ;
-    dyn:hasSpecimenRole dyn:CharacterizationSpecimen ;
-    dyn:hasSpecimenBatch dyn:Batch_TI001_2024_01 ;
-    dyn:hasOriginalLength 12.0e0 ;
-    dyn:hasOriginalDiameter 6.35e0 ;
-    dyn:hasOriginalMass 1.336e0 ;
-    dyn:hasDescription "Cylindrical Ti-6Al-4V specimen for characterization"@en .
-
-# Composite Specimens
-dyn:SPN_CF001_001 rdf:type owl:NamedIndividual, dyn:Specimen ;
-    rdfs:label "SPN-CF001-001"@en ;
-    dyn:hasName "Carbon Fiber/Epoxy Specimen #001"@en ;
-    dyn:hasSpecimenID "SPN-CF001-001"@en ;
-    dyn:hasMaterialID "CF001"@en ;
-    dyn:hasSpecimenBatchID "BATCH-CF001-2024-01"@en ;
-    dyn:hasCharacterizationGroupID "CF001-UD-Group1"@en ;
-    dyn:isCharacterizationRepresentative true ;
-    dyn:hasTestingConditionCode "CF001-UD-60VF"@en ;
-    dyn:hasMaterial dyn:CF_Epoxy ;
-    dyn:hasStructure dyn:FiberReinforcedStructure ;
-    dyn:hasShape dyn:RectangularShape ;
-    dyn:hasSpecimenRole dyn:CharacterizationSpecimen ;
-    dyn:hasSpecimenBatch dyn:Batch_CF001_2024_01 ;
-    dyn:hasOriginalLength 25.0e0 ;
-    dyn:hasOriginalWidth 12.7e0 ;
-    dyn:hasOriginalThickness 3.0e0 ;
-    dyn:hasOriginalMass 1.524e0 ;
-    dyn:hasDescription "Rectangular CF/Epoxy specimen for fiber direction testing"@en .
-
-# Calibration Specimens
-dyn:SPN_CAL_001 rdf:type owl:NamedIndividual, dyn:Specimen ;
-    rdfs:label "SPN-CAL-001"@en ;
-    dyn:hasName "Calibration Specimen #001"@en ;
-    dyn:hasSpecimenID "SPN-CAL-001"@en ;
-    dyn:hasMaterialID "AL001"@en ;
-    dyn:hasSpecimenBatchID "BATCH-CAL-2024-01"@en ;
-    dyn:hasCharacterizationGroupID "CAL-AL001-Group1"@en ;
-    dyn:isCharacterizationRepresentative false ;
-    dyn:hasTestingConditionCode "CAL-STANDARD"@en ;
-    dyn:hasMaterial dyn:Al6061_T6 ;
-    dyn:hasStructure dyn:BulkMaterial ;
-    dyn:hasShape dyn:CylindricalShape ;
-    dyn:hasSpecimenRole dyn:CalibrationSpecimen ;
-    dyn:hasSpecimenBatch dyn:Batch_CAL_2024_01 ;
-    dyn:hasOriginalLength 10.0e0 ;
-    dyn:hasOriginalDiameter 6.35e0 ;
-    dyn:hasOriginalMass 0.850e0 ;
-    dyn:hasDescription "Standard calibration specimen for equipment validation"@en .
-
-#################################################################
-#    Specimen Categories and Roles
-#################################################################
-
-# Specimen Roles
 dyn:CharacterizationSpecimen rdf:type owl:NamedIndividual, dyn:SpecimenRole ;
     rdfs:label "Characterization Specimen"@en ;
     dyn:hasName "Characterization Specimen"@en ;
-    dyn:hasDescription "Specimen used for material characterization"@en .
+    dyn:hasDescription "Specimen used for material characterization (microstructure, phases, etc.)"@en .
 
 dyn:TestSpecimen rdf:type owl:NamedIndividual, dyn:SpecimenRole ;
     rdfs:label "Test Specimen"@en ;
     dyn:hasName "Test Specimen"@en ;
-    dyn:hasDescription "Specimen used for mechanical testing"@en .
+    dyn:hasDescription "Specimen used for mechanical testing only"@en .
+
+dyn:TestAndCharacterization rdf:type owl:NamedIndividual, dyn:SpecimenRole ;
+    rdfs:label "Test and Characterization"@en ;
+    dyn:hasName "Test and Characterization Specimen"@en ;
+    dyn:hasDescription "Specimen used for both mechanical testing and material characterization"@en .
 
 dyn:CalibrationSpecimen rdf:type owl:NamedIndividual, dyn:SpecimenRole ;
     rdfs:label "Calibration Specimen"@en ;
     dyn:hasName "Calibration Specimen"@en ;
-    dyn:hasDescription "Specimen used for equipment calibration"@en .
+    dyn:hasDescription "Specimen used for equipment calibration and validation"@en .
+
+dyn:ReferenceSpecimen rdf:type owl:NamedIndividual, dyn:SpecimenRole ;
+    rdfs:label "Reference Specimen"@en ;
+    dyn:hasName "Reference Specimen"@en ;
+    dyn:hasDescription "Specimen kept as reference for comparison or future analysis"@en .
 
 #################################################################
 #    Specimen Shapes
@@ -202,20 +47,103 @@ dyn:CalibrationSpecimen rdf:type owl:NamedIndividual, dyn:SpecimenRole ;
 dyn:CylindricalShape rdf:type owl:NamedIndividual, dyn:Shape ;
     rdfs:label "Cylindrical Shape"@en ;
     dyn:hasName "Cylindrical"@en ;
-    dyn:hasDescription "Right circular cylinder geometry"@en .
+    dyn:hasDescription "Right circular cylinder geometry for compression/tension testing"@en .
 
 dyn:RectangularShape rdf:type owl:NamedIndividual, dyn:Shape ;
     rdfs:label "Rectangular Shape"@en ;
     dyn:hasName "Rectangular"@en ;
-    dyn:hasDescription "Rectangular prismatic geometry"@en .
+    dyn:hasDescription "Rectangular prismatic geometry for compression testing"@en .
 
 dyn:DogboneShape rdf:type owl:NamedIndividual, dyn:Shape ;
     rdfs:label "Dogbone Shape"@en ;
     dyn:hasName "Dogbone"@en ;
-    dyn:hasDescription "ASTM standard tensile test specimen geometry"@en .
+    dyn:hasDescription "ASTM standard tensile test specimen geometry with gauge section"@en .
+
+dyn:CubicShape rdf:type owl:NamedIndividual, dyn:Shape ;
+    rdfs:label "Cubic Shape"@en ;
+    dyn:hasName "Cubic"@en ;
+    dyn:hasDescription "Cubic geometry for lattice structure testing"@en .
+
+dyn:HourglassShape rdf:type owl:NamedIndividual, dyn:Shape ;
+    rdfs:label "Hourglass Shape"@en ;
+    dyn:hasName "Hourglass"@en ;
+    dyn:hasDescription "Hourglass geometry for high strain rate testing"@en .
 
 #################################################################
-#    Specimen Batches
+#    Structure Types
+#################################################################
+
+dyn:MonolithicMaterial rdf:type owl:NamedIndividual, dyn:Structure ;
+    rdfs:label "Monolithic Material"@en ;
+    dyn:hasName "Monolithic"@en ;
+    dyn:hasDescription "Homogeneous monolithic material structure without internal features"@en .
+
+dyn:FiberReinforcedStructure rdf:type owl:NamedIndividual, dyn:Structure ;
+    rdfs:label "Fiber Reinforced Structure"@en ;
+    dyn:hasName "Fiber Reinforced"@en ;
+    dyn:hasDescription "Continuous fiber reinforced composite structure"@en .
+
+dyn:LatticeStructure rdf:type owl:NamedIndividual, dyn:Structure ;
+    rdfs:label "Lattice Structure"@en ;
+    dyn:hasName "Lattice"@en ;
+    dyn:hasDescription "Periodic lattice or cellular structure with designed porosity"@en .
+
+dyn:FoamStructure rdf:type owl:NamedIndividual, dyn:Structure ;
+    rdfs:label "Foam Structure"@en ;
+    dyn:hasName "Foam"@en ;
+    dyn:hasDescription "Foam structure with random porosity distribution"@en .
+
+dyn:LayeredStructure rdf:type owl:NamedIndividual, dyn:Structure ;
+    rdfs:label "Layered Structure"@en ;
+    dyn:hasName "Layered"@en ;
+    dyn:hasDescription "Multi-layer structure with different material layers"@en .
+
+dyn:GradedStructure rdf:type owl:NamedIndividual, dyn:Structure ;
+    rdfs:label "Graded Structure"@en ;
+    dyn:hasName "Graded"@en ;
+    dyn:hasDescription "Functionally graded structure with varying properties"@en .
+
+#################################################################
+#    Processing Steps
+#################################################################
+
+dyn:Machining rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
+    rdfs:label "Machining"@en ;
+    dyn:hasName "CNC Machining"@en ;
+    dyn:hasDescription "Computer-controlled machining to final dimensions"@en .
+
+dyn:HeatTreatment rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
+    rdfs:label "Heat Treatment"@en ;
+    dyn:hasName "Heat Treatment"@en ;
+    dyn:hasDescription "Thermal processing to achieve desired material properties"@en .
+
+dyn:AdditiveManufacturing rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
+    rdfs:label "Additive Manufacturing"@en ;
+    dyn:hasName "3D Printing/AM"@en ;
+    dyn:hasDescription "Layer-by-layer additive manufacturing process"@en .
+
+dyn:SurfaceFinishing rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
+    rdfs:label "Surface Finishing"@en ;
+    dyn:hasName "Surface Finishing"@en ;
+    dyn:hasDescription "Final surface treatment (polishing, grinding, etc.)"@en .
+
+dyn:Annealing rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
+    rdfs:label "Annealing"@en ;
+    dyn:hasName "Stress Relief Annealing"@en ;
+    dyn:hasDescription "Heat treatment to relieve internal stresses"@en .
+
+dyn:Quenching rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
+    rdfs:label "Quenching"@en ;
+    dyn:hasName "Rapid Cooling/Quenching"@en ;
+    dyn:hasDescription "Rapid cooling process for phase transformation"@en .
+
+dyn:WaterjetCutting rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
+    rdfs:label "Waterjet Cutting"@en ;
+    dyn:hasName "Waterjet Cutting"@en ;
+    dyn:hasDescription "High-pressure waterjet cutting to rough dimensions"@en .
+
+#################################################################
+#    Specimen Batches (Keep these - they're useful supporting individuals)
 #################################################################
 
 dyn:Batch_AL001_2024_01 rdf:type owl:NamedIndividual, dyn:SpecimenBatch ;
@@ -236,58 +164,31 @@ dyn:Batch_SS001_2024_01 rdf:type owl:NamedIndividual, dyn:SpecimenBatch ;
     dyn:hasSupplierLot "ATI-316L-2024-001"@en ;
     dyn:hasSpecimenCount 20 .
 
-dyn:Batch_TI001_2024_01 rdf:type owl:NamedIndividual, dyn:SpecimenBatch ;
-    rdfs:label "Batch TI001 2024-01"@en ;
-    dyn:hasName "Titanium 6Al-4V Batch 2024-01"@en ;
-    dyn:hasBatchID "BATCH-TI001-2024-01"@en ;
-    dyn:hasDescription "First batch of Ti-6Al-4V specimens machined in 2024"@en ;
-    dyn:hasMachiningDate "2024-02-15"^^xsd:date ;
-    dyn:hasSupplierLot "TIM-6AL4V-2024-001"@en ;
-    dyn:hasSpecimenCount 15 .
-
-dyn:Batch_CF001_2024_01 rdf:type owl:NamedIndividual, dyn:SpecimenBatch ;
-    rdfs:label "Batch CF001 2024-01"@en ;
-    dyn:hasName "Carbon Fiber/Epoxy Batch 2024-01"@en ;
-    dyn:hasBatchID "BATCH-CF001-2024-01"@en ;
-    dyn:hasDescription "First batch of CF/Epoxy specimens cut in 2024"@en ;
-    dyn:hasMachiningDate "2024-03-01"^^xsd:date ;
-    dyn:hasSupplierLot "HEX-CF-2024-001"@en ;
-    dyn:hasSpecimenCount 12 .
-
-dyn:Batch_CAL_2024_01 rdf:type owl:NamedIndividual, dyn:SpecimenBatch ;
-    rdfs:label "Calibration Batch 2024-01"@en ;
-    dyn:hasName "Calibration Specimens Batch 2024-01"@en ;
-    dyn:hasBatchID "BATCH-CAL-2024-01"@en ;
-    dyn:hasDescription "Standard calibration specimens for equipment validation"@en ;
-    dyn:hasMachiningDate "2024-01-20"^^xsd:date ;
-    dyn:hasSupplierLot "MC-AL6061-2024-001"@en ;
-    dyn:hasSpecimenCount 10 .
-
 #################################################################
-#    Structure Types
+#    EXAMPLE SPECIMEN INSTANCE (COMMENTED FOR REFERENCE)
 #################################################################
 
-dyn:BulkMaterial rdf:type owl:NamedIndividual, dyn:Structure ;
-    rdfs:label "Bulk Material"@en ;
-    dyn:hasName "Bulk Material"@en ;
-    dyn:hasDescription "Homogeneous bulk material structure"@en .
-
-dyn:FiberReinforcedStructure rdf:type owl:NamedIndividual, dyn:Structure ;
-    rdfs:label "Fiber Reinforced Structure"@en ;
-    dyn:hasName "Fiber Reinforced"@en ;
-    dyn:hasDescription "Continuous fiber reinforced composite structure"@en .
-
-dyn:LatticeStructure rdf:type owl:NamedIndividual, dyn:Structure ;
-    rdfs:label "Lattice Structure"@en ;
-    dyn:hasName "Lattice"@en ;
-    dyn:hasDescription "Periodic lattice or cellular structure"@en .
-
-#################################################################
-#    Metadata
-#################################################################
-
-# File metadata
-<> dc:creator "DynaMat Platform Ontology Generator"@en ;
-   dc:created "2025-01-17"^^xsd:date ;
-   dc:description "Individual specimen instances for DynaMat Platform testing and validation"@en ;
-   rdfs:comment "This file contains representative specimens for common material testing scenarios"@en .
+# Individual specimen instances should be created in their own files as:
+# specimens/SPN-MaterialID-XXX/SPN-*_specimen.ttl
+#
+# Example format (keep one commented as reference):
+#
+# dyn:SPN_AL001_001 rdf:type owl:NamedIndividual, dyn:Specimen ;
+#     rdfs:label "SPN-AL001-001"@en ;
+#     dyn:hasName "Aluminum 6061-T6 Specimen #001"@en ;
+#     dyn:hasSpecimenID "SPN-AL001-001"@en ;
+#     dyn:hasMaterialID "AL001"@en ;
+#     dyn:hasSpecimenBatchID "BATCH-AL001-2024-01"@en ;
+#     dyn:hasCharacterizationGroupID "AL001-T6-Group1"@en ;
+#     dyn:isCharacterizationRepresentative true ;
+#     dyn:hasTestingConditionCode "AL001-MONOLITHIC-T6"@en ;
+#     dyn:hasMaterial dyn:Al6061_T6 ;
+#     dyn:hasStructure dyn:MonolithicMaterial ;
+#     dyn:hasShape dyn:CylindricalShape ;
+#     dyn:hasSpecimenRole dyn:TestAndCharacterization ;
+#     dyn:hasSpecimenBatch dyn:Batch_AL001_2024_01 ;
+#     dyn:hasProcessingStep dyn:Machining, dyn:HeatTreatment ;
+#     dyn:hasOriginalLength 10.0 ;
+#     dyn:hasOriginalDiameter 6.35 ;
+#     dyn:hasOriginalMass 0.851 ;
+#     dyn:hasDescription "Cylindrical Al6061-T6 specimen for test and characterization"@en .
