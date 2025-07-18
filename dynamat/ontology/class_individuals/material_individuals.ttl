@@ -22,15 +22,10 @@ dyn:Al6061_T6 rdf:type owl:NamedIndividual, dyn:AluminiumAlloy ;
     dyn:hasMaterialCode "AL001"@en ;
     dyn:hasAlloyDesignation "6061"@en ;
     dyn:hasTemper "T6"@en ;
-    dyn:hasSupplier "McMaster-Carr"@en ;
-    dyn:hasLotNumber "MC-AL6061-2024-001"@en ;
-    dyn:hasDensity 2.70e0 ;
-    dyn:hasMeltingPoint 582.0e0 ;
-    dyn:hasThermalConductivity 167.0e0 ;
-    dyn:hasSpecificHeat 896.0e0 ;
     dyn:hasChemicalComposition "Al-1.0Mg-0.6Si-0.28Cu-0.2Cr"@en ;
     dyn:hasDescription "Structural aluminum alloy, heat treated T6 condition"@en ;
-    dyn:hasPlottingLabel "Al6061-T6"@en .
+    dyn:hasPlottingLabel "Al6061-T6"@en ;
+    dyn:hasPropertyValue dyn:Al6061_MeltingPoint_PV, dyn:Al6061_ThermalConductivity_PV, dyn:Al6061_SpecificHeat_PV .
 
 dyn:Al7075_T6 rdf:type owl:NamedIndividual, dyn:AluminiumAlloy ;
     rdfs:label "Al7075-T6"@en ;
@@ -39,66 +34,259 @@ dyn:Al7075_T6 rdf:type owl:NamedIndividual, dyn:AluminiumAlloy ;
     dyn:hasMaterialCode "AL002"@en ;
     dyn:hasAlloyDesignation "7075"@en ;
     dyn:hasTemper "T6"@en ;
-    dyn:hasSupplier "Alcoa"@en ;
-    dyn:hasLotNumber "ALC-7075-2024-002"@en ;
-    dyn:hasDensity 2.81e0 ;
-    dyn:hasMeltingPoint 477.0e0 ;
-    dyn:hasThermalConductivity 130.0e0 ;
-    dyn:hasSpecificHeat 960.0e0 ;
     dyn:hasChemicalComposition "Al-5.6Zn-2.5Mg-1.6Cu-0.23Cr"@en ;
     dyn:hasDescription "High strength aluminum alloy, aerospace grade"@en ;
-    dyn:hasPlottingLabel "Al7075-T6"@en .
+    dyn:hasPlottingLabel "Al7075-T6"@en ;
+    dyn:hasPropertyValue dyn:Al7075_MeltingPoint_PV, dyn:Al7075_ThermalConductivity_PV, dyn:Al7075_SpecificHeat_PV .
+
+dyn:A356 rdf:type owl:NamedIndividual, dyn:AluminiumAlloy ;
+    rdfs:label "A356"@en ;
+    dyn:hasName "Aluminum A356"@en ;
+    dyn:hasMaterialName "A356"@en ;
+    dyn:hasMaterialCode "AL003"@en ;
+    dyn:hasAlloyDesignation "A356"@en ;
+    dyn:hasTemper "T6"@en ;
+    dyn:hasChemicalComposition "Al-7Si-0.3Mg"@en ;
+    dyn:hasDescription "Aluminum casting alloy with excellent castability"@en ;
+    dyn:hasPlottingLabel "A356"@en ;
+    dyn:hasPropertyValue dyn:A356_MeltingPoint_PV, dyn:A356_ThermalConductivity_PV, dyn:A356_SpecificHeat_PV .
 
 # Steel Alloys
-dyn:SS316L rdf:type owl:NamedIndividual, dyn:SteelAlloy ;
-    rdfs:label "SS316L"@en ;
-    dyn:hasName "Stainless Steel 316L"@en ;
-    dyn:hasMaterialName "SS316L"@en ;
+dyn:SS316 rdf:type owl:NamedIndividual, dyn:SteelAlloy ;
+    rdfs:label "SS316"@en ;
+    dyn:hasName "Stainless Steel 316"@en ;
+    dyn:hasMaterialName "SS316"@en ;
     dyn:hasMaterialCode "SS001"@en ;
-    dyn:hasAlloyDesignation "316L"@en ;
+    dyn:hasAlloyDesignation "316"@en ;
     dyn:hasTemper "Annealed"@en ;
-    dyn:hasSupplier "ATI Metals"@en ;
-    dyn:hasLotNumber "ATI-316L-2024-001"@en ;
-    dyn:hasDensity 8.00e0 ;
-    dyn:hasMeltingPoint 1375.0e0 ;
-    dyn:hasThermalConductivity 16.2e0 ;
-    dyn:hasSpecificHeat 500.0e0 ;
-    dyn:hasChemicalComposition "Fe-18Cr-10Ni-3Mo-2Mn-1Si-0.03C"@en ;
-    dyn:hasDescription "Austenitic stainless steel, low carbon content"@en ;
-    dyn:hasPlottingLabel "SS316L"@en .
+    dyn:hasChemicalComposition "Fe-18Cr-10Ni-3Mo-2Mn-1Si-0.08C"@en ;
+    dyn:hasDescription "Austenitic stainless steel with molybdenum for corrosion resistance"@en ;
+    dyn:hasPlottingLabel "SS316"@en ;
+    dyn:hasPropertyValue dyn:SS316_MeltingPoint_PV, dyn:SS316_ThermalConductivity_PV, dyn:SS316_SpecificHeat_PV .
 
-# Bar Materials (for SHPB equipment)
-dyn:STC350 rdf:type owl:NamedIndividual, dyn:SteelAlloy ;
-    rdfs:label "Maraging C350 Steel Material"@en ;
-    dyn:hasName "Maraging C350 Steel"@en ;
-    dyn:hasMaterialName "C350 Steel"@en ;
-    dyn:hasMaterialCode "C350"@en ;
-    dyn:hasAlloyDesignation "350"@en ;
-    dyn:hasTemper "Hot Rolled"@en ;
-    dyn:hasSupplier "Ryerson Steel"@en ;
-    dyn:hasLotNumber "RYE-C1018-2024-001"@en ;
-    dyn:hasDensity 7.87e0 ;
-    dyn:hasMeltingPoint 1515.0e0 ;
-    dyn:hasThermalConductivity 51.9e0 ;
-    dyn:hasSpecificHeat 486.0e0 ;
-    dyn:hasChemicalComposition "Fe-0.18C-0.6Mn-0.04P-0.05S"@en ;
-    dyn:hasDescription "Low carbon steel for SHPB bar applications"@en ;
-    dyn:hasPlottingLabel "C1018 Steel"@en .
+dyn:C530_Maraging rdf:type owl:NamedIndividual, dyn:SteelAlloy ;
+    rdfs:label "C530 Maraging Steel"@en ;
+    dyn:hasName "C530 Maraging Steel"@en ;
+    dyn:hasMaterialName "C530"@en ;
+    dyn:hasMaterialCode "MAR001"@en ;
+    dyn:hasAlloyDesignation "C530"@en ;
+    dyn:hasTemper "Aged"@en ;
+    dyn:hasChemicalComposition "Fe-18Ni-8Co-3Mo-1Ti-0.8Al"@en ;
+    dyn:hasDescription "Ultra-high strength maraging steel"@en ;
+    dyn:hasPlottingLabel "C530"@en ;
+    dyn:hasPropertyValue dyn:C530_MeltingPoint_PV, dyn:C530_ThermalConductivity_PV, dyn:C530_SpecificHeat_PV .
 
-# Pulse Shaper Materials
-dyn:Copper_C110 rdf:type owl:NamedIndividual, dyn:Metal ;
-    rdfs:label "Copper C110"@en ;
-    dyn:hasName "Copper C110"@en ;
-    dyn:hasMaterialName "C110 Copper"@en ;
+# Copper Alloys
+dyn:CU101 rdf:type owl:NamedIndividual, dyn:Metal ;
+    rdfs:label "Copper CU101"@en ;
+    dyn:hasName "Copper CU101"@en ;
+    dyn:hasMaterialName "CU101"@en ;
     dyn:hasMaterialCode "CU001"@en ;
-    dyn:hasAlloyDesignation "C110"@en ;
+    dyn:hasAlloyDesignation "CU101"@en ;
     dyn:hasTemper "Annealed"@en ;
-    dyn:hasSupplier "Mueller Industries"@en ;
-    dyn:hasLotNumber "MUE-C110-2024-001"@en ;
-    dyn:hasDensity 8.96e0 ;
-    dyn:hasMeltingPoint 1083.0e0 ;
-    dyn:hasThermalConductivity 391.0e0 ;
-    dyn:hasSpecificHeat 385.0e0 ;
     dyn:hasChemicalComposition "Cu-99.9"@en ;
-    dyn:hasDescription "Oxygen-free electronic copper for pulse shapers"@en ;
-    dyn:hasPlottingLabel "Cu C110"@en .
+    dyn:hasDescription "Oxygen-free electronic copper for pulse shapers and electrical applications"@en ;
+    dyn:hasPlottingLabel "CU101"@en ;
+    dyn:hasPropertyValue dyn:CU101_MeltingPoint_PV, dyn:CU101_ThermalConductivity_PV, dyn:CU101_SpecificHeat_PV .
+
+#################################################################
+#    Thermal Property Values
+#################################################################
+
+# Al6061-T6 Thermal Properties
+dyn:Al6061_MeltingPoint_PV rdf:type owl:NamedIndividual, dyn:PropertyValue ;
+    rdfs:label "Al6061 Melting Point"@en ;
+    dyn:hasName "Al6061-T6 Melting Point"@en ;
+    dyn:hasPropertyName "Melting Point"@en ;
+    dyn:hasValue 582.0e0 ;
+    dyn:hasUnit dyn:DegreeCelsius ;
+    dyn:hasUncertainty 5.0e0 ;
+    dyn:hasProvenance "Literature"@en ;
+    dyn:hasDescription "Solidus temperature of Al6061-T6"@en .
+
+dyn:Al6061_ThermalConductivity_PV rdf:type owl:NamedIndividual, dyn:PropertyValue ;
+    rdfs:label "Al6061 Thermal Conductivity"@en ;
+    dyn:hasName "Al6061-T6 Thermal Conductivity"@en ;
+    dyn:hasPropertyName "Thermal Conductivity"@en ;
+    dyn:hasValue 167.0e0 ;
+    dyn:hasUnit dyn:WattPerMeterKelvin ;
+    dyn:hasUncertainty 5.0e0 ;
+    dyn:hasTemperature 20.0e0 ;
+    dyn:hasProvenance "Literature"@en ;
+    dyn:hasDescription "Thermal conductivity of Al6061-T6 at room temperature"@en .
+
+dyn:Al6061_SpecificHeat_PV rdf:type owl:NamedIndividual, dyn:PropertyValue ;
+    rdfs:label "Al6061 Specific Heat"@en ;
+    dyn:hasName "Al6061-T6 Specific Heat"@en ;
+    dyn:hasPropertyName "Specific Heat"@en ;
+    dyn:hasValue 896.0e0 ;
+    dyn:hasUnit dyn:JoulePerKilogramKelvin ;
+    dyn:hasUncertainty 20.0e0 ;
+    dyn:hasTemperature 20.0e0 ;
+    dyn:hasProvenance "Literature"@en ;
+    dyn:hasDescription "Specific heat capacity of Al6061-T6 at room temperature"@en .
+
+# Al7075-T6 Thermal Properties
+dyn:Al7075_MeltingPoint_PV rdf:type owl:NamedIndividual, dyn:PropertyValue ;
+    rdfs:label "Al7075 Melting Point"@en ;
+    dyn:hasName "Al7075-T6 Melting Point"@en ;
+    dyn:hasPropertyName "Melting Point"@en ;
+    dyn:hasValue 477.0e0 ;
+    dyn:hasUnit dyn:DegreeCelsius ;
+    dyn:hasUncertainty 5.0e0 ;
+    dyn:hasProvenance "Literature"@en ;
+    dyn:hasDescription "Solidus temperature of Al7075-T6"@en .
+
+dyn:Al7075_ThermalConductivity_PV rdf:type owl:NamedIndividual, dyn:PropertyValue ;
+    rdfs:label "Al7075 Thermal Conductivity"@en ;
+    dyn:hasName "Al7075-T6 Thermal Conductivity"@en ;
+    dyn:hasPropertyName "Thermal Conductivity"@en ;
+    dyn:hasValue 130.0e0 ;
+    dyn:hasUnit dyn:WattPerMeterKelvin ;
+    dyn:hasUncertainty 5.0e0 ;
+    dyn:hasTemperature 20.0e0 ;
+    dyn:hasProvenance "Literature"@en ;
+    dyn:hasDescription "Thermal conductivity of Al7075-T6 at room temperature"@en .
+
+dyn:Al7075_SpecificHeat_PV rdf:type owl:NamedIndividual, dyn:PropertyValue ;
+    rdfs:label "Al7075 Specific Heat"@en ;
+    dyn:hasName "Al7075-T6 Specific Heat"@en ;
+    dyn:hasPropertyName "Specific Heat"@en ;
+    dyn:hasValue 960.0e0 ;
+    dyn:hasUnit dyn:JoulePerKilogramKelvin ;
+    dyn:hasUncertainty 20.0e0 ;
+    dyn:hasTemperature 20.0e0 ;
+    dyn:hasProvenance "Literature"@en ;
+    dyn:hasDescription "Specific heat capacity of Al7075-T6 at room temperature"@en .
+
+# A356 Thermal Properties
+dyn:A356_MeltingPoint_PV rdf:type owl:NamedIndividual, dyn:PropertyValue ;
+    rdfs:label "A356 Melting Point"@en ;
+    dyn:hasName "A356 Melting Point"@en ;
+    dyn:hasPropertyName "Melting Point"@en ;
+    dyn:hasValue 615.0e0 ;
+    dyn:hasUnit dyn:DegreeCelsius ;
+    dyn:hasUncertainty 5.0e0 ;
+    dyn:hasProvenance "Literature"@en ;
+    dyn:hasDescription "Solidus temperature of A356"@en .
+
+dyn:A356_ThermalConductivity_PV rdf:type owl:NamedIndividual, dyn:PropertyValue ;
+    rdfs:label "A356 Thermal Conductivity"@en ;
+    dyn:hasName "A356 Thermal Conductivity"@en ;
+    dyn:hasPropertyName "Thermal Conductivity"@en ;
+    dyn:hasValue 151.0e0 ;
+    dyn:hasUnit dyn:WattPerMeterKelvin ;
+    dyn:hasUncertainty 5.0e0 ;
+    dyn:hasTemperature 20.0e0 ;
+    dyn:hasProvenance "Literature"@en ;
+    dyn:hasDescription "Thermal conductivity of A356 at room temperature"@en .
+
+dyn:A356_SpecificHeat_PV rdf:type owl:NamedIndividual, dyn:PropertyValue ;
+    rdfs:label "A356 Specific Heat"@en ;
+    dyn:hasName "A356 Specific Heat"@en ;
+    dyn:hasPropertyName "Specific Heat"@en ;
+    dyn:hasValue 963.0e0 ;
+    dyn:hasUnit dyn:JoulePerKilogramKelvin ;
+    dyn:hasUncertainty 20.0e0 ;
+    dyn:hasTemperature 20.0e0 ;
+    dyn:hasProvenance "Literature"@en ;
+    dyn:hasDescription "Specific heat capacity of A356 at room temperature"@en .
+
+# SS316 Thermal Properties
+dyn:SS316_MeltingPoint_PV rdf:type owl:NamedIndividual, dyn:PropertyValue ;
+    rdfs:label "SS316 Melting Point"@en ;
+    dyn:hasName "SS316 Melting Point"@en ;
+    dyn:hasPropertyName "Melting Point"@en ;
+    dyn:hasValue 1375.0e0 ;
+    dyn:hasUnit dyn:DegreeCelsius ;
+    dyn:hasUncertainty 10.0e0 ;
+    dyn:hasProvenance "Literature"@en ;
+    dyn:hasDescription "Solidus temperature of SS316"@en .
+
+dyn:SS316_ThermalConductivity_PV rdf:type owl:NamedIndividual, dyn:PropertyValue ;
+    rdfs:label "SS316 Thermal Conductivity"@en ;
+    dyn:hasName "SS316 Thermal Conductivity"@en ;
+    dyn:hasPropertyName "Thermal Conductivity"@en ;
+    dyn:hasValue 16.2e0 ;
+    dyn:hasUnit dyn:WattPerMeterKelvin ;
+    dyn:hasUncertainty 1.0e0 ;
+    dyn:hasTemperature 20.0e0 ;
+    dyn:hasProvenance "Literature"@en ;
+    dyn:hasDescription "Thermal conductivity of SS316 at room temperature"@en .
+
+dyn:SS316_SpecificHeat_PV rdf:type owl:NamedIndividual, dyn:PropertyValue ;
+    rdfs:label "SS316 Specific Heat"@en ;
+    dyn:hasName "SS316 Specific Heat"@en ;
+    dyn:hasPropertyName "Specific Heat"@en ;
+    dyn:hasValue 500.0e0 ;
+    dyn:hasUnit dyn:JoulePerKilogramKelvin ;
+    dyn:hasUncertainty 15.0e0 ;
+    dyn:hasTemperature 20.0e0 ;
+    dyn:hasProvenance "Literature"@en ;
+    dyn:hasDescription "Specific heat capacity of SS316 at room temperature"@en .
+
+# C530 Maraging Steel Thermal Properties
+dyn:C530_MeltingPoint_PV rdf:type owl:NamedIndividual, dyn:PropertyValue ;
+    rdfs:label "C530 Melting Point"@en ;
+    dyn:hasName "C530 Maraging Steel Melting Point"@en ;
+    dyn:hasPropertyName "Melting Point"@en ;
+    dyn:hasValue 1413.0e0 ;
+    dyn:hasUnit dyn:DegreeCelsius ;
+    dyn:hasUncertainty 10.0e0 ;
+    dyn:hasProvenance "Literature"@en ;
+    dyn:hasDescription "Solidus temperature of C530 maraging steel"@en .
+
+dyn:C530_ThermalConductivity_PV rdf:type owl:NamedIndividual, dyn:PropertyValue ;
+    rdfs:label "C530 Thermal Conductivity"@en ;
+    dyn:hasName "C530 Maraging Steel Thermal Conductivity"@en ;
+    dyn:hasPropertyName "Thermal Conductivity"@en ;
+    dyn:hasValue 17.4e0 ;
+    dyn:hasUnit dyn:WattPerMeterKelvin ;
+    dyn:hasUncertainty 1.0e0 ;
+    dyn:hasTemperature 20.0e0 ;
+    dyn:hasProvenance "Literature"@en ;
+    dyn:hasDescription "Thermal conductivity of C530 maraging steel at room temperature"@en .
+
+dyn:C530_SpecificHeat_PV rdf:type owl:NamedIndividual, dyn:PropertyValue ;
+    rdfs:label "C530 Specific Heat"@en ;
+    dyn:hasName "C530 Maraging Steel Specific Heat"@en ;
+    dyn:hasPropertyName "Specific Heat"@en ;
+    dyn:hasValue 460.0e0 ;
+    dyn:hasUnit dyn:JoulePerKilogramKelvin ;
+    dyn:hasUncertainty 15.0e0 ;
+    dyn:hasTemperature 20.0e0 ;
+    dyn:hasProvenance "Literature"@en ;
+    dyn:hasDescription "Specific heat capacity of C530 maraging steel at room temperature"@en .
+
+# CU101 Thermal Properties
+dyn:CU101_MeltingPoint_PV rdf:type owl:NamedIndividual, dyn:PropertyValue ;
+    rdfs:label "CU101 Melting Point"@en ;
+    dyn:hasName "CU101 Copper Melting Point"@en ;
+    dyn:hasPropertyName "Melting Point"@en ;
+    dyn:hasValue 1083.0e0 ;
+    dyn:hasUnit dyn:DegreeCelsius ;
+    dyn:hasUncertainty 2.0e0 ;
+    dyn:hasProvenance "Literature"@en ;
+    dyn:hasDescription "Melting point of CU101 oxygen-free copper"@en .
+
+dyn:CU101_ThermalConductivity_PV rdf:type owl:NamedIndividual, dyn:PropertyValue ;
+    rdfs:label "CU101 Thermal Conductivity"@en ;
+    dyn:hasName "CU101 Copper Thermal Conductivity"@en ;
+    dyn:hasPropertyName "Thermal Conductivity"@en ;
+    dyn:hasValue 391.0e0 ;
+    dyn:hasUnit dyn:WattPerMeterKelvin ;
+    dyn:hasUncertainty 10.0e0 ;
+    dyn:hasTemperature 20.0e0 ;
+    dyn:hasProvenance "Literature"@en ;
+    dyn:hasDescription "Thermal conductivity of CU101 copper at room temperature"@en .
+
+dyn:CU101_SpecificHeat_PV rdf:type owl:NamedIndividual, dyn:PropertyValue ;
+    rdfs:label "CU101 Specific Heat"@en ;
+    dyn:hasName "CU101 Copper Specific Heat"@en ;
+    dyn:hasPropertyName "Specific Heat"@en ;
+    dyn:hasValue 385.0e0 ;
+    dyn:hasUnit dyn:JoulePerKilogramKelvin ;
+    dyn:hasUncertainty 10.0e0 ;
+    dyn:hasTemperature 20.0e0 ;
+    dyn:hasProvenance "Literature"@en ;
+    dyn:hasDescription "Specific heat capacity of CU101 copper at room temperature"@en .
