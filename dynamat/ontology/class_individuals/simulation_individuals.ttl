@@ -8,200 +8,103 @@
 # =============================================================================
 # DynaMat Platform - Simulation Individual Instances
 # For ontology/class_individuals/simulation_individuals.ttl
+# CORRECTED VERSION: Focus on LSDYNA_R14, material model parameters
 # =============================================================================
 
 #################################################################
-#    Software Model Individuals
+#    Software Model Individual (Only LSDYNA_R14)
 #################################################################
 
-# LS-DYNA Software Models
-dyn:LSDYNA_R13 rdf:type owl:NamedIndividual, dyn:SoftwareModel ;
-    rdfs:label "LS-DYNA R13"@en ;
-    dyn:hasName "LS-DYNA R13.1.0"@en ;
-    dyn:hasVersion "R13.1.0"@en ;
-    dyn:hasManufacturer "Ansys"@en ;
+dyn:LSDYNA_R14 rdf:type owl:NamedIndividual, dyn:SoftwareModel ;
+    rdfs:label "LS-DYNA R14"@en ;
+    dyn:hasName "LS-DYNA R14.0.0"@en ;
+    dyn:hasVersion "R14.0.0"@en ;
     dyn:hasSoftwareType "Explicit FEA"@en ;
-    dyn:hasLicenseType "Academic"@en ;
-    dyn:hasDescription "Explicit finite element analysis software for high-speed dynamics"@en ;
-    dyn:hasExecutablePath "/apps/lsdyna/ls-dyna_smp_d_R13_1_0-g95_CentOS5.7"@en .
+    dyn:hasDescription "Latest LS-DYNA explicit finite element analysis software for dynamic simulations"@en .
 
-dyn:LSDYNA_R12 rdf:type owl:NamedIndividual, dyn:SoftwareModel ;
-    rdfs:label "LS-DYNA R12"@en ;
-    dyn:hasName "LS-DYNA R12.0.0"@en ;
-    dyn:hasVersion "R12.0.0"@en ;
-    dyn:hasManufacturer "Ansys"@en ;
-    dyn:hasSoftwareType "Explicit FEA"@en ;
-    dyn:hasLicenseType "Academic"@en ;
-    dyn:hasDescription "Previous version of LS-DYNA for compatibility testing"@en ;
-    dyn:hasExecutablePath "/apps/lsdyna/ls-dyna_smp_d_R12_0_0-g95_CentOS5.7"@en .
-
-# ABAQUS Software Models
-dyn:ABAQUS_2023 rdf:type owl:NamedIndividual, dyn:SoftwareModel ;
-    rdfs:label "ABAQUS 2023"@en ;
-    dyn:hasName "ABAQUS/Explicit 2023"@en ;
-    dyn:hasVersion "2023"@en ;
-    dyn:hasManufacturer "Dassault Systèmes"@en ;
-    dyn:hasSoftwareType "Explicit FEA"@en ;
-    dyn:hasLicenseType "Academic"@en ;
-    dyn:hasDescription "ABAQUS/Explicit for dynamic analysis"@en ;
-    dyn:hasExecutablePath "/apps/abaqus/2023/linux_a64/code/bin/abaqus"@en .
-
-# ANSYS Software Models
-dyn:ANSYS_2024R1 rdf:type owl:NamedIndividual, dyn:SoftwareModel ;
-    rdfs:label "ANSYS 2024 R1"@en ;
-    dyn:hasName "ANSYS Mechanical 2024 R1"@en ;
-    dyn:hasVersion "2024.1"@en ;
-    dyn:hasManufacturer "Ansys"@en ;
-    dyn:hasSoftwareType "Implicit/Explicit FEA"@en ;
-    dyn:hasLicenseType "Academic"@en ;
-    dyn:hasDescription "ANSYS Mechanical for general purpose FEA"@en ;
-    dyn:hasExecutablePath "/apps/ansys/v241/ansys/bin/ansys241"@en .
 
 #################################################################
-#    Material Model Individuals
+#    Material Model Individuals with Parameters
 #################################################################
 
-# Johnson-Cook Material Models
+# Johnson-Cook Material Models (with specific parameters)
 dyn:JohnsonCook_Al6061 rdf:type owl:NamedIndividual, dyn:MaterialModel ;
     rdfs:label "Johnson-Cook Al6061"@en ;
     dyn:hasName "Johnson-Cook Model for Al6061-T6"@en ;
     dyn:hasModelType "Johnson-Cook"@en ;
     dyn:hasDescription "Johnson-Cook plasticity model for Al6061-T6 aluminum"@en ;
-    dyn:hasApplicableTemperatureRange "20-500"@en ;
-    dyn:hasApplicableStrainRateRange "0.001-10000"@en ;
-    dyn:hasValidationStatus "Validated"@en .
+    dyn:hasValidationStatus "Validated"@en ;
+    # Johnson-Cook Parameters (density, elastic modulus, A, B, C, n, m)
+    dyn:hasDensity 2700.0 ;           # kg/m³
+    dyn:hasElasticModulus 68.9e9 ;    # Pa
+    dyn:hasJC_A 276.0e6 ;             # Pa - Yield strength
+    dyn:hasJC_B 426.0e6 ;             # Pa - Hardening modulus
+    dyn:hasJC_C 0.0220 ;              # Strain rate constant
+    dyn:hasJC_n 0.73 ;                # Hardening exponent
+    dyn:hasJC_m 1.70 .                # Temperature exponent
 
 dyn:JohnsonCook_SS316L rdf:type owl:NamedIndividual, dyn:MaterialModel ;
     rdfs:label "Johnson-Cook SS316L"@en ;
     dyn:hasName "Johnson-Cook Model for SS316L"@en ;
     dyn:hasModelType "Johnson-Cook"@en ;
     dyn:hasDescription "Johnson-Cook plasticity model for SS316L stainless steel"@en ;
-    dyn:hasApplicableTemperatureRange "20-800"@en ;
-    dyn:hasApplicableStrainRateRange "0.001-5000"@en ;
-    dyn:hasValidationStatus "Validated"@en .
+    dyn:hasValidationStatus "Validated"@en ;
+    # Johnson-Cook Parameters
+    dyn:hasDensity 8000.0 ;           # kg/m³
+    dyn:hasElasticModulus 200.0e9 ;   # Pa
+    dyn:hasJC_A 310.0e6 ;             # Pa - Yield strength
+    dyn:hasJC_B 1000.0e6 ;            # Pa - Hardening modulus
+    dyn:hasJC_C 0.0700 ;              # Strain rate constant
+    dyn:hasJC_n 0.65 ;                # Hardening exponent
+    dyn:hasJC_m 1.00 .                # Temperature exponent
 
-dyn:JohnsonCook_Ti6Al4V rdf:type owl:NamedIndividual, dyn:MaterialModel ;
-    rdfs:label "Johnson-Cook Ti6Al4V"@en ;
-    dyn:hasName "Johnson-Cook Model for Ti-6Al-4V"@en ;
-    dyn:hasModelType "Johnson-Cook"@en ;
-    dyn:hasDescription "Johnson-Cook plasticity model for Ti-6Al-4V titanium"@en ;
-    dyn:hasApplicableTemperatureRange "20-600"@en ;
-    dyn:hasApplicableStrainRateRange "0.001-8000"@en ;
-    dyn:hasValidationStatus "Under Development"@en .
-
-# Elastic Material Models
+# Elastic Material Models (density and elastic modulus only)
 dyn:Elastic_Al6061 rdf:type owl:NamedIndividual, dyn:MaterialModel ;
     rdfs:label "Elastic Al6061"@en ;
     dyn:hasName "Linear Elastic Model for Al6061"@en ;
     dyn:hasModelType "Linear Elastic"@en ;
     dyn:hasDescription "Linear elastic model for Al6061 aluminum"@en ;
-    dyn:hasApplicableTemperatureRange "20-100"@en ;
-    dyn:hasApplicableStrainRateRange "0.001-10"@en ;
-    dyn:hasValidationStatus "Validated"@en .
+    dyn:hasValidationStatus "Validated"@en ;
+    # Elastic Parameters
+    dyn:hasDensity 2700.0 ;           # kg/m³
+    dyn:hasElasticModulus 68.9e9 .    # Pa
 
-# Composite Material Models
-dyn:OrthotropicElastic_CFEpoxy rdf:type owl:NamedIndividual, dyn:MaterialModel ;
-    rdfs:label "Orthotropic Elastic CF/Epoxy"@en ;
-    dyn:hasName "Orthotropic Elastic Model for CF/Epoxy"@en ;
-    dyn:hasModelType "Orthotropic Elastic"@en ;
-    dyn:hasDescription "Orthotropic elastic model for carbon fiber/epoxy composite"@en ;
-    dyn:hasApplicableTemperatureRange "20-80"@en ;
-    dyn:hasApplicableStrainRateRange "0.001-100"@en ;
-    dyn:hasValidationStatus "Validated"@en .
+dyn:Elastic_SS316L rdf:type owl:NamedIndividual, dyn:MaterialModel ;
+    rdfs:label "Elastic SS316L"@en ;
+    dyn:hasName "Linear Elastic Model for SS316L"@en ;
+    dyn:hasModelType "Linear Elastic"@en ;
+    dyn:hasDescription "Linear elastic model for SS316L stainless steel"@en ;
+    dyn:hasValidationStatus "Validated"@en ;
+    # Elastic Parameters
+    dyn:hasDensity 8000.0 ;           # kg/m³
+    dyn:hasElasticModulus 200.0e9 .   # Pa
+
+dyn:Elastic_SteelC350 rdf:type owl:NamedIndividual, dyn:MaterialModel ;
+    rdfs:label "Elastic Steel C350"@en ;
+    dyn:hasName "Linear Elastic Model for Steel C350"@en ;
+    dyn:hasModelType "Linear Elastic"@en ;
+    dyn:hasDescription "Linear elastic model for C350 steel bars"@en ;
+    dyn:hasValidationStatus "Validated"@en ;
+    # Elastic Parameters
+    dyn:hasDensity 7870.0 ;           # kg/m³
+    dyn:hasElasticModulus 200.0e9 .   # Pa
 
 #################################################################
-#    Finite Element Mesh Individuals
+#    Finite Element Mesh Individual (Example for Standard Specimen)
 #################################################################
 
-# Standard Cylindrical Meshes
-dyn:CylindricalMesh_Fine rdf:type owl:NamedIndividual, dyn:FEMesh ;
-    rdfs:label "Fine Cylindrical Mesh"@en ;
-    dyn:hasName "Fine Cylindrical Specimen Mesh"@en ;
-    dyn:hasElementCount 15000 ;
-    dyn:hasNodeCount 16965 ;
+dyn:CylindricalMesh_Standard rdf:type owl:NamedIndividual, dyn:FEMesh ;
+    rdfs:label "Standard Cylindrical Mesh"@en ;
+    dyn:hasName "Standard Cylindrical Specimen Mesh 6.36x6.36mm"@en ;
+    dyn:hasElementCount 8000 ;
+    dyn:hasNodeCount 9261 ;
     dyn:hasElementType "Hex8"@en ;
-    dyn:hasElementSize 0.25e0 ;
-    dyn:hasMeshQuality 0.85e0 ;
-    dyn:hasDescription "Fine mesh for cylindrical specimens (0.25mm elements)"@en ;
-    dyn:hasMeshGenerator "HyperMesh"@en .
-
-dyn:CylindricalMesh_Coarse rdf:type owl:NamedIndividual, dyn:FEMesh ;
-    rdfs:label "Coarse Cylindrical Mesh"@en ;
-    dyn:hasName "Coarse Cylindrical Specimen Mesh"@en ;
-    dyn:hasElementCount 3000 ;
-    dyn:hasNodeCount 3549 ;
-    dyn:hasElementType "Hex8"@en ;
-    dyn:hasElementSize 0.5e0 ;
-    dyn:hasMeshQuality 0.80e0 ;
-    dyn:hasDescription "Coarse mesh for cylindrical specimens (0.5mm elements)"@en ;
-    dyn:hasMeshGenerator "HyperMesh"@en .
-
-# SHPB Bar Meshes
-dyn:BarMesh_Standard rdf:type owl:NamedIndividual, dyn:FEMesh ;
-    rdfs:label "Standard Bar Mesh"@en ;
-    dyn:hasName "Standard SHPB Bar Mesh"@en ;
-    dyn:hasElementCount 45600 ;
-    dyn:hasNodeCount 49725 ;
-    dyn:hasElementType "Hex8"@en ;
-    dyn:hasElementSize 1.0e0 ;
-    dyn:hasMeshQuality 0.90e0 ;
-    dyn:hasDescription "Standard mesh for SHPB bars (1mm elements)"@en ;
-    dyn:hasMeshGenerator "LS-PrePost"@en .
-
-# Composite Meshes
-dyn:CompositeMesh_LayeredShell rdf:type owl:NamedIndividual, dyn:FEMesh ;
-    rdfs:label "Layered Shell Mesh"@en ;
-    dyn:hasName "Layered Shell Composite Mesh"@en ;
-    dyn:hasElementCount 2400 ;
-    dyn:hasNodeCount 2499 ;
-    dyn:hasElementType "Shell"@en ;
-    dyn:hasElementSize 1.0e0 ;
-    dyn:hasMeshQuality 0.88e0 ;
-    dyn:hasDescription "Layered shell mesh for composite specimens"@en ;
-    dyn:hasMeshGenerator "HyperMesh"@en ;
-    dyn:hasLayerCount 12 .
+    dyn:hasElementSize 0.3 ;          # mm
+    dyn:hasMeshQuality 0.85 ;
+    dyn:hasDescription "Standard mesh for 6.36mm diameter by 6.36mm length cylindrical specimens"@en .
 
 #################################################################
-#    Simulation Configuration Examples
-#################################################################
-
-# SHPB Simulation Configurations
-dyn:SHPBSimulation_Al6061_Config rdf:type owl:NamedIndividual, dyn:SimulationConfiguration ;
-    rdfs:label "SHPB Al6061 Configuration"@en ;
-    dyn:hasName "SHPB Simulation Configuration for Al6061"@en ;
-    dyn:hasSoftwareModel dyn:LSDYNA_R13 ;
-    dyn:hasMaterialModel dyn:JohnsonCook_Al6061 ;
-    dyn:hasFEMesh dyn:CylindricalMesh_Fine ;
-    dyn:hasSimulationType "SHPB Reproduction"@en ;
-    dyn:hasTimeStep 5e-8 ;
-    dyn:hasTerminationTime 500e-6 ;
-    dyn:hasDescription "Standard configuration for SHPB simulation of Al6061 specimens"@en .
-
-dyn:SHPBSimulation_SS316L_Config rdf:type owl:NamedIndividual, dyn:SimulationConfiguration ;
-    rdfs:label "SHPB SS316L Configuration"@en ;
-    dyn:hasName "SHPB Simulation Configuration for SS316L"@en ;
-    dyn:hasSoftwareModel dyn:LSDYNA_R13 ;
-    dyn:hasMaterialModel dyn:JohnsonCook_SS316L ;
-    dyn:hasFEMesh dyn:CylindricalMesh_Fine ;
-    dyn:hasSimulationType "SHPB Reproduction"@en ;
-    dyn:hasTimeStep 5e-8 ;
-    dyn:hasTerminationTime 800e-6 ;
-    dyn:hasDescription "Standard configuration for SHPB simulation of SS316L specimens"@en .
-
-# Virtual Simulation Configurations
-dyn:VirtualSimulation_Design_Config rdf:type owl:NamedIndividual, dyn:SimulationConfiguration ;
-    rdfs:label "Virtual Design Configuration"@en ;
-    dyn:hasName "Virtual Simulation for Design Exploration"@en ;
-    dyn:hasSoftwareModel dyn:LSDYNA_R13 ;
-    dyn:hasMaterialModel dyn:JohnsonCook_Al6061 ;
-    dyn:hasFEMesh dyn:CylindricalMesh_Coarse ;
-    dyn:hasSimulationType "Virtual Simulation"@en ;
-    dyn:hasTimeStep 1e-7 ;
-    dyn:hasTerminationTime 1000e-6 ;
-    dyn:hasDescription "Virtual simulation configuration for design space exploration"@en .
-
-#################################################################
-#    Boundary Conditions and Constraints
+#    Boundary Conditions 
 #################################################################
 
 # Standard Boundary Conditions
@@ -220,20 +123,19 @@ dyn:SymmetryBC rdf:type owl:NamedIndividual, dyn:BoundaryCondition ;
 dyn:VelocityBC rdf:type owl:NamedIndividual, dyn:BoundaryCondition ;
     rdfs:label "Velocity Boundary"@en ;
     dyn:hasName "Applied Velocity Condition"@en ;
-    dyn:hasDescription "Prescribed velocity boundary condition"@en ;
+    dyn:hasDescription "Prescribed velocity boundary condition for striker bar"@en ;
     dyn:hasConstraintType "Velocity"@en .
 
 #################################################################
-#    Contact Definitions
+#    Contact Definitions 
 #################################################################
 
-# Contact Models
 dyn:Contact_AutomaticSingle rdf:type owl:NamedIndividual, dyn:ContactModel ;
     rdfs:label "Automatic Single Surface"@en ;
     dyn:hasName "Automatic Single Surface Contact"@en ;
     dyn:hasContactType "Automatic_Single_Surface"@en ;
-    dyn:hasStaticFriction 0.2e0 ;
-    dyn:hasDynamicFriction 0.15e0 ;
+    dyn:hasStaticFriction 0.2 ;
+    dyn:hasDynamicFriction 0.15 ;
     dyn:hasDescription "Self-contact algorithm for SHPB simulations"@en .
 
 dyn:Contact_Tied rdf:type owl:NamedIndividual, dyn:ContactModel ;
@@ -242,95 +144,37 @@ dyn:Contact_Tied rdf:type owl:NamedIndividual, dyn:ContactModel ;
     dyn:hasContactType "Tied"@en ;
     dyn:hasDescription "Perfect bonding between surfaces"@en .
 
-#################################################################
-#    Simulation Output Requests
-#################################################################
-
-# Standard Output Requests
-dyn:OutputRequest_GlobalEnergy rdf:type owl:NamedIndividual, dyn:OutputRequest ;
-    rdfs:label "Global Energy Output"@en ;
-    dyn:hasName "Global Energy History"@en ;
-    dyn:hasOutputType "Global"@en ;
-    dyn:hasOutputVariable "Total_Energy"@en ;
-    dyn:hasOutputFrequency 1000 ;
-    dyn:hasDescription "Global energy balance for simulation validation"@en .
-
-dyn:OutputRequest_StressStrain rdf:type owl:NamedIndividual, dyn:OutputRequest ;
-    rdfs:label "Stress-Strain Output"@en ;
-    dyn:hasName "Element Stress-Strain Data"@en ;
-    dyn:hasOutputType "Element"@en ;
-    dyn:hasOutputVariable "Stress,Strain"@en ;
-    dyn:hasOutputFrequency 500 ;
-    dyn:hasDescription "Element-level stress and strain data"@en .
-
-dyn:OutputRequest_NodalDisplacement rdf:type owl:NamedIndividual, dyn:OutputRequest ;
-    rdfs:label "Nodal Displacement Output"@en ;
-    dyn:hasName "Nodal Displacement Data"@en ;
-    dyn:hasOutputType "Nodal"@en ;
-    dyn:hasOutputVariable "Displacement"@en ;
-    dyn:hasOutputFrequency 250 ;
-    dyn:hasDescription "Nodal displacement for deformation analysis"@en .
+dyn:Contact_Eroding rdf:type owl:NamedIndividual, dyn:ContactModel ;
+    rdfs:label "Eroding Contact"@en ;
+    dyn:hasName "Eroding Single Surface Contact"@en ;
+    dyn:hasContactType "Eroding_Single_Surface"@en ;
+    dyn:hasStaticFriction 0.1 ;
+    dyn:hasDynamicFriction 0.05 ;
+    dyn:hasDescription "Contact with element deletion for failure modeling"@en .
 
 #################################################################
-#    Mesh Generators and Tools
+#    EXAMPLE SIMULATION USAGE (COMMENTED FOR REFERENCE)
 #################################################################
 
-# Mesh Generation Software
-dyn:HyperMesh_2023 rdf:type owl:NamedIndividual, dyn:MeshGenerator ;
-    rdfs:label "HyperMesh 2023"@en ;
-    dyn:hasName "Altair HyperMesh 2023"@en ;
-    dyn:hasVersion "2023.0"@en ;
-    dyn:hasManufacturer "Altair"@en ;
-    dyn:hasDescription "Advanced finite element pre-processing software"@en .
-
-dyn:LSPrePost_R13 rdf:type owl:NamedIndividual, dyn:MeshGenerator ;
-    rdfs:label "LS-PrePost R13"@en ;
-    dyn:hasName "LS-PrePost R13.1"@en ;
-    dyn:hasVersion "R13.1"@en ;
-    dyn:hasManufacturer "Ansys"@en ;
-    dyn:hasDescription "LS-DYNA pre and post-processing software"@en .
-
-#################################################################
-#    High Performance Computing Resources
-#################################################################
-
-# HPC Clusters
-dyn:HPC_LocalCluster rdf:type owl:NamedIndividual, dyn:ComputeResource ;
-    rdfs:label "Local HPC Cluster"@en ;
-    dyn:hasName "UTEP DynaMat Compute Cluster"@en ;
-    dyn:hasNodeCount 16 ;
-    dyn:hasCoreCount 320 ;
-    dyn:hasMemoryGB 1280 ;
-    dyn:hasOperatingSystem "CentOS 7"@en ;
-    dyn:hasJobScheduler "SLURM"@en ;
-    dyn:hasDescription "Local high-performance computing cluster"@en .
-
-dyn:Workstation_Primary rdf:type owl:NamedIndividual, dyn:ComputeResource ;
-    rdfs:label "Primary Workstation"@en ;
-    dyn:hasName "Engineering Workstation WS-01"@en ;
-    dyn:hasNodeCount 1 ;
-    dyn:hasCoreCount 32 ;
-    dyn:hasMemoryGB 128 ;
-    dyn:hasOperatingSystem "Ubuntu 22.04"@en ;
-    dyn:hasDescription "Primary engineering workstation for simulation"@en .
-
-#################################################################
-#    Simulation Workflows
-#################################################################
-
-# Standard Workflows
-dyn:Workflow_SHPBReproduction rdf:type owl:NamedIndividual, dyn:SimulationWorkflow ;
-    rdfs:label "SHPB Reproduction Workflow"@en ;
-    dyn:hasName "Standard SHPB Test Reproduction Workflow"@en ;
-    dyn:hasDescription "Complete workflow for reproducing SHPB experimental tests"@en ;
-    dyn:hasWorkflowSteps "1. Mesh Generation, 2. Material Calibration, 3. Simulation Setup, 4. Execution, 5. Post-processing"@en ;
-    dyn:hasEstimatedRuntime 8.0e0 ;
-    dyn:hasEstimatedCoreHours 64.0e0 .
-
-dyn:Workflow_VirtualDesign rdf:type owl:NamedIndividual, dyn:SimulationWorkflow ;
-    rdfs:label "Virtual Design Workflow"@en ;
-    dyn:hasName "Virtual Design Exploration Workflow"@en ;
-    dyn:hasDescription "Workflow for virtual design and parameter studies"@en ;
-    dyn:hasWorkflowSteps "1. Parametric Mesh, 2. DOE Setup, 3. Batch Execution, 4. Statistics Analysis"@en ;
-    dyn:hasEstimatedRuntime 24.0e0 ;
-    dyn:hasEstimatedCoreHours 192.0e0 .
+# Example of how simulation individuals would be used:
+# (Keep commented as reference)
+#
+# dyn:SIM_AL001_SHPB_001 rdf:type owl:NamedIndividual, dyn:Simulation ;
+#     rdfs:label "SIM-AL001-SHPB-001"@en ;
+#     dyn:hasSimulationID "SIM-AL001-SHPB-001"@en ;
+#     dyn:hasSimulationType "SHPB Reproduction"@en ;
+#     # Link to experimental test for reproduction simulations
+#     dyn:hasReproductionSimulation dyn:TEST_AL001_SHPB_001 ;
+#     # Software and models using individuals
+#     dyn:hasSoftwareModel dyn:LSDYNA_R14 ;
+#     dyn:hasMaterialModel dyn:JohnsonCook_Al6061 ;
+#     dyn:hasFEMesh dyn:CylindricalMesh_Standard ;
+#     # Boundary conditions and contacts
+#     dyn:hasBoundaryCondition dyn:FixedSupport, dyn:VelocityBC ;
+#     dyn:hasContactModel dyn:Contact_AutomaticSingle ;
+#     # Simulation parameters as data properties
+#     dyn:hasTimeStep 5e-8 ;           # seconds
+#     dyn:hasTerminationTime 500e-6 ;  # seconds
+#     dyn:hasInitialVelocity 12.5 ;    # m/s (striker velocity)
+#     # Data files for results
+#     dyn:hasDataFile dyn:DataFile_SIM_AL001_Results ;
