@@ -1,0 +1,65 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix template: <https://dynamat.utep.edu/templates/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# =============================================================================
+# SHPB Standard Setup Template
+# Template for typical SHPB compression test configuration
+# =============================================================================
+
+# Template metadata
+template:shpb_standard_setup rdf:type dyn:Template ;
+    dyn:hasName "SHPB Standard Setup" ;
+    dyn:hasDescription "Standard configuration for SHPB compression tests with C350 steel bars" ;
+    dyn:hasCategory "equipment" ;
+    dyn:hasVersion "1.0" ;
+    dyn:hasTargetClass dyn:SHPBCompression ;
+    dyn:hasAuthor "DynaMat Lab" ;
+    dyn:hasCreatedDate "2024-12-15T10:00:00Z"^^xsd:dateTime ;
+    dyn:hasTags "SHPB, compression, standard, C350" .
+
+# Example SHPB test configuration
+template:shpb_standard_example rdf:type dyn:SHPBCompression, owl:NamedIndividual ;
+    rdfs:label "SHPB Standard Configuration Example" ;
+    
+    # Equipment configuration
+    dyn:hasStrikerBar dyn:StrikerBar_C350_2ft ;
+    dyn:hasIncidentBar dyn:IncidentBar_C350_6ft ;
+    dyn:hasTransmissionBar dyn:TransmissionBar_C350_6ft ;
+    dyn:hasMomentumTrap dyn:MomentumTrap_Full ;
+    
+    # Test conditions
+    dyn:hasStrikerVelocity 15.0 ;           # m/s
+    dyn:hasStrikerLength 609.6 ;            # mm (2 ft)
+    dyn:hasIncidentBarLength 1828.8 ;       # mm (6 ft)
+    dyn:hasTransmissionBarLength 1828.8 ;   # mm (6 ft)
+    dyn:hasBarrelOffset 0.0 ;               # mm
+    dyn:hasLubricationUsed false ;
+    dyn:hasPulseShaping false ;
+    
+    # Data acquisition
+    dyn:hasSamplingRate 2000000.0 ;         # Hz (2 MHz)
+    dyn:hasDataAcquisitionSystem dyn:DAQ_HighSpeed ;
+    dyn:hasFilterFrequency 500000.0 ;       # Hz (500 kHz)
+    
+    # Strain gauge configuration
+    dyn:hasStrainGauge dyn:StrainGauge_INC_SG1, dyn:StrainGauge_TRA_SG1 ;
+    dyn:hasIncidentStrainGaugeDistance 915.0 ;     # mm
+    dyn:hasTransmissionStrainGaugeDistance 915.0 ; # mm
+    dyn:hasGaugeFactor 2.12 ;
+    dyn:hasGaugeResistance 350.0 ;          # Ohms
+    dyn:hasCalibrationVoltage 5.0 ;         # V
+    dyn:hasDataBitResolution 16 ;           # bits
+    dyn:hasCompressionSign "negative" ;
+    
+    # Environmental conditions
+    dyn:hasTestTemperature 23.0 ;           # °C (room temperature)
+    
+    # Test validity settings
+    dyn:hasTestValidity "valid" ;
+    
+    # Notes
+    dyn:hasDescription "Standard SHPB compression test setup for room temperature testing of cylindrical specimens" .

@@ -1,606 +1,593 @@
 """
-DynaMat Query Builder
-
-Domain-specific query methods that hide SPARQL complexity from users.
-Provides intuitive methods for common materials testing queries.
+DynaMat Platform - Query Builder
+High-level query utilities for common DynaMat operations
 """
 
-from typing import Dict, List, Optional, Any, Union, Tuple
+import logging
+from typing import Dict, List, Optional, Any, Union
+from datetime import datetime, date
 from dataclasses import dataclass
-from datetime import datetime
-import rdflib
-from rdflib import Graph, Namespace
-from rdflib.namespace import RDF, RDFS, OWL
 
-from ..config import config
+from .manager import OntologyManager, QueryMode
 
 
-@dataclass
-class QueryFilter:
-    """Represents a filter condition for queries"""
-    property: str
-    operator: str  # =, >, <, >=, <=, !=, contains
-    value: Any
-    unit: Optional[str] = None
+logger = logging.getLogger(__name__)
 
 
 @dataclass
-class QueryResult:
-    """Structured query result"""
-    uri: str
-    name: str
-    properties: Dict[str, Any]
-    measurements: Dict[str, Any]
+class TestSearchCriteria:
+    """Criteria for searching mechanical tests"""
+    specimen_id: Optional[str] = None
+    material_name: Optional[str] = None
+    test_type: Optional[str] = None
+    date_from: Optional[Union[str, date]] = None
+    date_to: Optional[Union[str, date]] = None
+    strain_rate_min: Optional[float] = None
+    strain_rate_max: Optional[float] = None
+    temperature_min: Optional[float] = None
+    temperature_max: Optional[float] = None
+    operator: Optional[str] = None
 
 
-class DomainQueryBuilder:
+@dataclass
+class SpecimenSearchCriteria:
+    """Criteria for searching specimens"""
+    material_name: Optional[str] = None
+    structure_type: Optional[str] = None
+    shape: Optional[str] = None
+    batch_id: Optional[str] = None
+    creation_date_from: Optional[Union[str, date]] = None
+    creation_date_to: Optional[Union[str, date]] = None
+    diameter_min: Optional[float] = None
+    diameter_max: Optional[float] = None
+    length_min: Optional[float] = None
+    length_max: Optional[float] = None
+
+
+class DynaMatQueryBuilder:
     """
-    Domain-specific query builder for DynaMat.
+    High-level query builder for common DynaMat operations.
     
-    Provides intuitive methods like:
-    - find_tests(material="Al6061", strain_rate_min=1000)
-    - get_specimen_history(specimen_uri)
-    - compare_materials(["Al6061", "SS316"])
+    Provides domain-specific methods that hide SPARQL complexity
+    and offer intuitive interfaces for materials testing data.
     """
     
-    def __init__(self, graph: Graph):
-        """Initialize with an RDF graph"""
-        self.graph = graph
-        self.dyn = Namespace(config.ONTOLOGY_URI)
-        
-        # Common SPARQL prefixes
-        self.prefixes = """
-        PREFIX dyn: <{}>
-        PREFIX rdf: <{}>
-        PREFIX rdfs: <{}>
-        PREFIX owl: <{}>
-        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-        """.format(config.ONTOLOGY_URI, RDF, RDFS, OWL)
-    
-    # =============================================================================
-    # TEST FINDING METHODS
-    # =============================================================================
-    
-    def find_tests(
-        self,
-        material: Optional[str] = None,
-        test_type: Optional[str] = None,
-        strain_rate_min: Optional[float] = None,
-        strain_rate_max: Optional[float] = None,
-        temperature: Optional[float] = None,
-        date_from: Optional[datetime] = None,
-        date_to: Optional[datetime] = None,
-        user: Optional[str] = None
-    ) -> List[QueryResult]:
+    def __init__(self, ontology_manager: OntologyManager):
         """
-        Find tests matching the specified criteria.
+        Initialize with an ontology manager instance.
         
-        Example usage:
-        - find_tests(material="Al6061", strain_rate_min=1000)
-        - find_tests(test_type="SHPBTest", temperature=25)
+        Args:
+            ontology_manager: Initialized OntologyManager instance
+        """
+        self.manager = ontology_manager
+        self.dyn = ontology_manager.DYN
+    
+    # ============================================================================
+    # MATERIAL QUERIES
+    # ============================================================================
+    
+    def get_available_materials(self) -> List[Dict[str, Any]]:
+        """Get all available materials with basic properties"""
+        query = """
+        SELECT ?material ?materialName ?materialCode ?alloyDesignation ?description WHERE {
+            ?material rdf:type dyn:Material .
+            OPTIONAL { ?material dyn:hasMaterialName ?materialName }
+            OPTIONAL { ?material dyn:hasMaterialCode ?materialCode }
+            OPTIONAL { ?material dyn:hasAlloyDesignation ?alloyDesignation }
+            OPTIONAL { ?material dyn:hasDescription ?description }
+        }
+        ORDER BY ?materialName ?materialCode
         """
         
-        # Build WHERE clauses based on parameters
-        where_clauses = [
-            "?test a/rdfs:subClassOf* dyn:MechanicalTest .",
-            "?test dyn:performedOn ?specimen ."
-        ]
+        results = self.manager._execute_query(query)
         
-        if material:
-            where_clauses.extend([
-                "?specimen dyn:hasMaterial ?material .",
-                f"?material rdfs:label \"{material}\" ."
-            ])
-        
-        if test_type:
-            where_clauses.append(f"?test a dyn:{test_type} .")
-        
-        if strain_rate_min or strain_rate_max:
-            where_clauses.extend([
-                "?test dyn:hasSeriesData ?strainRateData .",
-                "?strainRateData rdfs:label \"Engineering Strain Rate\" .",
-                "?strainRateData dyn:hasValue ?strainRate ."
-            ])
-            
-            if strain_rate_min:
-                where_clauses.append(f"FILTER(?strainRate >= {strain_rate_min})")
-            if strain_rate_max:
-                where_clauses.append(f"FILTER(?strainRate <= {strain_rate_max})")
-        
-        if temperature:
-            where_clauses.extend([
-                "?test dyn:hasTestingConditions ?conditions .",
-                "?conditions dyn:TestingTemperature ?tempValue .",
-                "?tempValue dyn:hasValue ?temp .",
-                f"FILTER(?temp = {temperature})"
-            ])
-        
-        if user:
-            where_clauses.extend([
-                "?test dyn:hasUser ?userObj .",
-                f"?userObj dyn:hasName \"{user}\" ."
-            ])
-        
-        if date_from or date_to:
-            where_clauses.append("?test dyn:hasDate ?date .")
-            if date_from:
-                where_clauses.append(f"FILTER(?date >= \"{date_from.strftime('%Y-%m-%d')}\"^^xsd:date)")
-            if date_to:
-                where_clauses.append(f"FILTER(?date <= \"{date_to.strftime('%Y-%m-%d')}\"^^xsd:date)")
-        
-        # Build complete query
-        query = f"""
-        {self.prefixes}
-        SELECT DISTINCT ?test ?testName WHERE {{
-            {' '.join(where_clauses)}
-            OPTIONAL {{ ?test rdfs:label ?testName }}
-        }}
-        ORDER BY ?test
-        """
-        
-        results = []
-        for row in self.graph.query(query):
-            test_uri = str(row.test)
-            test_name = str(row.testName) if row.testName else self._extract_name(test_uri)
-            
-            # Get additional info for each test
-            test_info = self._get_test_details(test_uri)
-            
-            results.append(QueryResult(
-                uri=test_uri,
-                name=test_name,
-                properties=test_info['properties'],
-                measurements=test_info['measurements']
-            ))
-        
-        return results
-    
-    def find_specimens(
-        self,
-        material: Optional[str] = None,
-        structure: Optional[str] = None,
-        processing: Optional[str] = None,
-        role: Optional[str] = None,
-        batch: Optional[str] = None
-    ) -> List[QueryResult]:
-        """Find specimens matching criteria"""
-        
-        where_clauses = ["?specimen a dyn:Specimen ."]
-        
-        if material:
-            where_clauses.extend([
-                "?specimen dyn:hasMaterial ?material .",
-                f"?material rdfs:label \"{material}\" ."
-            ])
-        
-        if structure:
-            where_clauses.extend([
-                "?specimen dyn:hasStructure ?structure .",
-                f"?structure rdfs:label \"{structure}\" ."
-            ])
-        
-        if processing:
-            where_clauses.extend([
-                "?specimen dyn:hasProcessingHistory ?process .",
-                f"?process rdfs:label \"{processing}\" ."
-            ])
-        
-        if role:
-            where_clauses.extend([
-                "?specimen dyn:hasSpecimenRole ?role .",
-                f"?role rdfs:label \"{role}\" ."
-            ])
-        
-        if batch:
-            where_clauses.extend([
-                "?specimen dyn:fromBatch ?batch .",
-                f"?batch rdfs:label \"{batch}\" ."
-            ])
-        
-        query = f"""
-        {self.prefixes}
-        SELECT DISTINCT ?specimen ?specimenName WHERE {{
-            {' '.join(where_clauses)}
-            OPTIONAL {{ ?specimen rdfs:label ?specimenName }}
-        }}
-        ORDER BY ?specimen
-        """
-        
-        results = []
-        for row in self.graph.query(query):
-            specimen_uri = str(row.specimen)
-            specimen_name = str(row.specimenName) if row.specimenName else self._extract_name(specimen_uri)
-            
-            specimen_info = self._get_specimen_details(specimen_uri)
-            
-            results.append(QueryResult(
-                uri=specimen_uri,
-                name=specimen_name,
-                properties=specimen_info['properties'],
-                measurements=specimen_info['measurements']
-            ))
-        
-        return results
-    
-    # =============================================================================
-    # MEASUREMENT AND COMPARISON METHODS
-    # =============================================================================
-    
-    def get_measurement_range(
-        self,
-        measurement_name: str,
-        material: Optional[str] = None,
-        test_type: Optional[str] = None
-    ) -> Dict[str, float]:
-        """Get min/max/avg for a measurement across tests"""
-        
-        where_clauses = [
-            "?test a/rdfs:subClassOf* dyn:MechanicalTest .",
-            "?test dyn:hasSeriesData ?measurement .",
-            f"?measurement rdfs:label \"{measurement_name}\" .",
-            "?measurement dyn:hasValue ?value ."
-        ]
-        
-        if material:
-            where_clauses.extend([
-                "?test dyn:performedOn ?specimen .",
-                "?specimen dyn:hasMaterial ?material .",
-                f"?material rdfs:label \"{material}\" ."
-            ])
-        
-        if test_type:
-            where_clauses.append(f"?test a dyn:{test_type} .")
-        
-        query = f"""
-        {self.prefixes}
-        SELECT (MIN(?value) AS ?min) (MAX(?value) AS ?max) (AVG(?value) AS ?avg) (COUNT(?value) AS ?count) WHERE {{
-            {' '.join(where_clauses)}
-        }}
-        """
-        
-        for row in self.graph.query(query):
-            return {
-                'min': float(row.min) if row.min else None,
-                'max': float(row.max) if row.max else None,
-                'avg': float(row.avg) if row.avg else None,
-                'count': int(row.count) if row.count else 0
+        materials = []
+        for row in results:
+            material_data = {
+                "uri": str(row.material),
+                "name": str(row.materialName) if row.materialName else "",
+                "code": str(row.materialCode) if row.materialCode else "",
+                "alloy": str(row.alloyDesignation) if row.alloyDesignation else "",
+                "description": str(row.description) if row.description else ""
             }
+            materials.append(material_data)
         
-        return {'min': None, 'max': None, 'avg': None, 'count': 0}
+        return materials
     
-    def compare_materials(
-        self,
-        materials: List[str],
-        measurement_name: str,
-        test_type: Optional[str] = None
-    ) -> Dict[str, Dict[str, float]]:
-        """Compare a measurement across different materials"""
+    def get_material_properties(self, material_uri: str) -> Dict[str, Any]:
+        """Get comprehensive material properties including provenance"""
+        query = """
+        SELECT ?property ?value ?unit ?uncertainty ?provenance ?source WHERE {
+            ?material dyn:hasPropertyValue ?propertyValue .
+            ?propertyValue dyn:hasProperty ?property .
+            ?propertyValue dyn:hasValue ?value .
+            OPTIONAL { ?propertyValue dyn:hasUnit ?unit }
+            OPTIONAL { ?propertyValue dyn:hasUncertainty ?uncertainty }
+            OPTIONAL { ?propertyValue dyn:hasProvenance ?provenance }
+            OPTIONAL { ?propertyValue dyn:hasSource ?source }
+        }
+        """
         
-        results = {}
-        for material in materials:
-            results[material] = self.get_measurement_range(
-                measurement_name=measurement_name,
-                material=material,
-                test_type=test_type
-            )
+        results = self.manager._execute_query(query, {"material": self.manager.URIRef(material_uri)})
         
-        return results
+        properties = {}
+        for row in results:
+            prop_name = self.manager._extract_local_name(str(row.property))
+            prop_data = {
+                "value": float(row.value) if row.value else None,
+                "unit": str(row.unit) if row.unit else None,
+                "uncertainty": float(row.uncertainty) if row.uncertainty else None,
+                "provenance": str(row.provenance) if row.provenance else None,
+                "source": str(row.source) if row.source else None
+            }
+            properties[prop_name] = prop_data
+        
+        return properties
     
-    def get_strain_rate_vs_strength(
-        self,
-        material: Optional[str] = None,
-        test_type: str = "SHPBTest"
-    ) -> List[Tuple[float, float]]:
-        """Get strain rate vs yield strength data points"""
+    def find_materials_by_property(self, property_name: str, 
+                                 value_min: Optional[float] = None,
+                                 value_max: Optional[float] = None) -> List[Dict[str, Any]]:
+        """Find materials based on property value ranges"""
+        conditions = []
+        bindings = {}
         
-        where_clauses = [
-            f"?test a dyn:{test_type} .",
-            "?test dyn:hasSeriesData ?strainRate .",
-            "?strainRate rdfs:label \"Engineering Strain Rate\" .",
-            "?strainRate dyn:hasValue ?strainRateValue .",
-            "?test dyn:hasSeriesData ?strength .",
-            "?strength rdfs:label \"Engineering Stress\" .",
-            "?strength dyn:hasValue ?strengthValue ."
-        ]
+        if value_min is not None:
+            conditions.append("FILTER(?value >= ?minValue)")
+            bindings["minValue"] = self.manager.Literal(value_min)
         
-        if material:
-            where_clauses.extend([
-                "?test dyn:performedOn ?specimen .",
-                "?specimen dyn:hasMaterial ?materialObj .",
-                f"?materialObj rdfs:label \"{material}\" ."
-            ])
+        if value_max is not None:
+            conditions.append("FILTER(?value <= ?maxValue)")
+            bindings["maxValue"] = self.manager.Literal(value_max)
+        
+        # Try both direct property and PropertyValue pattern
+        query = f"""
+        SELECT DISTINCT ?material ?materialName ?value ?unit WHERE {{
+            {{
+                # Direct property pattern
+                ?material dyn:has{property_name} ?value .
+                OPTIONAL {{ ?material dyn:hasMaterialName ?materialName }}
+                {' '.join(conditions)}
+            }}
+            UNION
+            {{
+                # PropertyValue pattern
+                ?material dyn:hasPropertyValue ?propertyValue .
+                ?propertyValue dyn:hasProperty dyn:{property_name} .
+                ?propertyValue dyn:hasValue ?value .
+                OPTIONAL {{ ?propertyValue dyn:hasUnit ?unit }}
+                OPTIONAL {{ ?material dyn:hasMaterialName ?materialName }}
+                {' '.join(conditions)}
+            }}
+        }}
+        ORDER BY ?value
+        """
+        
+        results = self.manager._execute_query(query, bindings)
+        
+        materials = []
+        for row in results:
+            material_data = {
+                "uri": str(row.material),
+                "name": str(row.materialName) if row.materialName else "",
+                "value": float(row.value) if row.value else None,
+                "unit": str(row.unit) if row.unit else None
+            }
+            materials.append(material_data)
+        
+        return materials
+    
+    # ============================================================================
+    # SPECIMEN QUERIES
+    # ============================================================================
+    
+    def search_specimens(self, criteria: SpecimenSearchCriteria) -> List[Dict[str, Any]]:
+        """Search specimens using structured criteria"""
+        conditions = []
+        bindings = {}
+        
+        if criteria.material_name:
+            conditions.append("""
+                ?specimen dyn:hasMaterial ?material .
+                ?material dyn:hasMaterialName ?materialName .
+                FILTER(CONTAINS(LCASE(?materialName), LCASE(?materialFilter)))
+            """)
+            bindings["materialFilter"] = self.manager.Literal(criteria.material_name)
+        
+        if criteria.structure_type:
+            conditions.append("""
+                ?specimen dyn:hasStructure ?structure .
+                ?structure dyn:hasName ?structureName .
+                FILTER(CONTAINS(LCASE(?structureName), LCASE(?structureFilter)))
+            """)
+            bindings["structureFilter"] = self.manager.Literal(criteria.structure_type)
+        
+        if criteria.shape:
+            conditions.append("""
+                ?specimen dyn:hasShape ?shape .
+                ?shape dyn:hasName ?shapeName .
+                FILTER(CONTAINS(LCASE(?shapeName), LCASE(?shapeFilter)))
+            """)
+            bindings["shapeFilter"] = self.manager.Literal(criteria.shape)
+        
+        if criteria.batch_id:
+            conditions.append("?specimen dyn:hasSpecimenBatchID ?batchId .")
+            bindings["batchId"] = self.manager.Literal(criteria.batch_id)
+        
+        if criteria.creation_date_from:
+            date_str = criteria.creation_date_from if isinstance(criteria.creation_date_from, str) else criteria.creation_date_from.isoformat()
+            conditions.append("?specimen dyn:hasCreationDate ?creationDate . FILTER(?creationDate >= ?dateFrom)")
+            bindings["dateFrom"] = self.manager.Literal(date_str, datatype=self.manager.XSD.date)
+        
+        if criteria.creation_date_to:
+            date_str = criteria.creation_date_to if isinstance(criteria.creation_date_to, str) else criteria.creation_date_to.isoformat()
+            conditions.append("?specimen dyn:hasCreationDate ?creationDate . FILTER(?creationDate <= ?dateTo)")
+            bindings["dateTo"] = self.manager.Literal(date_str, datatype=self.manager.XSD.date)
+        
+        if criteria.diameter_min:
+            conditions.append("?specimen dyn:hasOriginalDiameter ?diameter . FILTER(?diameter >= ?diameterMin)")
+            bindings["diameterMin"] = self.manager.Literal(criteria.diameter_min)
+        
+        if criteria.diameter_max:
+            conditions.append("?specimen dyn:hasOriginalDiameter ?diameter . FILTER(?diameter <= ?diameterMax)")
+            bindings["diameterMax"] = self.manager.Literal(criteria.diameter_max)
+        
+        if criteria.length_min:
+            conditions.append("?specimen dyn:hasOriginalLength ?length . FILTER(?length >= ?lengthMin)")
+            bindings["lengthMin"] = self.manager.Literal(criteria.length_min)
+        
+        if criteria.length_max:
+            conditions.append("?specimen dyn:hasOriginalLength ?length . FILTER(?length <= ?lengthMax)")
+            bindings["lengthMax"] = self.manager.Literal(criteria.length_max)
         
         query = f"""
-        {self.prefixes}
-        SELECT ?strainRateValue ?strengthValue WHERE {{
-            {' '.join(where_clauses)}
-        }}
-        ORDER BY ?strainRateValue
-        """
-        
-        data_points = []
-        for row in self.graph.query(query):
-            strain_rate = float(row.strainRateValue)
-            strength = float(row.strengthValue)
-            data_points.append((strain_rate, strength))
-        
-        return data_points
-    
-    # =============================================================================
-    # HISTORY AND PROVENANCE METHODS
-    # =============================================================================
-    
-    def get_specimen_history(self, specimen_uri: str) -> Dict[str, Any]:
-        """Get complete history of a specimen including all tests"""
-        
-        specimen_uri = self._ensure_uri(specimen_uri)
-        
-        # Get basic specimen info
-        history = {
-            'specimen_id': self._extract_name(specimen_uri),
-            'material': None,
-            'structure': None,
-            'processing_steps': [],
-            'tests_performed': [],
-            'measurements': {}
-        }
-        
-        # Get material
-        material_query = f"""
-        {self.prefixes}
-        SELECT ?material ?materialName WHERE {{
-            <{specimen_uri}> dyn:hasMaterial ?material .
-            ?material rdfs:label ?materialName .
-        }}
-        """
-        for row in self.graph.query(material_query):
-            history['material'] = str(row.materialName)
-            break
-        
-        # Get structure
-        structure_query = f"""
-        {self.prefixes}
-        SELECT ?structure ?structureName WHERE {{
-            <{specimen_uri}> dyn:hasStructure ?structure .
-            ?structure rdfs:label ?structureName .
-        }}
-        """
-        for row in self.graph.query(structure_query):
-            history['structure'] = str(row.structureName)
-            break
-        
-        # Get processing steps
-        processing_query = f"""
-        {self.prefixes}
-        SELECT ?process ?processName WHERE {{
-            <{specimen_uri}> dyn:hasProcessingHistory ?process .
-            ?process rdfs:label ?processName .
-        }}
-        ORDER BY ?process
-        """
-        for row in self.graph.query(processing_query):
-            history['processing_steps'].append(str(row.processName))
-        
-        # Get all tests on this specimen
-        tests_query = f"""
-        {self.prefixes}
-        SELECT ?test ?testType ?date WHERE {{
-            ?test dyn:performedOn <{specimen_uri}> .
-            ?test a ?testType .
-            OPTIONAL {{ ?test dyn:hasDate ?date }}
-        }}
-        ORDER BY ?date
-        """
-        for row in self.graph.query(tests_query):
-            test_name = self._extract_name(str(row.test))
-            test_type = self._extract_name(str(row.testType))
-            test_date = str(row.date) if row.date else None
+        SELECT ?specimen ?specimenID ?materialName ?structureName ?shapeName 
+               ?diameter ?length ?creationDate ?description WHERE {{
+            ?specimen rdf:type dyn:Specimen .
+            ?specimen dyn:hasSpecimenID ?specimenID .
             
-            history['tests_performed'].append({
-                'test_id': test_name,
-                'test_type': test_type,
-                'date': test_date
-            })
+            OPTIONAL {{
+                ?specimen dyn:hasMaterial ?material .
+                ?material dyn:hasMaterialName ?materialName .
+            }}
+            
+            OPTIONAL {{
+                ?specimen dyn:hasStructure ?structure .
+                ?structure dyn:hasName ?structureName .
+            }}
+            
+            OPTIONAL {{
+                ?specimen dyn:hasShape ?shape .
+                ?shape dyn:hasName ?shapeName .
+            }}
+            
+            OPTIONAL {{ ?specimen dyn:hasOriginalDiameter ?diameter }}
+            OPTIONAL {{ ?specimen dyn:hasOriginalLength ?length }}
+            OPTIONAL {{ ?specimen dyn:hasCreationDate ?creationDate }}
+            OPTIONAL {{ ?specimen dyn:hasDescription ?description }}
+            
+            {' '.join(conditions)}
+        }}
+        ORDER BY ?specimenID
+        """
         
-        return history
+        results = self.manager._execute_query(query, bindings)
+        
+        specimens = []
+        for row in results:
+            specimen_data = {
+                "uri": str(row.specimen),
+                "specimen_id": str(row.specimenID) if row.specimenID else "",
+                "material": str(row.materialName) if row.materialName else "",
+                "structure": str(row.structureName) if row.structureName else "",
+                "shape": str(row.shapeName) if row.shapeName else "",
+                "diameter": float(row.diameter) if row.diameter else None,
+                "length": float(row.length) if row.length else None,
+                "creation_date": str(row.creationDate) if row.creationDate else "",
+                "description": str(row.description) if row.description else ""
+            }
+            specimens.append(specimen_data)
+        
+        return specimens
     
-    def get_test_lineage(self, test_uri: str) -> Dict[str, Any]:
-        """Get the complete lineage of a test (specimen, material, equipment, etc.)"""
-        
-        test_uri = self._ensure_uri(test_uri)
-        
-        lineage = {
-            'test_id': self._extract_name(test_uri),
-            'specimen': None,
-            'material': None,
-            'equipment': [],
-            'testing_conditions': {},
-            'user': None,
-            'laboratory': None,
-            'date': None
+    def get_specimen_test_history(self, specimen_uri: str) -> List[Dict[str, Any]]:
+        """Get all tests performed on a specimen"""
+        query = """
+        SELECT ?test ?testID ?testDate ?testType ?operator WHERE {
+            ?test dyn:performedOn ?specimen .
+            ?test dyn:hasTestID ?testID .
+            ?test rdf:type ?testType .
+            OPTIONAL { ?test dyn:hasTestDate ?testDate }
+            OPTIONAL { 
+                ?test dyn:hasUser ?user .
+                ?user dyn:hasName ?operator 
+            }
         }
+        ORDER BY DESC(?testDate)
+        """
         
-        # Get all related information in one query
-        lineage_query = f"""
-        {self.prefixes}
-        SELECT ?specimen ?material ?equipment ?user ?lab ?date ?condition ?conditionValue WHERE {{
-            <{test_uri}> dyn:performedOn ?specimen .
+        results = self.manager._execute_query(query, {"specimen": self.manager.URIRef(specimen_uri)})
+        
+        tests = []
+        for row in results:
+            test_data = {
+                "uri": str(row.test),
+                "test_id": str(row.testID) if row.testID else "",
+                "test_date": str(row.testDate) if row.testDate else "",
+                "test_type": self.manager._extract_local_name(str(row.testType)),
+                "operator": str(row.operator) if row.operator else ""
+            }
+            tests.append(test_data)
+        
+        return tests
+    
+    # ============================================================================
+    # TEST QUERIES
+    # ============================================================================
+    
+    def search_tests(self, criteria: TestSearchCriteria) -> List[Dict[str, Any]]:
+        """Search tests using structured criteria"""
+        conditions = []
+        bindings = {}
+        
+        if criteria.specimen_id:
+            conditions.append("""
+                ?test dyn:performedOn ?specimen .
+                ?specimen dyn:hasSpecimenID ?specimenID .
+                FILTER(?specimenID = ?targetSpecimenID)
+            """)
+            bindings["targetSpecimenID"] = self.manager.Literal(criteria.specimen_id)
+        
+        if criteria.material_name:
+            conditions.append("""
+                ?test dyn:performedOn ?specimen .
+                ?specimen dyn:hasMaterial ?material .
+                ?material dyn:hasMaterialName ?materialName .
+                FILTER(CONTAINS(LCASE(?materialName), LCASE(?materialFilter)))
+            """)
+            bindings["materialFilter"] = self.manager.Literal(criteria.material_name)
+        
+        if criteria.test_type:
+            # Map common test type names
+            type_mapping = {
+                "SHPB": "SHPBCompression",
+                "Quasistatic": "QuasistaticTest", 
+                "Tensile": "TensileTest"
+            }
+            test_type = type_mapping.get(criteria.test_type, criteria.test_type)
+            conditions.append("?test rdf:type dyn:%s ." % test_type)
+        
+        if criteria.date_from:
+            date_str = criteria.date_from if isinstance(criteria.date_from, str) else criteria.date_from.isoformat()
+            conditions.append("?test dyn:hasTestDate ?testDate . FILTER(?testDate >= ?dateFrom)")
+            bindings["dateFrom"] = self.manager.Literal(date_str, datatype=self.manager.XSD.date)
+        
+        if criteria.date_to:
+            date_str = criteria.date_to if isinstance(criteria.date_to, str) else criteria.date_to.isoformat()
+            conditions.append("?test dyn:hasTestDate ?testDate . FILTER(?testDate <= ?dateTo)")
+            bindings["dateTo"] = self.manager.Literal(date_str, datatype=self.manager.XSD.date)
+        
+        if criteria.strain_rate_min:
+            conditions.append("?test dyn:hasTargetStrainRate ?strainRate . FILTER(?strainRate >= ?strainRateMin)")
+            bindings["strainRateMin"] = self.manager.Literal(criteria.strain_rate_min)
+        
+        if criteria.strain_rate_max:
+            conditions.append("?test dyn:hasTargetStrainRate ?strainRate . FILTER(?strainRate <= ?strainRateMax)")
+            bindings["strainRateMax"] = self.manager.Literal(criteria.strain_rate_max)
+        
+        if criteria.temperature_min:
+            conditions.append("?test dyn:hasTestTemperature ?temperature . FILTER(?temperature >= ?tempMin)")
+            bindings["tempMin"] = self.manager.Literal(criteria.temperature_min)
+        
+        if criteria.temperature_max:
+            conditions.append("?test dyn:hasTestTemperature ?temperature . FILTER(?temperature <= ?tempMax)")
+            bindings["tempMax"] = self.manager.Literal(criteria.temperature_max)
+        
+        if criteria.operator:
+            conditions.append("""
+                ?test dyn:hasUser ?user .
+                ?user dyn:hasName ?userName .
+                FILTER(CONTAINS(LCASE(?userName), LCASE(?operatorFilter)))
+            """)
+            bindings["operatorFilter"] = self.manager.Literal(criteria.operator)
+        
+        query = f"""
+        SELECT ?test ?testID ?testDate ?testType ?specimenID ?materialName 
+               ?strainRate ?temperature ?operator WHERE {{
+            ?test rdf:type dyn:MechanicalTest .
+            ?test dyn:hasTestID ?testID .
+            ?test rdf:type ?testType .
+            
+            OPTIONAL {{ ?test dyn:hasTestDate ?testDate }}
+            OPTIONAL {{ ?test dyn:hasTargetStrainRate ?strainRate }}
+            OPTIONAL {{ ?test dyn:hasTestTemperature ?temperature }}
+            
+            OPTIONAL {{
+                ?test dyn:performedOn ?specimen .
+                ?specimen dyn:hasSpecimenID ?specimenID .
+                OPTIONAL {{
+                    ?specimen dyn:hasMaterial ?material .
+                    ?material dyn:hasMaterialName ?materialName .
+                }}
+            }}
+            
+            OPTIONAL {{
+                ?test dyn:hasUser ?user .
+                ?user dyn:hasName ?operator .
+            }}
+            
+            {' '.join(conditions)}
+        }}
+        ORDER BY DESC(?testDate) ?testID
+        """
+        
+        results = self.manager._execute_query(query, bindings)
+        
+        tests = []
+        for row in results:
+            test_data = {
+                "uri": str(row.test),
+                "test_id": str(row.testID) if row.testID else "",
+                "test_date": str(row.testDate) if row.testDate else "",
+                "test_type": self.manager._extract_local_name(str(row.testType)),
+                "specimen_id": str(row.specimenID) if row.specimenID else "",
+                "material": str(row.materialName) if row.materialName else "",
+                "strain_rate": float(row.strainRate) if row.strainRate else None,
+                "temperature": float(row.temperature) if row.temperature else None,
+                "operator": str(row.operator) if row.operator else ""
+            }
+            tests.append(test_data)
+        
+        return tests
+    
+    def get_test_data_files(self, test_uri: str) -> List[Dict[str, Any]]:
+        """Get all data files associated with a test"""
+        query = """
+        SELECT ?dataFile ?fileName ?relativePath ?fileSize ?fileType WHERE {
+            ?test dyn:hasDataFile ?dataFile .
+            OPTIONAL { ?dataFile dyn:hasFileName ?fileName }
+            OPTIONAL { ?dataFile dyn:hasRelativePath ?relativePath }
+            OPTIONAL { ?dataFile dyn:hasFileSize ?fileSize }
+            OPTIONAL { ?dataFile dyn:hasFormat ?fileType }
+        }
+        ORDER BY ?fileName
+        """
+        
+        results = self.manager._execute_query(query, {"test": self.manager.URIRef(test_uri)})
+        
+        files = []
+        for row in results:
+            file_data = {
+                "uri": str(row.dataFile),
+                "filename": str(row.fileName) if row.fileName else "",
+                "path": str(row.relativePath) if row.relativePath else "",
+                "size": int(row.fileSize) if row.fileSize else 0,
+                "type": str(row.fileType) if row.fileType else ""
+            }
+            files.append(file_data)
+        
+        return files
+    
+    # ============================================================================
+    # EQUIPMENT QUERIES
+    # ============================================================================
+    
+    def get_available_equipment(self, equipment_type: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get available equipment, optionally filtered by type"""
+        conditions = []
+        if equipment_type:
+            conditions.append(f"?equipment rdf:type dyn:{equipment_type} .")
+        
+        query = f"""
+        SELECT ?equipment ?name ?model ?manufacturer ?description WHERE {{
+            ?equipment rdf:type dyn:Equipment .
+            OPTIONAL {{ ?equipment dyn:hasName ?name }}
+            OPTIONAL {{ ?equipment dyn:hasModel ?model }}
+            OPTIONAL {{ ?equipment dyn:hasManufacturer ?manufacturer }}
+            OPTIONAL {{ ?equipment dyn:hasDescription ?description }}
+            
+            {' '.join(conditions)}
+        }}
+        ORDER BY ?name
+        """
+        
+        results = self.manager._execute_query(query)
+        
+        equipment = []
+        for row in results:
+            equip_data = {
+                "uri": str(row.equipment),
+                "name": str(row.name) if row.name else "",
+                "model": str(row.model) if row.model else "",
+                "manufacturer": str(row.manufacturer) if row.manufacturer else "",
+                "description": str(row.description) if row.description else ""
+            }
+            equipment.append(equip_data)
+        
+        return equipment
+    
+    # ============================================================================
+    # STATISTICAL QUERIES
+    # ============================================================================
+    
+    def get_test_statistics(self) -> Dict[str, Any]:
+        """Get statistics about tests in the database"""
+        stats = {}
+        
+        # Total test count
+        query = "SELECT (COUNT(?test) AS ?count) WHERE { ?test rdf:type dyn:MechanicalTest }"
+        result = self.manager._execute_query(query)
+        stats["total_tests"] = int(result[0].count) if result else 0
+        
+        # Tests by type
+        query = """
+        SELECT ?testType (COUNT(?test) AS ?count) WHERE {
+            ?test rdf:type ?testType .
+            ?testType rdfs:subClassOf dyn:MechanicalTest .
+        }
+        GROUP BY ?testType
+        ORDER BY DESC(?count)
+        """
+        results = self.manager._execute_query(query)
+        stats["tests_by_type"] = {}
+        for row in results:
+            test_type = self.manager._extract_local_name(str(row.testType))
+            stats["tests_by_type"][test_type] = int(row.count)
+        
+        # Tests by material
+        query = """
+        SELECT ?materialName (COUNT(?test) AS ?count) WHERE {
+            ?test dyn:performedOn ?specimen .
             ?specimen dyn:hasMaterial ?material .
-            OPTIONAL {{ <{test_uri}> dyn:hasEquipment ?equipment }}
-            OPTIONAL {{ <{test_uri}> dyn:hasUser ?user }}
-            OPTIONAL {{ <{test_uri}> dyn:hasLaboratory ?lab }}
-            OPTIONAL {{ <{test_uri}> dyn:hasDate ?date }}
-            OPTIONAL {{ 
-                <{test_uri}> dyn:hasTestingConditions ?conditions .
-                ?conditions ?condition ?conditionValue .
-            }}
-        }}
-        """
-        
-        for row in self.graph.query(lineage_query):
-            if row.specimen:
-                lineage['specimen'] = self._extract_name(str(row.specimen))
-            if row.material:
-                lineage['material'] = self._extract_name(str(row.material))
-            if row.equipment:
-                equipment_name = self._extract_name(str(row.equipment))
-                if equipment_name not in lineage['equipment']:
-                    lineage['equipment'].append(equipment_name)
-            if row.user:
-                lineage['user'] = self._extract_name(str(row.user))
-            if row.lab:
-                lineage['laboratory'] = self._extract_name(str(row.lab))
-            if row.date:
-                lineage['date'] = str(row.date)
-            if row.condition and row.conditionValue:
-                condition_name = self._extract_name(str(row.condition))
-                lineage['testing_conditions'][condition_name] = str(row.conditionValue)
-        
-        return lineage
-    
-    # =============================================================================
-    # VALIDATION AND QUALITY METHODS
-    # =============================================================================
-    
-    def find_invalid_tests(self) -> List[Dict[str, Any]]:
-        """Find tests that don't meet validity criteria"""
-        
-        query = f"""
-        {self.prefixes}
-        SELECT ?test ?criterion WHERE {{
-            ?test a/rdfs:subClassOf* dyn:MechanicalTest .
-            ?test dyn:SatisfiesValidationCriterion ?criterion .
-            FILTER NOT EXISTS {{
-                ?test dyn:SatisfiesValidationCriterion dyn:EquilibriumAchieved .
-            }}
-        }}
-        """
-        
-        invalid_tests = []
-        for row in self.graph.query(query):
-            test_name = self._extract_name(str(row.test))
-            criterion = self._extract_name(str(row.criterion))
-            
-            invalid_tests.append({
-                'test_id': test_name,
-                'missing_criterion': criterion
-            })
-        
-        return invalid_tests
-    
-    def get_data_completeness(self, test_uri: str) -> Dict[str, Any]:
-        """Check data completeness for a test"""
-        
-        test_uri = self._ensure_uri(test_uri)
-        
-        completeness = {
-            'test_id': self._extract_name(test_uri),
-            'has_specimen': False,
-            'has_testing_conditions': False,
-            'has_results': False,
-            'has_validation': False,
-            'missing_data': []
+            ?material dyn:hasMaterialName ?materialName .
         }
-        
-        # Check for specimen
-        specimen_query = f"""
-        {self.prefixes}
-        ASK {{ <{test_uri}> dyn:performedOn ?specimen }}
+        GROUP BY ?materialName
+        ORDER BY DESC(?count)
         """
-        completeness['has_specimen'] = bool(self.graph.query(specimen_query))
+        results = self.manager._execute_query(query)
+        stats["tests_by_material"] = {}
+        for row in results:
+            material = str(row.materialName)
+            stats["tests_by_material"][material] = int(row.count)
         
-        # Check for testing conditions
-        conditions_query = f"""
-        {self.prefixes}
-        ASK {{ <{test_uri}> dyn:hasTestingConditions ?conditions }}
+        return stats
+    
+    def get_specimen_statistics(self) -> Dict[str, Any]:
+        """Get statistics about specimens in the database"""
+        stats = {}
+        
+        # Total specimen count
+        query = "SELECT (COUNT(?specimen) AS ?count) WHERE { ?specimen rdf:type dyn:Specimen }"
+        result = self.manager._execute_query(query)
+        stats["total_specimens"] = int(result[0].count) if result else 0
+        
+        # Specimens by material
+        query = """
+        SELECT ?materialName (COUNT(?specimen) AS ?count) WHERE {
+            ?specimen dyn:hasMaterial ?material .
+            ?material dyn:hasMaterialName ?materialName .
+        }
+        GROUP BY ?materialName
+        ORDER BY DESC(?count)
         """
-        completeness['has_testing_conditions'] = bool(self.graph.query(conditions_query))
+        results = self.manager._execute_query(query)
+        stats["specimens_by_material"] = {}
+        for row in results:
+            material = str(row.materialName)
+            stats["specimens_by_material"][material] = int(row.count)
         
-        # Check for results
-        results_query = f"""
-        {self.prefixes}
-        ASK {{ <{test_uri}> dyn:hasSeriesData ?results }}
+        # Specimens by structure
+        query = """
+        SELECT ?structureName (COUNT(?specimen) AS ?count) WHERE {
+            ?specimen dyn:hasStructure ?structure .
+            ?structure dyn:hasName ?structureName .
+        }
+        GROUP BY ?structureName
+        ORDER BY DESC(?count)
         """
-        completeness['has_results'] = bool(self.graph.query(results_query))
+        results = self.manager._execute_query(query)
+        stats["specimens_by_structure"] = {}
+        for row in results:
+            structure = str(row.structureName)
+            stats["specimens_by_structure"][structure] = int(row.count)
         
-        # Check for validation
-        validation_query = f"""
-        {self.prefixes}
-        ASK {{ <{test_uri}> dyn:SatisfiesValidationCriterion ?validation }}
-        """
-        completeness['has_validation'] = bool(self.graph.query(validation_query))
-        
-        # Identify missing data
-        if not completeness['has_specimen']:
-            completeness['missing_data'].append('specimen')
-        if not completeness['has_testing_conditions']:
-            completeness['missing_data'].append('testing_conditions')
-        if not completeness['has_results']:
-            completeness['missing_data'].append('results')
-        if not completeness['has_validation']:
-            completeness['missing_data'].append('validation')
-        
-        return completeness
-    
-    # =============================================================================
-    # PRIVATE HELPER METHODS
-    # =============================================================================
-    
-    def _extract_name(self, uri: str) -> str:
-        """Extract local name from URI"""
-        if '#' in uri:
-            return uri.split('#')[-1]
-        elif '/' in uri:
-            return uri.split('/')[-1]
-        return uri
-    
-    def _ensure_uri(self, uri_or_name: str) -> str:
-        """Ensure input is a full URI"""
-        if uri_or_name.startswith("http"):
-            return uri_or_name
-        else:
-            return f"{config.ONTOLOGY_URI}{uri_or_name}"
-    
-    def _get_test_details(self, test_uri: str) -> Dict[str, Any]:
-        """Get detailed information about a test"""
-        # Implementation would extract properties and measurements
-        # Similar to the parser methods but focused on single test
-        return {'properties': {}, 'measurements': {}}
-    
-    def _get_specimen_details(self, specimen_uri: str) -> Dict[str, Any]:
-        """Get detailed information about a specimen"""
-        # Implementation would extract properties and measurements
-        # Similar to the parser methods but focused on single specimen
-        return {'properties': {}, 'measurements': {}}
-
-
-# =============================================================================
-# CONVENIENCE FUNCTIONS
-# =============================================================================
-
-def create_query_builder(graph: Graph) -> DomainQueryBuilder:
-    """Create a query builder for a graph"""
-    return DomainQueryBuilder(graph)
-
-
-def quick_material_search(graph: Graph, material: str) -> Dict[str, Any]:
-    """Quick search for all data related to a material"""
-    builder = DomainQueryBuilder(graph)
-    
-    return {
-        'specimens': builder.find_specimens(material=material),
-        'tests': builder.find_tests(material=material),
-        'strength_data': builder.get_measurement_range("Engineering Stress", material=material)
-    }
-
-
-def compare_test_conditions(graph: Graph, test_uris: List[str]) -> Dict[str, Dict]:
-    """Compare testing conditions across multiple tests"""
-    builder = DomainQueryBuilder(graph)
-    
-    comparisons = {}
-    for test_uri in test_uris:
-        test_name = builder._extract_name(test_uri)
-        comparisons[test_name] = builder.get_test_lineage(test_uri)
-    
-    return comparisons
+        return stats

@@ -1,577 +1,779 @@
 """
-Enhanced OntologyManager with SHACL Integration
-
-File location: dynamat/ontology/manager.py
-
-This updated version integrates with the SHACL shape system for improved
-GUI form generation and validation capabilities.
+DynaMat Platform - Ontology Manager
+Comprehensive manager for RDF ontology navigation and SPARQL querying
 """
 
+import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Union, Any, Tuple
 from dataclasses import dataclass
+from enum import Enum
+
 import rdflib
-from rdflib import Graph, Namespace, URIRef, Literal
-from rdflib.namespace import RDF, RDFS, OWL
+from rdflib import Graph, Namespace, URIRef, Literal, BNode
+from rdflib.namespace import RDF, RDFS, OWL, XSD
 
 from ..config import config
 
 
+# Set up logging
+logger = logging.getLogger(__name__)
+
+
+class QueryMode(Enum):
+    """Query execution modes for different use cases"""
+    EXPLORATION = "exploration"  # General ontology exploration
+    GUI_BUILDING = "gui_building"  # Form generation and UI metadata
+    DATA_RETRIEVAL = "data_retrieval"  # Specific instance data queries
+
+    
 @dataclass
-class PropertyInfo:
-    """Information about an ontology property"""
-    uri: str
-    name: str
-    range_class: Optional[str] = None
-    domain_class: Optional[str] = None
-    data_type: Optional[str] = None
-    units: List[str] = None
-    description: Optional[str] = None
-    display_name: Optional[str] = None  # Added for GUI forms
-    required: bool = False               # Added for SHACL integration
-    functional: bool = False             # Added for single-value properties
-
-
-@dataclass
-class ClassInfo:
-    """Information about an ontology class"""
-    uri: str
-    name: str
-    parent_classes: List[str] = None
-    properties: List[PropertyInfo] = None
-    description: Optional[str] = None
-    display_name: Optional[str] = None
-
-
-@dataclass
-class IndividualInfo:
-    """Information about an individual/instance"""
+class PropertyMetadata:
+    """Metadata for ontology properties used in GUI generation"""
     uri: str
     name: str
     display_name: str
-    class_types: List[str] = None
-    properties: Dict[str, Any] = None
-    description: Optional[str] = None
-
+    form_group: str
+    display_order: int
+    data_type: str
+    is_functional: bool
+    is_required: bool
+    valid_values: List[str]
+    default_unit: Optional[str]
+    range_class: Optional[str]
+    domain_class: Optional[str]
+    description: str
 
 @dataclass
-class FormSchema:
-    """Schema for GUI form generation - integrates with SHACL"""
-    class_name: str
-    title: str
-    description: Optional[str] = None
-    properties: List[Dict[str, Any]] = None
-    groups: Dict[str, str] = None
-    validation_rules: Dict[str, Any] = None
+class ClassMetadata:
+    """Metadata for ontology classes"""
+    uri: str
+    name: str
+    label: str
+    description: str
+    parent_classes: List[str]
+    properties: List[PropertyMetadata]
+    form_groups: Dict[str, List[PropertyMetadata]]
 
 
 class OntologyManager:
     """
-    Enhanced Ontology Manager with SHACL integration.
+    Comprehensive manager for DynaMat ontology navigation and querying.
     
-    This version provides better support for GUI form generation
-    by integrating with the SHACL shape system.
+    Provides high-level methods for ontology exploration and GUI building
+    without requiring SPARQL knowledge from users.
     """
     
-    def __init__(self, ontology_path: Optional[Path] = None):
-        """Initialize the ontology manager"""
-        self.graph = Graph()
-        self.dyn = Namespace(config.ONTOLOGY_URI)
-        self.ontology_path = ontology_path or config.ONTOLOGY_DIR / "core" / "DynaMat_core.ttl"
+    def __init__(self, ontology_dir: Optional[Path] = None):
+        """
+        Initialize the ontology manager.
         
-        # Bind common namespaces
-        self.graph.bind("dyn", self.dyn)
+        Args:
+            ontology_dir: Path to ontology directory, defaults to config.ONTOLOGY_DIR
+        """
+        self.ontology_dir = ontology_dir or config.ONTOLOGY_DIR
+        self.graph = Graph()
+        self.namespaces = {}
+        self.classes_cache = {}
+        self.properties_cache = {}
+        
+        # Define standard namespaces
+        self._setup_namespaces()
+        
+        # Load ontology files
+        self._load_ontology_files()
+        
+        logger.info(f"Ontology manager initialized with {len(self.graph)} triples")
+    
+    def _setup_namespaces(self):
+        """Set up standard namespaces for SPARQL queries"""
+        self.DYN = Namespace("https://dynamat.utep.edu/ontology#")
+        self.QUDT = Namespace("http://qudt.org/schema/qudt/")
+        self.UNIT = Namespace("http://qudt.org/vocab/unit/")
+        self.QKDV = Namespace("http://qudt.org/vocab/quantitykind/")
+        self.SH = Namespace("http://www.w3.org/ns/shacl#")
+        self.DC = Namespace("http://purl.org/dc/terms/")
+        
+        # Bind namespaces to graph
+        self.graph.bind("dyn", self.DYN)
+        self.graph.bind("qudt", self.QUDT)
+        self.graph.bind("unit", self.UNIT)
+        self.graph.bind("qkdv", self.QKDV)
+        self.graph.bind("sh", self.SH)
+        self.graph.bind("dc", self.DC)
         self.graph.bind("rdf", RDF)
         self.graph.bind("rdfs", RDFS)
         self.graph.bind("owl", OWL)
+        self.graph.bind("xsd", XSD)
         
-        # Cached data for performance
-        self._classes_cache = {}
-        self._properties_cache = {}
-        self._individuals_cache = {}
-        self._form_schemas_cache = {}
-        
-        # SHACL integration
-        self._shape_manager = None
-        
-        # Load core ontology
-        self.load_ontology()
+        # Store for easy access
+        self.namespaces = {
+            'dyn': self.DYN,
+            'qudt': self.QUDT,
+            'unit': self.UNIT,
+            'qkdv': self.QKDV,
+            'sh': self.SH,
+            'dc': self.DC,
+            'rdf': RDF,
+            'rdfs': RDFS,
+            'owl': OWL,
+            'xsd': XSD
+        }
     
-    @property
-    def shape_manager(self):
-        """Lazy-load shape manager to avoid circular imports"""
-        if self._shape_manager is None:
-            try:
-                from .shape_manager import get_shape_manager
-                self._shape_manager = get_shape_manager()
-            except ImportError:
-                pass
-        return self._shape_manager
-    
-    def load_ontology(self, additional_files: Optional[List[Path]] = None):
-        """Load the core ontology and any additional TTL files"""
-        try:
-            # Load core ontology
-            self.graph.parse(str(self.ontology_path), format="turtle")
-            
-            # Load additional files if provided
-            if additional_files:
-                for file_path in additional_files:
-                    self.graph.parse(str(file_path), format="turtle")
-            
-            # Clear cache after loading new data
-            self._clear_cache()
-            
-        except Exception as e:
-            raise Exception(f"Failed to load ontology: {e}")
-    
-    def _clear_cache(self):
-        """Clear all cached data"""
-        self._classes_cache.clear()
-        self._properties_cache.clear()
-        self._individuals_cache.clear()
-        self._form_schemas_cache.clear()
-    
-    def get_form_schema(self, class_name: str, use_shacl: bool = True) -> FormSchema:
-        """
-        Get form schema for GUI generation.
+    def _load_ontology_files(self):
+        """Load all TTL files from the ontology directory structure"""
+        if not self.ontology_dir.exists():
+            raise FileNotFoundError(f"Ontology directory not found: {self.ontology_dir}")
         
-        Args:
-            class_name: Name of the class
-            use_shacl: Whether to use SHACL shapes (preferred) or ontology structure
-            
-        Returns:
-            FormSchema with all information needed for GUI form generation
-        """
-        
-        cache_key = f"{class_name}_{use_shacl}"
-        if cache_key in self._form_schemas_cache:
-            return self._form_schemas_cache[cache_key]
-        
-        # Try SHACL first if available and requested
-        if use_shacl and self.shape_manager:
-            schema = self._get_shacl_form_schema(class_name)
-            if schema:
-                self._form_schemas_cache[cache_key] = schema
-                return schema
-        
-        # Fallback to ontology-based schema
-        schema = self._get_ontology_form_schema(class_name)
-        self._form_schemas_cache[cache_key] = schema
-        return schema
-    
-    def _get_shacl_form_schema(self, class_name: str) -> Optional[FormSchema]:
-        """Get form schema from SHACL shapes"""
-        
-        if not self.shape_manager:
-            return None
-        
-        try:
-            gui_schema = self.shape_manager.get_gui_schema(class_name)
-            if not gui_schema:
-                return None
-            
-            # Convert SHACL GUI schema to FormSchema
-            return FormSchema(
-                class_name=class_name,
-                title=gui_schema.get('title', f"{class_name} Form"),
-                description=gui_schema.get('description'),
-                properties=gui_schema.get('properties', []),
-                groups=gui_schema.get('groups', {}),
-                validation_rules=self._extract_validation_rules(gui_schema)
-            )
-            
-        except Exception as e:
-            print(f"Failed to get SHACL schema for {class_name}: {e}")
-            return None
-    
-    def _get_ontology_form_schema(self, class_name: str) -> FormSchema:
-        """Get form schema from ontology structure (fallback)"""
-        
-        properties = self.get_class_properties(class_name)
-        
-        form_properties = []
-        for i, prop in enumerate(properties):
-            # Convert PropertyInfo to form property
-            form_prop = {
-                "name": prop.name,
-                "display_name": prop.display_name or self._make_display_name(prop.name),
-                "description": prop.description,
-                "required": prop.required,
-                "order": i,
-                "widget_hint": self._suggest_widget_type(prop)
-            }
-            
-            # Add type-specific information
-            if prop.range_class:
-                form_prop["type"] = "object"
-                form_prop["class_constraint"] = prop.range_class
-                # Get available values
-                individuals = self.get_individuals(prop.range_class)
-                form_prop["valid_values"] = [info.display_name for info in individuals.values()]
-            elif prop.data_type:
-                form_prop["type"] = "data"
-                form_prop["datatype"] = prop.data_type
-            else:
-                form_prop["type"] = "string"
-                form_prop["datatype"] = "xsd:string"
-            
-            form_properties.append(form_prop)
-        
-        return FormSchema(
-            class_name=class_name,
-            title=f"{class_name} Data Entry",
-            description=f"Form for entering {class_name} information",
-            properties=form_properties,
-            groups={"default": "Properties"}
-        )
-    
-    def _extract_validation_rules(self, gui_schema: Dict[str, Any]) -> Dict[str, Any]:
-        """Extract validation rules from GUI schema"""
-        
-        rules = {}
-        
-        for prop in gui_schema.get('properties', []):
-            prop_name = prop.get('name')
-            if not prop_name:
-                continue
-            
-            prop_rules = {}
-            
-            if prop.get('required'):
-                prop_rules['required'] = True
-            
-            if 'min_value' in prop:
-                prop_rules['min_value'] = prop['min_value']
-            
-            if 'max_value' in prop:
-                prop_rules['max_value'] = prop['max_value']
-            
-            if 'valid_values' in prop:
-                prop_rules['valid_values'] = prop['valid_values']
-            
-            if 'datatype' in prop:
-                prop_rules['datatype'] = prop['datatype']
-            
-            if prop_rules:
-                rules[prop_name] = prop_rules
-        
-        return rules
-    
-    def _suggest_widget_type(self, prop: PropertyInfo) -> str:
-        """Suggest appropriate widget type for property"""
-        
-        if prop.range_class:
-            return "combobox"  # Object property -> dropdown
-        elif prop.data_type:
-            if "date" in prop.data_type.lower():
-                return "dateedit"
-            elif prop.data_type in ["xsd:integer", "xsd:int"]:
-                return "spinbox"
-            elif prop.data_type in ["xsd:double", "xsd:float"]:
-                return "doublespinbox"
-            elif prop.data_type == "xsd:boolean":
-                return "checkbox"
-        
-        # Default cases
-        if any(keyword in prop.name.lower() for keyword in ['description', 'comment', 'note']):
-            return "textedit"
-        
-        return "lineedit"
-    
-    def get_class_properties(self, class_name: str) -> List[PropertyInfo]:
-        """
-        Get all properties for a class with enhanced metadata.
-        
-        This enhanced version includes information needed for SHACL integration.
-        """
-        
-        if class_name in self._properties_cache:
-            return self._properties_cache[class_name]
-        
-        properties = []
-        class_uri = self.dyn[class_name]
-        
-        # Get all properties that have this class in their domain
-        domain_query = f"""
-        SELECT DISTINCT ?property ?range ?type ?label ?comment WHERE {{
-            ?property rdfs:domain <{class_uri}> .
-            OPTIONAL {{ ?property rdfs:range ?range }}
-            OPTIONAL {{ ?property rdf:type ?type }}
-            OPTIONAL {{ ?property rdfs:label ?label }}
-            OPTIONAL {{ ?property rdfs:comment ?comment }}
-        }}
-        """
-        
-        for row in self.graph.query(domain_query):
-            prop_name = self._extract_name_from_uri(str(row.property))
-            
-            # Determine if it's functional (single-valued)
-            functional = self._is_functional_property(row.property)
-            
-            # Determine if it's required (this could be enhanced with SHACL)
-            required = self._is_required_property(prop_name)
-            
-            prop_info = PropertyInfo(
-                uri=str(row.property),
-                name=prop_name,
-                range_class=self._extract_name_from_uri(str(row.range)) if row.range else None,
-                data_type=str(row.range) if row.range and 'XMLSchema' in str(row.range) else None,
-                description=str(row.comment) if row.comment else None,
-                display_name=str(row.label) if row.label else None,
-                required=required,
-                functional=functional
-            )
-            
-            properties.append(prop_info)
-        
-        # Also get inherited properties from parent classes
-        parent_classes = self._get_parent_classes(class_name)
-        for parent_class in parent_classes:
-            if parent_class != class_name:  # Avoid infinite recursion
-                parent_properties = self.get_class_properties(parent_class)
-                properties.extend(parent_properties)
-        
-        # Remove duplicates based on property name
-        unique_properties = []
-        seen_names = set()
-        for prop in properties:
-            if prop.name not in seen_names:
-                unique_properties.append(prop)
-                seen_names.add(prop.name)
-        
-        self._properties_cache[class_name] = unique_properties
-        return unique_properties
-    
-    def _is_functional_property(self, property_uri: URIRef) -> bool:
-        """Check if a property is functional (single-valued)"""
-        
-        query = f"""
-        ASK {{
-            <{property_uri}> rdf:type owl:FunctionalProperty .
-        }}
-        """
-        
-        return bool(self.graph.query(query))
-    
-    def _is_required_property(self, prop_name: str) -> bool:
-        """
-        Determine if property should be required.
-        
-        This is a heuristic approach - SHACL shapes provide definitive requirements.
-        """
-        
-        required_patterns = [
-            "hasName", "hasID", "hasMaterial", "hasDate", 
-            "hasUser", "hasTestType", "hasSpecimenRole"
+        # Load files in specific order for dependencies
+        load_order = [
+            "core/DynaMat_core.ttl",
+            "class_properties/*.ttl",
+            "shapes/*.ttl",
+            "class_individuals/*.ttl"
         ]
         
-        return any(pattern in prop_name for pattern in required_patterns)
+        files_loaded = 0
+        
+        for pattern in load_order:
+            if "*" in pattern:
+                # Handle wildcards
+                base_path = self.ontology_dir / pattern.replace("*.ttl", "")
+                if base_path.exists():
+                    for ttl_file in base_path.glob("*.ttl"):
+                        self._load_ttl_file(ttl_file)
+                        files_loaded += 1
+            else:
+                # Handle specific files
+                ttl_file = self.ontology_dir / pattern
+                if ttl_file.exists():
+                    self._load_ttl_file(ttl_file)
+                    files_loaded += 1
+        
+        if files_loaded == 0:
+            raise ValueError("No TTL files found in ontology directory")
+        
+        logger.info(f"Loaded {files_loaded} TTL files")
     
-    def _get_parent_classes(self, class_name: str) -> List[str]:
-        """Get parent classes for inheritance"""
-        
-        class_uri = self.dyn[class_name]
-        
-        query = f"""
-        SELECT DISTINCT ?parent WHERE {{
-            <{class_uri}> rdfs:subClassOf ?parent .
-            FILTER(!isBlank(?parent))
-        }}
+    def _load_ttl_file(self, file_path: Path):
+        """Load a single TTL file into the graph"""
+        try:
+            self.graph.parse(file_path, format="turtle")
+            logger.debug(f"Loaded {file_path}")
+        except Exception as e:
+            logger.error(f"Failed to load {file_path}: {e}")
+            raise
+    
+    def reload_ontology(self):
+        """Reload the entire ontology from files"""
+        self.graph = Graph()
+        self.classes_cache.clear()
+        self.properties_cache.clear()
+        self._setup_namespaces()
+        self._load_ontology_files()
+    
+    # ============================================================================
+    # EXPLORATION METHODS - General ontology navigation
+    # ============================================================================
+    
+    def get_all_classes(self, include_individuals: bool = False) -> List[str]:
         """
+        Get all classes defined in the ontology.
         
-        parents = []
-        for row in self.graph.query(query):
-            parent_name = self._extract_name_from_uri(str(row.parent))
-            if parent_name and parent_name != "Thing":  # Exclude owl:Thing
-                parents.append(parent_name)
-        
-        return parents
-    
-    def _make_display_name(self, prop_name: str) -> str:
-        """Convert property name to display name"""
-        
-        # Remove 'has' prefix
-        name = prop_name
-        if name.startswith('has'):
-            name = name[3:]
-        
-        # Split camelCase and join with spaces
-        import re
-        name = re.sub(r'([A-Z])', r' \1', name).strip()
-        return name.title()
-    
-    def _extract_name_from_uri(self, uri: str) -> str:
-        """Extract the local name from a URI"""
-        if '#' in uri:
-            return uri.split('#')[-1]
-        elif '/' in uri:
-            return uri.split('/')[-1]
-        return uri
-    
-    def validate_form_data(self, class_name: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Validate form data against ontology/SHACL constraints.
-        
+        Args:
+            include_individuals: Whether to include individual instances
+            
         Returns:
-            Dictionary with validation results
+            List of class URIs
+        """
+        query = """
+        SELECT DISTINCT ?class WHERE {
+            ?class rdf:type owl:Class .
+        }
+        ORDER BY ?class
         """
         
-        # Try SHACL validation first
-        if self.shape_manager:
-            try:
-                from .validators import SHACLValidator
-                validator = SHACLValidator()
-                
-                # Create temporary TTL from form data
-                temp_ttl = self._create_temp_ttl(class_name, data)
-                
-                # Validate
-                result = validator._validate_basic(temp_ttl, class_name)
-                
-                return {
-                    "valid": result.conforms,
-                    "errors": result.errors or [],
-                    "warnings": result.warnings or []
-                }
-                
-            except Exception as e:
-                print(f"SHACL validation failed: {e}")
+        results = self._execute_query(query)
+        classes = [str(row.class) for row in results]
         
-        # Fallback to basic validation
-        schema = self.get_form_schema(class_name, use_shacl=False)
-        errors = []
+        if include_individuals:
+            individuals = self.get_all_individuals()
+            classes.extend(individuals)
         
-        for prop in schema.properties:
-            prop_name = prop['name']
-            value = data.get(prop_name)
-            
-            # Check required fields
-            if prop.get('required') and not value:
-                errors.append(f"{prop.get('display_name', prop_name)} is required")
-            
-            # Check valid values
-            if value and 'valid_values' in prop:
-                if value not in prop['valid_values']:
-                    errors.append(f"{prop.get('display_name', prop_name)} must be one of: {', '.join(prop['valid_values'])}")
-        
-        return {
-            "valid": len(errors) == 0,
-            "errors": errors,
-            "warnings": []
-        }
+        return sorted(set(classes))
     
-    def _create_temp_ttl(self, class_name: str, data: Dict[str, Any]) -> Graph:
-        """Create temporary TTL graph from form data"""
+    def get_class_hierarchy(self, root_class: Optional[str] = None) -> Dict[str, List[str]]:
+        """
+        Get the class hierarchy starting from a root class.
         
-        temp_graph = Graph()
-        temp_graph.bind("dyn", self.dyn)
-        temp_graph.bind("rdf", RDF)
-        temp_graph.bind("rdfs", RDFS)
-        
-        # Create instance
-        instance_uri = self.dyn[f"TempInstance"]
-        class_uri = self.dyn[class_name]
-        
-        temp_graph.add((instance_uri, RDF.type, class_uri))
-        
-        # Add properties
-        for prop_name, value in data.items():
-            if value:
-                prop_uri = self.dyn[prop_name]
-                if isinstance(value, str):
-                    temp_graph.add((instance_uri, prop_uri, Literal(value)))
-                else:
-                    temp_graph.add((instance_uri, prop_uri, Literal(value)))
-        
-        return temp_graph
-    
-    # Keep all existing methods for backward compatibility
-    def get_classes(self) -> Dict[str, ClassInfo]:
-        """Get all classes (existing method maintained for compatibility)"""
-        
-        if self._classes_cache:
-            return self._classes_cache
-        
-        classes = {}
+        Args:
+            root_class: Root class URI, defaults to dyn:Entity
+            
+        Returns:
+            Dictionary mapping class URIs to their subclasses
+        """
+        if root_class is None:
+            root_class = str(self.DYN.Entity)
         
         query = """
-        SELECT DISTINCT ?class ?label ?comment WHERE {
-            ?class rdf:type owl:Class .
-            FILTER(!isBlank(?class))
-            OPTIONAL { ?class rdfs:label ?label }
-            OPTIONAL { ?class rdfs:comment ?comment }
+        SELECT ?class ?subclass WHERE {
+            ?subclass rdfs:subClassOf* ?rootClass .
+            ?subclass rdfs:subClassOf ?class .
         }
         """
         
-        for row in self.graph.query(query):
-            class_name = self._extract_name_from_uri(str(row.class))
+        results = self._execute_query(query, {"rootClass": URIRef(root_class)})
+        
+        hierarchy = {}
+        for row in results:
+            parent = str(row.class)
+            child = str(row.subclass)
             
-            classes[class_name] = ClassInfo(
-                uri=str(row.class),
-                name=class_name,
-                description=str(row.comment) if row.comment else None,
-                display_name=str(row.label) if row.label else None
-            )
+            if parent not in hierarchy:
+                hierarchy[parent] = []
+            hierarchy[parent].append(child)
         
-        self._classes_cache = classes
-        return classes
+        return hierarchy
     
-    def get_individuals(self, class_name: str) -> Dict[str, IndividualInfo]:
-        """Get all individuals of a class (existing method maintained)"""
+    def get_class_properties(self, class_uri: str, include_inherited: bool = True) -> List[PropertyMetadata]:
+        """
+        Get all properties applicable to a class.
         
-        cache_key = f"individuals_{class_name}"
-        if cache_key in self._individuals_cache:
-            return self._individuals_cache[cache_key]
+        Args:
+            class_uri: URI of the class
+            include_inherited: Whether to include inherited properties
+            
+        Returns:
+            List of PropertyMetadata objects
+        """
+        if class_uri in self.properties_cache:
+            return self.properties_cache[class_uri]
         
-        individuals = {}
-        class_uri = self.dyn[class_name]
+        # Build query for properties
+        if include_inherited:
+            class_filter = f"?domain rdfs:subClassOf* <{class_uri}> ."
+        else:
+            class_filter = f"?domain = <{class_uri}> ."
         
-        # Also check subclasses
-        all_class_uris = [class_uri]
-        subclass_query = f"""
-        SELECT DISTINCT ?subclass WHERE {{
-            ?subclass rdfs:subClassOf* <{class_uri}> .
+        query = f"""
+        SELECT DISTINCT ?property ?propertyType ?domain ?range ?displayName ?formGroup 
+                       ?displayOrder ?validValues ?defaultUnit ?description ?functional WHERE {{
+            ?property rdfs:domain ?domain .
+            {class_filter}
+            
+            ?property rdf:type ?propertyType .
+            FILTER(?propertyType IN (owl:DatatypeProperty, owl:ObjectProperty))
+            
+            OPTIONAL {{ ?property rdfs:range ?range }}
+            OPTIONAL {{ ?property dyn:hasDisplayName ?displayName }}
+            OPTIONAL {{ ?property dyn:hasFormGroup ?formGroup }}
+            OPTIONAL {{ ?property dyn:hasDisplayOrder ?displayOrder }}
+            OPTIONAL {{ ?property dyn:hasValidValues ?validValues }}
+            OPTIONAL {{ ?property dyn:hasDefaultUnit ?defaultUnit }}
+            OPTIONAL {{ ?property rdfs:comment ?description }}
+            
+            BIND(EXISTS {{ ?property rdf:type owl:FunctionalProperty }} AS ?functional)
         }}
+        ORDER BY ?formGroup ?displayOrder ?property
         """
         
-        for row in self.graph.query(subclass_query):
-            if str(row.subclass) != str(class_uri):
-                all_class_uris.append(row.subclass)
+        results = self._execute_query(query)
+        properties = []
         
-        # Get individuals for all classes
-        for cls_uri in all_class_uris:
-            individual_query = f"""
-            SELECT DISTINCT ?individual ?name ?label ?comment WHERE {{
-                ?individual rdf:type <{cls_uri}> .
-                OPTIONAL {{ ?individual dyn:hasName ?name }}
-                OPTIONAL {{ ?individual rdfs:label ?label }}
-                OPTIONAL {{ ?individual rdfs:comment ?comment }}
-            }}
-            """
+        for row in results:
+            prop_metadata = PropertyMetadata(
+                uri=str(row.property),
+                name=self._extract_local_name(str(row.property)),
+                display_name=str(row.displayName) if row.displayName else self._extract_local_name(str(row.property)),
+                form_group=str(row.formGroup) if row.formGroup else "General",
+                display_order=int(row.displayOrder) if row.displayOrder else 999,
+                data_type="object" if "ObjectProperty" in str(row.propertyType) else "data",
+                is_functional=bool(row.functional),
+                is_required=False,  # Will be determined from SHACL shapes
+                valid_values=str(row.validValues).split(",") if row.validValues else [],
+                default_unit=str(row.defaultUnit) if row.defaultUnit else None,
+                range_class=str(row.range) if row.range else None,
+                domain_class=str(row.domain),
+                description=str(row.description) if row.description else ""
+            )
+            properties.append(prop_metadata)
+        
+        # Check SHACL shapes for cardinality constraints
+        self._enrich_with_shacl_constraints(class_uri, properties)
+        
+        self.properties_cache[class_uri] = properties
+        return properties
+    
+    def get_all_individuals(self, class_uri: Optional[str] = None) -> List[str]:
+        """
+        Get all individual instances.
+        
+        Args:
+            class_uri: Filter by specific class, returns all if None
             
-            for row in self.graph.query(individual_query):
-                individual_name = self._extract_name_from_uri(str(row.individual))
-                display_name = str(row.name) if row.name else (str(row.label) if row.label else individual_name)
-                
-                individuals[individual_name] = IndividualInfo(
-                    uri=str(row.individual),
-                    name=individual_name,
-                    display_name=display_name,
-                    class_types=[class_name],
-                    description=str(row.comment) if row.comment else None
-                )
+        Returns:
+            List of individual URIs
+        """
+        if class_uri:
+            query = """
+            SELECT DISTINCT ?individual WHERE {
+                ?individual rdf:type ?class .
+                ?class rdfs:subClassOf* ?targetClass .
+            }
+            ORDER BY ?individual
+            """
+            results = self._execute_query(query, {"targetClass": URIRef(class_uri)})
+        else:
+            query = """
+            SELECT DISTINCT ?individual WHERE {
+                ?individual rdf:type owl:NamedIndividual .
+            }
+            ORDER BY ?individual
+            """
+            results = self._execute_query(query)
         
-        self._individuals_cache[cache_key] = individuals
-        return individuals
-
-
-# Convenience function for global access
-_global_manager = None
-
-def get_ontology_manager() -> OntologyManager:
-    """Get the global ontology manager instance"""
-    global _global_manager
-    if _global_manager is None:
-        _global_manager = OntologyManager()
-    return _global_manager
+        return [str(row.individual) for row in results]
+    
+    def get_property_range(self, property_uri: str) -> Optional[str]:
+        """Get the range (expected value type) of a property"""
+        query = """
+        SELECT ?range WHERE {
+            ?property rdfs:range ?range .
+        }
+        """
+        
+        results = self._execute_query(query, {"property": URIRef(property_uri)})
+        if results:
+            return str(results[0].range)
+        return None
+    
+    # ============================================================================
+    # GUI BUILDING METHODS - Form generation and metadata extraction
+    # ============================================================================
+    
+    def get_class_metadata_for_form(self, class_uri: str) -> ClassMetadata:
+        """
+        Get comprehensive metadata for generating GUI forms.
+        
+        Args:
+            class_uri: URI of the class
+            
+        Returns:
+            ClassMetadata object with all form-building information
+        """
+        if class_uri in self.classes_cache:
+            return self.classes_cache[class_uri]
+        
+        # Get basic class info
+        query = """
+        SELECT ?label ?description WHERE {
+            ?class rdfs:label ?label .
+            OPTIONAL { ?class rdfs:comment ?description }
+        }
+        """
+        
+        result = self._execute_query(query, {"class": URIRef(class_uri)})
+        if not result:
+            raise ValueError(f"Class not found: {class_uri}")
+        
+        row = result[0]
+        
+        # Get parent classes
+        parent_query = """
+        SELECT ?parent WHERE {
+            ?class rdfs:subClassOf ?parent .
+            ?parent rdf:type owl:Class .
+        }
+        """
+        
+        parent_results = self._execute_query(parent_query, {"class": URIRef(class_uri)})
+        parent_classes = [str(row.parent) for row in parent_results]
+        
+        # Get properties with GUI metadata
+        properties = self.get_class_properties(class_uri, include_inherited=True)
+        
+        # Group properties by form group
+        form_groups = {}
+        for prop in properties:
+            group = prop.form_group
+            if group not in form_groups:
+                form_groups[group] = []
+            form_groups[group].append(prop)
+        
+        # Sort properties within each group
+        for group in form_groups:
+            form_groups[group].sort(key=lambda p: p.display_order)
+        
+        metadata = ClassMetadata(
+            uri=class_uri,
+            name=self._extract_local_name(class_uri),
+            label=str(row.label) if row.label else self._extract_local_name(class_uri),
+            description=str(row.description) if row.description else "",
+            parent_classes=parent_classes,
+            properties=properties,
+            form_groups=form_groups
+        )
+        
+        self.classes_cache[class_uri] = metadata
+        return metadata
+    
+    def get_valid_values_for_property(self, property_uri: str) -> List[str]:
+        """Get valid values for a property (for dropdowns)"""
+        query = """
+        SELECT ?validValues WHERE {
+            ?property dyn:hasValidValues ?validValues .
+        }
+        """
+        
+        results = self._execute_query(query, {"property": URIRef(property_uri)})
+        if results:
+            values_str = str(results[0].validValues)
+            return [v.strip() for v in values_str.split(",")]
+        
+        # If no valid values annotation, check if it's an object property
+        # and return available individuals
+        range_class = self.get_property_range(property_uri)
+        if range_class:
+            return self.get_all_individuals(range_class)
+        
+        return []
+    
+    def get_form_groups_for_class(self, class_uri: str) -> List[str]:
+        """Get ordered list of form groups for a class"""
+        properties = self.get_class_properties(class_uri)
+        groups = list(set(prop.form_group for prop in properties))
+        
+        # Sort by the minimum display order in each group
+        group_orders = {}
+        for prop in properties:
+            group = prop.form_group
+            if group not in group_orders or prop.display_order < group_orders[group]:
+                group_orders[group] = prop.display_order
+        
+        return sorted(groups, key=lambda g: group_orders.get(g, 999))
+    
+    # ============================================================================
+    # DATA RETRIEVAL METHODS - Specific instance queries
+    # ============================================================================
+    
+    def find_specimens(self, material: Optional[str] = None, 
+                      structure: Optional[str] = None,
+                      batch_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Find specimens matching criteria.
+        
+        Args:
+            material: Material name or URI
+            structure: Structure type name or URI  
+            batch_id: Specimen batch ID
+            
+        Returns:
+            List of specimen data dictionaries
+        """
+        conditions = []
+        bindings = {}
+        
+        if material:
+            if material.startswith("http"):
+                conditions.append("?specimen dyn:hasMaterial ?material .")
+                bindings["material"] = URIRef(material)
+            else:
+                conditions.append("""
+                    ?specimen dyn:hasMaterial ?materialUri .
+                    ?materialUri dyn:hasMaterialName ?materialName .
+                    FILTER(CONTAINS(LCASE(?materialName), LCASE(?material)))
+                """)
+                bindings["material"] = Literal(material)
+        
+        if structure:
+            if structure.startswith("http"):
+                conditions.append("?specimen dyn:hasStructure ?structure .")
+                bindings["structure"] = URIRef(structure)
+            else:
+                conditions.append("""
+                    ?specimen dyn:hasStructure ?structureUri .
+                    ?structureUri dyn:hasName ?structureName .
+                    FILTER(CONTAINS(LCASE(?structureName), LCASE(?structure)))
+                """)
+                bindings["structure"] = Literal(structure)
+        
+        if batch_id:
+            conditions.append("?specimen dyn:hasSpecimenBatchID ?batchId .")
+            bindings["batchId"] = Literal(batch_id)
+        
+        query = f"""
+        SELECT ?specimen ?specimenID ?materialName ?structureName ?description WHERE {{
+            ?specimen rdf:type dyn:Specimen .
+            ?specimen dyn:hasSpecimenID ?specimenID .
+            
+            OPTIONAL {{
+                ?specimen dyn:hasMaterial ?materialUri .
+                ?materialUri dyn:hasMaterialName ?materialName .
+            }}
+            
+            OPTIONAL {{
+                ?specimen dyn:hasStructure ?structureUri .
+                ?structureUri dyn:hasName ?structureName .
+            }}
+            
+            OPTIONAL {{ ?specimen dyn:hasDescription ?description }}
+            
+            {' '.join(conditions)}
+        }}
+        ORDER BY ?specimenID
+        """
+        
+        results = self._execute_query(query, bindings)
+        
+        specimens = []
+        for row in results:
+            specimen_data = {
+                "uri": str(row.specimen),
+                "specimen_id": str(row.specimenID) if row.specimenID else "",
+                "material": str(row.materialName) if row.materialName else "",
+                "structure": str(row.structureName) if row.structureName else "",
+                "description": str(row.description) if row.description else ""
+            }
+            specimens.append(specimen_data)
+        
+        return specimens
+    
+    def find_tests(self, specimen_id: Optional[str] = None,
+                   test_type: Optional[str] = None,
+                   date_from: Optional[str] = None,
+                   date_to: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Find mechanical tests matching criteria.
+        
+        Args:
+            specimen_id: Specimen ID to filter by
+            test_type: Type of test (e.g., "SHPBCompression")
+            date_from: Start date (YYYY-MM-DD)
+            date_to: End date (YYYY-MM-DD)
+            
+        Returns:
+            List of test data dictionaries
+        """
+        conditions = []
+        bindings = {}
+        
+        if specimen_id:
+            conditions.append("""
+                ?test dyn:performedOn ?specimen .
+                ?specimen dyn:hasSpecimenID ?specimenID .
+                FILTER(?specimenID = ?targetSpecimenID)
+            """)
+            bindings["targetSpecimenID"] = Literal(specimen_id)
+        
+        if test_type:
+            if test_type.startswith("http"):
+                conditions.append("?test rdf:type ?testType .")
+                bindings["testType"] = URIRef(test_type)
+            else:
+                # Map common test type names to URIs
+                type_mapping = {
+                    "SHPB": self.DYN.SHPBCompression,
+                    "SHPBCompression": self.DYN.SHPBCompression,
+                    "Quasistatic": self.DYN.QuasistaticTest,
+                    "QuasistaticTest": self.DYN.QuasistaticTest,
+                    "Tensile": self.DYN.TensileTest,
+                    "TensileTest": self.DYN.TensileTest
+                }
+                
+                if test_type in type_mapping:
+                    conditions.append("?test rdf:type ?testType .")
+                    bindings["testType"] = type_mapping[test_type]
+                else:
+                    conditions.append("""
+                        ?test rdf:type ?testTypeUri .
+                        ?testTypeUri rdfs:label ?testTypeLabel .
+                        FILTER(CONTAINS(LCASE(?testTypeLabel), LCASE(?testType)))
+                    """)
+                    bindings["testType"] = Literal(test_type)
+        
+        if date_from:
+            conditions.append("?test dyn:hasTestDate ?testDate . FILTER(?testDate >= ?dateFrom)")
+            bindings["dateFrom"] = Literal(date_from, datatype=XSD.date)
+        
+        if date_to:
+            conditions.append("?test dyn:hasTestDate ?testDate . FILTER(?testDate <= ?dateTo)")
+            bindings["dateTo"] = Literal(date_to, datatype=XSD.date)
+        
+        query = f"""
+        SELECT ?test ?testID ?testDate ?specimenID ?testType WHERE {{
+            ?test rdf:type dyn:MechanicalTest .
+            ?test dyn:hasTestID ?testID .
+            ?test rdf:type ?testType .
+            
+            OPTIONAL {{ ?test dyn:hasTestDate ?testDate }}
+            OPTIONAL {{
+                ?test dyn:performedOn ?specimen .
+                ?specimen dyn:hasSpecimenID ?specimenID .
+            }}
+            
+            {' '.join(conditions)}
+        }}
+        ORDER BY DESC(?testDate) ?testID
+        """
+        
+        results = self._execute_query(query, bindings)
+        
+        tests = []
+        for row in results:
+            test_data = {
+                "uri": str(row.test),
+                "test_id": str(row.testID) if row.testID else "",
+                "test_date": str(row.testDate) if row.testDate else "",
+                "specimen_id": str(row.specimenID) if row.specimenID else "",
+                "test_type": self._extract_local_name(str(row.testType))
+            }
+            tests.append(test_data)
+        
+        return tests
+    
+    def get_specimen_details(self, specimen_uri: str) -> Dict[str, Any]:
+        """Get detailed information about a specimen"""
+        query = """
+        SELECT ?property ?value WHERE {
+            ?specimen ?property ?value .
+        }
+        """
+        
+        results = self._execute_query(query, {"specimen": URIRef(specimen_uri)})
+        
+        details = {"uri": specimen_uri}
+        for row in results:
+            prop_name = self._extract_local_name(str(row.property))
+            value = str(row.value)
+            details[prop_name] = value
+        
+        return details
+    
+    def get_test_details(self, test_uri: str) -> Dict[str, Any]:
+        """Get detailed information about a test"""
+        query = """
+        SELECT ?property ?value WHERE {
+            ?test ?property ?value .
+        }
+        """
+        
+        results = self._execute_query(query, {"test": URIRef(test_uri)})
+        
+        details = {"uri": test_uri}
+        for row in results:
+            prop_name = self._extract_local_name(str(row.property))
+            value = str(row.value)
+            details[prop_name] = value
+        
+        return details
+    
+    # ============================================================================
+    # UTILITY METHODS
+    # ============================================================================
+    
+    def _execute_query(self, query: str, bindings: Optional[Dict[str, Union[URIRef, Literal]]] = None) -> List[Any]:
+        """Execute a SPARQL query with optional parameter bindings"""
+        try:
+            if bindings:
+                result = self.graph.query(query, initBindings=bindings)
+            else:
+                result = self.graph.query(query)
+            return list(result)
+        except Exception as e:
+            logger.error(f"SPARQL query failed: {e}")
+            logger.debug(f"Query: {query}")
+            logger.debug(f"Bindings: {bindings}")
+            raise
+    
+    def _extract_local_name(self, uri: str) -> str:
+        """Extract the local name from a URI"""
+        if "#" in uri:
+            return uri.split("#")[-1]
+        elif "/" in uri:
+            return uri.split("/")[-1]
+        return uri
+    
+    def _enrich_with_shacl_constraints(self, class_uri: str, properties: List[PropertyMetadata]):
+        """Enrich property metadata with SHACL shape constraints"""
+        # Find SHACL shape for this class
+        shape_query = """
+        SELECT ?shape WHERE {
+            ?shape sh:targetClass ?class .
+        }
+        """
+        
+        shape_results = self._execute_query(shape_query, {"class": URIRef(class_uri)})
+        if not shape_results:
+            return
+        
+        shape_uri = shape_results[0].shape
+        
+        # Get property constraints from the shape
+        constraint_query = """
+        SELECT ?property ?minCount ?maxCount WHERE {
+            ?shape sh:property ?propertyShape .
+            ?propertyShape sh:path ?property .
+            OPTIONAL { ?propertyShape sh:minCount ?minCount }
+            OPTIONAL { ?propertyShape sh:maxCount ?maxCount }
+        }
+        """
+        
+        constraint_results = self._execute_query(constraint_query, {"shape": shape_uri})
+        
+        # Apply constraints to properties
+        constraints_map = {}
+        for row in constraint_results:
+            prop_uri = str(row.property)
+            min_count = int(row.minCount) if row.minCount else 0
+            max_count = int(row.maxCount) if row.maxCount else None
+            constraints_map[prop_uri] = (min_count, max_count)
+        
+        for prop in properties:
+            if prop.uri in constraints_map:
+                min_count, max_count = constraints_map[prop.uri]
+                prop.is_required = min_count > 0
+    
+    def validate_instance(self, instance_uri: str) -> List[str]:
+        """
+        Validate an instance against SHACL shapes.
+        
+        Args:
+            instance_uri: URI of the instance to validate
+            
+        Returns:
+            List of validation error messages (empty if valid)
+        """
+        # This would require pyshacl integration
+        # For now, return empty list indicating no validation errors
+        logger.warning("SHACL validation not yet implemented")
+        return []
+    
+    def get_statistics(self) -> Dict[str, int]:
+        """Get basic statistics about the ontology"""
+        stats = {}
+        
+        # Count triples
+        stats["total_triples"] = len(self.graph)
+        
+        # Count classes
+        class_query = "SELECT (COUNT(DISTINCT ?class) AS ?count) WHERE { ?class rdf:type owl:Class }"
+        result = self._execute_query(class_query)
+        stats["classes"] = int(result[0].count) if result else 0
+        
+        # Count properties
+        prop_query = """
+        SELECT (COUNT(DISTINCT ?property) AS ?count) WHERE { 
+            { ?property rdf:type owl:DatatypeProperty } 
+            UNION 
+            { ?property rdf:type owl:ObjectProperty } 
+        }
+        """
+        result = self._execute_query(prop_query)
+        stats["properties"] = int(result[0].count) if result else 0
+        
+        # Count individuals
+        ind_query = "SELECT (COUNT(DISTINCT ?individual) AS ?count) WHERE { ?individual rdf:type owl:NamedIndividual }"
+        result = self._execute_query(ind_query)
+        stats["individuals"] = int(result[0].count) if result else 0
+        
+        return stats
