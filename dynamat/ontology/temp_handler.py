@@ -255,7 +255,7 @@ class TempInstanceHandler:
         
         Args:
             instance_uri: URI of the instance
-            property_uri: URI of the property
+            property_uri: URI of the property to remove
             value: Specific value to remove, removes all if None
             
         Returns:
@@ -268,33 +268,42 @@ class TempInstanceHandler:
         instance_ref = URIRef(instance_uri)
         property_ref = URIRef(property_uri)
         
-        if value is not None:
-            # Remove specific value
-            value_ref = self._convert_to_rdf_value(value)
-            graph.remove((instance_ref, property_ref, value_ref))
-            removed_value = value
-        else:
+        # Get existing values before removal for change tracking
+        existing_values = list(graph.triples((instance_ref, property_ref, None)))
+        
+        if value is None:
             # Remove all values for this property
-            existing_values = list(graph.triples((instance_ref, property_ref, None)))
-            removed_value = [str(triple[2]) for triple in existing_values]
             for triple in existing_values:
                 graph.remove(triple)
+            removed_values = [self._convert_from_rdf_value(triple[2]) for triple in existing_values]
+        else:
+            # Remove specific value
+            value_ref = self._convert_to_rdf_value(value)
+            triple_to_remove = (instance_ref, property_ref, value_ref)
+            
+            if triple_to_remove in graph:
+                graph.remove(triple_to_remove)
+                removed_values = [value]
+            else:
+                logger.warning(f"Value {value} not found for property {property_uri}")
+                return False
         
         # Log the change
-        change_record = {
-            "timestamp": datetime.now().isoformat(),
-            "property": property_uri,
-            "old_value": removed_value,
-            "new_value": None,
-            "action": "remove"
-        }
-        self.change_log[instance_uri].append(change_record)
+        for removed_value in removed_values:
+            change_record = {
+                "timestamp": datetime.now().isoformat(),
+                "property": property_uri,
+                "old_value": removed_value,
+                "new_value": None,
+                "action": "remove"
+            }
+            self.change_log[instance_uri].append(change_record)
         
         # Update the temporary file
         temp_file = Path(self.active_instances[instance_uri])
         self._save_graph_to_file(graph, temp_file)
         
-        logger.debug(f"Removed property {property_uri} for {instance_uri}")
+        logger.debug(f"Removed property {property_uri} values for {instance_uri}")
         return True
     
     def get_instance_data(self, instance_uri: str) -> Dict[str, Any]:
