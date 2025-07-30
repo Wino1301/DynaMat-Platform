@@ -194,7 +194,7 @@ class OntologyManager:
         """
         
         results = self._execute_query(query)
-        classes = [str(row.class) for row in results]
+        classes = [str(row['class']) for row in results]
         
         if include_individuals:
             individuals = self.get_all_individuals()
@@ -226,8 +226,8 @@ class OntologyManager:
         
         hierarchy = {}
         for row in results:
-            parent = str(row.class)
-            child = str(row.subclass)
+            parent = str(row['class'])
+            child = str(row['subclass'])
             
             if parent not in hierarchy:
                 hierarchy[parent] = []
@@ -282,9 +282,9 @@ class OntologyManager:
         
         for row in results:
             prop_metadata = PropertyMetadata(
-                uri=str(row.property),
-                name=self._extract_local_name(str(row.property)),
-                display_name=str(row.displayName) if row.displayName else self._extract_local_name(str(row.property)),
+                uri=str(row['property']),
+                name=self._extract_local_name(str(row['property'])),
+                display_name=str(row.displayName) if row.displayName else self._extract_local_name(str(row['property'])),
                 form_group=str(row.formGroup) if row.formGroup else "General",
                 display_order=int(row.displayOrder) if row.displayOrder else 999,
                 data_type="object" if "ObjectProperty" in str(row.propertyType) else "data",
@@ -292,7 +292,7 @@ class OntologyManager:
                 is_required=False,  # Will be determined from SHACL shapes
                 valid_values=str(row.validValues).split(",") if row.validValues else [],
                 default_unit=str(row.defaultUnit) if row.defaultUnit else None,
-                range_class=str(row.range) if row.range else None,
+                range_class=str(row['range']) if row.range else None,
                 domain_class=str(row.domain),
                 description=str(row.description) if row.description else ""
             )
@@ -332,7 +332,7 @@ class OntologyManager:
             """
             results = self._execute_query(query)
         
-        return [str(row.individual) for row in results]
+        return [str(row['individual']) for row in results]
     
     def get_property_range(self, property_uri: str) -> Optional[str]:
         """Get the range (expected value type) of a property"""
@@ -387,7 +387,7 @@ class OntologyManager:
         """
         
         parent_results = self._execute_query(parent_query, {"class": URIRef(class_uri)})
-        parent_classes = [str(row.parent) for row in parent_results]
+        parent_classes = [str(row['parent']) for row in parent_results]
         
         # Get properties with GUI metadata
         properties = self.get_class_properties(class_uri, include_inherited=True)
@@ -643,8 +643,8 @@ class OntologyManager:
         
         details = {"uri": specimen_uri}
         for row in results:
-            prop_name = self._extract_local_name(str(row.property))
-            value = str(row.value)
+            prop_name = self._extract_local_name(str(row['property']))
+            value = str(row['value'])
             details[prop_name] = value
         
         return details
@@ -661,8 +661,8 @@ class OntologyManager:
         
         details = {"uri": test_uri}
         for row in results:
-            prop_name = self._extract_local_name(str(row.property))
-            value = str(row.value)
+            prop_name = self._extract_local_name(str(row['property']))
+            value = str(row['value'])
             details[prop_name] = value
         
         return details
@@ -706,7 +706,7 @@ class OntologyManager:
         if not shape_results:
             return
         
-        shape_uri = shape_results[0].shape
+        shape_uri = shape_results[0]['shape']
         
         # Get property constraints from the shape
         constraint_query = """
@@ -723,7 +723,7 @@ class OntologyManager:
         # Apply constraints to properties
         constraints_map = {}
         for row in constraint_results:
-            prop_uri = str(row.property)
+            prop_uri = str(row['property'])
             min_count = int(row.minCount) if row.minCount else 0
             max_count = int(row.maxCount) if row.maxCount else None
             constraints_map[prop_uri] = (min_count, max_count)

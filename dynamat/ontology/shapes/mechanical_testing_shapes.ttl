@@ -62,16 +62,15 @@ dyn:MechanicalTestShape a sh:NodeShape ;
     ] ;
     
     # Test type and classification
-    sh:property [@prefix dyn: <https://dynamat.utep.edu/ontology#> .
-@prefix sh: <http://www.w3.org/ns/shacl#> .
-@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix owl: <http://www.w3.org/2002/07/owl#> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix qudt: <http://qudt.org/schema/qudt/> .
-@prefix unit: <http://qudt.org/vocab/unit/> .
-@prefix qkdv: <http://qudt.org/vocab/quantitykind/> .
-@prefix dc: <http://purl.org/dc/terms/> .
+    sh:property [
+        sh:path dyn:hasTestType ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Test Type" ;
+        sh:description "Type of test performed: calibration, elastic, or specimen test" ;
+        sh:group "Identification" ;
+        sh:order 5 ;
+    ] .
 
 # =============================================================================
 # DynaMat Platform - Mechanical Testing Class SHACL Shapes
@@ -146,7 +145,7 @@ dyn:MechanicalTestShape a sh:NodeShape ;
         sh:group "TestConditions" ;
         sh:order 10 ;
     ] ;
-    
+
     sh:property [
         sh:path dyn:hasHeatingRate ;
         sh:datatype xsd:double ;
@@ -841,19 +840,18 @@ dyn:TensileGaugeLengthConstraint a sh:NodeShape ;
     sh:message "Gauge length must be specified for tensile tests" .
 
 # Ensure reasonable pulse characteristics relationships
-dyn:PulseCharacteristicsConstraint a sh:NodeShape ;
+dyn:PulseShaperDimensionConstraint a sh:NodeShape ;
     sh:targetClass dyn:SHPBCompression ;
     sh:if [
         sh:and (
-            [ sh:property [ sh:path dyn:hasPulseDuration ; sh:minCount 1 ] ]
-            [ sh:property [ sh:path dyn:hasPulseSpeed ; sh:minCount 1 ] ]
-            [ sh:property [ sh:path dyn:hasPulseLength ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasPulseShaperDiameter ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path dyn:hasPulseShaperThickness ; sh:minCount 1 ] ]
         )
     ] ;
     sh:then [
         sh:sparql [
             a sh:SPARQLConstraint ;
-            sh:message "Pulse length should approximately equal pulse duration × pulse speed" ;
+            sh:message "Pulse shaper thickness must be less than diameter" ;
             sh:prefixes [
                 sh:declare [
                     sh:prefix "dyn" ;
@@ -862,17 +860,15 @@ dyn:PulseCharacteristicsConstraint a sh:NodeShape ;
             ] ;
             sh:select """
                 SELECT ?this WHERE {
-                    ?this dyn:hasPulseDuration ?duration .
-                    ?this dyn:hasPulseSpeed ?speed .
-                    ?this dyn:hasPulseLength ?length .
-                    # Convert duration from μs to s, speed from m/s to mm/s
-                    BIND((?duration / 1000000) * (?speed * 1000) AS ?calculatedLength)
-                    # Allow 50% tolerance for measurement uncertainty
-                    FILTER(ABS(?length - ?calculatedLength) > (?calculatedLength * 0.5))
+                    ?this dyn:hasPulseShaperDiameter ?diameter .
+                    ?this dyn:hasPulseShaperThickness ?thickness .
+                    FILTER(?thickness >= ?diameter)
                 }
             """ ;
         ]
-    ] .
+    ] ;
+
+    sh:property [
         sh:path dyn:hasTestType ;
         sh:datatype xsd:string ;
         sh:maxCount 1 ;

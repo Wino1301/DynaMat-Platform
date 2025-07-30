@@ -70,8 +70,11 @@ class DynaMatQueryBuilder:
         """Get all available materials with basic properties"""
         query = """
         SELECT ?material ?materialName ?materialCode ?alloyDesignation ?description WHERE {
-            ?material rdf:type dyn:Material .
+            { ?material rdf:type dyn:Material }
+            UNION 
+            { ?material rdf:type ?materialType . ?materialType rdfs:subClassOf* dyn:Material }
             OPTIONAL { ?material dyn:hasMaterialName ?materialName }
+            OPTIONAL { ?material dyn:hasName ?materialName }
             OPTIONAL { ?material dyn:hasMaterialCode ?materialCode }
             OPTIONAL { ?material dyn:hasAlloyDesignation ?alloyDesignation }
             OPTIONAL { ?material dyn:hasDescription ?description }
@@ -85,9 +88,9 @@ class DynaMatQueryBuilder:
         for row in results:
             material_data = {
                 "uri": str(row.material),
-                "name": str(row.materialName) if row.materialName else "",
-                "code": str(row.materialCode) if row.materialCode else "",
-                "alloy": str(row.alloyDesignation) if row.alloyDesignation else "",
+                "materialName": str(row.materialName) if row.materialName else "",
+                "materialCode": str(row.materialCode) if row.materialCode else "",
+                "alloyDesignation": str(row.alloyDesignation) if row.alloyDesignation else "",
                 "description": str(row.description) if row.description else ""
             }
             materials.append(material_data)
@@ -466,6 +469,56 @@ class DynaMatQueryBuilder:
             files.append(file_data)
         
         return files
+
+    def get_available_tests(self, test_type: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get available tests, optionally filtered by type"""
+        conditions = []
+        if test_type:
+            conditions.append(f"?test rdf:type dyn:{test_type} .")
+        
+        query = f"""
+        SELECT ?test ?testID ?testDate ?testType ?operator ?materialName WHERE {{
+            {{ ?test rdf:type dyn:MechanicalTest }}
+            UNION 
+            {{ ?test rdf:type ?testType . ?testType rdfs:subClassOf* dyn:MechanicalTest }}
+            
+            OPTIONAL {{ ?test dyn:hasTestID ?testID }}
+            OPTIONAL {{ ?test dyn:hasTestDate ?testDate }}
+            OPTIONAL {{ ?test rdf:type ?testType }}
+            OPTIONAL {{
+                ?test dyn:hasUser ?user .
+                ?user dyn:hasName ?operator
+            }}
+            OPTIONAL {{
+                ?test dyn:performedOn ?specimen .
+                ?specimen dyn:hasMaterial ?material .
+                ?material dyn:hasMaterialName ?materialName
+            }}
+            
+            {' '.join(conditions)}
+        }}
+        ORDER BY DESC(?testDate) ?testID
+        """
+        
+        results = self.manager._execute_query(query)
+        
+        tests = []
+        for row in results:
+            # Use testID if available, otherwise use extracted local name
+            test_name = (str(row.testID) if row.testID else 
+                        self.manager._extract_local_name(str(row.test)))
+            
+            test_data = {
+                "uri": str(row.test),
+                "testId": test_name,
+                "testDate": str(row.testDate) if row.testDate else "",
+                "testType": self.manager._extract_local_name(str(row.testType)) if row.testType else "",
+                "operator": str(row.operator) if row.operator else "",
+                "materialName": str(row.materialName) if row.materialName else ""
+            }
+            tests.append(test_data)
+        
+        return tests
     
     # ============================================================================
     # EQUIPMENT QUERIES
@@ -494,9 +547,14 @@ class DynaMatQueryBuilder:
         
         equipment = []
         for row in results:
+            # Use name if available, otherwise use model, otherwise use extracted local name
+            equipment_name = (str(row.name) if row.name else 
+                             str(row.model) if row.model else 
+                             self.manager._extract_local_name(str(row.equipment)))
+            
             equip_data = {
                 "uri": str(row.equipment),
-                "name": str(row.name) if row.name else "",
+                "equipmentName": equipment_name,
                 "model": str(row.model) if row.model else "",
                 "manufacturer": str(row.manufacturer) if row.manufacturer else "",
                 "description": str(row.description) if row.description else ""

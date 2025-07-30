@@ -79,13 +79,16 @@ class SHACLValidator:
         self.manager = ontology_manager
         self.shapes_dir = shapes_dir or (config.ONTOLOGY_DIR / "shapes")
         
-        # Load SHACL shapes
-        self.shapes_graph = Graph()
-        self._load_shacl_shapes()
-        
-        # Setup namespaces
+        # Setup namespaces first
         self.DYN = self.manager.DYN
         self.SH = Namespace("http://www.w3.org/ns/shacl#")
+        
+        # Load SHACL shapes
+        self.shapes_graph = Graph()
+        try:
+            self._load_shacl_shapes()
+        except Exception as e:
+            logger.warning(f"Failed to load SHACL shapes: {e}")
         
         # Validation configuration
         self.strict_mode = False
@@ -93,7 +96,7 @@ class SHACLValidator:
         
         logger.info(f"SHACL validator initialized with {len(self.shapes_graph)} shape triples")
     
-def _load_shacl_shapes(self):
+    def _load_shacl_shapes(self):
         """Load all SHACL shape files."""
         if not self.shapes_dir.exists():
             logger.warning(f"SHACL shapes directory not found: {self.shapes_dir}")
