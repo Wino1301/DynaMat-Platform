@@ -763,6 +763,53 @@ class OntologyManager:
             details[prop_name] = value
         
         return details
+
+        def get_instance_types(self, instance_uri: str) -> List[str]:
+            """
+            Get all types (classes) that an instance belongs to.
+            
+            Args:
+                instance_uri: URI of the instance
+                
+            Returns:
+                List of class URIs that the instance is a type of
+            """
+            query = """
+            SELECT ?type WHERE {
+                ?instance rdf:type ?type .
+                ?type rdf:type owl:Class .
+            }
+            """
+            
+            results = self._execute_query(query, {"instance": URIRef(instance_uri)})
+            return [str(row['type']) for row in results]
+        
+        def is_instance_of_type(self, instance_uri: str, class_uri: str) -> bool:
+            """
+            Check if an instance is of a specific type (including subclasses).
+            
+            Args:
+                instance_uri: URI of the instance to check
+                class_uri: URI of the class to check against
+                
+            Returns:
+                True if instance is of the specified type or its subclasses
+            """
+            query = """
+            ASK WHERE {
+                ?instance rdf:type ?type .
+                ?type rdfs:subClassOf* ?targetClass .
+            }
+            """
+            
+            result = self.graph.query(
+                query,
+                initBindings={
+                    "instance": URIRef(instance_uri),
+                    "targetClass": URIRef(class_uri)
+                }
+            )
+            return bool(result)
     
     # ============================================================================
     # UTILITY METHODS
