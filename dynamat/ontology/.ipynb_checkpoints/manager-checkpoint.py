@@ -6,7 +6,7 @@ Comprehensive manager for RDF ontology navigation and SPARQL querying
 import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Union, Any, Tuple
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 
 import rdflib
@@ -29,7 +29,7 @@ class QueryMode(Enum):
     
 @dataclass
 class PropertyMetadata:
-    """Metadata for ontology properties used in GUI generation"""
+    """Enhanced metadata for ontology properties used in GUI generation"""
     uri: str
     name: str
     display_name: str
@@ -43,10 +43,68 @@ class PropertyMetadata:
     range_class: Optional[str]
     domain_class: Optional[str]
     description: str
+    
+    # NEW: Additional fields for better GUI support
+    widget_type: Optional[str] = None
+    min_value: Optional[float] = None
+    max_value: Optional[float] = None
+    max_length: Optional[int] = None
+    pattern: Optional[str] = None
+    
+    def __post_init__(self):
+        """Validate and normalize after creation"""
+        self.data_type = self.data_type.lower()
+        if not self.display_name:
+            self.display_name = self._extract_display_name(self.name)
+        if not self.form_group:
+            self.form_group = "General"
+        if self.valid_values:
+            self.valid_values = [v.strip() for v in self.valid_values if v.strip()]
+    
+    def _extract_display_name(self, name: str) -> str:
+        """Extract human-readable name"""
+        if name.startswith("has") and len(name) > 3:
+            name = name[3:]
+        result = ""
+        for i, char in enumerate(name):
+            if char.isupper() and i > 0:
+                result += " "
+            result += char
+        return result.title()
+    
+    @property
+    def is_numeric(self) -> bool:
+        return self.data_type in ["integer", "double", "float"]
+    
+    @property
+    def is_text(self) -> bool:
+        return self.data_type in ["string", "data"]
+    
+    @property
+    def suggested_widget_type(self) -> str:
+        """Suggest best widget type"""
+        if self.widget_type:
+            return self.widget_type
+        if self.valid_values:
+            return "combo"
+        elif self.data_type == "object":
+            return "object_combo"
+        elif self.data_type == "boolean":
+            return "checkbox"
+        elif self.data_type == "date":
+            return "date"
+        elif self.data_type == "integer":
+            return "spinbox"
+        elif self.data_type in ["double", "float"]:
+            return "double_spinbox"
+        elif "note" in self.description.lower():
+            return "text_area"
+        else:
+            return "line_edit"
 
 @dataclass
 class ClassMetadata:
-    """Metadata for ontology classes"""
+    """Enhanced metadata for ontology classes"""
     uri: str
     name: str
     label: str
@@ -54,6 +112,32 @@ class ClassMetadata:
     parent_classes: List[str]
     properties: List[PropertyMetadata]
     form_groups: Dict[str, List[PropertyMetadata]]
+    
+    # NEW: Additional metadata
+    is_abstract: bool = False
+    validation_rules: Dict[str, Any] = field(default_factory=dict)
+    creation_template: Optional[str] = None
+    
+    def __post_init__(self):
+        if not self.label:
+            self.label = self._extract_display_name(self.name)
+    
+    def _extract_display_name(self, name: str) -> str:
+        result = ""
+        for i, char in enumerate(name):
+            if char.isupper() and i > 0:
+                result += " "
+            result += char
+        return result.title()
+    
+    def get_required_properties(self) -> List[PropertyMetadata]:
+        return [prop for prop in self.properties if prop.is_required]
+    
+    def get_ordered_groups(self) -> List[str]:
+        def get_group_order(group_name: str) -> int:
+            group_props = self.form_groups.get(group_name, [])
+            return min(prop.display_order for prop in group_props) if group_props else 999
+        return sorted(self.form_groups.keys(), key=get_group_order)
 
 
 class OntologyManager:
@@ -171,6 +255,26 @@ class OntologyManager:
         self.properties_cache.clear()
         self._setup_namespaces()
         self._load_ontology_files()
+
+    def _normalize_data_type(self, raw_type: str) -> str:
+        """Normalize property data types from ontology"""
+        raw_type = raw_type.lower()
+        if "objectproperty" in raw_type:
+            return "object"
+        elif "string" in raw_type:
+            return "string"
+        elif "int" in raw_type:
+            return "integer"
+        elif "double" in raw_type or "decimal" in raw_type:
+            return "double"
+        elif "float" in raw_type:
+            return "float"
+        elif "bool" in raw_type:
+            return "boolean"
+        elif "date" in raw_type:
+            return "date"
+        else:
+            return "data"
     
     # ============================================================================
     # EXPLORATION METHODS - General ontology navigation
@@ -279,22 +383,24 @@ class OntologyManager:
         
         results = self._execute_query(query)
         properties = []
-        
+
         for row in results:
+            # Create enhanced PropertyMetadata with validation
             prop_metadata = PropertyMetadata(
                 uri=str(row['property']),
                 name=self._extract_local_name(str(row['property'])),
-                display_name=str(row.displayName) if row.displayName else self._extract_local_name(str(row['property'])),
-                form_group=str(row.formGroup) if row.formGroup else "General",
+                display_name=str(row.displayName) if row.displayName else "",  # Will be auto-generated
+                form_group=str(row.formGroup) if row.formGroup else "",  # Will default to "General"
                 display_order=int(row.displayOrder) if row.displayOrder else 999,
-                data_type="object" if "ObjectProperty" in str(row.propertyType) else "data",
+                data_type=self._normalize_data_type(str(row.propertyType)),  # Add this helper method
                 is_functional=bool(row.functional),
-                is_required=False,  # Will be determined from SHACL shapes
+                is_required=False,
                 valid_values=str(row.validValues).split(",") if row.validValues else [],
                 default_unit=str(row.defaultUnit) if row.defaultUnit else None,
                 range_class=str(row['range']) if row.range else None,
                 domain_class=str(row.domain),
                 description=str(row.description) if row.description else ""
+                # Enhanced fields will use defaults and auto-validation
             )
             properties.append(prop_metadata)
         
@@ -302,6 +408,7 @@ class OntologyManager:
         self._enrich_with_shacl_constraints(class_uri, properties)
         
         self.properties_cache[class_uri] = properties
+        
         return properties
     
     def get_all_individuals(self, class_uri: Optional[str] = None) -> List[str]:

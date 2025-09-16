@@ -25,7 +25,7 @@ dyn:hasMaterial rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:label "Material"@en ;
     dyn:hasDisplayName "Material" ;
     dyn:hasFormGroup "MaterialProperties" ;
-    dyn:hasDisplayOrder 1 ;
+    dyn:hasDisplayOrder 41 ;
     rdfs:comment "Material composition of the specimen"@en .
 
 # Structure and geometry relationships
@@ -35,7 +35,7 @@ dyn:hasStructure rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:label "Structure"@en ;
     dyn:hasDisplayName "Structure Type" ;
     dyn:hasFormGroup "StructureInfo" ;
-    dyn:hasDisplayOrder 1 ;
+    dyn:hasDisplayOrder 42 ;
     rdfs:comment "Structural configuration of the specimen"@en .
 
 dyn:hasShape rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
@@ -44,7 +44,7 @@ dyn:hasShape rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:label "Shape"@en ;
     dyn:hasDisplayName "Specimen Shape" ;
     dyn:hasFormGroup "GeometryDimensions" ;
-    dyn:hasDisplayOrder 1 ;
+    dyn:hasDisplayOrder 43 ;
     rdfs:comment "Geometric shape of the specimen"@en .
 
 dyn:hasSpecimenRole rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
@@ -53,18 +53,8 @@ dyn:hasSpecimenRole rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:label "Specimen Role"@en ;
     dyn:hasDisplayName "Specimen Role" ;
     dyn:hasFormGroup "Identification" ;
-    dyn:hasDisplayOrder 4 ;
+    dyn:hasDisplayOrder 44 ;
     rdfs:comment "Purpose of specimen in testing"@en .
-
-# Batch relationship
-dyn:hasSpecimenBatch rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range dyn:SpecimenBatch ;
-    rdfs:label "Specimen Batch"@en ;
-    dyn:hasDisplayName "Specimen Batch" ;
-    dyn:hasFormGroup "Identification" ;
-    dyn:hasDisplayOrder 5 ;
-    rdfs:comment "Manufacturing batch of the specimen"@en .
 
 # Processing history relationships
 dyn:hasProcessingHistory rdf:type owl:ObjectProperty ;
@@ -91,31 +81,13 @@ dyn:hasProcessingStep rdf:type owl:ObjectProperty ;
 #    Data Properties - Identification
 #################################################################
 
-dyn:hasSpecimenID rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:string ;
-    rdfs:label "Specimen ID"@en ;
-    dyn:hasDisplayName "Specimen ID" ;
-    dyn:hasFormGroup "Identification" ;
-    dyn:hasDisplayOrder 1 ;
-    rdfs:comment "Unique identifier for the specimen (e.g., SPN-AL001-001)"@en .
-
-dyn:hasMaterialID rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:string ;
-    rdfs:label "Material ID"@en ;
-    dyn:hasDisplayName "Material ID" ;
-    dyn:hasFormGroup "Identification" ;
-    dyn:hasDisplayOrder 2 ;
-    rdfs:comment "Material identifier code (e.g., AL001, SS316)"@en .
-
 dyn:hasSpecimenBatchID rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
     rdfs:range xsd:string ;
     rdfs:label "Specimen Batch ID"@en ;
     dyn:hasDisplayName "Batch ID" ;
     dyn:hasFormGroup "Identification" ;
-    dyn:hasDisplayOrder 3 ;
+    dyn:hasDisplayOrder 2 ;
     rdfs:comment "Batch identifier for specimens from same processing run"@en .
 
 # Characterization grouping and representativeness
@@ -124,8 +96,8 @@ dyn:hasCharacterizationGroupID rdf:type owl:DatatypeProperty, owl:FunctionalProp
     rdfs:range xsd:string ;
     rdfs:label "Characterization Group ID"@en ;
     dyn:hasDisplayName "Characterization Group ID" ;
-    dyn:hasFormGroup "Identification" ;
-    dyn:hasDisplayOrder 6 ;
+    dyn:hasFormGroup "Characterization Tracking" ;
+    dyn:hasDisplayOrder 1 ;
     rdfs:comment "Identifier for specimens that share similar conditions and can share characterization data"@en .
 
 dyn:isCharacterizationRepresentative rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -133,8 +105,8 @@ dyn:isCharacterizationRepresentative rdf:type owl:DatatypeProperty, owl:Function
     rdfs:range xsd:boolean ;
     rdfs:label "Characterization Representative"@en ;
     dyn:hasDisplayName "Is Characterization Representative" ;
-    dyn:hasFormGroup "Identification" ;
-    dyn:hasDisplayOrder 7 ;
+    dyn:hasFormGroup "Characterization Tracking" ;
+    dyn:hasDisplayOrder 2 ;
     rdfs:comment "True if this specimen underwent characterization representing its group"@en .
 
 dyn:hasRepresentativeSpecimen rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
@@ -142,8 +114,8 @@ dyn:hasRepresentativeSpecimen rdf:type owl:ObjectProperty, owl:FunctionalPropert
     rdfs:range dyn:Specimen ;
     rdfs:label "Representative Specimen"@en ;
     dyn:hasDisplayName "Representative Specimen" ;
-    dyn:hasFormGroup "Identification" ;
-    dyn:hasDisplayOrder 8 ;
+    dyn:hasFormGroup "Characterization Tracking" ;
+    dyn:hasDisplayOrder 3 ;
     rdfs:comment "Points to the specimen that was characterized to represent this specimen's group"@en .
 
 # Similar condition tracking for characterization sharing
@@ -152,8 +124,8 @@ dyn:hasSimilarProcessingConditions rdf:type owl:ObjectProperty ;
     rdfs:range dyn:Specimen ;
     rdfs:label "Similar Processing Conditions"@en ;
     dyn:hasDisplayName "Similar Processing Conditions" ;
-    dyn:hasFormGroup "Identification" ;
-    dyn:hasDisplayOrder 10 ;
+    dyn:hasFormGroup "Characterization Tracking" ;
+    dyn:hasDisplayOrder 4 ;
     rdfs:comment "Links to specimens with similar processing history that can share characterization"@en .
 
 dyn:hasTestingConditionCode rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -161,8 +133,8 @@ dyn:hasTestingConditionCode rdf:type owl:DatatypeProperty, owl:FunctionalPropert
     rdfs:range xsd:string ;
     rdfs:label "Testing Condition Code"@en ;
     dyn:hasDisplayName "Testing Condition Code" ;
-    dyn:hasFormGroup "Identification" ;
-    dyn:hasDisplayOrder 11 ;
+    dyn:hasFormGroup "Characterization Tracking" ;
+    dyn:hasDisplayOrder 5 ;
     rdfs:comment "Code representing similar testing conditions (material+structure+processing)"@en .
 
 #################################################################
@@ -324,7 +296,7 @@ dyn:hasMatrixMaterial rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:label "Matrix Material"@en ;
     dyn:hasDisplayName "Matrix Material" ;
     dyn:hasFormGroup "CompositeProperties" ;
-    dyn:hasDisplayOrder 1 ;
+    dyn:hasDisplayOrder 101 ;
     rdfs:comment "Primary matrix material in composite specimen"@en .
 
 dyn:hasReinforcementMaterial rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
@@ -333,7 +305,7 @@ dyn:hasReinforcementMaterial rdf:type owl:ObjectProperty, owl:FunctionalProperty
     rdfs:label "Reinforcement Material"@en ;
     dyn:hasDisplayName "Reinforcement Material" ;
     dyn:hasFormGroup "CompositeProperties" ;
-    dyn:hasDisplayOrder 2 ;
+    dyn:hasDisplayOrder 102 ;
     rdfs:comment "Reinforcement material in composite specimen"@en .
 
 dyn:hasMatrixVolumeFraction rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -342,7 +314,7 @@ dyn:hasMatrixVolumeFraction rdf:type owl:DatatypeProperty, owl:FunctionalPropert
     rdfs:label "Matrix Volume Fraction"@en ;
     dyn:hasDisplayName "Matrix Volume Fraction (%)" ;
     dyn:hasFormGroup "CompositeProperties" ;
-    dyn:hasDisplayOrder 3 ;
+    dyn:hasDisplayOrder 103 ;
     rdfs:comment "Volume fraction of matrix material (0-100%)"@en .
 
 dyn:hasReinforcementVolumeFraction rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -351,7 +323,7 @@ dyn:hasReinforcementVolumeFraction rdf:type owl:DatatypeProperty, owl:Functional
     rdfs:label "Reinforcement Volume Fraction"@en ;
     dyn:hasDisplayName "Reinforcement Volume Fraction (%)" ;
     dyn:hasFormGroup "CompositeProperties" ;
-    dyn:hasDisplayOrder 4 ;
+    dyn:hasDisplayOrder 104 ;
     rdfs:comment "Volume fraction of reinforcement material (0-100%)"@en .
 
 dyn:hasPhaseDistributionID rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -473,6 +445,15 @@ dyn:hasFinalCrossSection rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
 #################################################################
 #    Data Properties - Manufacturing and Metadata
 #################################################################
+# Batch relationship
+dyn:hasSpecimenBatch rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range dyn:SpecimenBatch ;
+    rdfs:label "Specimen Batch"@en ;
+    dyn:hasDisplayName "Specimen Batch" ;
+    dyn:hasFormGroup "Manufacturing" ;
+    dyn:hasDisplayOrder 1 ;
+    rdfs:comment "Manufacturing batch of the specimen"@en .
 
 dyn:hasCreationDate rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
@@ -480,7 +461,7 @@ dyn:hasCreationDate rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:label "Creation Date"@en ;
     dyn:hasDisplayName "Creation Date" ;
     dyn:hasFormGroup "Manufacturing" ;
-    dyn:hasDisplayOrder 1 ;
+    dyn:hasDisplayOrder 2 ;
     rdfs:comment "Date when specimen was manufactured or prepared"@en .
 
 dyn:hasManufacturingMethod rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -489,7 +470,7 @@ dyn:hasManufacturingMethod rdf:type owl:DatatypeProperty, owl:FunctionalProperty
     rdfs:label "Manufacturing Method"@en ;
     dyn:hasDisplayName "Manufacturing Method" ;
     dyn:hasFormGroup "Manufacturing" ;
-    dyn:hasDisplayOrder 2 ;
+    dyn:hasDisplayOrder 3 ;
     dyn:hasValidValues "Additive Manufacturing, Machining, Casting, Forging, Other" ;
     rdfs:comment "Primary method used to create the specimen"@en .
 
@@ -499,27 +480,9 @@ dyn:hasSurfaceFinish rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:label "Surface Finish"@en ;
     dyn:hasDisplayName "Surface Finish" ;
     dyn:hasFormGroup "Manufacturing" ;
-    dyn:hasDisplayOrder 3 ;
+    dyn:hasDisplayOrder 4 ;
     dyn:hasValidValues "As-Built, Machined, Polished, Ground, Other" ;
     rdfs:comment "Surface finish condition of the specimen"@en .
-
-dyn:hasDescription rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:string ;
-    rdfs:label "Description"@en ;
-    dyn:hasDisplayName "Description" ;
-    dyn:hasFormGroup "Notes" ;
-    dyn:hasDisplayOrder 1 ;
-    rdfs:comment "Additional description or notes about the specimen"@en .
-
-dyn:hasSpecialNotes rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:string ;
-    rdfs:label "Special Notes"@en ;
-    dyn:hasDisplayName "Special Notes" ;
-    dyn:hasFormGroup "Notes" ;
-    dyn:hasDisplayOrder 2 ;
-    rdfs:comment "Special observations or considerations for this specimen"@en .
 
 dyn:hasOriginalThickness rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;

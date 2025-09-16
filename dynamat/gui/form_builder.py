@@ -59,7 +59,7 @@ class OntologyFormBuilder:
         try:
             self.logger.info(f"Building form for class: {class_uri}")
             
-            # Get class metadata
+            # Get class metadata - using your existing method
             class_metadata = self.ontology_manager.get_class_metadata_for_form(class_uri)
             self.logger.info(f"Got metadata for {class_metadata.name} with {len(class_metadata.properties)} properties")
             
@@ -84,13 +84,18 @@ class OntologyFormBuilder:
             content_widget = QWidget()
             content_layout = QVBoxLayout(content_widget)
             
-            # Build form groups
+            # Build form groups - use existing form_groups from ontology manager
             form_fields = {}
             groups_created = 0
             
-            # Sort form groups by minimum display order
-            sorted_groups = sorted(class_metadata.form_groups.items(), 
-                                 key=lambda x: min(p.display_order for p in x[1]) if x[1] else 999)
+            # Sort form groups by the minimum display order of properties within each group
+            def get_group_min_order(group_items):
+                group_name, group_properties = group_items
+                if not group_properties:
+                    return 999
+                return min(p.display_order for p in group_properties)
+            
+            sorted_groups = sorted(class_metadata.form_groups.items(), key=get_group_min_order)
             
             for group_name, group_properties in sorted_groups:
                 if group_properties:  # Only create groups with properties
@@ -128,7 +133,7 @@ class OntologyFormBuilder:
             error_widget.setStyleSheet("color: red; padding: 20px; background-color: #2a1a1a; border: 1px solid red;")
             error_widget.setWordWrap(True)
             return error_widget
-    
+
     def _build_form_group(self, group_name: str, properties: List[PropertyMetadata]) -> tuple:
         """
         Build a form group with its properties.
@@ -151,7 +156,7 @@ class OntologyFormBuilder:
         # Build fields
         group_fields = {}
         
-        # Remove duplicates based on property URI
+        # Remove duplicates based on property URI (shouldn't happen but be safe)
         unique_properties = {}
         for prop in properties:
             if prop.uri not in unique_properties:
@@ -224,140 +229,81 @@ class OntologyFormBuilder:
             prop: Property metadata
             
         Returns:
-            Appropriate Qt widget or None if unsupported
+            Appropriate widget for the property
         """
-        try:
-            if prop.data_type == "object":
-                # Object property - create dropdown with valid individuals
-                return self._create_object_dropdown(prop)
-            
-            elif prop.data_type == "data":
-                # Data property - determine widget based on range
-                return self._create_data_widget(prop)
-            
+        # Use the actual data_type attribute from your PropertyMetadata
+        data_type = prop.data_type.lower()
+        
+        # Handle different data types based on your ontology structure
+        if data_type == "object":
+            # Object properties - create combo with valid instances
+            return self._create_object_combo_widget(prop)
+        elif "string" in data_type or data_type == "data":
+            # String/text properties
+            if prop.valid_values:
+                return self._create_combo_widget(prop)
             else:
-                self.logger.warning(f"Unknown property type: {prop.data_type}")
-                return None
-                
-        except Exception as e:
-            self.logger.error(f"Error creating widget for {prop.uri}: {e}")
-            return None
-    
-    def _create_object_dropdown(self, prop: PropertyMetadata) -> QComboBox:
-        """Create dropdown for object properties"""
-        combo = QComboBox()
-        combo.setEditable(False)
-        
-        # Add empty option for optional properties
-        if not prop.is_required:
-            combo.addItem("(None)", "")
-        
-        # Get valid values
-        valid_values = []
-        if prop.valid_values:
-            # Use predefined valid values
-            valid_values = prop.valid_values
-        elif prop.range_class:
-            # Get individuals of the range class
-            try:
-                individuals = self.ontology_manager.get_all_individuals(prop.range_class)
-                valid_values = individuals
-            except Exception as e:
-                self.logger.warning(f"Failed to get individuals for {prop.range_class}: {e}")
-                valid_values = []
-        
-        # Add options to combo box
-        for value in valid_values:
-            if value and value.strip():  # Skip empty values
-                if value.startswith("http"):
-                    # Extract display name from URI
-                    display_name = self._extract_display_name_from_ontology(value)
-                    if display_name and not display_name.startswith("n"):  # Skip blank nodes
-                        combo.addItem(display_name, value)
-                else:
-                    combo.addItem(value, value)
-        
-        # If no valid options were added, add a placeholder
-        if combo.count() <= (1 if not prop.is_required else 0):
-            combo.addItem("(No options available)", "")
-        
-        return combo
-    
-    def _extract_display_name_from_ontology(self, uri: str) -> str:
-        """Extract display name from ontology using proper SPARQL query"""
-        if not uri or not uri.startswith("http"):
-            return uri
-        
-        try:
-            # First try to get rdfs:label
-            query = """
-            SELECT ?label WHERE {
-                ?individual rdfs:label ?label .
-            }
-            """
-            result = self.ontology_manager._execute_query(query, {"individual": URIRef(uri)})
-            if result:
-                label = str(result[0].label)
-                if label and not label.startswith("n"):  # Avoid blank node IDs
-                    return label
-            
-            # Try dyn:hasName if available
-            query = """
-            SELECT ?name WHERE {
-                ?individual dyn:hasName ?name .
-            }
-            """
-            result = self.ontology_manager._execute_query(query, {"individual": URIRef(uri)})
-            if result:
-                name = str(result[0].name)
-                if name and not name.startswith("n"):
-                    return name
-            
-            # Fall back to extracting from URI
-            return self._extract_display_name(uri)
-            
-        except Exception as e:
-            self.logger.warning(f"Failed to extract display name for {uri}: {e}")
-            return self._extract_display_name(uri)
-    
-    def _create_data_widget(self, prop: PropertyMetadata) -> QWidget:
-        """Create widget for data properties based on their range"""
-        if not prop.range_class:
-            # Default to string if no range specified
-            return self._create_string_widget(prop)
-        
-        range_type = prop.range_class.lower()
-        
-        if "string" in range_type:
-            return self._create_string_widget(prop)
-        elif "int" in range_type or "integer" in range_type:
+                return self._create_string_widget(prop)
+        elif "int" in data_type:
             return self._create_integer_widget(prop)
-        elif "float" in range_type or "double" in range_type or "decimal" in range_type:
+        elif "double" in data_type or "float" in data_type:
             return self._create_float_widget(prop)
-        elif "date" in range_type:
+        elif "date" in data_type:
             return self._create_date_widget(prop)
-        elif "boolean" in range_type:
+        elif "bool" in data_type:
             return self._create_boolean_widget(prop)
         else:
-            # Default to string for unknown types
+            # Default to string widget for unknown types
+            self.logger.info(f"Unknown data type '{data_type}' for {prop.uri}, using string widget")
             return self._create_string_widget(prop)
     
     def _create_string_widget(self, prop: PropertyMetadata) -> QWidget:
         """Create string input widget"""
-        if prop.valid_values:
-            # Create dropdown for string with valid values
-            combo = QComboBox()
-            combo.setEditable(True)  # Allow custom values
-            if not prop.is_required:
-                combo.addItem("", "")
-            for value in prop.valid_values:
-                combo.addItem(value, value)
-            return combo
+        if prop.description and ("note" in prop.description.lower() or "description" in prop.description.lower()):
+            # Use text area for notes and descriptions
+            text_edit = QTextEdit()
+            text_edit.setMaximumHeight(100)
+            return text_edit
         else:
-            # Create line edit for free text
+            # Use line edit for regular strings
             line_edit = QLineEdit()
             line_edit.setMaxLength(255)  # Reasonable default
             return line_edit
+    
+    def _create_combo_widget(self, prop: PropertyMetadata) -> QComboBox:
+        """Create combo box widget with valid values"""
+        combo = QComboBox()
+        
+        # Add empty option for non-required fields
+        if not prop.is_required:
+            combo.addItem("", "")
+        
+        # Add valid values
+        for value in prop.valid_values:
+            if value.strip():  # Skip empty values
+                combo.addItem(value.strip(), value.strip())
+        
+        return combo
+    
+    def _create_object_combo_widget(self, prop: PropertyMetadata) -> QComboBox:
+        """Create combo box for object properties"""
+        combo = QComboBox()
+        
+        # Add empty option
+        combo.addItem("", "")
+        
+        # Try to get available instances for the range class
+        if prop.range_class:
+            try:
+                instances = self.ontology_manager.get_all_individuals(prop.range_class)
+                for instance in instances:
+                    # Extract display name from URI
+                    display_name = instance.split('#')[-1].replace('_', ' ')
+                    combo.addItem(display_name, instance)
+            except Exception as e:
+                self.logger.warning(f"Could not load instances for {prop.range_class}: {e}")
+        
+        return combo
     
     def _create_integer_widget(self, prop: PropertyMetadata) -> QSpinBox:
         """Create integer input widget"""
@@ -366,7 +312,7 @@ class OntologyFormBuilder:
         spin_box.setMaximum(2147483647)   # int32 max
         return spin_box
     
-    def _create_float_widget(self, prop: PropertyMetadata) -> QDoubleSpinBox:
+    def _create_float_widget(self, prop: PropertyMetadata) -> QWidget:
         """Create float input widget"""
         spin_box = QDoubleSpinBox()
         spin_box.setMinimum(-1e10)
@@ -398,53 +344,25 @@ class OntologyFormBuilder:
         checkbox = QCheckBox()
         return checkbox
     
-    def _extract_display_name(self, uri: str) -> str:
-        """Extract display name from URI with better formatting"""
-        if not uri:
-            return "Unknown"
-        
-        try:
-            # Extract the local name from URI
-            if "#" in uri:
-                name = uri.split("#")[-1]
-            elif "/" in uri:
-                name = uri.split("/")[-1]
-            else:
-                name = uri
-            
-            # Skip blank node identifiers
-            if name.startswith("n") and len(name) > 10 and name[1:].replace("-", "").isalnum():
-                return "Unknown"
-            
-            # Convert camelCase and PascalCase to Title Case
-            result = ""
-            for i, char in enumerate(name):
-                if char.isupper() and i > 0 and name[i-1].islower():
-                    result += " "
-                elif char.isupper() and i > 0 and i < len(name) - 1 and name[i+1].islower():
-                    result += " "
-                result += char
-            
-            return result.replace("_", " ").title()
-            
-        except Exception as e:
-            self.logger.warning(f"Failed to extract display name from {uri}: {e}")
-            return "Unknown"
-    
     def _extract_unit_symbol(self, unit_uri: str) -> str:
-        """Extract unit symbol from QUDT URI"""
-        # This would need to query the QUDT ontology for proper unit symbols
-        # For now, return simplified version
-        if "METER" in unit_uri.upper():
-            return "m"
-        elif "GRAM" in unit_uri.upper():
-            return "g"
-        elif "SECOND" in unit_uri.upper():
-            return "s"
-        elif "PASCAL" in unit_uri.upper():
-            return "Pa"
-        else:
-            return "unit"
+        """Extract unit symbol from unit URI"""
+        if not unit_uri:
+            return ""
+        
+        # Simple extraction from common unit URIs
+        unit_mappings = {
+            "unit:MilliM": "mm",
+            "unit:MilliM2": "mm²", 
+            "unit:MilliM3": "mm³",
+            "unit:GRAM": "g",
+            "unit:KiloGRAM": "kg",
+            "unit:MegaPA": "MPa",
+            "unit:PA": "Pa",
+            "unit:PERCENT": "%",
+            "unit:DegreeCelsius": "°C",
+        }
+        
+        return unit_mappings.get(unit_uri, unit_uri.split(":")[-1])
     
     def get_form_data(self, form_widget: QWidget) -> Dict[str, Any]:
         """
@@ -489,9 +407,9 @@ class OntologyFormBuilder:
             return widget.toPlainText()
         else:
             # Try to handle compound widgets (like float with unit)
-            if hasattr(widget, 'layout'):
+            if hasattr(widget, 'layout') and widget.layout():
                 layout = widget.layout()
-                if layout and layout.count() > 0:
+                if layout.count() > 0:
                     first_widget = layout.itemAt(0).widget()
                     return self._extract_widget_value(first_widget)
         
@@ -512,20 +430,20 @@ class OntologyFormBuilder:
             if prop_uri in form_widget.form_fields:
                 field = form_widget.form_fields[prop_uri]
                 try:
-                    self._set_widget_value(field.widget, value)
+                    self._populate_widget_value(field.widget, value)
                 except Exception as e:
-                    self.logger.warning(f"Failed to set value for {prop_uri}: {e}")
+                    self.logger.warning(f"Failed to populate value for {prop_uri}: {e}")
     
-    def _set_widget_value(self, widget: QWidget, value: Any):
-        """Set value in a widget"""
+    def _populate_widget_value(self, widget: QWidget, value: Any):
+        """Populate a widget with a value"""
         if isinstance(widget, QLineEdit):
             widget.setText(str(value))
         elif isinstance(widget, QComboBox):
-            # Try to find by data first, then by text
             index = widget.findData(value)
             if index >= 0:
                 widget.setCurrentIndex(index)
             else:
+                # Try to find by text
                 index = widget.findText(str(value))
                 if index >= 0:
                     widget.setCurrentIndex(index)
@@ -540,3 +458,10 @@ class OntologyFormBuilder:
             widget.setChecked(bool(value))
         elif isinstance(widget, QTextEdit):
             widget.setPlainText(str(value))
+        else:
+            # Handle compound widgets
+            if hasattr(widget, 'layout') and widget.layout():
+                layout = widget.layout()
+                if layout.count() > 0:
+                    first_widget = layout.itemAt(0).widget()
+                    self._populate_widget_value(first_widget, value)
