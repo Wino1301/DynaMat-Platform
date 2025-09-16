@@ -2572,3 +2572,711 @@ AttributeError: 'ClassMetadata' object has no attribute 'display_name'
 2025-09-16 13:11:51,325 - dynamat.gui.main_window - INFO - Switching from mechanical to specimen
 2025-09-16 13:11:51,325 - dynamat.gui.main_window - INFO - Specimen form widget restored from cache
 2025-09-16 13:11:51,325 - dynamat.gui.main_window - INFO - Switched to specimen activity
+2025-09-16 14:17:00,281 - dynamat.gui.main_window - INFO - Main window closed
+2025-09-16 14:21:46,402 - __main__ - INFO - Launching GUI application
+2025-09-16 14:21:46,993 - dynamat.ontology.manager - INFO - Loaded 18 TTL files
+2025-09-16 14:21:46,993 - dynamat.ontology.manager - INFO - Ontology manager initialized with 7089 triples
+2025-09-16 14:21:46,993 - dynamat.gui.app - INFO - Ontology manager loaded successfully
+2025-09-16 14:21:47,025 - dynamat.gui.app - INFO - DynaMat application initialized
+2025-09-16 14:21:47,051 - dynamat.gui.widgets.action_panel - INFO - Action panel widget initialized
+2025-09-16 14:21:47,057 - dynamat.gui.widgets.terminal_widget - INFO - Terminal widget initialized
+2025-09-16 14:21:47,061 - dynamat.gui.main_window - INFO - Initializing specimen activity widget
+2025-09-16 14:21:47,062 - dynamat.gui.widgets.specimen_form - INFO - === ONTOLOGY DEBUG INFO ===
+2025-09-16 14:21:47,062 - dynamat.gui.widgets.specimen_form - INFO - Ontology graph has 7089 triples
+2025-09-16 14:21:47,306 - dynamat.gui.widgets.specimen_form - INFO - Found 59 properties for Specimen class
+2025-09-16 14:21:47,307 - dynamat.gui.widgets.specimen_form - INFO -   - Characterization Group ID (Characterization Tracking, order: 1)
+2025-09-16 14:21:47,307 - dynamat.gui.widgets.specimen_form - INFO -   - Is Characterization Representative (Characterization Tracking, order: 2)
+2025-09-16 14:21:47,307 - dynamat.gui.widgets.specimen_form - INFO -   - Representative Specimen (Characterization Tracking, order: 3)
+2025-09-16 14:21:47,308 - dynamat.gui.widgets.specimen_form - INFO -   - Similar Processing Conditions (Characterization Tracking, order: 4)
+2025-09-16 14:21:47,308 - dynamat.gui.widgets.specimen_form - INFO -   - Testing Condition Code (Characterization Tracking, order: 5)
+2025-09-16 14:21:47,308 - dynamat.gui.widgets.specimen_form - INFO -   ... and 54 more properties
+2025-09-16 14:21:47,312 - dynamat.gui.widgets.specimen_form - INFO - Found 5 shape individuals
+2025-09-16 14:21:47,312 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#CubicShape
+2025-09-16 14:21:47,312 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#CylindricalShape
+2025-09-16 14:21:47,312 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#DogboneShape
+2025-09-16 14:21:47,315 - dynamat.gui.widgets.specimen_form - INFO - Found 5 specimen role individuals
+2025-09-16 14:21:47,315 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#CalibrationSpecimen
+2025-09-16 14:21:47,316 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#CharacterizationSpecimen
+2025-09-16 14:21:47,316 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#ReferenceSpecimen
+2025-09-16 14:21:47,316 - dynamat.gui.widgets.specimen_form - INFO - === END ONTOLOGY DEBUG ===
+2025-09-16 14:21:47,317 - dynamat.gui.widgets.specimen_form - INFO - Creating specimen form for https://dynamat.utep.edu/ontology#Specimen
+2025-09-16 14:21:47,322 - dynamat.gui.widgets.specimen_form - INFO - Found 59 properties for specimen
+2025-09-16 14:21:47,322 - dynamat.gui.widgets.specimen_form - INFO - Form groups: ['Characterization Tracking', 'CompositeProperties', 'GeometryDimensions', 'Identification', 'Manufacturing', 'MaterialProperties', 'Notes', 'PostTestDimensions', 'ProcessingHistory', 'StructureInfo', 'StructureParameters']
+2025-09-16 14:21:47,323 - dynamat.gui.form_builder - INFO - Building form for class: https://dynamat.utep.edu/ontology#Specimen
+2025-09-16 14:21:47,323 - dynamat.gui.form_builder - INFO - Got metadata for Specimen with 59 properties
+2025-09-16 14:21:47,327 - dynamat.gui.form_builder - ERROR - Failed to build form for https://dynamat.utep.edu/ontology#Specimen: name 'get_group_min_order' is not defined
+Traceback (most recent call last):
+  File "D:\DynaMat-Platform\dynamat\gui\form_builder.py", line 110, in build_form
+    sorted_groups = sorted(class_metadata.form_groups.items(), key=get_group_min_order)
+                                                                   ^^^^^^^^^^^^^^^^^^^
+NameError: name 'get_group_min_order' is not defined
+2025-09-16 14:21:47,328 - dynamat.gui.widgets.specimen_form - WARNING - Form widget has no form_fields attribute
+2025-09-16 14:21:47,328 - dynamat.gui.widgets.specimen_form - INFO - Specimen form widget initialized
+2025-09-16 14:21:47,328 - dynamat.gui.main_window - INFO - Specimen form widget created and cached
+2025-09-16 14:21:47,328 - dynamat.gui.main_window - INFO - Main window initialized
+2025-09-16 14:21:49,093 - dynamat.gui.main_window - INFO - Switching from specimen to mechanical
+2025-09-16 14:21:49,132 - dynamat.gui.main_window - INFO - Switched to mechanical activity
+2025-09-16 14:21:50,088 - dynamat.gui.main_window - INFO - Switching from mechanical to specimen
+2025-09-16 14:21:50,151 - dynamat.gui.main_window - INFO - Specimen form widget restored from cache
+2025-09-16 14:21:50,151 - dynamat.gui.main_window - INFO - Switched to specimen activity
+2025-09-16 14:22:39,744 - dynamat.gui.main_window - INFO - Main window closed
+2025-09-16 14:22:42,715 - __main__ - INFO - Launching GUI application
+2025-09-16 14:22:42,917 - dynamat.ontology.manager - INFO - Loaded 18 TTL files
+2025-09-16 14:22:42,918 - dynamat.ontology.manager - INFO - Ontology manager initialized with 7089 triples
+2025-09-16 14:22:42,918 - dynamat.gui.app - INFO - Ontology manager loaded successfully
+2025-09-16 14:22:42,934 - dynamat.gui.app - INFO - DynaMat application initialized
+2025-09-16 14:22:42,955 - dynamat.gui.widgets.action_panel - INFO - Action panel widget initialized
+2025-09-16 14:22:42,961 - dynamat.gui.widgets.terminal_widget - INFO - Terminal widget initialized
+2025-09-16 14:22:42,963 - dynamat.gui.main_window - INFO - Initializing specimen activity widget
+2025-09-16 14:22:42,965 - dynamat.gui.widgets.specimen_form - INFO - === ONTOLOGY DEBUG INFO ===
+2025-09-16 14:22:42,965 - dynamat.gui.widgets.specimen_form - INFO - Ontology graph has 7089 triples
+2025-09-16 14:22:43,156 - dynamat.gui.widgets.specimen_form - INFO - Found 59 properties for Specimen class
+2025-09-16 14:22:43,157 - dynamat.gui.widgets.specimen_form - INFO -   - Characterization Group ID (Characterization Tracking, order: 1)
+2025-09-16 14:22:43,157 - dynamat.gui.widgets.specimen_form - INFO -   - Is Characterization Representative (Characterization Tracking, order: 2)
+2025-09-16 14:22:43,157 - dynamat.gui.widgets.specimen_form - INFO -   - Representative Specimen (Characterization Tracking, order: 3)
+2025-09-16 14:22:43,157 - dynamat.gui.widgets.specimen_form - INFO -   - Similar Processing Conditions (Characterization Tracking, order: 4)
+2025-09-16 14:22:43,157 - dynamat.gui.widgets.specimen_form - INFO -   - Testing Condition Code (Characterization Tracking, order: 5)
+2025-09-16 14:22:43,157 - dynamat.gui.widgets.specimen_form - INFO -   ... and 54 more properties
+2025-09-16 14:22:43,162 - dynamat.gui.widgets.specimen_form - INFO - Found 5 shape individuals
+2025-09-16 14:22:43,162 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#CubicShape
+2025-09-16 14:22:43,162 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#CylindricalShape
+2025-09-16 14:22:43,163 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#DogboneShape
+2025-09-16 14:22:43,166 - dynamat.gui.widgets.specimen_form - INFO - Found 5 specimen role individuals
+2025-09-16 14:22:43,166 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#CalibrationSpecimen
+2025-09-16 14:22:43,166 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#CharacterizationSpecimen
+2025-09-16 14:22:43,166 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#ReferenceSpecimen
+2025-09-16 14:22:43,166 - dynamat.gui.widgets.specimen_form - INFO - === END ONTOLOGY DEBUG ===
+2025-09-16 14:22:43,167 - dynamat.gui.widgets.specimen_form - INFO - Creating specimen form for https://dynamat.utep.edu/ontology#Specimen
+2025-09-16 14:22:43,174 - dynamat.gui.widgets.specimen_form - INFO - Found 59 properties for specimen
+2025-09-16 14:22:43,175 - dynamat.gui.widgets.specimen_form - INFO - Form groups: ['Characterization Tracking', 'CompositeProperties', 'GeometryDimensions', 'Identification', 'Manufacturing', 'MaterialProperties', 'Notes', 'PostTestDimensions', 'ProcessingHistory', 'StructureInfo', 'StructureParameters']
+2025-09-16 14:22:43,175 - dynamat.gui.form_builder - INFO - Building form for class: https://dynamat.utep.edu/ontology#Specimen
+2025-09-16 14:22:43,175 - dynamat.gui.form_builder - INFO - Got metadata for Specimen with 59 properties
+2025-09-16 14:22:43,179 - dynamat.gui.form_builder - INFO - Creating group 'Characterization Tracking' with 5 properties
+2025-09-16 14:22:43,186 - dynamat.gui.form_builder - INFO - Group 'Characterization Tracking' created with 5 fields
+2025-09-16 14:22:43,187 - dynamat.gui.form_builder - INFO - Creating group 'CompositeProperties' with 5 properties
+2025-09-16 14:22:43,195 - dynamat.gui.form_builder - INFO - Group 'CompositeProperties' created with 5 fields
+2025-09-16 14:22:43,195 - dynamat.gui.form_builder - INFO - Creating group 'GeometryDimensions' with 8 properties
+2025-09-16 14:22:43,200 - dynamat.gui.form_builder - INFO - Group 'GeometryDimensions' created with 8 fields
+2025-09-16 14:22:43,200 - dynamat.gui.form_builder - INFO - Creating group 'Identification' with 7 properties
+2025-09-16 14:22:43,205 - dynamat.gui.form_builder - INFO - Group 'Identification' created with 4 fields
+2025-09-16 14:22:43,205 - dynamat.gui.form_builder - INFO - Creating group 'Manufacturing' with 4 properties
+2025-09-16 14:22:43,210 - dynamat.gui.form_builder - INFO - Group 'Manufacturing' created with 4 fields
+2025-09-16 14:22:43,210 - dynamat.gui.form_builder - INFO - Creating group 'MaterialProperties' with 1 properties
+2025-09-16 14:22:43,214 - dynamat.gui.form_builder - INFO - Group 'MaterialProperties' created with 1 fields
+2025-09-16 14:22:43,214 - dynamat.gui.form_builder - INFO - Creating group 'Notes' with 4 properties
+2025-09-16 14:22:43,215 - dynamat.gui.form_builder - INFO - Group 'Notes' created with 1 fields
+2025-09-16 14:22:43,215 - dynamat.gui.form_builder - INFO - Creating group 'PostTestDimensions' with 7 properties
+2025-09-16 14:22:43,216 - dynamat.gui.form_builder - INFO - Group 'PostTestDimensions' created with 7 fields
+2025-09-16 14:22:43,216 - dynamat.gui.form_builder - INFO - Creating group 'ProcessingHistory' with 2 properties
+2025-09-16 14:22:43,224 - dynamat.gui.form_builder - INFO - Group 'ProcessingHistory' created with 2 fields
+2025-09-16 14:22:43,224 - dynamat.gui.form_builder - INFO - Creating group 'StructureInfo' with 1 properties
+2025-09-16 14:22:43,228 - dynamat.gui.form_builder - INFO - Group 'StructureInfo' created with 1 fields
+2025-09-16 14:22:43,228 - dynamat.gui.form_builder - INFO - Creating group 'StructureParameters' with 15 properties
+2025-09-16 14:22:43,230 - dynamat.gui.form_builder - INFO - Group 'StructureParameters' created with 15 fields
+2025-09-16 14:22:43,242 - dynamat.gui.form_builder - INFO - Form built successfully with 52 total fields in 11 groups
+2025-09-16 14:22:43,243 - dynamat.gui.widgets.specimen_form - INFO - Form created successfully with 52 fields
+2025-09-16 14:22:43,243 - dynamat.gui.widgets.specimen_form - INFO - Specimen form widget initialized
+2025-09-16 14:22:43,243 - dynamat.gui.main_window - INFO - Specimen form widget created and cached
+2025-09-16 14:22:43,243 - dynamat.gui.main_window - INFO - Main window initialized
+2025-09-16 14:22:44,552 - dynamat.gui.main_window - INFO - Switching from specimen to mechanical
+2025-09-16 14:22:44,595 - dynamat.gui.main_window - INFO - Switched to mechanical activity
+2025-09-16 14:22:44,812 - dynamat.gui.main_window - INFO - Switching from mechanical to specimen
+2025-09-16 14:22:44,873 - dynamat.gui.main_window - INFO - Specimen form widget restored from cache
+2025-09-16 14:22:44,873 - dynamat.gui.main_window - INFO - Switched to specimen activity
+2025-09-16 14:23:07,430 - dynamat.gui.main_window - INFO - Main window closed
+2025-09-16 14:26:31,819 - __main__ - INFO - Launching GUI application
+2025-09-16 14:26:32,415 - dynamat.ontology.manager - INFO - Loaded 18 TTL files
+2025-09-16 14:26:32,415 - dynamat.ontology.manager - INFO - Ontology manager initialized with 7089 triples
+2025-09-16 14:26:32,415 - dynamat.gui.app - INFO - Ontology manager loaded successfully
+2025-09-16 14:26:32,450 - dynamat.gui.app - INFO - DynaMat application initialized
+2025-09-16 14:26:32,476 - dynamat.gui.widgets.action_panel - INFO - Action panel widget initialized
+2025-09-16 14:26:32,488 - dynamat.gui.widgets.terminal_widget - INFO - Terminal widget initialized
+2025-09-16 14:26:32,493 - dynamat.gui.main_window - INFO - Initializing specimen activity widget
+2025-09-16 14:26:32,493 - dynamat.gui.widgets.specimen_form - INFO - === ONTOLOGY DEBUG INFO ===
+2025-09-16 14:26:32,493 - dynamat.gui.widgets.specimen_form - INFO - Ontology graph has 7089 triples
+2025-09-16 14:26:32,738 - dynamat.gui.widgets.specimen_form - INFO - Found 59 properties for Specimen class
+2025-09-16 14:26:32,739 - dynamat.gui.widgets.specimen_form - INFO -   - Characterization Group ID (Characterization Tracking, order: 1)
+2025-09-16 14:26:32,739 - dynamat.gui.widgets.specimen_form - INFO -   - Is Characterization Representative (Characterization Tracking, order: 2)
+2025-09-16 14:26:32,739 - dynamat.gui.widgets.specimen_form - INFO -   - Representative Specimen (Characterization Tracking, order: 3)
+2025-09-16 14:26:32,739 - dynamat.gui.widgets.specimen_form - INFO -   - Similar Processing Conditions (Characterization Tracking, order: 4)
+2025-09-16 14:26:32,739 - dynamat.gui.widgets.specimen_form - INFO -   - Testing Condition Code (Characterization Tracking, order: 5)
+2025-09-16 14:26:32,739 - dynamat.gui.widgets.specimen_form - INFO -   ... and 54 more properties
+2025-09-16 14:26:32,743 - dynamat.gui.widgets.specimen_form - INFO - Found 5 shape individuals
+2025-09-16 14:26:32,743 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#CubicShape
+2025-09-16 14:26:32,743 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#CylindricalShape
+2025-09-16 14:26:32,743 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#DogboneShape
+2025-09-16 14:26:32,747 - dynamat.gui.widgets.specimen_form - INFO - Found 5 specimen role individuals
+2025-09-16 14:26:32,748 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#CalibrationSpecimen
+2025-09-16 14:26:32,748 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#CharacterizationSpecimen
+2025-09-16 14:26:32,748 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#ReferenceSpecimen
+2025-09-16 14:26:32,748 - dynamat.gui.widgets.specimen_form - INFO - === END ONTOLOGY DEBUG ===
+2025-09-16 14:26:32,749 - dynamat.gui.widgets.specimen_form - INFO - Creating specimen form for https://dynamat.utep.edu/ontology#Specimen
+2025-09-16 14:26:32,754 - dynamat.gui.widgets.specimen_form - INFO - Found 59 properties for specimen
+2025-09-16 14:26:32,754 - dynamat.gui.widgets.specimen_form - INFO - Form groups: ['Characterization Tracking', 'CompositeProperties', 'GeometryDimensions', 'Identification', 'Manufacturing', 'MaterialProperties', 'Notes', 'PostTestDimensions', 'ProcessingHistory', 'StructureInfo', 'StructureParameters']
+2025-09-16 14:26:32,754 - dynamat.gui.form_builder - INFO - Building form for class: https://dynamat.utep.edu/ontology#Specimen
+2025-09-16 14:26:32,755 - dynamat.gui.form_builder - INFO - Got metadata for Specimen with 59 properties
+2025-09-16 14:26:32,755 - dynamat.gui.form_builder - INFO - Final form group order:
+2025-09-16 14:26:32,755 - dynamat.gui.form_builder - INFO -   1. Characterization Tracking
+2025-09-16 14:26:32,755 - dynamat.gui.form_builder - INFO -   2. CompositeProperties
+2025-09-16 14:26:32,755 - dynamat.gui.form_builder - INFO -   3. GeometryDimensions
+2025-09-16 14:26:32,755 - dynamat.gui.form_builder - INFO -   4. Identification
+2025-09-16 14:26:32,756 - dynamat.gui.form_builder - INFO -   5. Manufacturing
+2025-09-16 14:26:32,756 - dynamat.gui.form_builder - INFO -   6. MaterialProperties
+2025-09-16 14:26:32,756 - dynamat.gui.form_builder - INFO -   7. Notes
+2025-09-16 14:26:32,756 - dynamat.gui.form_builder - INFO -   8. PostTestDimensions
+2025-09-16 14:26:32,756 - dynamat.gui.form_builder - INFO -   9. ProcessingHistory
+2025-09-16 14:26:32,756 - dynamat.gui.form_builder - INFO -   10. StructureInfo
+2025-09-16 14:26:32,757 - dynamat.gui.form_builder - INFO -   11. StructureParameters
+2025-09-16 14:26:32,757 - dynamat.gui.form_builder - INFO - Creating group 'Characterization Tracking' with 5 properties
+2025-09-16 14:26:32,765 - dynamat.gui.form_builder - INFO - Group 'Characterization Tracking' created with 5 fields
+2025-09-16 14:26:32,766 - dynamat.gui.form_builder - INFO - Creating group 'CompositeProperties' with 5 properties
+2025-09-16 14:26:32,774 - dynamat.gui.form_builder - INFO - Group 'CompositeProperties' created with 5 fields
+2025-09-16 14:26:32,774 - dynamat.gui.form_builder - INFO - Creating group 'GeometryDimensions' with 8 properties
+2025-09-16 14:26:32,780 - dynamat.gui.form_builder - INFO - Group 'GeometryDimensions' created with 8 fields
+2025-09-16 14:26:32,780 - dynamat.gui.form_builder - INFO - Creating group 'Identification' with 7 properties
+2025-09-16 14:26:32,786 - dynamat.gui.form_builder - INFO - Group 'Identification' created with 4 fields
+2025-09-16 14:26:32,786 - dynamat.gui.form_builder - INFO - Creating group 'Manufacturing' with 4 properties
+2025-09-16 14:26:32,793 - dynamat.gui.form_builder - INFO - Group 'Manufacturing' created with 4 fields
+2025-09-16 14:26:32,793 - dynamat.gui.form_builder - INFO - Creating group 'MaterialProperties' with 1 properties
+2025-09-16 14:26:32,799 - dynamat.gui.form_builder - INFO - Group 'MaterialProperties' created with 1 fields
+2025-09-16 14:26:32,799 - dynamat.gui.form_builder - INFO - Creating group 'Notes' with 4 properties
+2025-09-16 14:26:32,799 - dynamat.gui.form_builder - INFO - Group 'Notes' created with 1 fields
+2025-09-16 14:26:32,800 - dynamat.gui.form_builder - INFO - Creating group 'PostTestDimensions' with 7 properties
+2025-09-16 14:26:32,800 - dynamat.gui.form_builder - INFO - Group 'PostTestDimensions' created with 7 fields
+2025-09-16 14:26:32,800 - dynamat.gui.form_builder - INFO - Creating group 'ProcessingHistory' with 2 properties
+2025-09-16 14:26:32,809 - dynamat.gui.form_builder - INFO - Group 'ProcessingHistory' created with 2 fields
+2025-09-16 14:26:32,810 - dynamat.gui.form_builder - INFO - Creating group 'StructureInfo' with 1 properties
+2025-09-16 14:26:32,815 - dynamat.gui.form_builder - INFO - Group 'StructureInfo' created with 1 fields
+2025-09-16 14:26:32,815 - dynamat.gui.form_builder - INFO - Creating group 'StructureParameters' with 15 properties
+2025-09-16 14:26:32,816 - dynamat.gui.form_builder - INFO - Group 'StructureParameters' created with 15 fields
+2025-09-16 14:26:32,829 - dynamat.gui.form_builder - INFO - Form built successfully with 52 total fields in 11 groups
+2025-09-16 14:26:32,829 - dynamat.gui.widgets.specimen_form - INFO - Form created successfully with 52 fields
+2025-09-16 14:26:32,829 - dynamat.gui.widgets.specimen_form - INFO - Specimen form widget initialized
+2025-09-16 14:26:32,830 - dynamat.gui.main_window - INFO - Specimen form widget created and cached
+2025-09-16 14:26:32,830 - dynamat.gui.main_window - INFO - Main window initialized
+2025-09-16 14:33:30,808 - dynamat.gui.main_window - INFO - Main window closed
+2025-09-16 14:33:42,178 - __main__ - INFO - Launching GUI application
+2025-09-16 14:33:42,380 - dynamat.ontology.manager - INFO - Loaded 18 TTL files
+2025-09-16 14:33:42,380 - dynamat.ontology.manager - INFO - Ontology manager initialized with 7089 triples
+2025-09-16 14:33:42,380 - dynamat.gui.app - INFO - Ontology manager loaded successfully
+2025-09-16 14:33:42,396 - dynamat.gui.app - INFO - DynaMat application initialized
+2025-09-16 14:33:42,417 - dynamat.gui.widgets.action_panel - INFO - Action panel widget initialized
+2025-09-16 14:33:42,423 - dynamat.gui.widgets.terminal_widget - INFO - Terminal widget initialized
+2025-09-16 14:33:42,426 - dynamat.gui.main_window - INFO - Initializing specimen activity widget
+2025-09-16 14:33:42,427 - dynamat.gui.widgets.specimen_form - INFO - === ONTOLOGY DEBUG INFO ===
+2025-09-16 14:33:42,427 - dynamat.gui.widgets.specimen_form - INFO - Ontology graph has 7089 triples
+2025-09-16 14:33:42,624 - dynamat.gui.widgets.specimen_form - INFO - Found 59 properties for Specimen class
+2025-09-16 14:33:42,624 - dynamat.gui.widgets.specimen_form - INFO -   - Characterization Group ID (Characterization Tracking, order: 1)
+2025-09-16 14:33:42,624 - dynamat.gui.widgets.specimen_form - INFO -   - Is Characterization Representative (Characterization Tracking, order: 2)
+2025-09-16 14:33:42,624 - dynamat.gui.widgets.specimen_form - INFO -   - Representative Specimen (Characterization Tracking, order: 3)
+2025-09-16 14:33:42,624 - dynamat.gui.widgets.specimen_form - INFO -   - Similar Processing Conditions (Characterization Tracking, order: 4)
+2025-09-16 14:33:42,624 - dynamat.gui.widgets.specimen_form - INFO -   - Testing Condition Code (Characterization Tracking, order: 5)
+2025-09-16 14:33:42,624 - dynamat.gui.widgets.specimen_form - INFO -   ... and 54 more properties
+2025-09-16 14:33:42,628 - dynamat.gui.widgets.specimen_form - INFO - Found 5 shape individuals
+2025-09-16 14:33:42,628 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#CubicShape
+2025-09-16 14:33:42,628 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#CylindricalShape
+2025-09-16 14:33:42,628 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#DogboneShape
+2025-09-16 14:33:42,632 - dynamat.gui.widgets.specimen_form - INFO - Found 5 specimen role individuals
+2025-09-16 14:33:42,632 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#CalibrationSpecimen
+2025-09-16 14:33:42,632 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#CharacterizationSpecimen
+2025-09-16 14:33:42,632 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#ReferenceSpecimen
+2025-09-16 14:33:42,633 - dynamat.gui.widgets.specimen_form - INFO - === END ONTOLOGY DEBUG ===
+2025-09-16 14:33:42,633 - dynamat.gui.widgets.specimen_form - INFO - Creating specimen form for https://dynamat.utep.edu/ontology#Specimen
+2025-09-16 14:33:42,638 - dynamat.gui.widgets.specimen_form - INFO - Found 59 properties for specimen
+2025-09-16 14:33:42,638 - dynamat.gui.widgets.specimen_form - INFO - Form groups: ['Characterization Tracking', 'CompositeProperties', 'GeometryDimensions', 'Identification', 'Manufacturing', 'MaterialProperties', 'Notes', 'PostTestDimensions', 'ProcessingHistory', 'StructureInfo', 'StructureParameters']
+2025-09-16 14:33:42,639 - dynamat.gui.form_builder - INFO - Building form for class: https://dynamat.utep.edu/ontology#Specimen
+2025-09-16 14:33:42,639 - dynamat.gui.form_builder - INFO - Got metadata for Specimen with 59 properties
+2025-09-16 14:33:42,639 - dynamat.gui.form_builder - INFO - Final form group order:
+2025-09-16 14:33:42,639 - dynamat.gui.form_builder - INFO -   1. Identification
+2025-09-16 14:33:42,639 - dynamat.gui.form_builder - INFO -   2. Notes
+2025-09-16 14:33:42,639 - dynamat.gui.form_builder - INFO -   3. MaterialProperties
+2025-09-16 14:33:42,639 - dynamat.gui.form_builder - INFO -   4. CompositeProperties
+2025-09-16 14:33:42,639 - dynamat.gui.form_builder - INFO -   5. GeometryDimensions
+2025-09-16 14:33:42,639 - dynamat.gui.form_builder - INFO -   6. PostTestDimensions
+2025-09-16 14:33:42,639 - dynamat.gui.form_builder - INFO -   7. Characterization Tracking
+2025-09-16 14:33:42,639 - dynamat.gui.form_builder - INFO -   8. Manufacturing
+2025-09-16 14:33:42,639 - dynamat.gui.form_builder - INFO -   9. ProcessingHistory
+2025-09-16 14:33:42,640 - dynamat.gui.form_builder - INFO -   10. StructureInfo
+2025-09-16 14:33:42,640 - dynamat.gui.form_builder - INFO -   11. StructureParameters
+2025-09-16 14:33:42,640 - dynamat.gui.form_builder - INFO - Creating group 'Identification' with 7 properties
+2025-09-16 14:33:42,644 - dynamat.gui.form_builder - INFO - Group 'Identification' created with 4 fields
+2025-09-16 14:33:42,645 - dynamat.gui.form_builder - INFO - Creating group 'Notes' with 4 properties
+2025-09-16 14:33:42,645 - dynamat.gui.form_builder - INFO - Group 'Notes' created with 1 fields
+2025-09-16 14:33:42,645 - dynamat.gui.form_builder - INFO - Creating group 'MaterialProperties' with 1 properties
+2025-09-16 14:33:42,649 - dynamat.gui.form_builder - INFO - Group 'MaterialProperties' created with 1 fields
+2025-09-16 14:33:42,649 - dynamat.gui.form_builder - INFO - Creating group 'CompositeProperties' with 5 properties
+2025-09-16 14:33:42,657 - dynamat.gui.form_builder - INFO - Group 'CompositeProperties' created with 5 fields
+2025-09-16 14:33:42,657 - dynamat.gui.form_builder - INFO - Creating group 'GeometryDimensions' with 8 properties
+2025-09-16 14:33:42,661 - dynamat.gui.form_builder - INFO - Group 'GeometryDimensions' created with 8 fields
+2025-09-16 14:33:42,661 - dynamat.gui.form_builder - INFO - Creating group 'PostTestDimensions' with 7 properties
+2025-09-16 14:33:42,662 - dynamat.gui.form_builder - INFO - Group 'PostTestDimensions' created with 7 fields
+2025-09-16 14:33:42,662 - dynamat.gui.form_builder - INFO - Creating group 'Characterization Tracking' with 5 properties
+2025-09-16 14:33:42,670 - dynamat.gui.form_builder - INFO - Group 'Characterization Tracking' created with 5 fields
+2025-09-16 14:33:42,670 - dynamat.gui.form_builder - INFO - Creating group 'Manufacturing' with 4 properties
+2025-09-16 14:33:42,676 - dynamat.gui.form_builder - INFO - Group 'Manufacturing' created with 4 fields
+2025-09-16 14:33:42,676 - dynamat.gui.form_builder - INFO - Creating group 'ProcessingHistory' with 2 properties
+2025-09-16 14:33:42,683 - dynamat.gui.form_builder - INFO - Group 'ProcessingHistory' created with 2 fields
+2025-09-16 14:33:42,684 - dynamat.gui.form_builder - INFO - Creating group 'StructureInfo' with 1 properties
+2025-09-16 14:33:42,688 - dynamat.gui.form_builder - INFO - Group 'StructureInfo' created with 1 fields
+2025-09-16 14:33:42,688 - dynamat.gui.form_builder - INFO - Creating group 'StructureParameters' with 15 properties
+2025-09-16 14:33:42,689 - dynamat.gui.form_builder - INFO - Group 'StructureParameters' created with 15 fields
+2025-09-16 14:33:42,701 - dynamat.gui.form_builder - INFO - Form built successfully with 52 total fields in 11 groups
+2025-09-16 14:33:42,702 - dynamat.gui.widgets.specimen_form - INFO - Form created successfully with 52 fields
+2025-09-16 14:33:42,702 - dynamat.gui.widgets.specimen_form - INFO - Specimen form widget initialized
+2025-09-16 14:33:42,702 - dynamat.gui.main_window - INFO - Specimen form widget created and cached
+2025-09-16 14:33:42,702 - dynamat.gui.main_window - INFO - Main window initialized
+2025-09-16 14:33:46,565 - dynamat.gui.main_window - INFO - Switching from specimen to mechanical
+2025-09-16 14:33:46,632 - dynamat.gui.main_window - INFO - Switched to mechanical activity
+2025-09-16 14:33:47,302 - dynamat.gui.main_window - INFO - Switching from mechanical to specimen
+2025-09-16 14:33:47,355 - dynamat.gui.main_window - INFO - Specimen form widget restored from cache
+2025-09-16 14:33:47,356 - dynamat.gui.main_window - INFO - Switched to specimen activity
+2025-09-16 14:38:38,326 - dynamat.gui.main_window - INFO - Main window closed
+2025-09-16 14:38:42,734 - __main__ - INFO - Launching GUI application
+2025-09-16 14:38:42,942 - dynamat.ontology.manager - INFO - Loaded 18 TTL files
+2025-09-16 14:38:42,944 - dynamat.ontology.manager - INFO - Ontology manager initialized with 7073 triples
+2025-09-16 14:38:42,945 - dynamat.gui.app - INFO - Ontology manager loaded successfully
+2025-09-16 14:38:42,962 - dynamat.gui.app - INFO - DynaMat application initialized
+2025-09-16 14:38:42,999 - dynamat.gui.widgets.action_panel - INFO - Action panel widget initialized
+2025-09-16 14:38:43,005 - dynamat.gui.widgets.terminal_widget - INFO - Terminal widget initialized
+2025-09-16 14:38:43,018 - dynamat.gui.main_window - INFO - Initializing specimen activity widget
+2025-09-16 14:38:43,021 - dynamat.gui.widgets.specimen_form - INFO - === ONTOLOGY DEBUG INFO ===
+2025-09-16 14:38:43,024 - dynamat.gui.widgets.specimen_form - INFO - Ontology graph has 7073 triples
+2025-09-16 14:38:43,226 - dynamat.gui.widgets.specimen_form - INFO - Found 59 properties for Specimen class
+2025-09-16 14:38:43,229 - dynamat.gui.widgets.specimen_form - INFO -   - Characterization Group ID (Characterization Tracking, order: 1)
+2025-09-16 14:38:43,249 - dynamat.gui.widgets.specimen_form - INFO -   - Is Characterization Representative (Characterization Tracking, order: 2)
+2025-09-16 14:38:43,250 - dynamat.gui.widgets.specimen_form - INFO -   - Representative Specimen (Characterization Tracking, order: 3)
+2025-09-16 14:38:43,250 - dynamat.gui.widgets.specimen_form - INFO -   - Similar Processing Conditions (Characterization Tracking, order: 4)
+2025-09-16 14:38:43,250 - dynamat.gui.widgets.specimen_form - INFO -   - Testing Condition Code (Characterization Tracking, order: 5)
+2025-09-16 14:38:43,251 - dynamat.gui.widgets.specimen_form - INFO -   ... and 54 more properties
+2025-09-16 14:38:43,255 - dynamat.gui.widgets.specimen_form - INFO - Found 5 shape individuals
+2025-09-16 14:38:43,265 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#CubicShape
+2025-09-16 14:38:43,266 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#CylindricalShape
+2025-09-16 14:38:43,266 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#DogboneShape
+2025-09-16 14:38:43,271 - dynamat.gui.widgets.specimen_form - INFO - Found 5 specimen role individuals
+2025-09-16 14:38:43,271 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#CalibrationSpecimen
+2025-09-16 14:38:43,271 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#CharacterizationSpecimen
+2025-09-16 14:38:43,273 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#ReferenceSpecimen
+2025-09-16 14:38:43,273 - dynamat.gui.widgets.specimen_form - INFO - === END ONTOLOGY DEBUG ===
+2025-09-16 14:38:43,274 - dynamat.gui.widgets.specimen_form - INFO - Creating specimen form for https://dynamat.utep.edu/ontology#Specimen
+2025-09-16 14:38:43,283 - dynamat.gui.widgets.specimen_form - INFO - Found 59 properties for specimen
+2025-09-16 14:38:43,284 - dynamat.gui.widgets.specimen_form - INFO - Form groups: ['Characterization Tracking', 'CompositeProperties', 'GeometryDimensions', 'Identification', 'Manufacturing', 'MaterialProperties', 'Notes', 'PostTestDimensions', 'ProcessingHistory', 'StructureInfo', 'StructureParameters']
+2025-09-16 14:38:43,285 - dynamat.gui.form_builder - INFO - Building form for class: https://dynamat.utep.edu/ontology#Specimen
+2025-09-16 14:38:43,285 - dynamat.gui.form_builder - INFO - Got metadata for Specimen with 59 properties
+2025-09-16 14:38:43,286 - dynamat.gui.form_builder - INFO - Final form group order:
+2025-09-16 14:38:43,288 - dynamat.gui.form_builder - INFO -   1. Identification
+2025-09-16 14:38:43,288 - dynamat.gui.form_builder - INFO -   2. Notes
+2025-09-16 14:38:43,289 - dynamat.gui.form_builder - INFO -   3. MaterialProperties
+2025-09-16 14:38:43,289 - dynamat.gui.form_builder - INFO -   4. CompositeProperties
+2025-09-16 14:38:43,290 - dynamat.gui.form_builder - INFO -   5. GeometryDimensions
+2025-09-16 14:38:43,290 - dynamat.gui.form_builder - INFO -   6. PostTestDimensions
+2025-09-16 14:38:43,290 - dynamat.gui.form_builder - INFO -   7. Characterization Tracking
+2025-09-16 14:38:43,291 - dynamat.gui.form_builder - INFO -   8. Manufacturing
+2025-09-16 14:38:43,291 - dynamat.gui.form_builder - INFO -   9. ProcessingHistory
+2025-09-16 14:38:43,292 - dynamat.gui.form_builder - INFO -   10. StructureInfo
+2025-09-16 14:38:43,294 - dynamat.gui.form_builder - INFO -   11. StructureParameters
+2025-09-16 14:38:43,295 - dynamat.gui.form_builder - INFO - Creating group 'Identification' with 7 properties
+2025-09-16 14:38:43,302 - dynamat.gui.form_builder - INFO - Group 'Identification' created with 4 fields
+2025-09-16 14:38:43,304 - dynamat.gui.form_builder - INFO - Creating group 'Notes' with 4 properties
+2025-09-16 14:38:43,306 - dynamat.gui.form_builder - INFO - Group 'Notes' created with 1 fields
+2025-09-16 14:38:43,306 - dynamat.gui.form_builder - INFO - Creating group 'MaterialProperties' with 1 properties
+2025-09-16 14:38:43,311 - dynamat.gui.form_builder - INFO - Group 'MaterialProperties' created with 1 fields
+2025-09-16 14:38:43,313 - dynamat.gui.form_builder - INFO - Creating group 'CompositeProperties' with 5 properties
+2025-09-16 14:38:43,322 - dynamat.gui.form_builder - INFO - Group 'CompositeProperties' created with 5 fields
+2025-09-16 14:38:43,329 - dynamat.gui.form_builder - INFO - Creating group 'GeometryDimensions' with 8 properties
+2025-09-16 14:38:43,341 - dynamat.gui.form_builder - INFO - Group 'GeometryDimensions' created with 8 fields
+2025-09-16 14:38:43,342 - dynamat.gui.form_builder - INFO - Creating group 'PostTestDimensions' with 7 properties
+2025-09-16 14:38:43,344 - dynamat.gui.form_builder - INFO - Group 'PostTestDimensions' created with 7 fields
+2025-09-16 14:38:43,346 - dynamat.gui.form_builder - INFO - Creating group 'Characterization Tracking' with 5 properties
+2025-09-16 14:38:43,357 - dynamat.gui.form_builder - INFO - Group 'Characterization Tracking' created with 5 fields
+2025-09-16 14:38:43,359 - dynamat.gui.form_builder - INFO - Creating group 'Manufacturing' with 4 properties
+2025-09-16 14:38:43,365 - dynamat.gui.form_builder - INFO - Group 'Manufacturing' created with 4 fields
+2025-09-16 14:38:43,366 - dynamat.gui.form_builder - INFO - Creating group 'ProcessingHistory' with 2 properties
+2025-09-16 14:38:43,374 - dynamat.gui.form_builder - INFO - Group 'ProcessingHistory' created with 2 fields
+2025-09-16 14:38:43,374 - dynamat.gui.form_builder - INFO - Creating group 'StructureInfo' with 1 properties
+2025-09-16 14:38:43,379 - dynamat.gui.form_builder - INFO - Group 'StructureInfo' created with 1 fields
+2025-09-16 14:38:43,381 - dynamat.gui.form_builder - INFO - Creating group 'StructureParameters' with 15 properties
+2025-09-16 14:38:43,383 - dynamat.gui.form_builder - INFO - Group 'StructureParameters' created with 15 fields
+2025-09-16 14:38:43,395 - dynamat.gui.form_builder - INFO - Form built successfully with 52 total fields in 11 groups
+2025-09-16 14:38:43,397 - dynamat.gui.widgets.specimen_form - INFO - Form created successfully with 52 fields
+2025-09-16 14:38:43,398 - dynamat.gui.widgets.specimen_form - INFO - Specimen form widget initialized
+2025-09-16 14:38:43,399 - dynamat.gui.main_window - INFO - Specimen form widget created and cached
+2025-09-16 14:38:43,400 - dynamat.gui.main_window - INFO - Main window initialized
+2025-09-16 14:38:45,034 - dynamat.gui.main_window - INFO - Switching from specimen to mechanical
+2025-09-16 14:38:45,087 - dynamat.gui.main_window - INFO - Switched to mechanical activity
+2025-09-16 14:38:45,533 - dynamat.gui.main_window - INFO - Switching from mechanical to specimen
+2025-09-16 14:38:45,603 - dynamat.gui.main_window - INFO - Specimen form widget restored from cache
+2025-09-16 14:38:45,603 - dynamat.gui.main_window - INFO - Switched to specimen activity
+2025-09-16 14:39:18,890 - dynamat.gui.main_window - INFO - Main window closed
+2025-09-16 14:39:26,680 - __main__ - INFO - Launching GUI application
+2025-09-16 14:39:27,277 - dynamat.ontology.manager - INFO - Loaded 18 TTL files
+2025-09-16 14:39:27,278 - dynamat.ontology.manager - INFO - Ontology manager initialized with 7073 triples
+2025-09-16 14:39:27,278 - dynamat.gui.app - INFO - Ontology manager loaded successfully
+2025-09-16 14:39:27,309 - dynamat.gui.app - INFO - DynaMat application initialized
+2025-09-16 14:39:27,335 - dynamat.gui.widgets.action_panel - INFO - Action panel widget initialized
+2025-09-16 14:39:27,340 - dynamat.gui.widgets.terminal_widget - INFO - Terminal widget initialized
+2025-09-16 14:39:27,344 - dynamat.gui.main_window - INFO - Initializing specimen activity widget
+2025-09-16 14:39:27,345 - dynamat.gui.widgets.specimen_form - INFO - === ONTOLOGY DEBUG INFO ===
+2025-09-16 14:39:27,345 - dynamat.gui.widgets.specimen_form - INFO - Ontology graph has 7073 triples
+2025-09-16 14:39:27,589 - dynamat.gui.widgets.specimen_form - INFO - Found 59 properties for Specimen class
+2025-09-16 14:39:27,589 - dynamat.gui.widgets.specimen_form - INFO -   - Characterization Group ID (Characterization Tracking, order: 1)
+2025-09-16 14:39:27,589 - dynamat.gui.widgets.specimen_form - INFO -   - Is Characterization Representative (Characterization Tracking, order: 2)
+2025-09-16 14:39:27,589 - dynamat.gui.widgets.specimen_form - INFO -   - Representative Specimen (Characterization Tracking, order: 3)
+2025-09-16 14:39:27,590 - dynamat.gui.widgets.specimen_form - INFO -   - Similar Processing Conditions (Characterization Tracking, order: 4)
+2025-09-16 14:39:27,590 - dynamat.gui.widgets.specimen_form - INFO -   - Testing Condition Code (Characterization Tracking, order: 5)
+2025-09-16 14:39:27,590 - dynamat.gui.widgets.specimen_form - INFO -   ... and 54 more properties
+2025-09-16 14:39:27,593 - dynamat.gui.widgets.specimen_form - INFO - Found 5 shape individuals
+2025-09-16 14:39:27,593 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#CubicShape
+2025-09-16 14:39:27,593 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#CylindricalShape
+2025-09-16 14:39:27,594 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#DogboneShape
+2025-09-16 14:39:27,597 - dynamat.gui.widgets.specimen_form - INFO - Found 5 specimen role individuals
+2025-09-16 14:39:27,598 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#CalibrationSpecimen
+2025-09-16 14:39:27,598 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#CharacterizationSpecimen
+2025-09-16 14:39:27,598 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#ReferenceSpecimen
+2025-09-16 14:39:27,598 - dynamat.gui.widgets.specimen_form - INFO - === END ONTOLOGY DEBUG ===
+2025-09-16 14:39:27,598 - dynamat.gui.widgets.specimen_form - INFO - Creating specimen form for https://dynamat.utep.edu/ontology#Specimen
+2025-09-16 14:39:27,604 - dynamat.gui.widgets.specimen_form - INFO - Found 59 properties for specimen
+2025-09-16 14:39:27,604 - dynamat.gui.widgets.specimen_form - INFO - Form groups: ['Characterization Tracking', 'CompositeProperties', 'GeometryDimensions', 'Identification', 'Manufacturing', 'MaterialProperties', 'Notes', 'PostTestDimensions', 'ProcessingHistory', 'StructureInfo', 'StructureParameters']
+2025-09-16 14:39:27,605 - dynamat.gui.form_builder - INFO - Building form for class: https://dynamat.utep.edu/ontology#Specimen
+2025-09-16 14:39:27,605 - dynamat.gui.form_builder - INFO - Got metadata for Specimen with 59 properties
+2025-09-16 14:39:27,605 - dynamat.gui.form_builder - INFO - Final form group order:
+2025-09-16 14:39:27,605 - dynamat.gui.form_builder - INFO -   1. Identification
+2025-09-16 14:39:27,605 - dynamat.gui.form_builder - INFO -   2. Notes
+2025-09-16 14:39:27,605 - dynamat.gui.form_builder - INFO -   3. MaterialProperties
+2025-09-16 14:39:27,605 - dynamat.gui.form_builder - INFO -   4. CompositeProperties
+2025-09-16 14:39:27,605 - dynamat.gui.form_builder - INFO -   5. GeometryDimensions
+2025-09-16 14:39:27,606 - dynamat.gui.form_builder - INFO -   6. PostTestDimensions
+2025-09-16 14:39:27,606 - dynamat.gui.form_builder - INFO -   7. Characterization Tracking
+2025-09-16 14:39:27,606 - dynamat.gui.form_builder - INFO -   8. Manufacturing
+2025-09-16 14:39:27,606 - dynamat.gui.form_builder - INFO -   9. ProcessingHistory
+2025-09-16 14:39:27,606 - dynamat.gui.form_builder - INFO -   10. StructureInfo
+2025-09-16 14:39:27,606 - dynamat.gui.form_builder - INFO -   11. StructureParameters
+2025-09-16 14:39:27,606 - dynamat.gui.form_builder - INFO - Creating group 'Identification' with 7 properties
+2025-09-16 14:39:27,611 - dynamat.gui.form_builder - INFO - Group 'Identification' created with 4 fields
+2025-09-16 14:39:27,611 - dynamat.gui.form_builder - INFO - Creating group 'Notes' with 4 properties
+2025-09-16 14:39:27,612 - dynamat.gui.form_builder - INFO - Group 'Notes' created with 1 fields
+2025-09-16 14:39:27,612 - dynamat.gui.form_builder - INFO - Creating group 'MaterialProperties' with 1 properties
+2025-09-16 14:39:27,616 - dynamat.gui.form_builder - INFO - Group 'MaterialProperties' created with 1 fields
+2025-09-16 14:39:27,616 - dynamat.gui.form_builder - INFO - Creating group 'CompositeProperties' with 5 properties
+2025-09-16 14:39:27,624 - dynamat.gui.form_builder - INFO - Group 'CompositeProperties' created with 5 fields
+2025-09-16 14:39:27,624 - dynamat.gui.form_builder - INFO - Creating group 'GeometryDimensions' with 8 properties
+2025-09-16 14:39:27,628 - dynamat.gui.form_builder - INFO - Group 'GeometryDimensions' created with 8 fields
+2025-09-16 14:39:27,629 - dynamat.gui.form_builder - INFO - Creating group 'PostTestDimensions' with 7 properties
+2025-09-16 14:39:27,629 - dynamat.gui.form_builder - INFO - Group 'PostTestDimensions' created with 7 fields
+2025-09-16 14:39:27,629 - dynamat.gui.form_builder - INFO - Creating group 'Characterization Tracking' with 5 properties
+2025-09-16 14:39:27,637 - dynamat.gui.form_builder - INFO - Group 'Characterization Tracking' created with 5 fields
+2025-09-16 14:39:27,637 - dynamat.gui.form_builder - INFO - Creating group 'Manufacturing' with 4 properties
+2025-09-16 14:39:27,642 - dynamat.gui.form_builder - INFO - Group 'Manufacturing' created with 4 fields
+2025-09-16 14:39:27,643 - dynamat.gui.form_builder - INFO - Creating group 'ProcessingHistory' with 2 properties
+2025-09-16 14:39:27,650 - dynamat.gui.form_builder - INFO - Group 'ProcessingHistory' created with 2 fields
+2025-09-16 14:39:27,650 - dynamat.gui.form_builder - INFO - Creating group 'StructureInfo' with 1 properties
+2025-09-16 14:39:27,654 - dynamat.gui.form_builder - INFO - Group 'StructureInfo' created with 1 fields
+2025-09-16 14:39:27,654 - dynamat.gui.form_builder - INFO - Creating group 'StructureParameters' with 15 properties
+2025-09-16 14:39:27,655 - dynamat.gui.form_builder - INFO - Group 'StructureParameters' created with 15 fields
+2025-09-16 14:39:27,667 - dynamat.gui.form_builder - INFO - Form built successfully with 52 total fields in 11 groups
+2025-09-16 14:39:27,667 - dynamat.gui.widgets.specimen_form - INFO - Form created successfully with 52 fields
+2025-09-16 14:39:27,668 - dynamat.gui.widgets.specimen_form - INFO - Specimen form widget initialized
+2025-09-16 14:39:27,668 - dynamat.gui.main_window - INFO - Specimen form widget created and cached
+2025-09-16 14:39:27,668 - dynamat.gui.main_window - INFO - Main window initialized
+2025-09-16 14:39:29,012 - dynamat.gui.main_window - INFO - Switching from specimen to mechanical
+2025-09-16 14:39:29,067 - dynamat.gui.main_window - INFO - Switched to mechanical activity
+2025-09-16 14:39:29,485 - dynamat.gui.main_window - INFO - Switching from mechanical to specimen
+2025-09-16 14:39:29,545 - dynamat.gui.main_window - INFO - Specimen form widget restored from cache
+2025-09-16 14:39:29,546 - dynamat.gui.main_window - INFO - Switched to specimen activity
+2025-09-16 14:46:42,504 - dynamat.gui.main_window - INFO - Main window closed
+2025-09-16 14:46:55,540 - __main__ - INFO - Launching GUI application
+2025-09-16 14:46:55,742 - dynamat.ontology.manager - INFO - Loaded 18 TTL files
+2025-09-16 14:46:55,742 - dynamat.ontology.manager - INFO - Ontology manager initialized with 7073 triples
+2025-09-16 14:46:55,743 - dynamat.gui.app - INFO - Ontology manager loaded successfully
+2025-09-16 14:46:55,759 - dynamat.gui.app - INFO - DynaMat application initialized
+2025-09-16 14:46:55,780 - dynamat.gui.widgets.action_panel - INFO - Action panel widget initialized
+2025-09-16 14:46:55,786 - dynamat.gui.widgets.terminal_widget - INFO - Terminal widget initialized
+2025-09-16 14:46:55,790 - dynamat.gui.main_window - INFO - Initializing specimen activity widget
+2025-09-16 14:46:55,790 - dynamat.gui.widgets.specimen_form - INFO - === ONTOLOGY DEBUG INFO ===
+2025-09-16 14:46:55,791 - dynamat.gui.widgets.specimen_form - INFO - Ontology graph has 7073 triples
+2025-09-16 14:46:56,012 - dynamat.gui.widgets.specimen_form - INFO - Found 59 properties for Specimen class
+2025-09-16 14:46:56,012 - dynamat.gui.widgets.specimen_form - INFO -   - Characterization Group ID (Characterization Tracking, order: 1)
+2025-09-16 14:46:56,012 - dynamat.gui.widgets.specimen_form - INFO -   - Is Characterization Representative (Characterization Tracking, order: 2)
+2025-09-16 14:46:56,013 - dynamat.gui.widgets.specimen_form - INFO -   - Representative Specimen (Characterization Tracking, order: 3)
+2025-09-16 14:46:56,013 - dynamat.gui.widgets.specimen_form - INFO -   - Similar Processing Conditions (Characterization Tracking, order: 4)
+2025-09-16 14:46:56,013 - dynamat.gui.widgets.specimen_form - INFO -   - Testing Condition Code (Characterization Tracking, order: 5)
+2025-09-16 14:46:56,013 - dynamat.gui.widgets.specimen_form - INFO -   ... and 54 more properties
+2025-09-16 14:46:56,016 - dynamat.gui.widgets.specimen_form - INFO - Found 5 shape individuals
+2025-09-16 14:46:56,017 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#CubicShape
+2025-09-16 14:46:56,017 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#CylindricalShape
+2025-09-16 14:46:56,017 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#DogboneShape
+2025-09-16 14:46:56,020 - dynamat.gui.widgets.specimen_form - INFO - Found 5 specimen role individuals
+2025-09-16 14:46:56,020 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#CalibrationSpecimen
+2025-09-16 14:46:56,021 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#CharacterizationSpecimen
+2025-09-16 14:46:56,021 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#ReferenceSpecimen
+2025-09-16 14:46:56,021 - dynamat.gui.widgets.specimen_form - INFO - === END ONTOLOGY DEBUG ===
+2025-09-16 14:46:56,022 - dynamat.gui.widgets.specimen_form - INFO - Creating specimen form for https://dynamat.utep.edu/ontology#Specimen
+2025-09-16 14:46:56,027 - dynamat.gui.widgets.specimen_form - INFO - Found 59 properties for specimen
+2025-09-16 14:46:56,028 - dynamat.gui.widgets.specimen_form - INFO - Form groups: ['Characterization Tracking', 'CompositeProperties', 'GeometryDimensions', 'Identification', 'Manufacturing', 'MaterialProperties', 'Notes', 'PostTestDimensions', 'ProcessingHistory', 'StructureInfo', 'StructureParameters']
+2025-09-16 14:46:56,028 - dynamat.gui.form_builder - INFO - Building form for class: https://dynamat.utep.edu/ontology#Specimen
+2025-09-16 14:46:56,028 - dynamat.gui.form_builder - INFO - Got metadata for Specimen with 59 properties
+2025-09-16 14:46:56,028 - dynamat.gui.form_builder - INFO - Final form group order:
+2025-09-16 14:46:56,029 - dynamat.gui.form_builder - INFO -   1. Identification
+2025-09-16 14:46:56,029 - dynamat.gui.form_builder - INFO -   2. Notes
+2025-09-16 14:46:56,029 - dynamat.gui.form_builder - INFO -   3. MaterialProperties
+2025-09-16 14:46:56,029 - dynamat.gui.form_builder - INFO -   4. CompositeProperties
+2025-09-16 14:46:56,029 - dynamat.gui.form_builder - INFO -   5. GeometryDimensions
+2025-09-16 14:46:56,029 - dynamat.gui.form_builder - INFO -   6. PostTestDimensions
+2025-09-16 14:46:56,030 - dynamat.gui.form_builder - INFO -   7. Characterization Tracking
+2025-09-16 14:46:56,030 - dynamat.gui.form_builder - INFO -   8. Manufacturing
+2025-09-16 14:46:56,030 - dynamat.gui.form_builder - INFO -   9. ProcessingHistory
+2025-09-16 14:46:56,030 - dynamat.gui.form_builder - INFO -   10. StructureInfo
+2025-09-16 14:46:56,030 - dynamat.gui.form_builder - INFO -   11. StructureParameters
+2025-09-16 14:46:56,031 - dynamat.gui.form_builder - INFO - Creating group 'Identification' with 7 properties
+2025-09-16 14:46:56,036 - dynamat.gui.form_builder - INFO - Group 'Identification' created with 4 fields
+2025-09-16 14:46:56,036 - dynamat.gui.form_builder - INFO - Creating group 'Notes' with 4 properties
+2025-09-16 14:46:56,036 - dynamat.gui.form_builder - INFO - Group 'Notes' created with 1 fields
+2025-09-16 14:46:56,037 - dynamat.gui.form_builder - INFO - Creating group 'MaterialProperties' with 1 properties
+2025-09-16 14:46:56,041 - dynamat.gui.form_builder - INFO - Group 'MaterialProperties' created with 1 fields
+2025-09-16 14:46:56,041 - dynamat.gui.form_builder - INFO - Creating group 'CompositeProperties' with 5 properties
+2025-09-16 14:46:56,049 - dynamat.gui.form_builder - INFO - Group 'CompositeProperties' created with 5 fields
+2025-09-16 14:46:56,049 - dynamat.gui.form_builder - INFO - Creating group 'GeometryDimensions' with 8 properties
+2025-09-16 14:46:56,054 - dynamat.gui.form_builder - INFO - Group 'GeometryDimensions' created with 8 fields
+2025-09-16 14:46:56,054 - dynamat.gui.form_builder - INFO - Creating group 'PostTestDimensions' with 7 properties
+2025-09-16 14:46:56,055 - dynamat.gui.form_builder - INFO - Group 'PostTestDimensions' created with 7 fields
+2025-09-16 14:46:56,055 - dynamat.gui.form_builder - INFO - Creating group 'Characterization Tracking' with 5 properties
+2025-09-16 14:46:56,063 - dynamat.gui.form_builder - INFO - Group 'Characterization Tracking' created with 5 fields
+2025-09-16 14:46:56,063 - dynamat.gui.form_builder - INFO - Creating group 'Manufacturing' with 4 properties
+2025-09-16 14:46:56,068 - dynamat.gui.form_builder - INFO - Group 'Manufacturing' created with 4 fields
+2025-09-16 14:46:56,068 - dynamat.gui.form_builder - INFO - Creating group 'ProcessingHistory' with 2 properties
+2025-09-16 14:46:56,083 - dynamat.gui.form_builder - INFO - Group 'ProcessingHistory' created with 2 fields
+2025-09-16 14:46:56,083 - dynamat.gui.form_builder - INFO - Creating group 'StructureInfo' with 1 properties
+2025-09-16 14:46:56,089 - dynamat.gui.form_builder - INFO - Group 'StructureInfo' created with 1 fields
+2025-09-16 14:46:56,089 - dynamat.gui.form_builder - INFO - Creating group 'StructureParameters' with 15 properties
+2025-09-16 14:46:56,091 - dynamat.gui.form_builder - INFO - Group 'StructureParameters' created with 15 fields
+2025-09-16 14:46:56,107 - dynamat.gui.form_builder - INFO - Form built successfully with 52 total fields in 11 groups
+2025-09-16 14:46:56,108 - dynamat.gui.widgets.specimen_form - INFO - Form created successfully with 52 fields
+2025-09-16 14:46:56,108 - dynamat.gui.widgets.specimen_form - INFO - Specimen form widget initialized
+2025-09-16 14:46:56,109 - dynamat.gui.main_window - INFO - Specimen form widget created and cached
+2025-09-16 14:46:56,109 - dynamat.gui.main_window - INFO - Main window initialized
+2025-09-16 14:47:03,789 - dynamat.gui.main_window - INFO - Switching from specimen to mechanical
+2025-09-16 14:47:03,830 - dynamat.gui.main_window - INFO - Switched to mechanical activity
+2025-09-16 14:47:04,129 - dynamat.gui.main_window - INFO - Switching from mechanical to specimen
+2025-09-16 14:47:04,175 - dynamat.gui.main_window - INFO - Specimen form widget restored from cache
+2025-09-16 14:47:04,175 - dynamat.gui.main_window - INFO - Switched to specimen activity
+2025-09-16 14:51:46,719 - dynamat.gui.main_window - INFO - Main window closed
+2025-09-16 14:51:49,901 - __main__ - INFO - Launching GUI application
+2025-09-16 14:51:50,103 - dynamat.ontology.manager - INFO - Loaded 18 TTL files
+2025-09-16 14:51:50,103 - dynamat.ontology.manager - INFO - Ontology manager initialized with 7059 triples
+2025-09-16 14:51:50,104 - dynamat.gui.app - INFO - Ontology manager loaded successfully
+2025-09-16 14:51:50,120 - dynamat.gui.app - INFO - DynaMat application initialized
+2025-09-16 14:51:50,140 - dynamat.gui.widgets.action_panel - INFO - Action panel widget initialized
+2025-09-16 14:51:50,146 - dynamat.gui.widgets.terminal_widget - INFO - Terminal widget initialized
+2025-09-16 14:51:50,150 - dynamat.gui.main_window - INFO - Initializing specimen activity widget
+2025-09-16 14:51:50,150 - dynamat.gui.widgets.specimen_form - INFO - === ONTOLOGY DEBUG INFO ===
+2025-09-16 14:51:50,150 - dynamat.gui.widgets.specimen_form - INFO - Ontology graph has 7059 triples
+2025-09-16 14:51:50,347 - dynamat.gui.widgets.specimen_form - INFO - Found 52 properties for Specimen class
+2025-09-16 14:51:50,348 - dynamat.gui.widgets.specimen_form - INFO -   - Characterization Group ID (Characterization Tracking, order: 1)
+2025-09-16 14:51:50,350 - dynamat.gui.widgets.specimen_form - INFO -   - Is Characterization Representative (Characterization Tracking, order: 2)
+2025-09-16 14:51:50,352 - dynamat.gui.widgets.specimen_form - INFO -   - Representative Specimen (Characterization Tracking, order: 3)
+2025-09-16 14:51:50,354 - dynamat.gui.widgets.specimen_form - INFO -   - Similar Processing Conditions (Characterization Tracking, order: 4)
+2025-09-16 14:51:50,354 - dynamat.gui.widgets.specimen_form - INFO -   - Testing Condition Code (Characterization Tracking, order: 5)
+2025-09-16 14:51:50,354 - dynamat.gui.widgets.specimen_form - INFO -   ... and 47 more properties
+2025-09-16 14:51:50,358 - dynamat.gui.widgets.specimen_form - INFO - Found 5 shape individuals
+2025-09-16 14:51:50,360 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#CubicShape
+2025-09-16 14:51:50,362 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#CylindricalShape
+2025-09-16 14:51:50,363 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#DogboneShape
+2025-09-16 14:51:50,369 - dynamat.gui.widgets.specimen_form - INFO - Found 5 specimen role individuals
+2025-09-16 14:51:50,369 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#CalibrationSpecimen
+2025-09-16 14:51:50,369 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#CharacterizationSpecimen
+2025-09-16 14:51:50,370 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#ReferenceSpecimen
+2025-09-16 14:51:50,370 - dynamat.gui.widgets.specimen_form - INFO - === END ONTOLOGY DEBUG ===
+2025-09-16 14:51:50,371 - dynamat.gui.widgets.specimen_form - INFO - Creating specimen form for https://dynamat.utep.edu/ontology#Specimen
+2025-09-16 14:51:50,380 - dynamat.gui.widgets.specimen_form - INFO - Found 52 properties for specimen
+2025-09-16 14:51:50,381 - dynamat.gui.widgets.specimen_form - INFO - Form groups: ['Characterization Tracking', 'CompositeProperties', 'GeometryDimensions', 'Identification', 'Manufacturing', 'MaterialProperties', 'PostTestDimensions', 'ProcessingHistory', 'StructureInfo', 'StructureParameters']
+2025-09-16 14:51:50,381 - dynamat.gui.form_builder - INFO - Building form for class: https://dynamat.utep.edu/ontology#Specimen
+2025-09-16 14:51:50,381 - dynamat.gui.form_builder - INFO - Got metadata for Specimen with 52 properties
+2025-09-16 14:51:50,382 - dynamat.gui.form_builder - INFO - Final form group order:
+2025-09-16 14:51:50,382 - dynamat.gui.form_builder - INFO -   1. Identification
+2025-09-16 14:51:50,382 - dynamat.gui.form_builder - INFO -   2. MaterialProperties
+2025-09-16 14:51:50,382 - dynamat.gui.form_builder - INFO -   3. CompositeProperties
+2025-09-16 14:51:50,383 - dynamat.gui.form_builder - INFO -   4. GeometryDimensions
+2025-09-16 14:51:50,383 - dynamat.gui.form_builder - INFO -   5. PostTestDimensions
+2025-09-16 14:51:50,383 - dynamat.gui.form_builder - INFO -   6. Characterization Tracking
+2025-09-16 14:51:50,383 - dynamat.gui.form_builder - INFO -   7. Manufacturing
+2025-09-16 14:51:50,384 - dynamat.gui.form_builder - INFO -   8. ProcessingHistory
+2025-09-16 14:51:50,384 - dynamat.gui.form_builder - INFO -   9. StructureInfo
+2025-09-16 14:51:50,385 - dynamat.gui.form_builder - INFO -   10. StructureParameters
+2025-09-16 14:51:50,385 - dynamat.gui.form_builder - INFO - Creating group 'Identification' with 4 properties
+2025-09-16 14:51:50,392 - dynamat.gui.form_builder - INFO - Group 'Identification' created with 4 fields
+2025-09-16 14:51:50,393 - dynamat.gui.form_builder - INFO - Creating group 'MaterialProperties' with 1 properties
+2025-09-16 14:51:50,397 - dynamat.gui.form_builder - INFO - Group 'MaterialProperties' created with 1 fields
+2025-09-16 14:51:50,397 - dynamat.gui.form_builder - INFO - Creating group 'CompositeProperties' with 5 properties
+2025-09-16 14:51:50,406 - dynamat.gui.form_builder - INFO - Group 'CompositeProperties' created with 5 fields
+2025-09-16 14:51:50,406 - dynamat.gui.form_builder - INFO - Creating group 'GeometryDimensions' with 8 properties
+2025-09-16 14:51:50,410 - dynamat.gui.form_builder - INFO - Group 'GeometryDimensions' created with 8 fields
+2025-09-16 14:51:50,411 - dynamat.gui.form_builder - INFO - Creating group 'PostTestDimensions' with 7 properties
+2025-09-16 14:51:50,411 - dynamat.gui.form_builder - INFO - Group 'PostTestDimensions' created with 7 fields
+2025-09-16 14:51:50,411 - dynamat.gui.form_builder - INFO - Creating group 'Characterization Tracking' with 5 properties
+2025-09-16 14:51:50,419 - dynamat.gui.form_builder - INFO - Group 'Characterization Tracking' created with 5 fields
+2025-09-16 14:51:50,420 - dynamat.gui.form_builder - INFO - Creating group 'Manufacturing' with 4 properties
+2025-09-16 14:51:50,426 - dynamat.gui.form_builder - INFO - Group 'Manufacturing' created with 4 fields
+2025-09-16 14:51:50,426 - dynamat.gui.form_builder - INFO - Creating group 'ProcessingHistory' with 2 properties
+2025-09-16 14:51:50,433 - dynamat.gui.form_builder - INFO - Group 'ProcessingHistory' created with 2 fields
+2025-09-16 14:51:50,435 - dynamat.gui.form_builder - INFO - Creating group 'StructureInfo' with 1 properties
+2025-09-16 14:51:50,438 - dynamat.gui.form_builder - INFO - Group 'StructureInfo' created with 1 fields
+2025-09-16 14:51:50,439 - dynamat.gui.form_builder - INFO - Creating group 'StructureParameters' with 15 properties
+2025-09-16 14:51:50,439 - dynamat.gui.form_builder - INFO - Group 'StructureParameters' created with 15 fields
+2025-09-16 14:51:50,452 - dynamat.gui.form_builder - INFO - Form built successfully with 52 total fields in 10 groups
+2025-09-16 14:51:50,453 - dynamat.gui.widgets.specimen_form - INFO - Form created successfully with 52 fields
+2025-09-16 14:51:50,453 - dynamat.gui.widgets.specimen_form - INFO - Specimen form widget initialized
+2025-09-16 14:51:50,454 - dynamat.gui.main_window - INFO - Specimen form widget created and cached
+2025-09-16 14:51:50,454 - dynamat.gui.main_window - INFO - Main window initialized
+2025-09-16 14:51:51,928 - dynamat.gui.main_window - INFO - Switching from specimen to mechanical
+2025-09-16 14:51:51,972 - dynamat.gui.main_window - INFO - Switched to mechanical activity
+2025-09-16 14:51:52,287 - dynamat.gui.main_window - INFO - Switching from mechanical to specimen
+2025-09-16 14:51:52,350 - dynamat.gui.main_window - INFO - Specimen form widget restored from cache
+2025-09-16 14:51:52,351 - dynamat.gui.main_window - INFO - Switched to specimen activity
+2025-09-16 14:52:07,832 - dynamat.gui.main_window - INFO - Main window closed
+2025-09-16 14:52:33,500 - __main__ - INFO - Launching GUI application
+2025-09-16 14:52:33,704 - dynamat.ontology.manager - INFO - Loaded 18 TTL files
+2025-09-16 14:52:33,705 - dynamat.ontology.manager - INFO - Ontology manager initialized with 7059 triples
+2025-09-16 14:52:33,705 - dynamat.gui.app - INFO - Ontology manager loaded successfully
+2025-09-16 14:52:33,721 - dynamat.gui.app - INFO - DynaMat application initialized
+2025-09-16 14:52:33,740 - dynamat.gui.widgets.action_panel - INFO - Action panel widget initialized
+2025-09-16 14:52:33,746 - dynamat.gui.widgets.terminal_widget - INFO - Terminal widget initialized
+2025-09-16 14:52:33,751 - dynamat.gui.main_window - INFO - Initializing specimen activity widget
+2025-09-16 14:52:33,751 - dynamat.gui.widgets.specimen_form - INFO - === ONTOLOGY DEBUG INFO ===
+2025-09-16 14:52:33,751 - dynamat.gui.widgets.specimen_form - INFO - Ontology graph has 7059 triples
+2025-09-16 14:52:33,945 - dynamat.gui.widgets.specimen_form - INFO - Found 52 properties for Specimen class
+2025-09-16 14:52:33,945 - dynamat.gui.widgets.specimen_form - INFO -   - Characterization Group ID (Characterization Tracking, order: 1)
+2025-09-16 14:52:33,945 - dynamat.gui.widgets.specimen_form - INFO -   - Is Characterization Representative (Characterization Tracking, order: 2)
+2025-09-16 14:52:33,945 - dynamat.gui.widgets.specimen_form - INFO -   - Representative Specimen (Characterization Tracking, order: 3)
+2025-09-16 14:52:33,945 - dynamat.gui.widgets.specimen_form - INFO -   - Similar Processing Conditions (Characterization Tracking, order: 4)
+2025-09-16 14:52:33,945 - dynamat.gui.widgets.specimen_form - INFO -   - Testing Condition Code (Characterization Tracking, order: 5)
+2025-09-16 14:52:33,946 - dynamat.gui.widgets.specimen_form - INFO -   ... and 47 more properties
+2025-09-16 14:52:33,949 - dynamat.gui.widgets.specimen_form - INFO - Found 5 shape individuals
+2025-09-16 14:52:33,950 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#CubicShape
+2025-09-16 14:52:33,950 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#CylindricalShape
+2025-09-16 14:52:33,950 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#DogboneShape
+2025-09-16 14:52:33,953 - dynamat.gui.widgets.specimen_form - INFO - Found 5 specimen role individuals
+2025-09-16 14:52:33,953 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#CalibrationSpecimen
+2025-09-16 14:52:33,953 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#CharacterizationSpecimen
+2025-09-16 14:52:33,954 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#ReferenceSpecimen
+2025-09-16 14:52:33,954 - dynamat.gui.widgets.specimen_form - INFO - === END ONTOLOGY DEBUG ===
+2025-09-16 14:52:33,954 - dynamat.gui.widgets.specimen_form - INFO - Creating specimen form for https://dynamat.utep.edu/ontology#Specimen
+2025-09-16 14:52:33,960 - dynamat.gui.widgets.specimen_form - INFO - Found 52 properties for specimen
+2025-09-16 14:52:33,960 - dynamat.gui.widgets.specimen_form - INFO - Form groups: ['Characterization Tracking', 'CompositeProperties', 'GeometryDimensions', 'Identification', 'Manufacturing', 'MaterialProperties', 'PostTestDimensions', 'ProcessingHistory', 'StructureInfo', 'StructureParameters']
+2025-09-16 14:52:33,960 - dynamat.gui.form_builder - INFO - Building form for class: https://dynamat.utep.edu/ontology#Specimen
+2025-09-16 14:52:33,960 - dynamat.gui.form_builder - INFO - Got metadata for Specimen with 52 properties
+2025-09-16 14:52:33,961 - dynamat.gui.form_builder - INFO - Final form group order:
+2025-09-16 14:52:33,961 - dynamat.gui.form_builder - INFO -   1. Identification
+2025-09-16 14:52:33,961 - dynamat.gui.form_builder - INFO -   2. MaterialProperties
+2025-09-16 14:52:33,961 - dynamat.gui.form_builder - INFO -   3. CompositeProperties
+2025-09-16 14:52:33,962 - dynamat.gui.form_builder - INFO -   4. GeometryDimensions
+2025-09-16 14:52:33,962 - dynamat.gui.form_builder - INFO -   5. PostTestDimensions
+2025-09-16 14:52:33,962 - dynamat.gui.form_builder - INFO -   6. Characterization Tracking
+2025-09-16 14:52:33,962 - dynamat.gui.form_builder - INFO -   7. Manufacturing
+2025-09-16 14:52:33,962 - dynamat.gui.form_builder - INFO -   8. ProcessingHistory
+2025-09-16 14:52:33,963 - dynamat.gui.form_builder - INFO -   9. StructureInfo
+2025-09-16 14:52:33,963 - dynamat.gui.form_builder - INFO -   10. StructureParameters
+2025-09-16 14:52:33,963 - dynamat.gui.form_builder - INFO - Creating group 'Identification' with 4 properties
+2025-09-16 14:52:33,968 - dynamat.gui.form_builder - INFO - Group 'Identification' created with 4 fields
+2025-09-16 14:52:33,969 - dynamat.gui.form_builder - INFO - Creating group 'MaterialProperties' with 1 properties
+2025-09-16 14:52:33,972 - dynamat.gui.form_builder - INFO - Group 'MaterialProperties' created with 1 fields
+2025-09-16 14:52:33,972 - dynamat.gui.form_builder - INFO - Creating group 'CompositeProperties' with 5 properties
+2025-09-16 14:52:33,981 - dynamat.gui.form_builder - INFO - Group 'CompositeProperties' created with 5 fields
+2025-09-16 14:52:33,981 - dynamat.gui.form_builder - INFO - Creating group 'GeometryDimensions' with 8 properties
+2025-09-16 14:52:33,985 - dynamat.gui.form_builder - INFO - Group 'GeometryDimensions' created with 8 fields
+2025-09-16 14:52:33,987 - dynamat.gui.form_builder - INFO - Creating group 'PostTestDimensions' with 7 properties
+2025-09-16 14:52:33,987 - dynamat.gui.form_builder - INFO - Group 'PostTestDimensions' created with 7 fields
+2025-09-16 14:52:33,987 - dynamat.gui.form_builder - INFO - Creating group 'Characterization Tracking' with 5 properties
+2025-09-16 14:52:33,995 - dynamat.gui.form_builder - INFO - Group 'Characterization Tracking' created with 5 fields
+2025-09-16 14:52:33,996 - dynamat.gui.form_builder - INFO - Creating group 'Manufacturing' with 4 properties
+2025-09-16 14:52:34,001 - dynamat.gui.form_builder - INFO - Group 'Manufacturing' created with 4 fields
+2025-09-16 14:52:34,001 - dynamat.gui.form_builder - INFO - Creating group 'ProcessingHistory' with 2 properties
+2025-09-16 14:52:34,009 - dynamat.gui.form_builder - INFO - Group 'ProcessingHistory' created with 2 fields
+2025-09-16 14:52:34,009 - dynamat.gui.form_builder - INFO - Creating group 'StructureInfo' with 1 properties
+2025-09-16 14:52:34,013 - dynamat.gui.form_builder - INFO - Group 'StructureInfo' created with 1 fields
+2025-09-16 14:52:34,013 - dynamat.gui.form_builder - INFO - Creating group 'StructureParameters' with 15 properties
+2025-09-16 14:52:34,013 - dynamat.gui.form_builder - INFO - Group 'StructureParameters' created with 15 fields
+2025-09-16 14:52:34,026 - dynamat.gui.form_builder - INFO - Form built successfully with 52 total fields in 10 groups
+2025-09-16 14:52:34,026 - dynamat.gui.widgets.specimen_form - INFO - Form created successfully with 52 fields
+2025-09-16 14:52:34,027 - dynamat.gui.widgets.specimen_form - INFO - Specimen form widget initialized
+2025-09-16 14:52:34,027 - dynamat.gui.main_window - INFO - Specimen form widget created and cached
+2025-09-16 14:52:34,027 - dynamat.gui.main_window - INFO - Main window initialized
+2025-09-16 14:52:35,211 - dynamat.gui.main_window - INFO - Switching from specimen to mechanical
+2025-09-16 14:52:35,258 - dynamat.gui.main_window - INFO - Switched to mechanical activity
+2025-09-16 14:52:35,771 - dynamat.gui.main_window - INFO - Switching from mechanical to specimen
+2025-09-16 14:52:35,834 - dynamat.gui.main_window - INFO - Specimen form widget restored from cache
+2025-09-16 14:52:35,834 - dynamat.gui.main_window - INFO - Switched to specimen activity
+2025-09-16 14:53:17,441 - dynamat.gui.main_window - INFO - Template loaded: Al6061 Cylindrical
+2025-09-16 14:53:17,443 - dynamat.gui.widgets.action_panel - INFO - Template loaded from list: Al6061 Cylindrical
+2025-09-16 14:53:19,683 - dynamat.gui.main_window - INFO - Template loaded: Steel Rectangular
+2025-09-16 14:53:19,683 - dynamat.gui.widgets.action_panel - INFO - Template loaded from list: Steel Rectangular
+2025-09-17 12:13:28,533 - __main__ - INFO - Launching GUI application
+2025-09-17 12:13:28,733 - dynamat.ontology.manager - INFO - Loaded 18 TTL files
+2025-09-17 12:13:28,734 - dynamat.ontology.manager - INFO - Ontology manager initialized with 7059 triples
+2025-09-17 12:13:28,734 - dynamat.gui.app - INFO - Ontology manager loaded successfully
+2025-09-17 12:13:28,750 - dynamat.gui.app - INFO - DynaMat application initialized
+2025-09-17 12:13:28,772 - dynamat.gui.widgets.action_panel - INFO - Action panel widget initialized
+2025-09-17 12:13:28,778 - dynamat.gui.widgets.terminal_widget - INFO - Terminal widget initialized
+2025-09-17 12:13:28,782 - dynamat.gui.main_window - INFO - Initializing specimen activity widget
+2025-09-17 12:13:28,782 - dynamat.gui.widgets.specimen_form - INFO - === ONTOLOGY DEBUG INFO ===
+2025-09-17 12:13:28,783 - dynamat.gui.widgets.specimen_form - INFO - Ontology graph has 7059 triples
+2025-09-17 12:13:28,975 - dynamat.gui.widgets.specimen_form - INFO - Found 52 properties for Specimen class
+2025-09-17 12:13:28,975 - dynamat.gui.widgets.specimen_form - INFO -   - Characterization Group ID (Characterization Tracking, order: 1)
+2025-09-17 12:13:28,975 - dynamat.gui.widgets.specimen_form - INFO -   - Is Characterization Representative (Characterization Tracking, order: 2)
+2025-09-17 12:13:28,976 - dynamat.gui.widgets.specimen_form - INFO -   - Representative Specimen (Characterization Tracking, order: 3)
+2025-09-17 12:13:28,976 - dynamat.gui.widgets.specimen_form - INFO -   - Similar Processing Conditions (Characterization Tracking, order: 4)
+2025-09-17 12:13:28,976 - dynamat.gui.widgets.specimen_form - INFO -   - Testing Condition Code (Characterization Tracking, order: 5)
+2025-09-17 12:13:28,976 - dynamat.gui.widgets.specimen_form - INFO -   ... and 47 more properties
+2025-09-17 12:13:28,980 - dynamat.gui.widgets.specimen_form - INFO - Found 5 shape individuals
+2025-09-17 12:13:28,980 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#CubicShape
+2025-09-17 12:13:28,980 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#CylindricalShape
+2025-09-17 12:13:28,980 - dynamat.gui.widgets.specimen_form - INFO -   - Shape: https://dynamat.utep.edu/ontology#DogboneShape
+2025-09-17 12:13:28,984 - dynamat.gui.widgets.specimen_form - INFO - Found 5 specimen role individuals
+2025-09-17 12:13:28,984 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#CalibrationSpecimen
+2025-09-17 12:13:28,984 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#CharacterizationSpecimen
+2025-09-17 12:13:28,984 - dynamat.gui.widgets.specimen_form - INFO -   - Role: https://dynamat.utep.edu/ontology#ReferenceSpecimen
+2025-09-17 12:13:28,984 - dynamat.gui.widgets.specimen_form - INFO - === END ONTOLOGY DEBUG ===
+2025-09-17 12:13:28,984 - dynamat.gui.widgets.specimen_form - INFO - Creating specimen form for https://dynamat.utep.edu/ontology#Specimen
+2025-09-17 12:13:28,990 - dynamat.gui.widgets.specimen_form - INFO - Found 52 properties for specimen
+2025-09-17 12:13:28,990 - dynamat.gui.widgets.specimen_form - INFO - Form groups: ['Characterization Tracking', 'CompositeProperties', 'GeometryDimensions', 'Identification', 'Manufacturing', 'MaterialProperties', 'PostTestDimensions', 'ProcessingHistory', 'StructureInfo', 'StructureParameters']
+2025-09-17 12:13:28,990 - dynamat.gui.form_builder - INFO - Building form for class: https://dynamat.utep.edu/ontology#Specimen
+2025-09-17 12:13:28,991 - dynamat.gui.form_builder - INFO - Got metadata for Specimen with 52 properties
+2025-09-17 12:13:28,991 - dynamat.gui.form_builder - INFO - Final form group order:
+2025-09-17 12:13:28,991 - dynamat.gui.form_builder - INFO -   1. Identification
+2025-09-17 12:13:28,991 - dynamat.gui.form_builder - INFO -   2. MaterialProperties
+2025-09-17 12:13:28,991 - dynamat.gui.form_builder - INFO -   3. CompositeProperties
+2025-09-17 12:13:28,991 - dynamat.gui.form_builder - INFO -   4. GeometryDimensions
+2025-09-17 12:13:28,991 - dynamat.gui.form_builder - INFO -   5. PostTestDimensions
+2025-09-17 12:13:28,991 - dynamat.gui.form_builder - INFO -   6. Characterization Tracking
+2025-09-17 12:13:28,992 - dynamat.gui.form_builder - INFO -   7. Manufacturing
+2025-09-17 12:13:28,992 - dynamat.gui.form_builder - INFO -   8. ProcessingHistory
+2025-09-17 12:13:28,992 - dynamat.gui.form_builder - INFO -   9. StructureInfo
+2025-09-17 12:13:28,992 - dynamat.gui.form_builder - INFO -   10. StructureParameters
+2025-09-17 12:13:28,992 - dynamat.gui.form_builder - INFO - Creating group 'Identification' with 4 properties
+2025-09-17 12:13:28,997 - dynamat.gui.form_builder - INFO - Group 'Identification' created with 4 fields
+2025-09-17 12:13:28,998 - dynamat.gui.form_builder - INFO - Creating group 'MaterialProperties' with 1 properties
+2025-09-17 12:13:29,003 - dynamat.gui.form_builder - INFO - Group 'MaterialProperties' created with 1 fields
+2025-09-17 12:13:29,003 - dynamat.gui.form_builder - INFO - Creating group 'CompositeProperties' with 5 properties
+2025-09-17 12:13:29,011 - dynamat.gui.form_builder - INFO - Group 'CompositeProperties' created with 5 fields
+2025-09-17 12:13:29,012 - dynamat.gui.form_builder - INFO - Creating group 'GeometryDimensions' with 8 properties
+2025-09-17 12:13:29,016 - dynamat.gui.form_builder - INFO - Group 'GeometryDimensions' created with 8 fields
+2025-09-17 12:13:29,017 - dynamat.gui.form_builder - INFO - Creating group 'PostTestDimensions' with 7 properties
+2025-09-17 12:13:29,017 - dynamat.gui.form_builder - INFO - Group 'PostTestDimensions' created with 7 fields
+2025-09-17 12:13:29,017 - dynamat.gui.form_builder - INFO - Creating group 'Characterization Tracking' with 5 properties
+2025-09-17 12:13:29,025 - dynamat.gui.form_builder - INFO - Group 'Characterization Tracking' created with 5 fields
+2025-09-17 12:13:29,026 - dynamat.gui.form_builder - INFO - Creating group 'Manufacturing' with 4 properties
+2025-09-17 12:13:29,030 - dynamat.gui.form_builder - INFO - Group 'Manufacturing' created with 4 fields
+2025-09-17 12:13:29,031 - dynamat.gui.form_builder - INFO - Creating group 'ProcessingHistory' with 2 properties
+2025-09-17 12:13:29,039 - dynamat.gui.form_builder - INFO - Group 'ProcessingHistory' created with 2 fields
+2025-09-17 12:13:29,039 - dynamat.gui.form_builder - INFO - Creating group 'StructureInfo' with 1 properties
+2025-09-17 12:13:29,043 - dynamat.gui.form_builder - INFO - Group 'StructureInfo' created with 1 fields
+2025-09-17 12:13:29,044 - dynamat.gui.form_builder - INFO - Creating group 'StructureParameters' with 15 properties
+2025-09-17 12:13:29,044 - dynamat.gui.form_builder - INFO - Group 'StructureParameters' created with 15 fields
+2025-09-17 12:13:29,056 - dynamat.gui.form_builder - INFO - Form built successfully with 52 total fields in 10 groups
+2025-09-17 12:13:29,056 - dynamat.gui.widgets.specimen_form - INFO - Form created successfully with 52 fields
+2025-09-17 12:13:29,057 - dynamat.gui.widgets.specimen_form - INFO - Specimen form widget initialized
+2025-09-17 12:13:29,057 - dynamat.gui.main_window - INFO - Specimen form widget created and cached
+2025-09-17 12:13:29,057 - dynamat.gui.main_window - INFO - Main window initialized
+2025-09-17 12:13:30,290 - dynamat.gui.main_window - INFO - Switching from specimen to mechanical
+2025-09-17 12:13:30,322 - dynamat.gui.main_window - INFO - Switched to mechanical activity
+2025-09-17 12:13:30,591 - dynamat.gui.main_window - INFO - Switching from mechanical to specimen
+2025-09-17 12:13:30,635 - dynamat.gui.main_window - INFO - Specimen form widget restored from cache
+2025-09-17 12:13:30,635 - dynamat.gui.main_window - INFO - Switched to specimen activity
