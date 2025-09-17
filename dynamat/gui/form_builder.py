@@ -20,6 +20,7 @@ from PyQt6.QtGui import QFont
 from rdflib import URIRef
 
 from ..ontology.manager import OntologyManager, PropertyMetadata, ClassMetadata
+from .dependency_manager import DependencyManager
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +43,25 @@ class OntologyFormBuilder:
     organizes fields into logical groups, and handles validation.
     """
     
-    def __init__(self, ontology_manager: OntologyManager):
+    def __init__(self, ontology_manager: OntologyManager, dependency_config: Optional[str] = None):
         self.ontology_manager = ontology_manager
         self.logger = logging.getLogger(__name__)
+        
+        # Initialize dependency manager
+        self.dependency_manager = None
+        if dependency_config is not None:
+            try:
+                self.dependency_manager = DependencyManager(ontology_manager, dependency_config)
+                self.logger.info("Dependency manager initialized")
+            except Exception as e:
+                self.logger.error(f"Failed to initialize dependency manager: {e}")
+        else:
+            # Try to use default config
+            try:
+                self.dependency_manager = DependencyManager(ontology_manager)
+                self.logger.info("Dependency manager initialized with default config")
+            except Exception as e:
+                self.logger.warning(f"Dependency manager not available: {e}")
         
     def build_form(self, class_uri: str, parent: Optional[QWidget] = None) -> QWidget:
         """
@@ -67,9 +84,10 @@ class OntologyFormBuilder:
             if not class_metadata.properties:
                 self.logger.warning("No properties found for class")
                 error_widget = QLabel("No properties found for this class.")
-                error_widget.setStyleSheet("color: orange; padding: 20px;")
+                error_widget.setStyleSheet("color: red; padding: 20px; background-color: #2a1a1a; border: 1px solid red;")
+                error_widget.setWordWrap(True)
                 return error_widget
-            
+    
             # Create main form widget
             form_widget = QWidget(parent)
             main_layout = QVBoxLayout(form_widget)
@@ -89,10 +107,6 @@ class OntologyFormBuilder:
             form_fields = {}
             groups_created = 0
             
-            # Build form groups using explicit group ordering
-            form_fields = {}
-            groups_created = 0
-            
             # Sort form groups by explicit group order from ontology
             def get_group_sort_key(group_items):
                 group_name, group_properties = group_items
@@ -100,7 +114,7 @@ class OntologyFormBuilder:
                     return (999, group_name)  # Empty groups last, then alphabetical
                 
                 # Get group order from properties in the group
-                # Check for group_order attribute (you may have named it differently)
+                # Check for group_order attribute
                 group_orders = []
                 for prop in group_properties:
                     # Try different possible attribute names for group order
@@ -128,8 +142,7 @@ class OntologyFormBuilder:
                 self.logger.info("Final form group order:")
                 for i, (group_name, _) in enumerate(sorted_groups, 1):
                     self.logger.info(f"  {i}. {group_name}")
-
-            
+    
             for group_name, group_properties in sorted_groups:
                 if group_properties:  # Only create groups with properties
                     self.logger.info(f"Creating group '{group_name}' with {len(group_properties)} properties")
@@ -155,6 +168,17 @@ class OntologyFormBuilder:
             form_widget.form_fields = form_fields
             form_widget.class_uri = class_uri
             form_widget.class_metadata = class_metadata
+            
+            # === Set up dependencies ===
+            if self.dependency_manager:
+                try:
+                    self.logger.info("Setting up widget dependencies...")
+                    self.dependency_manager.setup_dependencies(form_widget, class_uri)
+                    self.logger.info("Widget dependencies configured successfully")
+                except Exception as e:
+                    self.logger.error(f"Failed to setup dependencies: {e}")
+            else:
+                self.logger.info("No dependency manager available, skipping dependency setup")
             
             self.logger.info(f"Form built successfully with {len(form_fields)} total fields in {groups_created} groups")
             return form_widget

@@ -402,7 +402,7 @@ class OntologyManager:
                 default_unit=str(row.defaultUnit) if row.defaultUnit else None,
                 range_class=str(row['range']) if row.range else None,
                 domain_class=str(row.domain),
-                description=str(row.description) if row.description else "",
+                description=str(row.description) if row.description else "", 
                 group_order=int(row.groupOrder) if row.groupOrder else None  # ← ADD THIS LINE
             )
             properties.append(prop_metadata)
@@ -457,6 +457,91 @@ class OntologyManager:
         if results:
             return str(results[0].range)
         return None
+    
+    def is_instance_of_class(self, individual_uri: str, class_uri: str) -> bool:
+        """
+        Check if an individual is an instance of a specific class (including inheritance).
+        
+        Args:
+            individual_uri: URI of the individual
+            class_uri: URI of the class to check against
+            
+        Returns:
+            True if individual is instance of class or its subclasses
+        """
+        query = """
+        ASK {
+            ?individual rdf:type ?instanceClass .
+            ?instanceClass rdfs:subClassOf* ?targetClass .
+        }
+        """
+        
+        try:
+            results = self._execute_query(
+                query, 
+                {
+                    "individual": URIRef(individual_uri),
+                    "targetClass": URIRef(class_uri)
+                }
+            )
+            
+            # For ASK queries, _execute_query returns True/False
+            return bool(results)
+            
+        except Exception as e:
+            self.logger.error(f"Error checking class membership for {individual_uri}: {e}")
+            return False
+    
+    def get_individuals_by_class(self, class_uri: str, include_subclasses: bool = True) -> List[Dict[str, str]]:
+        """
+        Get individuals of a specific class with their labels.
+        
+        Args:
+            class_uri: URI of the class
+            include_subclasses: Whether to include instances of subclasses
+            
+        Returns:
+            List of dictionaries with 'uri', 'label', and 'name' keys
+        """
+        if include_subclasses:
+            # Include instances of subclasses
+            query = """
+            SELECT ?individual ?label ?name WHERE {
+                ?individual rdf:type ?instanceClass .
+                ?instanceClass rdfs:subClassOf* ?targetClass .
+                OPTIONAL { ?individual rdfs:label ?label }
+                OPTIONAL { ?individual dyn:hasName ?name }
+            }
+            ORDER BY ?label ?name
+            """
+        else:
+            # Only direct instances
+            query = """
+            SELECT ?individual ?label ?name WHERE {
+                ?individual rdf:type ?targetClass .
+                OPTIONAL { ?individual rdfs:label ?label }
+                OPTIONAL { ?individual dyn:hasName ?name }
+            }
+            ORDER BY ?label ?name
+            """
+        
+        try:
+            results = self._execute_query(query, {"targetClass": URIRef(class_uri)})
+            
+            individuals = []
+            for row in results:
+                individual_data = {
+                    'uri': str(row['individual']),
+                    'label': str(row['label']) if row.get('label') else self._extract_local_name(str(row['individual'])),
+                    'name': str(row['name']) if row.get('name') else ''
+                }
+                individuals.append(individual_data)
+            
+            return individuals
+            
+        except Exception as e:
+            self.logger.error(f"Error getting individuals for class {class_uri}: {e}")
+            return []
     
     # ============================================================================
     # GUI BUILDING METHODS - Form generation and metadata extraction

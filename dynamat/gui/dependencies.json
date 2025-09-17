@@ -1,0 +1,53 @@
+{
+  "dependencies": {
+    "matrix_material_visibility": {
+      "target": "https://dynamat.utep.edu/ontology#hasMatrixMaterial",
+      "trigger": "https://dynamat.utep.edu/ontology#hasMaterial",
+      "condition": "class_membership",
+      "value": "https://dynamat.utep.edu/ontology#Composite",
+      "action": "show"
+    },
+    
+    "reinforcement_material_visibility": {
+      "target": "https://dynamat.utep.edu/ontology#hasReinforcementMaterial",
+      "trigger": "https://dynamat.utep.edu/ontology#hasMaterial", 
+      "condition": "class_membership",
+      "value": "https://dynamat.utep.edu/ontology#Composite",
+      "action": "show"
+    },
+    
+    "matrix_volume_fraction_visibility": {
+      "target": "https://dynamat.utep.edu/ontology#hasMatrixVolumeFraction",
+      "trigger": "https://dynamat.utep.edu/ontology#hasMaterial",
+      "condition": "class_membership", 
+      "value": "https://dynamat.utep.edu/ontology#Composite",
+      "action": "show"
+    },
+    
+    "reinforcement_volume_fraction_visibility": {
+      "target": "https://dynamat.utep.edu/ontology#hasReinforcementVolumeFraction",
+      "trigger": "https://dynamat.utep.edu/ontology#hasMaterial",
+      "condition": "class_membership",
+      "value": "https://dynamat.utep.edu/ontology#Composite", 
+      "action": "show"
+    },
+    
+    "phase_distribution_id_visibility": {
+      "target": "https://dynamat.utep.edu/ontology#hasPhaseDistributionID",
+      "trigger": "https://dynamat.utep.edu/ontology#hasMaterial",
+      "condition": "class_membership",
+      "value": "https://dynamat.utep.edu/ontology#Composite",
+      "action": "show"
+    },
+    
+    "specimen_id_generation": {
+      "target": "https://dynamat.utep.edu/ontology#hasSpecimenID",
+      "trigger": "https://dynamat.utep.edu/ontology#hasMaterialID",
+      "condition": "value_changed",
+      "value": "*",
+      "action": "generate_template",
+      "template": "SPN-{materialid}-{sequence:03d}",
+      "editable": false
+    }
+  }
+}
