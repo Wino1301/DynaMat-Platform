@@ -31,6 +31,15 @@ dyn:Al6061_T6 rdf:type owl:NamedIndividual, dyn:AluminiumAlloy ;
     dyn:hasSpecificHeat 896.0 ;
     dyn:hasDensity 2.70 .
 
+dyn:SS316_A356 rdf:type owl:NamedIndividual, dyn:Composite ;
+    rdfs:label "SS316-A356 Composite"@en ;
+    dyn:hasName "SS316-A356 Composite"@en ;
+    dyn:hasMaterialName "SS316-A356 Composite"@en ;
+    dyn:hasMaterialCode "SS316A356"@en ;
+    dyn:hasDescription "Stainless Steel 316 and Aluminium A356 Composite"@en ;
+    dyn:hasPlottingLabel "SS316A356"@en .
+
+
 dyn:Al7075_T6 rdf:type owl:NamedIndividual, dyn:AluminiumAlloy ;
     rdfs:label "Al7075-T6"@en ;
     dyn:hasName "Aluminum 7075-T6"@en ;
