@@ -130,8 +130,9 @@ class DependencyManager(QObject):
         """Connect appropriate signal based on widget type"""
         try:
             if isinstance(widget, QComboBox):
+                self.logger.info(f"Connecting QComboBox signal for rule '{rule_name}'")
                 widget.currentTextChanged.connect(
-                    lambda value, r=rule_name: self._on_trigger_changed(r, value)
+                    lambda: self._on_combo_changed(widget, rule_name)
                 )
             elif isinstance(widget, QLineEdit):
                 widget.textChanged.connect(
@@ -151,9 +152,8 @@ class DependencyManager(QObject):
                 )
         except Exception as e:
             self.logger.error(f"Error connecting signal for rule {rule_name}: {e}")
-            # Add more widget types as needed
     
-    def _on_trigger_changed(self, rule_name: str, trigger_value: Any):
+    def _on_trigger_changed(self, rule_name: str, trigger_value: Any = None):
         """Handle trigger value changes"""
         if rule_name not in self.dependencies:
             return
@@ -172,18 +172,23 @@ class DependencyManager(QObject):
     def evaluate_and_execute_rule(self, rule_name: str, rule: dict):
         """Evaluate a dependency rule and execute action if condition is met"""
         try:
+            self.logger.info(f"Evaluating rule '{rule_name}'")
+            
             # Get current trigger values
             trigger_values = self._get_trigger_values(rule)
+            self.logger.info(f"Trigger values for '{rule_name}': {trigger_values}")
             
             # Evaluate condition
             condition_met = self._evaluate_condition(rule, trigger_values)
             
-            self.logger.debug(f"Rule '{rule_name}' condition: {condition_met}")
+            self.logger.info(f"Rule '{rule_name}' condition result: {condition_met}")
             
             # Execute action
             if condition_met:
+                self.logger.info(f"Executing action for rule '{rule_name}'")
                 self._execute_action(rule_name, rule, trigger_values)
             else:
+                self.logger.info(f"Executing inverse action for rule '{rule_name}'")
                 # Execute inverse action if condition not met
                 self._execute_inverse_action(rule_name, rule)
                 
@@ -313,21 +318,24 @@ class DependencyManager(QObject):
                                   condition_value: str, rule: dict) -> bool:
         """Check if trigger value belongs to specified class"""
         if not trigger_values:
+            self.logger.debug("No trigger values provided")
             return False
         
         # Get the first trigger value (material selection)
         trigger_value = list(trigger_values.values())[0]
         
+        self.logger.info(f"Checking class membership: '{trigger_value}' in '{condition_value}'")
+        
         # Check if we have a valid URI value
         if not trigger_value or trigger_value == "" or trigger_value is None:
+            self.logger.info("Trigger value is empty or None")
             return False
-        
-        # Log for debugging
-        self.logger.debug(f"Checking class membership: {trigger_value} in {condition_value}")
         
         # Check class membership using ontology manager
         try:
-            return self.ontology_manager.is_instance_of_class(trigger_value, condition_value)
+            result = self.ontology_manager.is_instance_of_class(trigger_value, condition_value)
+            self.logger.info(f"Class membership result: {result}")
+            return result
         except Exception as e:
             self.logger.error(f"Error checking class membership: {e}")
             return False
@@ -453,7 +461,8 @@ class DependencyManager(QObject):
                                 widget = item.widget()
                                 # Check if this is a label for our field
                                 if (hasattr(widget, 'buddy') and widget.buddy() == field.widget) or \
-                                   (widget.text() and field.property_metadata.display_name in widget.text()):
+                                   (hasattr(widget, 'text') and callable(getattr(widget, 'text', None)) and 
+                                    widget.text() and field.property_metadata.display_name in widget.text()):
                                     widget.setVisible(visible)
                                     break
             else:
@@ -480,7 +489,7 @@ class DependencyManager(QObject):
         return success
     
     def _action_generate_template(self, rule: dict, trigger_values: Dict[str, Any]) -> str:
-        """Generate value using template"""
+        """Generate template-based values"""
         template = rule.get('template', '')
         
         if not template or not trigger_values:
@@ -494,9 +503,16 @@ class DependencyManager(QObject):
                 prop_name = self.ontology_manager._extract_local_name(uri).lower()
                 format_dict[prop_name] = value
             
-            # Generate sequence number if needed in template
-            if 'sequence' in template:
-                format_dict['sequence'] = self._get_next_sequence_number(trigger_values)
+            # Handle material code extraction for specimen ID generation
+            if 'materialcode' in template.lower():
+                material_uri = trigger_values.get("https://dynamat.utep.edu/ontology#hasMaterial")
+                if material_uri:
+                    material_code = self._get_material_code(material_uri)
+                    format_dict['materialcode'] = material_code
+                    
+                    # Generate sequence number for this material code
+                    if 'sequence' in template:
+                        format_dict['sequence'] = self._get_next_specimen_sequence(material_code)
             
             generated_value = template.format(**format_dict)
             
@@ -603,9 +619,132 @@ class DependencyManager(QObject):
         except Exception as e:
             self.logger.error(f"Failed to set widget value: {e}")
             return False
+
+    def _get_material_code(self, material_uri: str) -> str:
+        """Get material code from material URI"""
+        try:
+            # Query to get material code
+            query = """
+            SELECT ?materialCode WHERE {
+                ?material dyn:hasMaterialCode ?materialCode .
+            }
+            """
+            
+            from rdflib import URIRef
+            results = self.ontology_manager.graph.query(
+                query, 
+                initBindings={"material": URIRef(material_uri)}
+            )
+            
+            for row in results:
+                material_code = str(row.materialCode)
+                self.logger.info(f"Found material code: {material_code} for {material_uri}")
+                return material_code
+            
+            # Fallback: extract from URI if no material code found
+            fallback_code = self.ontology_manager._extract_local_name(material_uri)
+            self.logger.warning(f"No material code found for {material_uri}, using fallback: {fallback_code}")
+            return fallback_code
+            
+        except Exception as e:
+            self.logger.error(f"Error getting material code for {material_uri}: {e}")
+            # Ultimate fallback
+            return self.ontology_manager._extract_local_name(material_uri)
     
-    def _get_next_sequence_number(self, trigger_values: Dict[str, Any]) -> int:
-        """Get next sequence number for ID generation"""
-        # This is a placeholder - implement based on your requirements
-        # Could query database or ontology for existing specimens
-        return 1  # For now, return 1
+    def _get_next_specimen_sequence(self, material_code: str) -> int:
+        """Get next sequence number for specimen with given material code"""
+        try:
+            # Query existing specimens with this material code pattern
+            # Look for specimens with IDs like DYNML-{material_code}-####
+            query = """
+            SELECT ?specimenID WHERE {
+                ?specimen rdf:type dyn:Specimen .
+                ?specimen dyn:hasSpecimenID ?specimenID .
+                FILTER(CONTAINS(?specimenID, ?materialCode))
+            }
+            """
+            
+            from rdflib import Literal
+            results = self.ontology_manager.graph.query(
+                query,
+                initBindings={"materialCode": Literal(f"DYNML-{material_code}-")}
+            )
+            
+            max_sequence = 0
+            pattern = f"DYNML-{material_code}-"
+            
+            for row in results:
+                specimen_id = str(row.specimenID)
+                if specimen_id.startswith(pattern):
+                    try:
+                        # Extract the sequence number
+                        sequence_part = specimen_id[len(pattern):]
+                        sequence_num = int(sequence_part)
+                        max_sequence = max(max_sequence, sequence_num)
+                    except ValueError:
+                        # Skip if sequence part is not a valid number
+                        continue
+            
+            next_sequence = max_sequence + 1
+            self.logger.info(f"Next sequence for material code {material_code}: {next_sequence}")
+            return next_sequence
+            
+        except Exception as e:
+            self.logger.error(f"Error getting next sequence for material {material_code}: {e}")
+            return 1
+    
+    def _check_rdf_database_folder(self):
+        """Ensure the rdf_database folder structure exists"""
+        try:
+            from pathlib import Path
+            
+            # Get project root (assuming we're in dynamat/gui/dependency_manager.py)
+            project_root = Path(__file__).parent.parent.parent
+            rdf_database_path = project_root / "rdf_database"
+            
+            # Create the folder if it doesn't exist
+            rdf_database_path.mkdir(exist_ok=True)
+            
+            self.logger.info(f"RDF database folder ensured at: {rdf_database_path}")
+            return rdf_database_path
+            
+        except Exception as e:
+            self.logger.error(f"Error ensuring RDF database folder: {e}")
+            return None
+    
+    def _check_specimen_folder_exists(self, specimen_id: str) -> bool:
+        """Check if specimen folder already exists in rdf_database"""
+        try:
+            rdf_database_path = self._check_rdf_database_folder()
+            if not rdf_database_path:
+                return False
+            
+            specimen_folder = rdf_database_path / specimen_id
+            exists = specimen_folder.exists()
+            
+            if exists:
+                self.logger.info(f"Specimen folder already exists: {specimen_folder}")
+            
+            return exists
+            
+        except Exception as e:
+            self.logger.error(f"Error checking specimen folder for {specimen_id}: {e}")
+            return False
+
+    def _on_combo_changed(self, widget: QComboBox, rule_name: str):
+        """Handle combo box changes with detailed logging"""
+        try:
+            current_text = widget.currentText()
+            current_data = widget.currentData()
+            
+            self.logger.info(f"Combo changed for rule '{rule_name}': text='{current_text}', data='{current_data}'")
+            
+            # Extract the proper value
+            extracted_value = self._extract_widget_value(widget)
+            self.logger.info(f"Extracted value: '{extracted_value}'")
+            
+            # Call the trigger handler
+            self._on_trigger_changed(rule_name, extracted_value)
+            
+        except Exception as e:
+            self.logger.error(f"Error in combo change handler for rule '{rule_name}': {e}")

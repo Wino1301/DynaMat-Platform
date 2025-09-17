@@ -1,7 +1,7 @@
 {
   "dependencies": {
-    "matrix_material_visibility": {
-      "target": ["https://dynamat.utep.edu/ontology#hasMatrixMaterial", "https://dynamat.utep.edu/ontology#hasReinforcementMaterial", "https://dynamat.utep.edu/ontology#hasMatrixVolumeFraction", "https://dynamat.utep.edu/ontology#hasReinforcementVolumeFraction", "https://dynamat.utep.edu/ontology#hasPhaseDistributionID"]
+    "composite_material_visibility": {
+      "target": ["https://dynamat.utep.edu/ontology#hasMatrixMaterial", "https://dynamat.utep.edu/ontology#hasReinforcementMaterial", "https://dynamat.utep.edu/ontology#hasMatrixVolumeFraction", "https://dynamat.utep.edu/ontology#hasReinforcementVolumeFraction", "https://dynamat.utep.edu/ontology#hasPhaseDistributionID"],
       "trigger": "https://dynamat.utep.edu/ontology#hasMaterial",
       "condition": "class_membership",
       "value": "https://dynamat.utep.edu/ontology#Composite",
@@ -10,11 +10,11 @@
     
     "specimen_id_generation": {
       "target": "https://dynamat.utep.edu/ontology#hasSpecimenID",
-      "trigger": "https://dynamat.utep.edu/ontology#hasMaterialID",
+      "trigger": "https://dynamat.utep.edu/ontology#hasMaterial",
       "condition": "value_changed",
       "value": "*",
       "action": "generate_template",
-      "template": "SPN-{materialid}-{sequence:03d}",
+      "template": "DYNML-{materialcode}-{sequence:04d}",
       "editable": false
     }
   }

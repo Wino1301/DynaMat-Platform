@@ -477,16 +477,26 @@ class OntologyManager:
         """
         
         try:
-            results = self._execute_query(
-                query, 
-                {
+            # Handle ASK queries directly with graph.query to get boolean result
+            if "ASK" in query.upper():
+                bindings = {
                     "individual": URIRef(individual_uri),
                     "targetClass": URIRef(class_uri)
                 }
-            )
-            
-            # For ASK queries, _execute_query returns True/False
-            return bool(results)
+                result = self.graph.query(query, initBindings=bindings)
+                
+                # ASK queries return a boolean directly
+                return bool(result)
+            else:
+                # For other queries, use _execute_query
+                results = self._execute_query(
+                    query, 
+                    {
+                        "individual": URIRef(individual_uri),
+                        "targetClass": URIRef(class_uri)
+                    }
+                )
+                return bool(results)
             
         except Exception as e:
             self.logger.error(f"Error checking class membership for {individual_uri}: {e}")
