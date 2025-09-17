@@ -80,3 +80,4 @@ docs/_missing_integrations/
 !examples/**/*.csv
 !tests/fixtures/*.csv
 *.log
+logs/dynamat.log
