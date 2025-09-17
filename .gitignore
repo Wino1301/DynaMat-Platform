@@ -79,3 +79,4 @@ docs/_missing_integrations/
 # But keep important directories
 !examples/**/*.csv
 !tests/fixtures/*.csv
+*.log
