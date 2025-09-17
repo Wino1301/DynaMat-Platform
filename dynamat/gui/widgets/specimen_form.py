@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
+from pathlib import Path
 
 from ...ontology.manager import OntologyManager
 from ..form_builder import OntologyFormBuilder
@@ -40,7 +41,18 @@ class SpecimenFormWidget(QWidget):
         super().__init__(parent)
         
         self.ontology_manager = ontology_manager
-        self.form_builder = OntologyFormBuilder(ontology_manager)
+        
+        # Create form builder with dependency config
+        dependency_config_path = Path(__file__).parent.parent / "dependencies.json"
+        
+        # Check if dependency config exists, pass path only if it exists
+        if dependency_config_path.exists():
+            self.form_builder = OntologyFormBuilder(ontology_manager, str(dependency_config_path))
+        else:
+            # Fallback to form builder without dependencies
+            self.form_builder = OntologyFormBuilder(ontology_manager)
+            logger.warning(f"Dependency config not found at {dependency_config_path}, using form builder without dependencies")
+        
         self.current_specimen_uri = None
         self.form_widget = None
         self.is_modified = False

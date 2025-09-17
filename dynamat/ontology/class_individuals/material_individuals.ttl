@@ -120,6 +120,18 @@ dyn:CU101 rdf:type owl:NamedIndividual, dyn:Metal ;
     dyn:hasDensity 8.96 .
 
 #################################################################
+#    Material Individuals - Composite Alloys
+#################################################################
+
+dyn:SS316_A356 rdf:type owl:NamedIndividual, dyn:Composite ;
+    rdfs:label "SS316-A356 Composite"@en ;
+    dyn:hasName "SS316-A356 Composite"@en ;
+    dyn:hasMaterialName "SS316-A356 Composite"@en ;
+    dyn:hasMaterialCode "SS316A356"@en ;
+    dyn:hasDescription "Stainless Steel 316 and Aluminium A356 Composite"@en ;
+    dyn:hasPlottingLabel "SS316A356"@en .
+
+#################################################################
 #    NOTES ON PROPERTY VALUES WITH PROVENANCE
 #################################################################
 
