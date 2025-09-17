@@ -1,10 +1,11 @@
 """
-DynaMat Platform - Widget Dependency Manager
-Manages form widget dependencies based on JSON configuration
+DynaMat Platform - Widget Dependency Manager (Refactored)
+Manages form widget dependencies using simplified rule-based configuration
 """
 
 import json
 import logging
+import math
 from typing import Dict, List, Optional, Any, Union
 from pathlib import Path
 
@@ -22,10 +23,10 @@ logger = logging.getLogger(__name__)
 
 class DependencyManager(QObject):
     """
-    Manages widget dependencies using JSON configuration.
+    Simplified dependency manager with rule priorities and field groups.
     
-    Handles visibility, auto-population, and other dynamic widget behaviors
-    based on ontology-driven conditions.
+    Uses a configuration-driven approach to handle form dependencies without
+    requiring new methods for each rule type.
     """
     
     # Signals
@@ -44,60 +45,43 @@ class DependencyManager(QObject):
         
         self.ontology_manager = ontology_manager
         self.config_path = config_path or self._get_default_config_path()
-        self.dependencies = {}
+        self.config = {}
         self.active_form = None
-        
-        # Action handlers registry
-        self.action_handlers = {
-            'show': self._action_show,
-            'hide': self._action_hide,
-            'enable': self._action_enable,
-            'disable': self._action_disable,
-            'generate_template': self._action_generate_template,
-            'calculate': self._action_calculate,
-            'set_value': self._action_set_value,
-            'set_value_from_trigger': self._action_set_value_from_trigger
-        }
-        
-        # Condition handlers registry
-        self.condition_handlers = {
-            'class_membership': self._condition_class_membership,
-            'value_equals': self._condition_value_equals,
-            'value_changed': self._condition_value_changed,
-            'all_filled': self._condition_all_filled,
-            'any_filled': self._condition_any_filled,
-            'value_greater': self._condition_value_greater,
-            'value_less': self._condition_value_less,
-            'value_in_range': self._condition_value_in_range,
-            'value_in_list': self._condition_value_in_list,
-            'value_changed_and_shape': self._condition_value_changed_and_shape
-        }
-        
         self.logger = logger
-        self._load_dependencies()
+        
+        # Registry of calculation functions
+        self.calculation_functions = {
+            'circular_area_from_diameter': self._calc_circular_area_from_diameter,
+            'circular_area_from_radius': self._calc_circular_area_from_radius,
+            'rectangular_area': self._calc_rectangular_area,
+            'volume_cube': self._calc_volume_cube,
+            'volume_cylinder': self._calc_volume_cylinder
+        }
+        
+        self._load_configuration()
     
     def _get_default_config_path(self) -> str:
         """Get default configuration file path"""
         return str(Path(__file__).parent / "dependencies.json")
     
-    def _load_dependencies(self):
-        """Load dependencies from JSON configuration file"""
+    def _load_configuration(self):
+        """Load the complete configuration including field groups and dependencies"""
         try:
             if Path(self.config_path).exists():
                 with open(self.config_path, 'r') as f:
-                    config = json.load(f)
-                    self.dependencies = config.get('dependencies', {})
-                    self.logger.info(f"Loaded {len(self.dependencies)} dependency rules")
+                    self.config = json.load(f)
+                    dependencies_count = len(self.config.get('dependencies', {}))
+                    self.logger.info(f"Loaded configuration with {dependencies_count} dependency groups")
             else:
-                self.logger.warning(f"Dependency config file not found: {self.config_path}")
-                self.dependencies = {}
+                self.logger.warning(f"Configuration file not found: {self.config_path}")
+                self.config = {"shape_configurations": {}, "dependencies": {}}
         except Exception as e:
-            self.logger.error(f"Failed to load dependencies: {e}")
-            self.dependencies = {}
+            self.logger.error(f"Failed to load configuration: {e}")
+            self.config = {"shape_configurations": {}, "dependencies": {}}
     
     def setup_dependencies(self, form_widget: QWidget, class_uri: str):
         """
-        Set up dependencies for a form widget.
+        Set up all dependencies for a form widget.
         
         Args:
             form_widget: The form widget containing form fields
@@ -109,534 +93,581 @@ class DependencyManager(QObject):
             self.logger.warning("Form widget has no form_fields attribute")
             return
         
-        self.logger.info(f"Setting up {len(self.dependencies)} dependency rules for {class_uri}")
+        self.logger.info(f"Setting up dependencies for {class_uri}")
         
-        # Connect trigger signals for each dependency rule
-        for rule_name, rule in self.dependencies.items():
-            self._setup_rule_triggers(rule_name, rule)
+        # Connect signals for all triggers
+        self._connect_all_triggers()
         
-        # Set initial states
+        # Apply initial states based on priority
         self._apply_initial_states()
     
-    def _setup_rule_triggers(self, rule_name: str, rule: dict):
-        """Set up trigger connections for a dependency rule"""
-        triggers = rule.get('trigger', [])
-        if isinstance(triggers, str):
-            triggers = [triggers]
+    def _connect_all_triggers(self):
+        """Connect signals for all trigger fields in all dependency groups"""
+        dependencies = self.config.get('dependencies', {})
         
-        for trigger_uri in triggers:
-            if trigger_uri in self.active_form.form_fields:
+        for group_name, group_config in dependencies.items():
+            # Handle main group trigger
+            trigger_uri = group_config.get('trigger')
+            if trigger_uri and trigger_uri in self.active_form.form_fields:
                 field = self.active_form.form_fields[trigger_uri]
-                self._connect_widget_signal(field.widget, rule_name, rule)
+                self._connect_widget_signal(field.widget, group_name, group_config)
+                self.logger.debug(f"Connected trigger for group: {group_name}")
+            
+            # Handle rules with individual triggers (like calculations)
+            rules = group_config.get('rules', [])
+            for i, rule in enumerate(rules):
+                rule_trigger = rule.get('trigger')
+                if rule_trigger and rule_trigger in self.active_form.form_fields:
+                    field = self.active_form.form_fields[rule_trigger]
+                    rule_name = f"{group_name}_rule_{i}"
+                    self._connect_widget_signal(field.widget, rule_name, rule)
+                    self.logger.debug(f"Connected trigger for rule: {rule_name}")
     
-    def _connect_widget_signal(self, widget: QWidget, rule_name: str, rule: dict):
+    def _connect_widget_signal(self, widget: QWidget, rule_name: str, rule_config: dict):
         """Connect appropriate signal based on widget type"""
         try:
             if isinstance(widget, QComboBox):
-                self.logger.info(f"Connecting QComboBox signal for rule '{rule_name}'")
                 widget.currentTextChanged.connect(
-                    lambda: self._on_combo_changed(widget, rule_name)
+                    lambda: self._on_trigger_changed(rule_name, rule_config)
                 )
             elif isinstance(widget, QLineEdit):
                 widget.textChanged.connect(
-                    lambda value, r=rule_name: self._on_trigger_changed(r, value)
+                    lambda: self._on_trigger_changed(rule_name, rule_config)
                 )
-            elif isinstance(widget, QSpinBox) or isinstance(widget, QDoubleSpinBox):
+            elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
                 widget.valueChanged.connect(
-                    lambda value, r=rule_name: self._on_trigger_changed(r, value)
+                    lambda: self._on_trigger_changed(rule_name, rule_config)
                 )
             elif isinstance(widget, QCheckBox):
                 widget.toggled.connect(
-                    lambda value, r=rule_name: self._on_trigger_changed(r, value)
+                    lambda: self._on_trigger_changed(rule_name, rule_config)
                 )
             elif isinstance(widget, QTextEdit):
                 widget.textChanged.connect(
-                    lambda r=rule_name: self._on_trigger_changed(r, self._extract_widget_value(widget))
+                    lambda: self._on_trigger_changed(rule_name, rule_config)
                 )
         except Exception as e:
             self.logger.error(f"Error connecting signal for rule {rule_name}: {e}")
     
-    def _on_trigger_changed(self, rule_name: str, trigger_value: Any = None):
-        """Handle trigger value changes"""
-        if rule_name not in self.dependencies:
-            return
+    def _on_trigger_changed(self, rule_name: str, rule_config: dict):
+        """Handle any trigger change by re-evaluating all rules in priority order"""
+        try:
+            self.logger.debug(f"Trigger changed for rule '{rule_name}' - re-evaluating all rules")
+            # Instead of evaluating just this rule, re-evaluate all rules in priority order
+            self._apply_all_rules_by_priority()
+        except Exception as e:
+            self.logger.error(f"Error handling trigger change for {rule_name}: {e}")
+    
+    def _apply_all_rules_by_priority(self):
+        """Apply all dependency rules in priority order"""
+        dependencies = self.config.get('dependencies', {})
         
-        rule = self.dependencies[rule_name]
-        self.logger.debug(f"Trigger changed for rule '{rule_name}': {trigger_value}")
+        # Sort by priority (lower numbers = higher priority)
+        sorted_deps = sorted(dependencies.items(), key=lambda x: x[1].get('priority', 999))
         
-        # Evaluate condition and execute action if met
-        self.evaluate_and_execute_rule(rule_name, rule)
+        # Keep track of field states to handle conflicts
+        field_states = {}  # field_uri -> (should_be_visible, priority, rule_name)
+        
+        for rule_name, rule_config in sorted_deps:
+            try:
+                # Get trigger values for this rule
+                trigger_uri = rule_config.get('trigger')
+                trigger_values = {}
+                
+                if trigger_uri and trigger_uri in self.active_form.form_fields:
+                    field = self.active_form.form_fields[trigger_uri]
+                    trigger_values[trigger_uri] = self._extract_widget_value(field.widget)
+                
+                # Process rules
+                rules = rule_config.get('rules', [rule_config])
+                rule_priority = rule_config.get('priority', 999)
+                
+                for rule in rules:
+                    # Handle individual rule triggers
+                    rule_trigger = rule.get('trigger')
+                    if rule_trigger and rule_trigger != trigger_uri:
+                        if rule_trigger in self.active_form.form_fields:
+                            field = self.active_form.form_fields[rule_trigger]
+                            trigger_values[rule_trigger] = self._extract_widget_value(field.widget)
+                    
+                    # Evaluate condition and determine field states
+                    condition_met = self._evaluate_condition(rule, trigger_values)
+                    
+                    # Update field states based on this rule
+                    self._update_field_states(rule, condition_met, rule_priority, rule_name, field_states)
+                    
+            except Exception as e:
+                self.logger.error(f"Error evaluating rule {rule_name}: {e}")
+        
+        # Apply final field states (higher priority wins)
+        self._apply_final_field_states(field_states)
+    
+    def _update_field_states(self, rule: dict, condition_met: bool, priority: int, rule_name: str, field_states: dict):
+        """Update field visibility states based on rule evaluation"""
+        action = rule.get('action')
+        
+        if action in ['show_fields', 'hide_fields']:
+            target_fields = rule.get('target_fields', [])
+            should_show = (action == 'show_fields') if condition_met else (action == 'hide_fields')
+            
+            for field_uri in target_fields:
+                # Only update if this rule has higher priority (lower number)
+                if field_uri not in field_states or field_states[field_uri][1] > priority:
+                    field_states[field_uri] = (should_show, priority, rule_name)
+        
+        elif action == 'apply_configuration' and condition_met:
+            # Handle configuration-based rules
+            config_type = rule.get('config_type', 'shape_configurations')
+            trigger_values = self._get_current_trigger_values(rule)
+            
+            if trigger_values:
+                trigger_value = list(trigger_values.values())[0]
+                configuration = self.config.get(config_type, {}).get(trigger_value, {})
+                
+                # Process show_fields
+                show_fields = configuration.get('show_fields', [])
+                for field_uri in show_fields:
+                    if field_uri not in field_states or field_states[field_uri][1] > priority:
+                        field_states[field_uri] = (True, priority, rule_name)
+                
+                # Process hide_fields
+                hide_fields = configuration.get('hide_fields', [])
+                for field_uri in hide_fields:
+                    if field_uri not in field_states or field_states[field_uri][1] > priority:
+                        field_states[field_uri] = (False, priority, rule_name)
+    
+    def _apply_final_field_states(self, field_states: dict):
+        """Apply the final field visibility states"""
+        for field_uri, (should_be_visible, priority, rule_name) in field_states.items():
+            if field_uri in self.active_form.form_fields:
+                field = self.active_form.form_fields[field_uri]
+                current_visibility = field.widget.isVisible()
+                
+                if current_visibility != should_be_visible:
+                    # Use the proper method that handles both widget and label
+                    self._set_single_field_visibility(field_uri, should_be_visible)
+                    action = "showing" if should_be_visible else "hiding"
+                    self.logger.debug(f"Rule '{rule_name}' (priority {priority}): {action} {field_uri}")
+    
+    def _set_single_field_visibility(self, field_uri: str, visible: bool):
+        """Set visibility for a single field and its label"""
+        if field_uri in self.active_form.form_fields:
+            field = self.active_form.form_fields[field_uri]
+            field.widget.setVisible(visible)
+            
+            # Also hide/show the label if it exists
+            if hasattr(field.widget.parent(), 'layout'):
+                layout = field.widget.parent().layout()
+                if layout:
+                    # Find the label widget in the form layout
+                    for i in range(layout.count()):
+                        item = layout.itemAt(i)
+                        if item and item.widget():
+                            widget = item.widget()
+                            # Check if this is a label for our field
+                            if (hasattr(widget, 'buddy') and widget.buddy() == field.widget) or \
+                               (hasattr(widget, 'text') and callable(getattr(widget, 'text', None)) and 
+                                widget.text() and field.property_metadata.display_name in widget.text()):
+                                widget.setVisible(visible)
+                                break
+    
+    def _get_current_trigger_values(self, rule: dict) -> Dict[str, Any]:
+        """Get current trigger values for a rule"""
+        trigger_values = {}
+        
+        # Get main trigger
+        trigger_uri = rule.get('trigger')
+        if trigger_uri and trigger_uri in self.active_form.form_fields:
+            field = self.active_form.form_fields[trigger_uri]
+            trigger_values[trigger_uri] = self._extract_widget_value(field.widget)
+        
+        return trigger_values
+    
+    def _apply_special_actions(self):
+        """Apply special actions like calculations and template generation"""
+        dependencies = self.config.get('dependencies', {})
+        
+        # Sort by priority
+        sorted_deps = sorted(dependencies.items(), key=lambda x: x[1].get('priority', 999))
+        
+        for rule_name, rule_config in sorted_deps:
+            try:
+                # Get trigger values
+                trigger_uri = rule_config.get('trigger')
+                trigger_values = {}
+                
+                if trigger_uri and trigger_uri in self.active_form.form_fields:
+                    field = self.active_form.form_fields[trigger_uri]
+                    trigger_values[trigger_uri] = self._extract_widget_value(field.widget)
+                
+                # Process rules for special actions
+                rules = rule_config.get('rules', [rule_config])
+                
+                for rule in rules:
+                    # Handle individual rule triggers
+                    rule_trigger = rule.get('trigger')
+                    if rule_trigger and rule_trigger != trigger_uri:
+                        if rule_trigger in self.active_form.form_fields:
+                            field = self.active_form.form_fields[rule_trigger]
+                            trigger_values[rule_trigger] = self._extract_widget_value(field.widget)
+                    
+                    # Execute special actions
+                    if self._evaluate_condition(rule, trigger_values):
+                        action = rule.get('action')
+                        if action in ['calculate', 'generate_template', 'apply_configuration']:
+                            self._execute_special_action(rule, trigger_values)
+                            
+            except Exception as e:
+                self.logger.error(f"Error applying special actions for {rule_name}: {e}")
+    
+    def _execute_special_action(self, rule: dict, trigger_values: Dict[str, Any]):
+        """Execute special actions that don't affect field visibility"""
+        action = rule.get('action')
+        
+        try:
+            if action == 'calculate':
+                self._action_calculate(rule, trigger_values)
+            
+            elif action == 'generate_template':
+                self._action_generate_template(rule, trigger_values)
+            
+            elif action == 'apply_configuration':
+                # Handle special behaviors only (equal dimensions, defaults)
+                config_type = rule.get('config_type', 'shape_configurations')
+                if trigger_values:
+                    trigger_value = list(trigger_values.values())[0]
+                    configuration = self.config.get(config_type, {}).get(trigger_value, {})
+                    if configuration:
+                        self._apply_special_behaviors(configuration)
+                        
+        except Exception as e:
+            self.logger.error(f"Error executing special action '{action}': {e}")
     
     def _apply_initial_states(self):
-        """Apply initial states for all dependency rules"""
-        for rule_name, rule in self.dependencies.items():
-            self.evaluate_and_execute_rule(rule_name, rule)
+        """Apply initial states for all dependency rules based on priority"""
+        self.logger.info("Applying initial rule states in priority order")
+        self._apply_all_rules_by_priority()
+        
+        # Handle special actions that don't affect visibility
+        self._apply_special_actions()
     
-    def evaluate_and_execute_rule(self, rule_name: str, rule: dict):
-        """Evaluate a dependency rule and execute action if condition is met"""
+    def _evaluate_and_execute_rules(self, rule_name: str, rule_config: dict):
+        """Evaluate and execute rules based on current form state"""
         try:
-            self.logger.info(f"Evaluating rule '{rule_name}'")
+            # Get trigger values
+            trigger_uri = rule_config.get('trigger')
+            trigger_values = {}
             
-            # Get current trigger values
-            trigger_values = self._get_trigger_values(rule)
-            self.logger.info(f"Trigger values for '{rule_name}': {trigger_values}")
+            if trigger_uri and trigger_uri in self.active_form.form_fields:
+                field = self.active_form.form_fields[trigger_uri]
+                trigger_values[trigger_uri] = self._extract_widget_value(field.widget)
             
-            # Evaluate condition
-            condition_met = self._evaluate_condition(rule, trigger_values)
+            # Process rules
+            rules = rule_config.get('rules', [rule_config])  # Support both single rule and rule list
             
-            self.logger.info(f"Rule '{rule_name}' condition result: {condition_met}")
+            for rule in rules:
+                # Handle individual rule triggers
+                rule_trigger = rule.get('trigger')
+                if rule_trigger and rule_trigger != trigger_uri:
+                    if rule_trigger in self.active_form.form_fields:
+                        field = self.active_form.form_fields[rule_trigger]
+                        trigger_values[rule_trigger] = self._extract_widget_value(field.widget)
+                
+                if self._evaluate_condition(rule, trigger_values):
+                    self._execute_action(rule, trigger_values)
+                else:
+                    self._execute_inverse_action(rule)
+                    
+        except Exception as e:
+            self.logger.error(f"Error evaluating rules for {rule_name}: {e}")
+    
+    def _evaluate_condition(self, rule: dict, trigger_values: Dict[str, Any]) -> bool:
+        """Evaluate a single condition"""
+        condition = rule.get('condition', 'value_changed')
+        condition_value = rule.get('value')
+        
+        if condition == 'value_changed':
+            return bool(trigger_values and any(v for v in trigger_values.values() if v and str(v).strip()))
+        
+        elif condition == 'value_equals':
+            trigger_value = list(trigger_values.values())[0] if trigger_values else None
+            return trigger_value == condition_value
+        
+        elif condition == 'value_in_list':
+            trigger_value = list(trigger_values.values())[0] if trigger_values else None
+            return trigger_value in (condition_value or [])
+        
+        elif condition == 'class_membership':
+            trigger_value = list(trigger_values.values())[0] if trigger_values else None
+            if not trigger_value:
+                return False
+            try:
+                return self.ontology_manager.is_instance_of_class(trigger_value, condition_value)
+            except Exception as e:
+                self.logger.error(f"Error checking class membership: {e}")
+                return False
+        
+        return False
+    
+    def _execute_action(self, rule: dict, trigger_values: Dict[str, Any]):
+        """Execute a rule action (legacy method - now mainly for special actions)"""
+        action = rule.get('action')
+        
+        try:
+            if action == 'calculate':
+                self._action_calculate(rule, trigger_values)
             
-            # Execute action
-            if condition_met:
-                self.logger.info(f"Executing action for rule '{rule_name}'")
-                self._execute_action(rule_name, rule, trigger_values)
-            else:
-                self.logger.info(f"Executing inverse action for rule '{rule_name}'")
-                # Execute inverse action if condition not met
-                self._execute_inverse_action(rule_name, rule)
+            elif action == 'generate_template':
+                self._action_generate_template(rule, trigger_values)
+            
+            elif action == 'apply_configuration':
+                # For special behaviors only
+                config_type = rule.get('config_type', 'shape_configurations')
+                self._action_apply_configuration(trigger_values, config_type)
+                
+            self.action_executed.emit(action, str(rule), True)
+            
+        except Exception as e:
+            self.logger.error(f"Error executing action '{action}': {e}")
+    
+    def _execute_inverse_action(self, rule: dict):
+        """Execute inverse action when condition is not met (legacy method)"""
+        # This is now handled by the priority system
+        pass
+    
+    # ============================================================================
+    # ACTION IMPLEMENTATIONS
+    # ============================================================================
+    
+    def _action_show_groups(self, group_names: List[str]):
+        """Show all fields in specified groups"""
+        for group_name in group_names:
+            field_uris = self.config.get('field_groups', {}).get(group_name, [])
+            self.logger.debug(f"Showing group '{group_name}' with {len(field_uris)} fields")
+            self._set_fields_visibility(field_uris, True)
+    
+    def _action_hide_groups(self, group_names: List[str]):
+        """Hide all fields in specified groups"""
+        for group_name in group_names:
+            field_uris = self.config.get('field_groups', {}).get(group_name, [])
+            self.logger.debug(f"Hiding group '{group_name}' with {len(field_uris)} fields")
+            self._set_fields_visibility(field_uris, False)
+    
+    def _action_apply_configuration(self, trigger_values: Dict[str, Any], config_type: str = 'shape_configurations'):
+        """
+        Generic method to apply configuration based on trigger value.
+        
+        This can be used for shapes, materials, structures, or any other
+        trigger-based configuration system.
+        
+        Args:
+            trigger_values: Values from trigger widgets
+            config_type: Type of configuration to apply (e.g., 'shape_configurations')
+        """
+        if not trigger_values:
+            return
+        
+        trigger_value = list(trigger_values.values())[0]
+        if not trigger_value:
+            return
+        
+        self.logger.info(f"Applying {config_type} for: {trigger_value}")
+        
+        configuration = self.config.get(config_type, {}).get(trigger_value, {})
+        if not configuration:
+            self.logger.warning(f"No {config_type} found for: {trigger_value}")
+            return
+        
+        # Show specific fields
+        show_fields = configuration.get('show_fields', [])
+        if show_fields:
+            self._set_fields_visibility(show_fields, True)
+            self.logger.debug(f"Showing {len(show_fields)} fields")
+        
+        # Hide specific fields
+        hide_fields = configuration.get('hide_fields', [])
+        if hide_fields:
+            self._set_fields_visibility(hide_fields, False)
+            self.logger.debug(f"Hiding {len(hide_fields)} fields")
+        
+        # Handle special behaviors
+        self._apply_special_behaviors(configuration)
+    
+    def _apply_special_behaviors(self, configuration: dict):
+        """Apply special behaviors defined in configuration"""
+        # Handle equal dimensions (for cubic shapes, etc.)
+        equal_dims = configuration.get('equal_dimensions', [])
+        if len(equal_dims) > 1:
+            self._setup_equal_dimensions(equal_dims)
+        
+        # Handle default values
+        default_values = configuration.get('default_values', {})
+        if default_values:
+            self._set_default_values(default_values)
+    
+    def _set_default_values(self, default_values: Dict[str, Any]):
+        """Set default values for fields"""
+        for prop_name, default_value in default_values.items():
+            prop_uri = f"https://dynamat.utep.edu/ontology#{prop_name}"
+            if prop_uri in self.active_form.form_fields:
+                field = self.active_form.form_fields[prop_uri]
+                current_value = self._extract_widget_value(field.widget)
+                if not current_value:  # Only set if field is empty
+                    self._set_widget_value(field.widget, default_value)
+    
+    def _action_calculate(self, rule: dict, trigger_values: Dict[str, Any]):
+        """Perform calculation using registered calculation functions"""
+        try:
+            calculation_function = rule.get('calculation_function')
+            variables = rule.get('variables', {})
+            target_uri = rule.get('target')
+            
+            if not calculation_function or not target_uri:
+                self.logger.warning("Calculation rule missing function name or target")
+                return
+            
+            if calculation_function not in self.calculation_functions:
+                self.logger.error(f"Unknown calculation function: {calculation_function}")
+                return
+            
+            # Build calculation context
+            calc_values = {}
+            for var_name, property_name in variables.items():
+                # Get the actual property URI
+                prop_uri = f"https://dynamat.utep.edu/ontology#{property_name}"
+                if prop_uri in self.active_form.form_fields:
+                    field = self.active_form.form_fields[prop_uri]
+                    value = self._extract_widget_value(field.widget)
+                    try:
+                        calc_values[var_name] = float(value) if value else 0.0
+                    except (ValueError, TypeError):
+                        calc_values[var_name] = 0.0
+            
+            # Execute calculation function
+            calc_func = self.calculation_functions[calculation_function]
+            result = calc_func(**calc_values)
+            
+            # Set result
+            if target_uri in self.active_form.form_fields:
+                field = self.active_form.form_fields[target_uri]
+                self._set_widget_value(field.widget, round(result, 3))
+                self.logger.debug(f"Calculated {calculation_function} = {result}")
                 
         except Exception as e:
-            self.logger.error(f"Error evaluating rule '{rule_name}': {e}")
+            self.logger.error(f"Calculation failed: {e}")
     
-    def _get_trigger_values(self, rule: dict) -> Dict[str, Any]:
-        """Get current values from all trigger widgets"""
-        triggers = rule.get('trigger', [])
-        if isinstance(triggers, str):
-            triggers = [triggers]
+    # ============================================================================
+    # CALCULATION FUNCTIONS
+    # ============================================================================
+    
+    def _calc_circular_area_from_diameter(self, diameter: float = 0.0, **kwargs) -> float:
+        """Calculate circular area from diameter: π * (d/2)²"""
+        return math.pi * (diameter / 2) ** 2
+    
+    def _calc_circular_area_from_radius(self, radius: float = 0.0, **kwargs) -> float:
+        """Calculate circular area from radius: π * r²"""
+        return math.pi * radius ** 2
+    
+    def _calc_rectangular_area(self, width: float = 0.0, height: float = 0.0, **kwargs) -> float:
+        """Calculate rectangular area: width * height"""
+        return width * height
+    
+    def _calc_volume_cube(self, length: float = 0.0, **kwargs) -> float:
+        """Calculate cube volume: length³"""
+        return length ** 3
+    
+    def _calc_volume_cylinder(self, diameter: float = 0.0, length: float = 0.0, **kwargs) -> float:
+        """Calculate cylinder volume: π * (d/2)² * length"""
+        return math.pi * (diameter / 2) ** 2 * length
+    
+    def _action_generate_template(self, rule: dict, trigger_values: Dict[str, Any]):
+        """Generate template-based ID"""
+        template = rule.get('template', '')
+        target_uri = rule.get('target')
         
-        values = {}
-        for trigger_uri in triggers:
-            if trigger_uri in self.active_form.form_fields:
-                field = self.active_form.form_fields[trigger_uri]
-                # Confirm URI is accessible
-                self.logger.debug(f"Processing trigger {trigger_uri}, field property_uri: {field.property_uri}")
-                try:
-                    widget_value = self._extract_widget_value(field.widget)
-                    values[trigger_uri] = widget_value
-                    self.logger.debug(f"Extracted value for {trigger_uri}: {widget_value}")
-                except Exception as e:
-                    self.logger.error(f"Error extracting value for {trigger_uri}: {e}, widget type: {type(field.widget)}")
-                    values[trigger_uri] = None
-            else:
-                self.logger.warning(f"Trigger URI not found in form fields: {trigger_uri}")
+        if not template or not target_uri or not trigger_values:
+            return
         
-        return values
+        try:
+            # Get material URI and extract material code
+            material_uri = list(trigger_values.values())[0]
+            material_code = self._get_material_code(material_uri)
+            sequence = self._get_next_specimen_sequence(material_code)
+            
+            generated_id = template.format(materialcode=material_code, sequence=sequence)
+            
+            if target_uri in self.active_form.form_fields:
+                field = self.active_form.form_fields[target_uri]
+                self._set_widget_value(field.widget, generated_id)
+                field.widget.setReadOnly(not rule.get('editable', True))
+                self.logger.info(f"Generated ID: {generated_id}")
+                
+        except Exception as e:
+            self.logger.error(f"Template generation failed: {e}")
+    
+    def _setup_equal_dimensions(self, dimension_properties: List[str]):
+        """Set up equal dimensions for cubic specimens"""
+        if len(dimension_properties) < 2:
+            return
+        
+        # Use the first property as the source
+        source_prop = dimension_properties[0]
+        source_uri = f"https://dynamat.utep.edu/ontology#{source_prop}"
+        
+        if source_uri not in self.active_form.form_fields:
+            return
+        
+        source_field = self.active_form.form_fields[source_uri]
+        
+        def sync_dimensions():
+            value = self._extract_widget_value(source_field.widget)
+            if value:
+                for prop in dimension_properties[1:]:
+                    target_uri = f"https://dynamat.utep.edu/ontology#{prop}"
+                    if target_uri in self.active_form.form_fields:
+                        target_field = self.active_form.form_fields[target_uri]
+                        self._set_widget_value(target_field.widget, value)
+        
+        # Connect the synchronization
+        if isinstance(source_field.widget, QLineEdit):
+            source_field.widget.textChanged.connect(sync_dimensions)
+        elif isinstance(source_field.widget, (QSpinBox, QDoubleSpinBox)):
+            source_field.widget.valueChanged.connect(sync_dimensions)
+    
+    # ============================================================================
+    # UTILITY METHODS
+    # ============================================================================
     
     def _extract_widget_value(self, widget: QWidget) -> Any:
         """Extract current value from a widget"""
         try:
-            widget_type = type(widget).__name__
-            self.logger.debug(f"Extracting value from {widget_type}")
-            
             if isinstance(widget, QComboBox):
                 # For ComboBox, try to get data first (URI), then text (display name)
                 data = widget.currentData()
                 text = widget.currentText()
-                self.logger.debug(f"QComboBox - data: {data}, text: {text}")
                 return data if data is not None and data != "" else text
             elif isinstance(widget, QLineEdit):
-                value = widget.text()
-                self.logger.debug(f"QLineEdit - text: {value}")
-                return value
-            elif isinstance(widget, QSpinBox) or isinstance(widget, QDoubleSpinBox):
-                value = widget.value()
-                self.logger.debug(f"SpinBox - value: {value}")
-                return value
+                return widget.text()
+            elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+                return widget.value()
             elif isinstance(widget, QCheckBox):
-                value = widget.isChecked()
-                self.logger.debug(f"QCheckBox - checked: {value}")
-                return value
+                return widget.isChecked()
             elif isinstance(widget, QTextEdit):
-                value = widget.toPlainText()
-                self.logger.debug(f"QTextEdit - text: {value}")
-                return value
+                return widget.toPlainText()
             elif isinstance(widget, QDateEdit):
-                value = widget.date().toString()
-                self.logger.debug(f"QDateEdit - date: {value}")
-                return value
+                return widget.date().toString()
             else:
                 # Try to handle compound widgets (like float with unit)
-                self.logger.debug(f"Unknown widget type: {widget_type}, checking for layout")
                 if hasattr(widget, 'layout') and widget.layout():
                     layout = widget.layout()
                     if layout.count() > 0:
                         first_widget = layout.itemAt(0).widget()
                         if first_widget:
-                            self.logger.debug(f"Found nested widget: {type(first_widget).__name__}")
                             return self._extract_widget_value(first_widget)
-        except AttributeError as e:
-            self.logger.error(f"AttributeError extracting widget value from {type(widget).__name__}: {e}")
-            self.logger.error(f"Widget attributes: {dir(widget)}")
         except Exception as e:
             self.logger.error(f"Error extracting widget value from {type(widget).__name__}: {e}")
         
         return None
-    
-    def _evaluate_condition(self, rule: dict, trigger_values: Dict[str, Any]) -> bool:
-        """Evaluate the condition for a dependency rule"""
-        condition_type = rule.get('condition', 'value_equals')
-        condition_value = rule.get('value')
-        
-        if condition_type not in self.condition_handlers:
-            self.logger.error(f"Unknown condition type: {condition_type}")
-            return False
-        
-        handler = self.condition_handlers[condition_type]
-        return handler(trigger_values, condition_value, rule)
-    
-    def _execute_action(self, rule_name: str, rule: dict, trigger_values: Dict[str, Any]):
-        """Execute the action specified in the rule"""
-        action_type = rule.get('action', 'show')
-        
-        if action_type not in self.action_handlers:
-            self.logger.error(f"Unknown action type: {action_type}")
-            return
-        
-        handler = self.action_handlers[action_type]
-        result = handler(rule, trigger_values)
-        
-        self.action_executed.emit(rule_name, action_type, result)
-        self.logger.debug(f"Executed action '{action_type}' for rule '{rule_name}'")
-    
-    def _execute_inverse_action(self, rule_name: str, rule: dict):
-        """Execute the inverse action (e.g., hide if action is show)"""
-        action_type = rule.get('action', 'show')
-        inverse_actions = {
-            'show': 'hide',
-            'hide': 'show',
-            'enable': 'disable',
-            'disable': 'enable'
-        }
-        
-        inverse_action = inverse_actions.get(action_type)
-        if inverse_action and inverse_action in self.action_handlers:
-            handler = self.action_handlers[inverse_action]
-            handler(rule, {})
-    
-    # ============================================================================
-    # CONDITION HANDLERS
-    # ============================================================================
-    
-    def _condition_class_membership(self, trigger_values: Dict[str, Any], 
-                                  condition_value: str, rule: dict) -> bool:
-        """Check if trigger value belongs to specified class"""
-        if not trigger_values:
-            self.logger.debug("No trigger values provided")
-            return False
-        
-        # Get the first trigger value (material selection)
-        trigger_value = list(trigger_values.values())[0]
-        
-        self.logger.info(f"Checking class membership: '{trigger_value}' in '{condition_value}'")
-        
-        # Check if we have a valid URI value
-        if not trigger_value or trigger_value == "" or trigger_value is None:
-            self.logger.info("Trigger value is empty or None")
-            return False
-        
-        # Check class membership using ontology manager
-        try:
-            result = self.ontology_manager.is_instance_of_class(trigger_value, condition_value)
-            self.logger.info(f"Class membership result: {result}")
-            return result
-        except Exception as e:
-            self.logger.error(f"Error checking class membership: {e}")
-            return False
-    
-    def _condition_value_equals(self, trigger_values: Dict[str, Any], 
-                              condition_value: Any, rule: dict) -> bool:
-        """Check if trigger value equals condition value"""
-        if not trigger_values:
-            return False
-        
-        trigger_value = list(trigger_values.values())[0]
-        return trigger_value == condition_value
-    
-    def _condition_value_changed(self, trigger_values: Dict[str, Any], 
-                               condition_value: Any, rule: dict) -> bool:
-        """Check if trigger value has changed (any non-empty value)"""
-        if not trigger_values:
-            return False
-        
-        trigger_value = list(trigger_values.values())[0]
-        return trigger_value is not None and str(trigger_value).strip() != ""
-    
-    def _condition_all_filled(self, trigger_values: Dict[str, Any], 
-                            condition_value: bool, rule: dict) -> bool:
-        """Check if all trigger fields are filled"""
-        if not trigger_values:
-            return False
-        
-        all_filled = all(
-            val is not None and str(val).strip() != "" 
-            for val in trigger_values.values()
-        )
-        return all_filled == condition_value
-    
-    def _condition_any_filled(self, trigger_values: Dict[str, Any], 
-                            condition_value: bool, rule: dict) -> bool:
-        """Check if any trigger field is filled"""
-        if not trigger_values:
-            return False
-        
-        any_filled = any(
-            val is not None and str(val).strip() != "" 
-            for val in trigger_values.values()
-        )
-        return any_filled == condition_value
-    
-    def _condition_value_greater(self, trigger_values: Dict[str, Any], 
-                               condition_value: float, rule: dict) -> bool:
-        """Check if trigger value is greater than condition value"""
-        if not trigger_values:
-            return False
-        
-        try:
-            trigger_value = float(list(trigger_values.values())[0])
-            return trigger_value > condition_value
-        except (ValueError, TypeError):
-            return False
-    
-    def _condition_value_less(self, trigger_values: Dict[str, Any], 
-                            condition_value: float, rule: dict) -> bool:
-        """Check if trigger value is less than condition value"""
-        if not trigger_values:
-            return False
-        
-        try:
-            trigger_value = float(list(trigger_values.values())[0])
-            return trigger_value < condition_value
-        except (ValueError, TypeError):
-            return False
-    
-    def _condition_value_in_range(self, trigger_values: Dict[str, Any], 
-                                condition_value: List[float], rule: dict) -> bool:
-        """Check if trigger value is within specified range"""
-        if not trigger_values or len(condition_value) != 2:
-            return False
-        
-        try:
-            trigger_value = float(list(trigger_values.values())[0])
-            return condition_value[0] <= trigger_value <= condition_value[1]
-        except (ValueError, TypeError):
-            return False
-
-    def _condition_value_in_list(self, trigger_values: Dict[str, Any], 
-                               condition_value: List[str], rule: dict) -> bool:
-        """Check if trigger value is in the specified list"""
-        if not trigger_values or not condition_value:
-            return False
-        
-        trigger_value = list(trigger_values.values())[0]
-        
-        # Handle both string values and URIs
-        if trigger_value in condition_value:
-            return True
-        
-        # Also check if the local name matches any item in the list
-        trigger_local = self.ontology_manager._extract_local_name(str(trigger_value))
-        for item in condition_value:
-            item_local = self.ontology_manager._extract_local_name(str(item))
-            if trigger_local.lower() == item_local.lower():
-                return True
-        
-        return False
-    
-    def _condition_value_changed_and_shape(self, trigger_values: Dict[str, Any], 
-                                         condition_value: Any, rule: dict) -> bool:
-        """Check if value changed AND shape matches requirement"""
-        if not trigger_values:
-            return False
-        
-        # First check if value changed
-        trigger_value = list(trigger_values.values())[0]
-        if not trigger_value or str(trigger_value).strip() == "":
-            return False
-        
-        # Then check if shape matches requirement
-        required_shape = rule.get('shape_required')
-        if not required_shape:
-            return True  # No shape requirement
-        
-        # Get current shape value
-        shape_uri = "https://dynamat.utep.edu/ontology#hasShape"
-        if shape_uri in self.active_form.form_fields:
-            shape_field = self.active_form.form_fields[shape_uri]
-            current_shape = self._extract_widget_value(shape_field.widget)
-            
-            if current_shape == required_shape:
-                return True
-        
-        return False
-    
-    # ============================================================================
-    # ACTION HANDLERS  
-    # ============================================================================
-    
-    def _action_show(self, rule: dict, trigger_values: Dict[str, Any]) -> bool:
-        """Show target widgets"""
-        return self._set_widget_visibility(rule, True)
-    
-    def _action_hide(self, rule: dict, trigger_values: Dict[str, Any]) -> bool:
-        """Hide target widgets"""
-        return self._set_widget_visibility(rule, False)
-    
-    def _action_enable(self, rule: dict, trigger_values: Dict[str, Any]) -> bool:
-        """Enable target widgets"""
-        return self._set_widget_enabled(rule, True)
-    
-    def _action_disable(self, rule: dict, trigger_values: Dict[str, Any]) -> bool:
-        """Disable target widgets"""
-        return self._set_widget_enabled(rule, False)
-    
-    def _set_widget_visibility(self, rule: dict, visible: bool) -> bool:
-        """Set visibility for target widgets"""
-        targets = rule.get('target', [])
-        if isinstance(targets, str):
-            targets = [targets]
-        
-        success = True
-        for target_uri in targets:
-            if target_uri in self.active_form.form_fields:
-                field = self.active_form.form_fields[target_uri]
-                field.widget.setVisible(visible)
-                
-                # Also hide/show the label if it exists
-                if hasattr(field.widget.parent(), 'layout'):
-                    layout = field.widget.parent().layout()
-                    if layout:
-                        # Find the label widget in the form layout
-                        for i in range(layout.count()):
-                            item = layout.itemAt(i)
-                            if item and item.widget():
-                                widget = item.widget()
-                                # Check if this is a label for our field
-                                if (hasattr(widget, 'buddy') and widget.buddy() == field.widget) or \
-                                   (hasattr(widget, 'text') and callable(getattr(widget, 'text', None)) and 
-                                    widget.text() and field.property_metadata.display_name in widget.text()):
-                                    widget.setVisible(visible)
-                                    break
-            else:
-                self.logger.warning(f"Target widget not found: {target_uri}")
-                success = False
-        
-        return success
-    
-    def _set_widget_enabled(self, rule: dict, enabled: bool) -> bool:
-        """Set enabled state for target widgets"""
-        targets = rule.get('target', [])
-        if isinstance(targets, str):
-            targets = [targets]
-        
-        success = True
-        for target_uri in targets:
-            if target_uri in self.active_form.form_fields:
-                field = self.active_form.form_fields[target_uri]
-                field.widget.setEnabled(enabled)
-            else:
-                self.logger.warning(f"Target widget not found: {target_uri}")
-                success = False
-        
-        return success
-    
-    def _action_generate_template(self, rule: dict, trigger_values: Dict[str, Any]) -> str:
-        """Generate template-based values"""
-        template = rule.get('template', '')
-        
-        if not template or not trigger_values:
-            return ""
-        
-        try:
-            # Create format dictionary from trigger values
-            format_dict = {}
-            for uri, value in trigger_values.items():
-                # Extract property name from URI for template
-                prop_name = self.ontology_manager._extract_local_name(uri).lower()
-                format_dict[prop_name] = value
-            
-            # Handle material code extraction for specimen ID generation
-            if 'materialcode' in template.lower():
-                material_uri = trigger_values.get("https://dynamat.utep.edu/ontology#hasMaterial")
-                if material_uri:
-                    material_code = self._get_material_code(material_uri)
-                    format_dict['materialcode'] = material_code
-                    
-                    # Generate sequence number for this material code
-                    if 'sequence' in template:
-                        format_dict['sequence'] = self._get_next_specimen_sequence(material_code)
-            
-            generated_value = template.format(**format_dict)
-            
-            # Set value in target widgets
-            targets = rule.get('target', [])
-            if isinstance(targets, str):
-                targets = [targets]
-            
-            for target_uri in targets:
-                if target_uri in self.active_form.form_fields:
-                    field = self.active_form.form_fields[target_uri]
-                    self._set_widget_value(field.widget, generated_value)
-                    
-                    # Make non-editable if specified
-                    if not rule.get('editable', True):
-                        field.widget.setReadOnly(True)
-            
-            return generated_value
-            
-        except Exception as e:
-            self.logger.error(f"Template generation failed: {e}")
-            return ""
-    
-    def _action_calculate(self, rule: dict, trigger_values: Dict[str, Any]) -> float:
-        """Calculate value using formula"""
-        formula = rule.get('formula', '')
-        
-        if not formula or not trigger_values:
-            return 0.0
-        
-        try:
-            # Create calculation dictionary from trigger values
-            calc_dict = {}
-            for uri, value in trigger_values.items():
-                prop_name = self.ontology_manager._extract_local_name(uri).lower()
-                calc_dict[prop_name] = float(value) if value else 0.0
-            
-            # Simple formula evaluation (could be enhanced)
-            result = eval(formula.format(**calc_dict))
-            
-            # Set result in target widgets
-            targets = rule.get('target', [])
-            if isinstance(targets, str):
-                targets = [targets]
-            
-            for target_uri in targets:
-                if target_uri in self.active_form.form_fields:
-                    field = self.active_form.form_fields[target_uri]
-                    self._set_widget_value(field.widget, result)
-            
-            return result
-            
-        except Exception as e:
-            self.logger.error(f"Calculation failed: {e}")
-            return 0.0
-    
-    def _action_set_value(self, rule: dict, trigger_values: Dict[str, Any]) -> bool:
-        """Set specific value in target widgets"""
-        value = rule.get('value')
-        targets = rule.get('target', [])
-        if isinstance(targets, str):
-            targets = [targets]
-        
-        success = True
-        for target_uri in targets:
-            if target_uri in self.active_form.form_fields:
-                field = self.active_form.form_fields[target_uri]
-                if not self._set_widget_value(field.widget, value):
-                    success = False
-            else:
-                success = False
-        
-        return success
     
     def _set_widget_value(self, widget: QWidget, value: Any) -> bool:
         """Set value in a specific widget"""
@@ -670,7 +701,30 @@ class DependencyManager(QObject):
         except Exception as e:
             self.logger.error(f"Failed to set widget value: {e}")
             return False
-
+    
+    def _set_fields_visibility(self, field_uris: List[str], visible: bool):
+        """Set visibility for multiple fields and their labels"""
+        for uri in field_uris:
+            if uri in self.active_form.form_fields:
+                field = self.active_form.form_fields[uri]
+                field.widget.setVisible(visible)
+                
+                # Also hide/show the label if it exists
+                if hasattr(field.widget.parent(), 'layout'):
+                    layout = field.widget.parent().layout()
+                    if layout:
+                        # Find the label widget in the form layout
+                        for i in range(layout.count()):
+                            item = layout.itemAt(i)
+                            if item and item.widget():
+                                widget = item.widget()
+                                # Check if this is a label for our field
+                                if (hasattr(widget, 'buddy') and widget.buddy() == field.widget) or \
+                                   (hasattr(widget, 'text') and callable(getattr(widget, 'text', None)) and 
+                                    widget.text() and field.property_metadata.display_name in widget.text()):
+                                    widget.setVisible(visible)
+                                    break
+    
     def _get_material_code(self, material_uri: str) -> str:
         """Get material code from material URI"""
         try:
@@ -743,84 +797,3 @@ class DependencyManager(QObject):
         except Exception as e:
             self.logger.error(f"Error getting next sequence for material {material_code}: {e}")
             return 1
-    
-    def _check_rdf_database_folder(self):
-        """Ensure the rdf_database folder structure exists"""
-        try:
-            from pathlib import Path
-            
-            # Get project root (assuming we're in dynamat/gui/dependency_manager.py)
-            project_root = Path(__file__).parent.parent.parent
-            rdf_database_path = project_root / "rdf_database"
-            
-            # Create the folder if it doesn't exist
-            rdf_database_path.mkdir(exist_ok=True)
-            
-            self.logger.info(f"RDF database folder ensured at: {rdf_database_path}")
-            return rdf_database_path
-            
-        except Exception as e:
-            self.logger.error(f"Error ensuring RDF database folder: {e}")
-            return None
-    
-    def _check_specimen_folder_exists(self, specimen_id: str) -> bool:
-        """Check if specimen folder already exists in rdf_database"""
-        try:
-            rdf_database_path = self._check_rdf_database_folder()
-            if not rdf_database_path:
-                return False
-            
-            specimen_folder = rdf_database_path / specimen_id
-            exists = specimen_folder.exists()
-            
-            if exists:
-                self.logger.info(f"Specimen folder already exists: {specimen_folder}")
-            
-            return exists
-            
-        except Exception as e:
-            self.logger.error(f"Error checking specimen folder for {specimen_id}: {e}")
-            return False
-
-    def _on_combo_changed(self, widget: QComboBox, rule_name: str):
-        """Handle combo box changes with detailed logging"""
-        try:
-            current_text = widget.currentText()
-            current_data = widget.currentData()
-            
-            self.logger.info(f"Combo changed for rule '{rule_name}': text='{current_text}', data='{current_data}'")
-            
-            # Extract the proper value
-            extracted_value = self._extract_widget_value(widget)
-            self.logger.info(f"Extracted value: '{extracted_value}'")
-            
-            # Call the trigger handler
-            self._on_trigger_changed(rule_name, extracted_value)
-            
-        except Exception as e:
-            self.logger.error(f"Error in combo change handler for rule '{rule_name}': {e}")
-
-    def _action_set_value_from_trigger(self, rule: dict, trigger_values: Dict[str, Any]) -> bool:
-        """Set target widgets to the same value as trigger"""
-        if not trigger_values:
-            return False
-        
-        # Get the trigger value
-        trigger_value = list(trigger_values.values())[0]
-        if not trigger_value:
-            return False
-        
-        targets = rule.get('target', [])
-        if isinstance(targets, str):
-            targets = [targets]
-        
-        success = True
-        for target_uri in targets:
-            if target_uri in self.active_form.form_fields:
-                field = self.active_form.form_fields[target_uri]
-                if not self._set_widget_value(field.widget, trigger_value):
-                    success = False
-            else:
-                success = False
-        
-        return success

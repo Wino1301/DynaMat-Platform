@@ -1,131 +1,199 @@
 {
-  "dependencies": {
-    "composite_material_visibility": {
-      "target": [
-        "https://dynamat.utep.edu/ontology#hasMatrixMaterial", 
-        "https://dynamat.utep.edu/ontology#hasReinforcementMaterial", 
-        "https://dynamat.utep.edu/ontology#hasMatrixVolumeFraction", 
-        "https://dynamat.utep.edu/ontology#hasReinforcementVolumeFraction", 
-        "https://dynamat.utep.edu/ontology#hasPhaseDistributionID"
+  "shape_configurations": {
+    "https://dynamat.utep.edu/ontology#CylindricalShape": {
+      "show_fields": [
+        "https://dynamat.utep.edu/ontology#hasOriginalDiameter",
+        "https://dynamat.utep.edu/ontology#hasFinalDiameter",
+        "https://dynamat.utep.edu/ontology#hasOriginalThickness",
+        "https://dynamat.utep.edu/ontology#hasFinalThickness"
       ],
-      "trigger": "https://dynamat.utep.edu/ontology#hasMaterial",
-      "condition": "class_membership",
-      "value": "https://dynamat.utep.edu/ontology#Composite",
-      "action": "show"
+      "hide_fields": [
+        "https://dynamat.utep.edu/ontology#hasOriginalWidth",
+        "https://dynamat.utep.edu/ontology#hasOriginalHeight",
+        "https://dynamat.utep.edu/ontology#hasFinalWidth",
+        "https://dynamat.utep.edu/ontology#hasFinalHeight"
+      ]
     },
-    
-    "specimen_id_generation": {
-      "target": "https://dynamat.utep.edu/ontology#hasSpecimenID",
-      "trigger": "https://dynamat.utep.edu/ontology#hasMaterial",
-      "condition": "value_changed",
-      "value": "*",
-      "action": "generate_template",
-      "template": "DYNML-{materialcode}-{sequence:04d}",
-      "editable": false
-    },
-    
-    "lattice_structure_parameters_visibility": {
-      "target": [
-        "https://dynamat.utep.edu/ontology#hasLatticeCellsX",
-        "https://dynamat.utep.edu/ontology#hasLatticeCellsY",
-        "https://dynamat.utep.edu/ontology#hasLatticeCellsZ",
-        "https://dynamat.utep.edu/ontology#hasVoxelSize",
-        "https://dynamat.utep.edu/ontology#hasLatticeNodeRadius",
-        "https://dynamat.utep.edu/ontology#hasLatticeStrutMinX",
-        "https://dynamat.utep.edu/ontology#hasLatticeStrutMaxX",
-        "https://dynamat.utep.edu/ontology#hasLatticeStrutMinY",
-        "https://dynamat.utep.edu/ontology#hasLatticeStrutMaxY",
-        "https://dynamat.utep.edu/ontology#hasLatticeStrutMinZ",
-        "https://dynamat.utep.edu/ontology#hasLatticeStrutMaxZ",
-        "https://dynamat.utep.edu/ontology#hasLatticeNx",
-        "https://dynamat.utep.edu/ontology#hasLatticeNy",
-        "https://dynamat.utep.edu/ontology#hasLatticeNz",
-        "https://dynamat.utep.edu/ontology#hasLatticeRingThickness"
+    "https://dynamat.utep.edu/ontology#RectangularShape": {
+      "show_fields": [
+        "https://dynamat.utep.edu/ontology#hasOriginalWidth",
+        "https://dynamat.utep.edu/ontology#hasOriginalHeight",
+        "https://dynamat.utep.edu/ontology#hasFinalWidth",
+        "https://dynamat.utep.edu/ontology#hasFinalHeight",
+        "https://dynamat.utep.edu/ontology#hasOriginalThickness",
+        "https://dynamat.utep.edu/ontology#hasFinalThickness"
       ],
-      "trigger": "https://dynamat.utep.edu/ontology#hasStructure",
-      "condition": "value_equals",
-      "value": "https://dynamat.utep.edu/ontology#LatticeStructure",
-      "action": "show"
-    },
-    
-    "cylindrical_diameter_visibility": {
-      "target": [
+      "hide_fields": [
         "https://dynamat.utep.edu/ontology#hasOriginalDiameter",
         "https://dynamat.utep.edu/ontology#hasFinalDiameter"
-      ],
-      "trigger": "https://dynamat.utep.edu/ontology#hasShape",
-      "condition": "value_equals",
-      "value": "https://dynamat.utep.edu/ontology#CylindricalShape",
-      "action": "show"
+      ]
     },
-    
-    "rectangular_dimensions_visibility": {
-      "target": [
+    "https://dynamat.utep.edu/ontology#CubicShape": {
+      "show_fields": [
         "https://dynamat.utep.edu/ontology#hasOriginalWidth",
         "https://dynamat.utep.edu/ontology#hasOriginalHeight",
         "https://dynamat.utep.edu/ontology#hasFinalWidth",
         "https://dynamat.utep.edu/ontology#hasFinalHeight"
       ],
-      "trigger": "https://dynamat.utep.edu/ontology#hasShape",
-      "condition": "value_in_list",
-      "value": [
-        "https://dynamat.utep.edu/ontology#RectangularShape",
-        "https://dynamat.utep.edu/ontology#DogboneShape",
-        "https://dynamat.utep.edu/ontology#CubicShape"
-      ],
-      "action": "show"
-    },
-    
-    "original_cross_section_calculation": {
-      "target": "https://dynamat.utep.edu/ontology#hasOriginalCrossSection",
-      "trigger": "https://dynamat.utep.edu/ontology#hasOriginalDiameter",
-      "condition": "value_changed",
-      "value": "*",
-      "action": "calculate",
-      "formula": "3.14159 * (({hasoriginaldiameter} / 2) ** 2)",
-      "unit": "mm²"
-    },
-    
-    "final_cross_section_calculation": {
-      "target": "https://dynamat.utep.edu/ontology#hasFinalCrossSection",
-      "trigger": "https://dynamat.utep.edu/ontology#hasFinalDiameter",
-      "condition": "value_changed",
-      "value": "*",
-      "action": "calculate",
-      "formula": "3.14159 * (({hasfinaldiameter} / 2) ** 2)",
-      "unit": "mm²"
-    },
-    
-    "cubic_equal_dimensions": {
-      "target": [
-        "https://dynamat.utep.edu/ontology#hasOriginalWidth",
-        "https://dynamat.utep.edu/ontology#hasOriginalHeight"
-      ],
-      "trigger": "https://dynamat.utep.edu/ontology#hasOriginalLength",
-      "condition": "value_changed_and_shape",
-      "value": "*",
-      "shape_required": "https://dynamat.utep.edu/ontology#CubicShape",
-      "action": "set_value_from_trigger",
-      "note": "For cubic specimens, width and height are set equal to length"
-    },
-    
-    "post_test_dimensions_visibility": {
-      "target": [
-        "https://dynamat.utep.edu/ontology#hasFinalLength",
+      "hide_fields": [
+        "https://dynamat.utep.edu/ontology#hasOriginalDiameter",
         "https://dynamat.utep.edu/ontology#hasFinalDiameter",
+        "https://dynamat.utep.edu/ontology#hasOriginalThickness",
+        "https://dynamat.utep.edu/ontology#hasFinalThickness"
+      ],
+      "equal_dimensions": ["hasOriginalLength", "hasOriginalWidth", "hasOriginalHeight"]
+    },
+    "https://dynamat.utep.edu/ontology#DogboneShape": {
+      "show_fields": [
+        "https://dynamat.utep.edu/ontology#hasOriginalWidth",
+        "https://dynamat.utep.edu/ontology#hasOriginalHeight",
         "https://dynamat.utep.edu/ontology#hasFinalWidth",
         "https://dynamat.utep.edu/ontology#hasFinalHeight",
-        "https://dynamat.utep.edu/ontology#hasFinalThickness",
-        "https://dynamat.utep.edu/ontology#hasFinalCrossSection",
-        "https://dynamat.utep.edu/ontology#hasFinalMass"
+        "https://dynamat.utep.edu/ontology#hasOriginalThickness",
+        "https://dynamat.utep.edu/ontology#hasFinalThickness"
       ],
+      "hide_fields": [
+        "https://dynamat.utep.edu/ontology#hasOriginalDiameter",
+        "https://dynamat.utep.edu/ontology#hasFinalDiameter"
+      ]
+    }
+  },
+  
+  "dependencies": {
+    "composite_material_visibility": {
+      "priority": 1,
+      "trigger": "https://dynamat.utep.edu/ontology#hasMaterial",
+      "rules": [
+        {
+          "condition": "class_membership",
+          "value": "https://dynamat.utep.edu/ontology#Composite",
+          "action": "show_fields",
+          "target_fields": [
+            "https://dynamat.utep.edu/ontology#hasMatrixMaterial",
+            "https://dynamat.utep.edu/ontology#hasReinforcementMaterial",
+            "https://dynamat.utep.edu/ontology#hasMatrixVolumeFraction",
+            "https://dynamat.utep.edu/ontology#hasReinforcementVolumeFraction",
+            "https://dynamat.utep.edu/ontology#hasPhaseDistributionID"
+          ]
+        }
+      ]
+    },
+    
+    "lattice_structure_visibility": {
+      "priority": 2,
+      "trigger": "https://dynamat.utep.edu/ontology#hasStructure",
+      "rules": [
+        {
+          "condition": "value_equals",
+          "value": "https://dynamat.utep.edu/ontology#LatticeStructure",
+          "action": "show_fields",
+          "target_fields": [
+            "https://dynamat.utep.edu/ontology#hasLatticeCellsX",
+            "https://dynamat.utep.edu/ontology#hasLatticeCellsY",
+            "https://dynamat.utep.edu/ontology#hasLatticeCellsZ",
+            "https://dynamat.utep.edu/ontology#hasVoxelSize",
+            "https://dynamat.utep.edu/ontology#hasLatticeNodeRadius",
+            "https://dynamat.utep.edu/ontology#hasLatticeStrutMinX",
+            "https://dynamat.utep.edu/ontology#hasLatticeStrutMaxX",
+            "https://dynamat.utep.edu/ontology#hasLatticeStrutMinY",
+            "https://dynamat.utep.edu/ontology#hasLatticeStrutMaxY",
+            "https://dynamat.utep.edu/ontology#hasLatticeStrutMinZ",
+            "https://dynamat.utep.edu/ontology#hasLatticeStrutMaxZ",
+            "https://dynamat.utep.edu/ontology#hasLatticeNx",
+            "https://dynamat.utep.edu/ontology#hasLatticeNy",
+            "https://dynamat.utep.edu/ontology#hasLatticeNz",
+            "https://dynamat.utep.edu/ontology#hasLatticeRingThickness"
+          ]
+        }
+      ]
+    },
+    
+    "shape_based_visibility": {
+      "priority": 3,
+      "trigger": "https://dynamat.utep.edu/ontology#hasShape",
+      "rules": [
+        {
+          "condition": "value_changed",
+          "action": "apply_configuration",
+          "config_type": "shape_configurations"
+        }
+      ]
+    },
+    
+    "role_based_visibility": {
+      "priority": 4,
       "trigger": "https://dynamat.utep.edu/ontology#hasSpecimenRole",
-      "condition": "value_in_list",
-      "value": [
-        "https://dynamat.utep.edu/ontology#TestSpecimen",
-        "https://dynamat.utep.edu/ontology#TestAndCharacterization"
-      ],
-      "action": "show"
+      "rules": [
+        {
+          "condition": "value_in_list",
+          "value": [
+            "https://dynamat.utep.edu/ontology#TestSpecimen",
+            "https://dynamat.utep.edu/ontology#TestAndCharacterization"
+          ],
+          "action": "show_fields",
+          "target_fields": [
+            "https://dynamat.utep.edu/ontology#hasFinalLength",
+            "https://dynamat.utep.edu/ontology#hasFinalDiameter",
+            "https://dynamat.utep.edu/ontology#hasFinalWidth",
+            "https://dynamat.utep.edu/ontology#hasFinalHeight",
+            "https://dynamat.utep.edu/ontology#hasFinalThickness",
+            "https://dynamat.utep.edu/ontology#hasFinalCrossSection",
+            "https://dynamat.utep.edu/ontology#hasFinalMass"
+          ]
+        }
+      ]
+    },
+    
+    "calculations": {
+      "priority": 5,
+      "rules": [
+        {
+          "trigger": "https://dynamat.utep.edu/ontology#hasOriginalDiameter",
+          "condition": "value_changed",
+          "action": "calculate",
+          "target": "https://dynamat.utep.edu/ontology#hasOriginalCrossSection",
+          "calculation_function": "circular_area_from_diameter",
+          "variables": {"diameter": "hasOriginalDiameter"}
+        },
+        {
+          "trigger": "https://dynamat.utep.edu/ontology#hasFinalDiameter", 
+          "condition": "value_changed",
+          "action": "calculate",
+          "target": "https://dynamat.utep.edu/ontology#hasFinalCrossSection",
+          "calculation_function": "circular_area_from_diameter",
+          "variables": {"diameter": "hasFinalDiameter"}
+        },
+        {
+          "trigger": "https://dynamat.utep.edu/ontology#hasOriginalWidth",
+          "condition": "value_changed",
+          "action": "calculate",
+          "target": "https://dynamat.utep.edu/ontology#hasOriginalCrossSection",
+          "calculation_function": "rectangular_area",
+          "variables": {"width": "hasOriginalWidth", "height": "hasOriginalHeight"}
+        },
+        {
+          "trigger": "https://dynamat.utep.edu/ontology#hasOriginalHeight",
+          "condition": "value_changed",
+          "action": "calculate",
+          "target": "https://dynamat.utep.edu/ontology#hasOriginalCrossSection",
+          "calculation_function": "rectangular_area",
+          "variables": {"width": "hasOriginalWidth", "height": "hasOriginalHeight"}
+        }
+      ]
+    },
+    
+    "id_generation": {
+      "priority": 6,
+      "trigger": "https://dynamat.utep.edu/ontology#hasMaterial",
+      "rules": [
+        {
+          "condition": "value_changed",
+          "action": "generate_template",
+          "target": "https://dynamat.utep.edu/ontology#hasSpecimenID",
+          "template": "DYNML-{materialcode}-{sequence:04d}",
+          "editable": false
+        }
+      ]
     }
   }
 }
