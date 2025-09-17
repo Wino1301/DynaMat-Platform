@@ -55,7 +55,8 @@ class DependencyManager(QObject):
             'disable': self._action_disable,
             'generate_template': self._action_generate_template,
             'calculate': self._action_calculate,
-            'set_value': self._action_set_value
+            'set_value': self._action_set_value,
+            'set_value_from_trigger': self._action_set_value_from_trigger
         }
         
         # Condition handlers registry
@@ -67,7 +68,9 @@ class DependencyManager(QObject):
             'any_filled': self._condition_any_filled,
             'value_greater': self._condition_value_greater,
             'value_less': self._condition_value_less,
-            'value_in_range': self._condition_value_in_range
+            'value_in_range': self._condition_value_in_range,
+            'value_in_list': self._condition_value_in_list,
+            'value_changed_and_shape': self._condition_value_changed_and_shape
         }
         
         self.logger = logger
@@ -417,6 +420,54 @@ class DependencyManager(QObject):
             return condition_value[0] <= trigger_value <= condition_value[1]
         except (ValueError, TypeError):
             return False
+
+    def _condition_value_in_list(self, trigger_values: Dict[str, Any], 
+                               condition_value: List[str], rule: dict) -> bool:
+        """Check if trigger value is in the specified list"""
+        if not trigger_values or not condition_value:
+            return False
+        
+        trigger_value = list(trigger_values.values())[0]
+        
+        # Handle both string values and URIs
+        if trigger_value in condition_value:
+            return True
+        
+        # Also check if the local name matches any item in the list
+        trigger_local = self.ontology_manager._extract_local_name(str(trigger_value))
+        for item in condition_value:
+            item_local = self.ontology_manager._extract_local_name(str(item))
+            if trigger_local.lower() == item_local.lower():
+                return True
+        
+        return False
+    
+    def _condition_value_changed_and_shape(self, trigger_values: Dict[str, Any], 
+                                         condition_value: Any, rule: dict) -> bool:
+        """Check if value changed AND shape matches requirement"""
+        if not trigger_values:
+            return False
+        
+        # First check if value changed
+        trigger_value = list(trigger_values.values())[0]
+        if not trigger_value or str(trigger_value).strip() == "":
+            return False
+        
+        # Then check if shape matches requirement
+        required_shape = rule.get('shape_required')
+        if not required_shape:
+            return True  # No shape requirement
+        
+        # Get current shape value
+        shape_uri = "https://dynamat.utep.edu/ontology#hasShape"
+        if shape_uri in self.active_form.form_fields:
+            shape_field = self.active_form.form_fields[shape_uri]
+            current_shape = self._extract_widget_value(shape_field.widget)
+            
+            if current_shape == required_shape:
+                return True
+        
+        return False
     
     # ============================================================================
     # ACTION HANDLERS  
@@ -748,3 +799,28 @@ class DependencyManager(QObject):
             
         except Exception as e:
             self.logger.error(f"Error in combo change handler for rule '{rule_name}': {e}")
+
+    def _action_set_value_from_trigger(self, rule: dict, trigger_values: Dict[str, Any]) -> bool:
+        """Set target widgets to the same value as trigger"""
+        if not trigger_values:
+            return False
+        
+        # Get the trigger value
+        trigger_value = list(trigger_values.values())[0]
+        if not trigger_value:
+            return False
+        
+        targets = rule.get('target', [])
+        if isinstance(targets, str):
+            targets = [targets]
+        
+        success = True
+        for target_uri in targets:
+            if target_uri in self.active_form.form_fields:
+                field = self.active_form.form_fields[target_uri]
+                if not self._set_widget_value(field.widget, trigger_value):
+                    success = False
+            else:
+                success = False
+        
+        return success
