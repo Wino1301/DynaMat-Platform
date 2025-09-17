@@ -100,6 +100,19 @@ dyn:hasLaboratory rdf:type owl:ObjectProperty ,
                   dyn:hasDisplayOrder 5 ;
                   dyn:hasFormGroup "UserInfo" .
 
+
+###  https://dynamat.utep.edu/ontology#hasMaterial
+dyn:hasMaterial rdf:type owl:ObjectProperty ,
+                         owl:FunctionalProperty ;
+                rdfs:domain dyn:Specimen ;
+                rdfs:range dyn:Material ;
+                rdfs:comment "Material composition of the specimen"@en ;
+                rdfs:label "Material"@en ;
+                dyn:hasDisplayName "Material" ;
+                dyn:hasDisplayOrder 1 ;
+                dyn:hasFormGroup "MaterialProperties" .
+
+
 ###  https://dynamat.utep.edu/ontology#hasMeasurement
 dyn:hasMeasurement rdf:type owl:ObjectProperty ;
                    rdfs:domain dyn:PhysicalObject ;
@@ -166,13 +179,14 @@ dyn:hasDate rdf:type owl:DatatypeProperty ;
 
 ###  https://dynamat.utep.edu/ontology#hasDescription
 dyn:hasDescription rdf:type owl:DatatypeProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:string ;
-    rdfs:label "Description"@en ;
-    dyn:hasDisplayName "Description" ;
-    dyn:hasFormGroup "Identification" ;
-    dyn:hasDisplayOrder 10 ;
-    rdfs:comment "Additional description or notes about the specimen"@en .
+                   rdfs:domain dyn:Entity ;
+                   rdfs:range xsd:string ;
+                   rdfs:comment "Text description or notes"@en ;
+                   rdfs:label "Description"@en ;
+                   dyn:hasDisplayName "Description" ;
+                   dyn:hasDisplayOrder 10 ;
+                   dyn:hasFormGroup "Identification" .
+
 
 ###  https://dynamat.utep.edu/ontology#hasDimension
 dyn:hasDimension rdf:type owl:DatatypeProperty ;
@@ -250,6 +264,18 @@ dyn:hasSpecimenID rdf:type owl:DatatypeProperty ;
                   dyn:hasDisplayName "Specimen ID" ;
                   dyn:hasDisplayOrder 1 ;
                   dyn:hasFormGroup "Identification" .
+
+
+###  https://dynamat.utep.edu/ontology#hasSpecimenRole
+dyn:hasSpecimenRole rdf:type owl:DatatypeProperty ;
+                    rdfs:domain dyn:Specimen ;
+                    rdfs:range xsd:string ;
+                    rdfs:comment "Purpose of this specimen (can have multiple roles)"@en ;
+                    rdfs:label "Specimen Role"@en ;
+                    dyn:hasDisplayName "Specimen Role" ;
+                    dyn:hasDisplayOrder 2 ;
+                    dyn:hasFormGroup "Identification" ;
+                    dyn:hasValidValues [ ] .
 
 
 ###  https://dynamat.utep.edu/ontology#hasTestCondition
@@ -666,6 +692,12 @@ dyn:Structure rdf:type owl:Class ;
               rdfs:subClassOf dyn:Entity ;
               rdfs:comment "Internal structure type of a specimen"@en ;
               rdfs:label "Structure"@en .
+
+###  https://dynamat.utep.edu/ontology#SpecimenBatch
+dyn:SpecimenBatch rdf:type owl:Class ;
+                  rdfs:subClassOf dyn:Entity ;
+                  rdfs:comment "Group of specimens from same material/processing batch"@en ;
+                  rdfs:label "Specimen Batch"@en .
 
 ###  https://dynamat.utep.edu/ontology#SpecimenRole
 dyn:SpecimenRole rdf:type owl:Class ;
