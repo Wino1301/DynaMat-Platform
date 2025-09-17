@@ -23,7 +23,6 @@ from .widgets.action_panel import ActionPanelWidget
 
 logger = logging.getLogger(__name__)
 
-
 class MainWindow(QMainWindow):
     """
     Main application window for DynaMat Platform.
@@ -46,6 +45,7 @@ class MainWindow(QMainWindow):
         self.ontology_manager = ontology_manager
         self.current_activity = "specimen"
         self.activity_widgets = {}
+        self.content_widget = None
         
         # Setup window
         self._setup_window()
@@ -60,7 +60,8 @@ class MainWindow(QMainWindow):
         # Connect signals
         self._connect_signals()
         
-        # Initialize with specimen activity
+        # Initialize with specimen activity (create immediately)
+        self._initialize_specimen_activity()
         self._switch_activity("specimen")
         
         logger.info("Main window initialized")
@@ -157,7 +158,7 @@ class MainWindow(QMainWindow):
         # Activity buttons
         activities = [
             ("specimen", "Specimen", "Manage specimen metadata and properties"),
-            ("mechanical", "Mechanical Test", "Configure and run mechanical tests"),  
+            ("mechanical", "Mechanical Test", "Configure and run mechanical tests"),
             ("visualize", "Visualize", "View and analyze test data")
         ]
         
@@ -238,7 +239,7 @@ class MainWindow(QMainWindow):
         self.content_title.setFont(title_font)
         self.content_layout.addWidget(self.content_title)
         
-        # Content widget (will be replaced based on activity)
+        # Content widget placeholder (will be replaced based on activity)
         self.content_widget = QWidget()
         self.content_layout.addWidget(self.content_widget)
         
@@ -262,116 +263,170 @@ class MainWindow(QMainWindow):
         self.action_panel.template_loaded.connect(self._on_template_loaded)
         self.action_panel.new_instance.connect(self._on_new_instance)
     
+    def _initialize_specimen_activity(self):
+        """Initialize specimen activity widget immediately"""
+        try:
+            logger.info("Initializing specimen activity widget")
+            self.activity_widgets["specimen"] = SpecimenFormWidget(self.ontology_manager)
+            self.log_message("Specimen form widget created and cached")
+        except Exception as e:
+            logger.error(f"Failed to initialize specimen form: {e}", exc_info=True)
+            self.log_message(f"Failed to create specimen form: {e}", "error")
+            # Create error widget as fallback
+            error_widget = QLabel(f"Failed to create specimen form:\n{str(e)}")
+            error_widget.setStyleSheet("color: red; padding: 20px;")
+            error_widget.setWordWrap(True)
+            self.activity_widgets["specimen"] = error_widget
+    
     def _switch_activity(self, activity_id: str):
-        """Switch to a different activity"""
+        """Switch to a different activity with proper widget management"""
         if activity_id == self.current_activity:
             return
         
-        self.current_activity = activity_id
-        
-        # Update content based on activity
-        if activity_id == "specimen":
-            self._show_specimen_activity()
-        elif activity_id == "mechanical":
-            self._show_mechanical_activity()
-        elif activity_id == "visualize":
-            self._show_visualize_activity()
-        
-        self.activity_changed.emit(activity_id)
-        self.log_message(f"Switched to {activity_id} activity")
+        try:
+            logger.info(f"Switching from {self.current_activity} to {activity_id}")
+            
+            # Remove current content widget safely
+            if self.content_widget:
+                self.content_layout.removeWidget(self.content_widget)
+                # Don't delete cached widgets, just hide them
+                if not self._is_cached_widget(self.content_widget):
+                    self.content_widget.deleteLater()
+                else:
+                    self.content_widget.hide()
+                self.content_widget = None
+            
+            self.current_activity = activity_id
+            
+            # Update content based on activity
+            if activity_id == "specimen":
+                self._show_specimen_activity()
+            elif activity_id == "mechanical":
+                self._show_mechanical_activity()
+            elif activity_id == "visualize":
+                self._show_visualize_activity()
+            
+            # Emit signals
+            self.activity_changed.emit(activity_id)
+            self.log_message(f"Switched to {activity_id} activity")
+            
+        except Exception as e:
+            logger.error(f"Failed to switch to {activity_id}: {e}", exc_info=True)
+            self.log_message(f"Error switching to {activity_id}: {e}", "error")
+    
+    def _is_cached_widget(self, widget: QWidget) -> bool:
+        """Check if widget is cached in activity_widgets"""
+        return widget in self.activity_widgets.values()
     
     def _show_specimen_activity(self):
         """Show specimen management interface"""
         self.content_title.setText("Specimen Management")
         
-        # Remove current content widget if it exists and is not the specimen widget
-        if self.content_widget and "specimen" not in self.activity_widgets:
-            self.content_layout.removeWidget(self.content_widget)
-            self.content_widget.deleteLater()
-            self.content_widget = None
-        
-        # Create or reuse specimen form widget
-        if "specimen" not in self.activity_widgets:
-            try:
-                self.activity_widgets["specimen"] = SpecimenFormWidget(self.ontology_manager)
-                self.log_message("Specimen form widget created successfully")
-            except Exception as e:
-                self.log_message(f"Failed to create specimen form: {e}", "error")
-                # Create error widget as fallback
-                error_widget = QLabel(f"Failed to create specimen form:\n{str(e)}")
-                error_widget.setStyleSheet("color: red; padding: 20px;")
-                error_widget.setWordWrap(True)
-                self.activity_widgets["specimen"] = error_widget
-        
-        # Set content widget
-        if self.content_widget != self.activity_widgets["specimen"]:
-            if self.content_widget:
-                self.content_layout.removeWidget(self.content_widget)
-            
+        # Use cached specimen widget
+        if "specimen" in self.activity_widgets:
             self.content_widget = self.activity_widgets["specimen"]
+            self.content_widget.show()  # Make sure it's visible
             self.content_layout.addWidget(self.content_widget)
+            logger.info("Specimen form widget restored from cache")
+        else:
+            # This shouldn't happen since we initialize in __init__, but handle gracefully
+            logger.warning("Specimen widget not cached, creating new one")
+            self._initialize_specimen_activity()
+            if "specimen" in self.activity_widgets:
+                self.content_widget = self.activity_widgets["specimen"]
+                self.content_layout.addWidget(self.content_widget)
     
     def _show_mechanical_activity(self):
         """Show mechanical test interface"""
         self.content_title.setText("Mechanical Testing")
         
-        # Remove current content widget
-        if self.content_widget:
-            self.content_layout.removeWidget(self.content_widget)
-            self.content_widget.deleteLater()
+        # Create or reuse mechanical test widget
+        if "mechanical" not in self.activity_widgets:
+            # Placeholder for mechanical test widget
+            self.activity_widgets["mechanical"] = QLabel("Mechanical Testing Interface\n(Coming Soon)")
+            self.activity_widgets["mechanical"].setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.activity_widgets["mechanical"].setStyleSheet("font-size: 16px; color: gray;")
         
-        # Placeholder for mechanical test widget
-        self.content_widget = QLabel("Mechanical Testing Interface\n(Coming Soon)")
-        self.content_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.content_widget.setStyleSheet("font-size: 18px; color: gray;")
+        self.content_widget = self.activity_widgets["mechanical"]
+        self.content_widget.show()
         self.content_layout.addWidget(self.content_widget)
     
     def _show_visualize_activity(self):
         """Show visualization interface"""
         self.content_title.setText("Data Visualization")
         
-        # Remove current content widget
-        if self.content_widget:
-            self.content_layout.removeWidget(self.content_widget)
-            self.content_widget.deleteLater()
+        # Create or reuse visualization widget
+        if "visualize" not in self.activity_widgets:
+            # Placeholder for visualization widget
+            self.activity_widgets["visualize"] = QLabel("Data Visualization Interface\n(Coming Soon)")
+            self.activity_widgets["visualize"].setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.activity_widgets["visualize"].setStyleSheet("font-size: 16px; color: gray;")
         
-        # Placeholder for visualization widget
-        self.content_widget = QLabel("Data Visualization Interface\n(Coming Soon)")
-        self.content_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.content_widget.setStyleSheet("font-size: 18px; color: gray;")
+        self.content_widget = self.activity_widgets["visualize"]
+        self.content_widget.show()
         self.content_layout.addWidget(self.content_widget)
     
     def _update_activity_status(self, activity_id: str):
         """Update activity status in status bar"""
         activity_names = {
             "specimen": "Specimen",
-            "mechanical": "Mechanical Test", 
+            "mechanical": "Mechanical Test",
             "visualize": "Visualize"
         }
-        self.activity_status.setText(f"Activity: {activity_names.get(activity_id, activity_id)}")
+        name = activity_names.get(activity_id, activity_id.title())
+        self.activity_status.setText(f"Activity: {name}")
     
     def _on_template_loaded(self, template_data: Dict[str, Any]):
         """Handle template loaded signal"""
         self.log_message(f"Template loaded: {template_data.get('name', 'Unknown')}")
         
-        # Apply template to current activity
-        if hasattr(self.content_widget, 'apply_template'):
-            self.content_widget.apply_template(template_data)
+        # If we're in specimen activity, populate the form
+        if self.current_activity == "specimen" and "specimen" in self.activity_widgets:
+            specimen_widget = self.activity_widgets["specimen"]
+            if hasattr(specimen_widget, 'populate_form'):
+                specimen_widget.populate_form(template_data)
     
     def _on_new_instance(self, class_uri: str):
-        """Handle new instance creation signal"""
-        self.log_message(f"Creating new instance of {class_uri}")
-        
-        # Create new instance in current activity
-        if hasattr(self.content_widget, 'create_new_instance'):
-            self.content_widget.create_new_instance(class_uri)
+        """Handle new instance creation request"""
+        if class_uri == "https://dynamat.utep.edu/ontology#Specimen":
+            # Switch to specimen activity if not already there
+            if self.current_activity != "specimen":
+                self._switch_activity("specimen")
+            
+            # Create new specimen
+            if "specimen" in self.activity_widgets:
+                specimen_widget = self.activity_widgets["specimen"]
+                if hasattr(specimen_widget, 'create_new_specimen'):
+                    specimen_widget.create_new_specimen()
+        else:
+            logger.warning(f"Cannot create instance of {class_uri} in current interface")
     
     def log_message(self, message: str, level: str = "info"):
-        """Log message to terminal and status bar"""
-        self.terminal.add_message(message, level)
-        self.status_message.emit(message)
+        """Log message to terminal and logger"""
+        # Log to Python logger
+        if level == "error":
+            logger.error(message)
+        elif level == "warning":
+            logger.warning(message)
+        else:
+            logger.info(message)
+        
+        # Log to terminal widget
+        if hasattr(self, 'terminal'):
+            self.terminal.add_message(message, level)
     
     def closeEvent(self, event):
-        """Handle application close event"""
-        self.log_message("Closing DynaMat Platform...")
-        event.accept()
+        """Handle window close event"""
+        try:
+            # Clean up cached widgets properly
+            for activity_id, widget in self.activity_widgets.items():
+                if widget and not widget.isHidden():
+                    widget.hide()
+            
+            # Accept the close event
+            event.accept()
+            logger.info("Main window closed")
+            
+        except Exception as e:
+            logger.error(f"Error during window close: {e}")
+            event.accept()  # Close anyway
