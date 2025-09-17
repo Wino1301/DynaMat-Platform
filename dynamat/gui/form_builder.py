@@ -1,7 +1,6 @@
 """
 DynaMat Platform - Ontology Form Builder
 Generates PyQt6 forms from ontology class definitions
-Compatible with existing OntologyManager structure
 """
 
 import logging
@@ -85,50 +84,18 @@ class OntologyFormBuilder:
             content_widget = QWidget()
             content_layout = QVBoxLayout(content_widget)
             
-            # Build form groups using explicit group ordering
+            # Build form groups - use existing form_groups from ontology manager
             form_fields = {}
             groups_created = 0
             
-            # Build form groups using explicit group ordering
-            form_fields = {}
-            groups_created = 0
-            
-            # Sort form groups by explicit group order from ontology
-            def get_group_sort_key(group_items):
+            # Sort form groups by the minimum display order of properties within each group
+            def get_group_min_order(group_items):
                 group_name, group_properties = group_items
                 if not group_properties:
-                    return (999, group_name)  # Empty groups last, then alphabetical
-                
-                # Get group order from properties in the group
-                # Check for group_order attribute (you may have named it differently)
-                group_orders = []
-                for prop in group_properties:
-                    # Try different possible attribute names for group order
-                    if hasattr(prop, 'group_order') and prop.group_order is not None:
-                        group_orders.append(prop.group_order)
-                    elif hasattr(prop, 'form_group_order') and prop.form_group_order is not None:
-                        group_orders.append(prop.form_group_order)
-                
-                if group_orders:
-                    # Use explicit group order (all properties in same group should have same order)
-                    group_order = min(group_orders)
-                    self.logger.debug(f"Group '{group_name}' using explicit order: {group_order}")
-                    return (group_order, group_name)
-                else:
-                    # Fallback to old behavior for groups without explicit ordering
-                    min_display_order = min(p.display_order for p in group_properties)
-                    fallback_order = min_display_order + 1000  # Offset to put after explicitly ordered groups
-                    self.logger.debug(f"Group '{group_name}' using fallback order: {fallback_order} (display_order: {min_display_order})")
-                    return (fallback_order, group_name)
+                    return 999
+                return min(p.display_order for p in group_properties)
             
-            sorted_groups = sorted(class_metadata.form_groups.items(), key=get_group_sort_key)
-            
-            # Log the final group ordering for verification
-            if class_uri == "https://dynamat.utep.edu/ontology#Specimen":
-                self.logger.info("Final form group order:")
-                for i, (group_name, _) in enumerate(sorted_groups, 1):
-                    self.logger.info(f"  {i}. {group_name}")
-
+            sorted_groups = sorted(class_metadata.form_groups.items(), key=get_group_min_order)
             
             for group_name, group_properties in sorted_groups:
                 if group_properties:  # Only create groups with properties

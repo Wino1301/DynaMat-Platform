@@ -395,3 +395,25 @@ dyn:hasReceiptDate rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     dyn:hasFormGroup "Certification" ;
     dyn:hasDisplayOrder 3 ;
     rdfs:comment "Date material was received"@en .
+
+#################################################################
+#    Data Properties - Notes and Metadata
+#################################################################
+
+dyn:hasDescription rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Material ;
+    rdfs:range xsd:string ;
+    rdfs:label "Description"@en ;
+    dyn:hasDisplayName "Description" ;
+    dyn:hasFormGroup "Notes" ;
+    dyn:hasDisplayOrder 1 ;
+    rdfs:comment "Additional description or notes about the material"@en .
+
+dyn:hasSpecialNotes rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Material ;
+    rdfs:range xsd:string ;
+    rdfs:label "Special Notes"@en ;
+    dyn:hasDisplayName "Special Notes" ;
+    dyn:hasFormGroup "Notes" ;
+    dyn:hasDisplayOrder 2 ;
+    rdfs:comment "Special considerations or observations about the material"@en .

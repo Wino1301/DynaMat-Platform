@@ -15,31 +15,7 @@
 # =============================================================================
 
 #################################################################
-#    1. Identification Properties
-#################################################################
-
-dyn:hasSpecimenBatchID rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:string ;
-    rdfs:label "Specimen Batch ID"@en ;
-    dyn:hasDisplayName "Batch ID" ;
-    dyn:hasFormGroup "Identification" ;
-    dyn:hasGroupOrder 1 ;
-    dyn:hasDisplayOrder 2 ;
-    rdfs:comment "Batch identifier for specimens from same processing run"@en .
-
-dyn:hasSpecimenRole rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range dyn:SpecimenRole ;
-    rdfs:label "Specimen Role"@en ;
-    dyn:hasDisplayName "Specimen Role" ;
-    dyn:hasFormGroup "Identification" ;
-    dyn:hasGroupOrder 1 ;
-    dyn:hasDisplayOrder 3 ;
-    rdfs:comment "Purpose of specimen in testing"@en .
-
-#################################################################
-#    2. Material Properties
+#    Object Properties (Relationships)
 #################################################################
 
 # Material relationship (extends existing hasMaterial from core)
@@ -49,68 +25,18 @@ dyn:hasMaterial rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:label "Material"@en ;
     dyn:hasDisplayName "Material" ;
     dyn:hasFormGroup "MaterialProperties" ;
-    dyn:hasGroupOrder 2 ;
-    dyn:hasDisplayOrder 1 ;
+    dyn:hasDisplayOrder 41 ;
     rdfs:comment "Material composition of the specimen"@en .
 
-#################################################################
-#    3. Composite Properties
-#################################################################
-
-dyn:hasPhaseDistributionID rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+# Structure and geometry relationships
+dyn:hasStructure rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:string ;
-    rdfs:label "Phase Distribution ID"@en ;
-    dyn:hasDisplayName "Phase Distribution ID" ;
-    dyn:hasFormGroup "CompositeProperties" ;
-    dyn:hasGroupOrder 3 ;
-    dyn:hasDisplayOrder 1 ;
-    rdfs:comment "Identifier for the phase distribution pattern"@en .
-
-# Material-specific volume fractions for composite specimens
-dyn:hasMatrixMaterial rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range dyn:Material ;
-    rdfs:label "Matrix Material"@en ;
-    dyn:hasDisplayName "Matrix Material" ;
-    dyn:hasFormGroup "CompositeProperties" ;
-    dyn:hasGroupOrder 3 ;
-    dyn:hasDisplayOrder 2 ;
-    rdfs:comment "Primary matrix material in composite specimen"@en .
-
-dyn:hasReinforcementMaterial rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range dyn:Material ;
-    rdfs:label "Reinforcement Material"@en ;
-    dyn:hasDisplayName "Reinforcement Material" ;
-    dyn:hasFormGroup "CompositeProperties" ;
-    dyn:hasGroupOrder 3 ;
-    dyn:hasDisplayOrder 3 ;
-    rdfs:comment "Reinforcement material in composite specimen"@en .
-
-dyn:hasMatrixVolumeFraction rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    rdfs:label "Matrix Volume Fraction"@en ;
-    dyn:hasDisplayName "Matrix Volume Fraction (%)" ;
-    dyn:hasFormGroup "CompositeProperties" ;
-    dyn:hasGroupOrder 3 ;
-    dyn:hasDisplayOrder 4 ;
-    rdfs:comment "Volume fraction of matrix material (0-100%)"@en .
-
-dyn:hasReinforcementVolumeFraction rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    rdfs:label "Reinforcement Volume Fraction"@en ;
-    dyn:hasDisplayName "Reinforcement Volume Fraction (%)" ;
-    dyn:hasFormGroup "CompositeProperties" ;
-    dyn:hasGroupOrder 3 ;
-    dyn:hasDisplayOrder 5 ;
-    rdfs:comment "Volume fraction of reinforcement material (0-100%)"@en .
-
-#################################################################
-#    4. Geometry Dimensions Properties
-#################################################################
+    rdfs:range dyn:Structure ;
+    rdfs:label "Structure"@en ;
+    dyn:hasDisplayName "Structure Type" ;
+    dyn:hasFormGroup "StructureInfo" ;
+    dyn:hasDisplayOrder 42 ;
+    rdfs:comment "Structural configuration of the specimen"@en .
 
 dyn:hasShape rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
@@ -118,185 +44,51 @@ dyn:hasShape rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:label "Shape"@en ;
     dyn:hasDisplayName "Specimen Shape" ;
     dyn:hasFormGroup "GeometryDimensions" ;
-    dyn:hasGroupOrder 4 ;
-    dyn:hasDisplayOrder 1 ;
+    dyn:hasDisplayOrder 43 ;
     rdfs:comment "Geometric shape of the specimen"@en .
 
-dyn:hasOriginalThickness rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+dyn:hasSpecimenRole rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Length ;
-    rdfs:label "Original Thickness"@en ;
-    dyn:hasDisplayName "Original Thickness (mm)" ;
-    dyn:hasFormGroup "GeometryDimensions" ;
-    dyn:hasGroupOrder 4 ;
-    dyn:hasDisplayOrder 2 ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
-    rdfs:comment "Initial thickness of specimen before testing"@en .
+    rdfs:range dyn:SpecimenRole ;
+    rdfs:label "Specimen Role"@en ;
+    dyn:hasDisplayName "Specimen Role" ;
+    dyn:hasFormGroup "Identification" ;
+    dyn:hasDisplayOrder 44 ;
+    rdfs:comment "Purpose of specimen in testing"@en .
 
-dyn:hasOriginalLength rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+# Processing history relationships
+dyn:hasProcessingHistory rdf:type owl:ObjectProperty ;
     rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Length ;
-    rdfs:label "Original Length"@en ;
-    dyn:hasDisplayName "Original Length (mm)" ;
-    dyn:hasFormGroup "GeometryDimensions" ;
-    dyn:hasGroupOrder 4 ;
-    dyn:hasDisplayOrder 3 ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
-    rdfs:comment "Initial length of specimen before testing"@en .
-
-dyn:hasOriginalDiameter rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Length ;
-    rdfs:label "Original Diameter"@en ;
-    dyn:hasDisplayName "Original Diameter (mm)" ;
-    dyn:hasFormGroup "GeometryDimensions" ;
-    dyn:hasGroupOrder 4 ;
-    dyn:hasDisplayOrder 4 ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
-    rdfs:comment "Initial diameter for cylindrical specimens"@en .
-
-dyn:hasOriginalWidth rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Length ;
-    rdfs:label "Original Width"@en ;
-    dyn:hasDisplayName "Original Width (mm)" ;
-    dyn:hasFormGroup "GeometryDimensions" ;
-    dyn:hasGroupOrder 4 ;
-    dyn:hasDisplayOrder 5 ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
-    rdfs:comment "Initial width for rectangular specimens"@en .
-
-dyn:hasOriginalHeight rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Length ;
-    rdfs:label "Original Height"@en ;
-    dyn:hasDisplayName "Original Height (mm)" ;
-    dyn:hasFormGroup "GeometryDimensions" ;
-    dyn:hasGroupOrder 4 ;
-    dyn:hasDisplayOrder 6 ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
-    rdfs:comment "Initial height for rectangular specimens"@en .
-
-dyn:hasOriginalCrossSection rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Area ;
-    rdfs:label "Original Cross Section"@en ;
-    dyn:hasDisplayName "Original Cross Section (mm²)" ;
-    dyn:hasFormGroup "GeometryDimensions" ;
-    dyn:hasGroupOrder 4 ;
-    dyn:hasDisplayOrder 7 ;
-    dyn:hasDefaultUnit "unit:MilliM2" ;
-    rdfs:comment "Initial cross-sectional area of specimen"@en .
-
-dyn:hasOriginalMass rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Mass ;
-    rdfs:label "Original Mass"@en ;
-    dyn:hasDisplayName "Original Mass (g)" ;
-    dyn:hasFormGroup "GeometryDimensions" ;
-    dyn:hasGroupOrder 4 ;
-    dyn:hasDisplayOrder 8 ;
-    dyn:hasDefaultUnit "unit:GM" ;
-    rdfs:comment "Initial mass of specimen before testing"@en .
-
-#################################################################
-#    5. Post Test Dimensions Properties
-#################################################################
-
-dyn:hasFinalLength rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Length ;
-    rdfs:label "Final Length"@en ;
-    dyn:hasDisplayName "Final Length (mm)" ;
-    dyn:hasFormGroup "PostTestDimensions" ;
-    dyn:hasGroupOrder 5 ;
+    rdfs:range dyn:ProcessingStep ;
+    rdfs:label "Processing History"@en ;
+    dyn:hasDisplayName "Processing History" ;
+    dyn:hasFormGroup "ProcessingHistory" ;
     dyn:hasDisplayOrder 1 ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
-    rdfs:comment "Final length of specimen after testing"@en .
+    rdfs:comment "Complete processing sequence applied to specimen"@en .
 
-dyn:hasFinalDiameter rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+dyn:hasProcessingStep rdf:type owl:ObjectProperty ;
     rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Length ;
-    rdfs:label "Final Diameter"@en ;
-    dyn:hasDisplayName "Final Diameter (mm)" ;
-    dyn:hasFormGroup "PostTestDimensions" ;
-    dyn:hasGroupOrder 5 ;
+    rdfs:range dyn:ProcessingStep ;
+    rdfs:label "Processing Step"@en ;
+    dyn:hasDisplayName "Processing Step" ;
+    dyn:hasFormGroup "ProcessingHistory" ;
     dyn:hasDisplayOrder 2 ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
-    rdfs:comment "Final diameter for cylindrical specimens after testing"@en .
+    rdfs:comment "Individual processing step applied to specimen"@en .
 
-dyn:hasFinalCrossSection rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Area ;
-    rdfs:label "Final Cross Section"@en ;
-    dyn:hasDisplayName "Final Cross Section (mm²)" ;
-    dyn:hasFormGroup "PostTestDimensions" ;
-    dyn:hasGroupOrder 5 ;
-    dyn:hasDisplayOrder 3 ;
-    dyn:hasDefaultUnit "unit:MilliM2" ;
-    rdfs:comment "Final cross-sectional area after testing"@en .
-
-dyn:hasFinalThickness rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Length ;
-    rdfs:label "Final Thickness"@en ;
-    dyn:hasDisplayName "Final Thickness (mm)" ;
-    dyn:hasFormGroup "PostTestDimensions" ;
-    dyn:hasGroupOrder 5 ;
-    dyn:hasDisplayOrder 4 ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
-    rdfs:comment "Final thickness of specimen after testing"@en .
-
-dyn:hasFinalHeight rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Length ;
-    rdfs:label "Final Height"@en ;
-    dyn:hasDisplayName "Final Height (mm)" ;
-    dyn:hasFormGroup "PostTestDimensions" ;
-    dyn:hasGroupOrder 5 ;
-    dyn:hasDisplayOrder 5 ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
-    rdfs:comment "Final height for rectangular specimens after testing"@en .
-
-dyn:hasFinalWidth rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Length ;
-    rdfs:label "Final Width"@en ;
-    dyn:hasDisplayName "Final Width (mm)" ;
-    dyn:hasFormGroup "PostTestDimensions" ;
-    dyn:hasGroupOrder 5 ;
-    dyn:hasDisplayOrder 6 ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
-    rdfs:comment "Final width for rectangular specimens after testing"@en .
-
-dyn:hasFinalMass rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Mass ;
-    rdfs:label "Final Mass"@en ;
-    dyn:hasDisplayName "Final Mass (g)" ;
-    dyn:hasFormGroup "PostTestDimensions" ;
-    dyn:hasGroupOrder 5 ;
-    dyn:hasDisplayOrder 7 ;
-    dyn:hasDefaultUnit "unit:GM" ;
-    rdfs:comment "Final mass of specimen after testing"@en .
+# hasInferredStructure removed - doesn't add value to specimen class
 
 #################################################################
-#    6. Characterization Tracking Properties
+#    Data Properties - Identification
 #################################################################
+
+dyn:hasSpecimenBatchID rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:string ;
+    rdfs:label "Specimen Batch ID"@en ;
+    dyn:hasDisplayName "Batch ID" ;
+    dyn:hasFormGroup "Identification" ;
+    dyn:hasDisplayOrder 2 ;
+    rdfs:comment "Batch identifier for specimens from same processing run"@en .
 
 # Characterization grouping and representativeness
 dyn:hasCharacterizationGroupID rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -305,7 +97,6 @@ dyn:hasCharacterizationGroupID rdf:type owl:DatatypeProperty, owl:FunctionalProp
     rdfs:label "Characterization Group ID"@en ;
     dyn:hasDisplayName "Characterization Group ID" ;
     dyn:hasFormGroup "Characterization Tracking" ;
-    dyn:hasGroupOrder 6 ;
     dyn:hasDisplayOrder 1 ;
     rdfs:comment "Identifier for specimens that share similar conditions and can share characterization data"@en .
 
@@ -315,7 +106,6 @@ dyn:isCharacterizationRepresentative rdf:type owl:DatatypeProperty, owl:Function
     rdfs:label "Characterization Representative"@en ;
     dyn:hasDisplayName "Is Characterization Representative" ;
     dyn:hasFormGroup "Characterization Tracking" ;
-    dyn:hasGroupOrder 6 ;
     dyn:hasDisplayOrder 2 ;
     rdfs:comment "True if this specimen underwent characterization representing its group"@en .
 
@@ -325,7 +115,6 @@ dyn:hasRepresentativeSpecimen rdf:type owl:ObjectProperty, owl:FunctionalPropert
     rdfs:label "Representative Specimen"@en ;
     dyn:hasDisplayName "Representative Specimen" ;
     dyn:hasFormGroup "Characterization Tracking" ;
-    dyn:hasGroupOrder 6 ;
     dyn:hasDisplayOrder 3 ;
     rdfs:comment "Points to the specimen that was characterized to represent this specimen's group"@en .
 
@@ -336,7 +125,6 @@ dyn:hasSimilarProcessingConditions rdf:type owl:ObjectProperty ;
     rdfs:label "Similar Processing Conditions"@en ;
     dyn:hasDisplayName "Similar Processing Conditions" ;
     dyn:hasFormGroup "Characterization Tracking" ;
-    dyn:hasGroupOrder 6 ;
     dyn:hasDisplayOrder 4 ;
     rdfs:comment "Links to specimens with similar processing history that can share characterization"@en .
 
@@ -346,98 +134,11 @@ dyn:hasTestingConditionCode rdf:type owl:DatatypeProperty, owl:FunctionalPropert
     rdfs:label "Testing Condition Code"@en ;
     dyn:hasDisplayName "Testing Condition Code" ;
     dyn:hasFormGroup "Characterization Tracking" ;
-    dyn:hasGroupOrder 6 ;
     dyn:hasDisplayOrder 5 ;
     rdfs:comment "Code representing similar testing conditions (material+structure+processing)"@en .
 
 #################################################################
-#    7. Manufacturing Properties
-#################################################################
-
-dyn:hasSpecimenBatch rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range dyn:SpecimenBatch ;
-    rdfs:label "Specimen Batch"@en ;
-    dyn:hasDisplayName "Specimen Batch" ;
-    dyn:hasFormGroup "Manufacturing" ;
-    dyn:hasGroupOrder 7 ;
-    dyn:hasDisplayOrder 1 ;
-    rdfs:comment "Manufacturing batch of the specimen"@en .
-
-dyn:hasCreationDate rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:date ;
-    rdfs:label "Creation Date"@en ;
-    dyn:hasDisplayName "Creation Date" ;
-    dyn:hasFormGroup "Manufacturing" ;
-    dyn:hasGroupOrder 7 ;
-    dyn:hasDisplayOrder 2 ;
-    rdfs:comment "Date when specimen was manufactured or prepared"@en .
-
-dyn:hasManufacturingMethod rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:string ;
-    rdfs:label "Manufacturing Method"@en ;
-    dyn:hasDisplayName "Manufacturing Method" ;
-    dyn:hasFormGroup "Manufacturing" ;
-    dyn:hasGroupOrder 7 ;
-    dyn:hasDisplayOrder 3 ;
-    dyn:hasValidValues "Additive Manufacturing, Machining, Casting, Forging, Other" ;
-    rdfs:comment "Primary method used to create the specimen"@en .
-
-dyn:hasSurfaceFinish rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:string ;
-    rdfs:label "Surface Finish"@en ;
-    dyn:hasDisplayName "Surface Finish" ;
-    dyn:hasFormGroup "Manufacturing" ;
-    dyn:hasGroupOrder 7 ;
-    dyn:hasDisplayOrder 4 ;
-    dyn:hasValidValues "As-Built, Machined, Polished, Ground, Other" ;
-    rdfs:comment "Surface finish condition of the specimen"@en .
-
-#################################################################
-#    8. Processing History Properties
-#################################################################
-
-# Processing history relationships
-dyn:hasProcessingHistory rdf:type owl:ObjectProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range dyn:ProcessingStep ;
-    rdfs:label "Processing History"@en ;
-    dyn:hasDisplayName "Processing History" ;
-    dyn:hasFormGroup "ProcessingHistory" ;
-    dyn:hasGroupOrder 8 ;
-    dyn:hasDisplayOrder 1 ;
-    rdfs:comment "Complete processing sequence applied to specimen"@en .
-
-dyn:hasProcessingStep rdf:type owl:ObjectProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range dyn:ProcessingStep ;
-    rdfs:label "Processing Step"@en ;
-    dyn:hasDisplayName "Processing Step" ;
-    dyn:hasFormGroup "ProcessingHistory" ;
-    dyn:hasGroupOrder 8 ;
-    dyn:hasDisplayOrder 2 ;
-    rdfs:comment "Individual processing step applied to specimen"@en .
-
-#################################################################
-#    9. Structure Information Properties
-#################################################################
-
-# Structure and geometry relationships
-dyn:hasStructure rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range dyn:Structure ;
-    rdfs:label "Structure"@en ;
-    dyn:hasDisplayName "Structure Type" ;
-    dyn:hasFormGroup "StructureInfo" ;
-    dyn:hasGroupOrder 9 ;
-    dyn:hasDisplayOrder 1 ;
-    rdfs:comment "Structural configuration of the specimen"@en .
-
-#################################################################
-#    10. Structure Parameters Properties
+#    Data Properties - Structure Parameters (Lattice)
 #################################################################
 
 dyn:hasLatticeCellsX rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -446,7 +147,6 @@ dyn:hasLatticeCellsX rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:label "Lattice Cells X"@en ;
     dyn:hasDisplayName "Lattice Cells X" ;
     dyn:hasFormGroup "StructureParameters" ;
-    dyn:hasGroupOrder 10 ;
     dyn:hasDisplayOrder 1 ;
     rdfs:comment "Number of unit cells in X direction"@en .
 
@@ -456,7 +156,6 @@ dyn:hasLatticeCellsY rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:label "Lattice Cells Y"@en ;
     dyn:hasDisplayName "Lattice Cells Y" ;
     dyn:hasFormGroup "StructureParameters" ;
-    dyn:hasGroupOrder 10 ;
     dyn:hasDisplayOrder 2 ;
     rdfs:comment "Number of unit cells in Y direction"@en .
 
@@ -466,7 +165,6 @@ dyn:hasLatticeCellsZ rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:label "Lattice Cells Z"@en ;
     dyn:hasDisplayName "Lattice Cells Z" ;
     dyn:hasFormGroup "StructureParameters" ;
-    dyn:hasGroupOrder 10 ;
     dyn:hasDisplayOrder 3 ;
     rdfs:comment "Number of unit cells in Z direction"@en .
 
@@ -477,7 +175,6 @@ dyn:hasVoxelSize rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:label "Voxel Size"@en ;
     dyn:hasDisplayName "Voxel Size (mm)" ;
     dyn:hasFormGroup "StructureParameters" ;
-    dyn:hasGroupOrder 10 ;
     dyn:hasDisplayOrder 4 ;
     dyn:hasDefaultUnit "unit:MilliM" ;
     rdfs:comment "Physical size of each voxel/unit cell"@en .
@@ -489,7 +186,6 @@ dyn:hasLatticeNodeRadius rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:label "Lattice Node Radius"@en ;
     dyn:hasDisplayName "Node Radius (mm)" ;
     dyn:hasFormGroup "StructureParameters" ;
-    dyn:hasGroupOrder 10 ;
     dyn:hasDisplayOrder 5 ;
     dyn:hasDefaultUnit "unit:MilliM" ;
     rdfs:comment "Radius of spherical nodes in lattice structure"@en .
@@ -502,7 +198,6 @@ dyn:hasLatticeStrutMinX rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:label "Lattice Strut Min X"@en ;
     dyn:hasDisplayName "Min Strut Thickness X (mm)" ;
     dyn:hasFormGroup "StructureParameters" ;
-    dyn:hasGroupOrder 10 ;
     dyn:hasDisplayOrder 6 ;
     dyn:hasDefaultUnit "unit:MilliM" ;
     rdfs:comment "Minimum strut thickness in X direction"@en .
@@ -514,7 +209,6 @@ dyn:hasLatticeStrutMaxX rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:label "Lattice Strut Max X"@en ;
     dyn:hasDisplayName "Max Strut Thickness X (mm)" ;
     dyn:hasFormGroup "StructureParameters" ;
-    dyn:hasGroupOrder 10 ;
     dyn:hasDisplayOrder 7 ;
     dyn:hasDefaultUnit "unit:MilliM" ;
     rdfs:comment "Maximum strut thickness in X direction"@en .
@@ -526,7 +220,6 @@ dyn:hasLatticeStrutMinY rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:label "Lattice Strut Min Y"@en ;
     dyn:hasDisplayName "Min Strut Thickness Y (mm)" ;
     dyn:hasFormGroup "StructureParameters" ;
-    dyn:hasGroupOrder 10 ;
     dyn:hasDisplayOrder 8 ;
     dyn:hasDefaultUnit "unit:MilliM" ;
     rdfs:comment "Minimum strut thickness in Y direction"@en .
@@ -538,7 +231,6 @@ dyn:hasLatticeStrutMaxY rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:label "Lattice Strut Max Y"@en ;
     dyn:hasDisplayName "Max Strut Thickness Y (mm)" ;
     dyn:hasFormGroup "StructureParameters" ;
-    dyn:hasGroupOrder 10 ;
     dyn:hasDisplayOrder 9 ;
     dyn:hasDefaultUnit "unit:MilliM" ;
     rdfs:comment "Maximum strut thickness in Y direction"@en .
@@ -550,7 +242,6 @@ dyn:hasLatticeStrutMinZ rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:label "Lattice Strut Min Z"@en ;
     dyn:hasDisplayName "Min Strut Thickness Z (mm)" ;
     dyn:hasFormGroup "StructureParameters" ;
-    dyn:hasGroupOrder 10 ;
     dyn:hasDisplayOrder 10 ;
     dyn:hasDefaultUnit "unit:MilliM" ;
     rdfs:comment "Minimum strut thickness in Z direction"@en .
@@ -562,7 +253,6 @@ dyn:hasLatticeStrutMaxZ rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:label "Lattice Strut Max Z"@en ;
     dyn:hasDisplayName "Max Strut Thickness Z (mm)" ;
     dyn:hasFormGroup "StructureParameters" ;
-    dyn:hasGroupOrder 10 ;
     dyn:hasDisplayOrder 11 ;
     dyn:hasDefaultUnit "unit:MilliM" ;
     rdfs:comment "Maximum strut thickness in Z direction"@en .
@@ -574,7 +264,6 @@ dyn:hasLatticeNx rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:label "Lattice Nx"@en ;
     dyn:hasDisplayName "Resolution Points X" ;
     dyn:hasFormGroup "StructureParameters" ;
-    dyn:hasGroupOrder 10 ;
     dyn:hasDisplayOrder 12 ;
     rdfs:comment "Number of resolution points in X direction"@en .
 
@@ -584,7 +273,6 @@ dyn:hasLatticeNy rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:label "Lattice Ny"@en ;
     dyn:hasDisplayName "Resolution Points Y" ;
     dyn:hasFormGroup "StructureParameters" ;
-    dyn:hasGroupOrder 10 ;
     dyn:hasDisplayOrder 13 ;
     rdfs:comment "Number of resolution points in Y direction"@en .
 
@@ -594,9 +282,262 @@ dyn:hasLatticeNz rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:label "Lattice Nz"@en ;
     dyn:hasDisplayName "Resolution Points Z" ;
     dyn:hasFormGroup "StructureParameters" ;
-    dyn:hasGroupOrder 10 ;
     dyn:hasDisplayOrder 14 ;
     rdfs:comment "Number of resolution points in Z direction"@en .
+
+#################################################################
+#    Data Properties - Composite Properties (Interpenetrating Phase)
+#################################################################
+
+# Material-specific volume fractions for composite specimens
+dyn:hasMatrixMaterial rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range dyn:Material ;
+    rdfs:label "Matrix Material"@en ;
+    dyn:hasDisplayName "Matrix Material" ;
+    dyn:hasFormGroup "CompositeProperties" ;
+    dyn:hasDisplayOrder 101 ;
+    rdfs:comment "Primary matrix material in composite specimen"@en .
+
+dyn:hasReinforcementMaterial rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range dyn:Material ;
+    rdfs:label "Reinforcement Material"@en ;
+    dyn:hasDisplayName "Reinforcement Material" ;
+    dyn:hasFormGroup "CompositeProperties" ;
+    dyn:hasDisplayOrder 102 ;
+    rdfs:comment "Reinforcement material in composite specimen"@en .
+
+dyn:hasMatrixVolumeFraction rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    rdfs:label "Matrix Volume Fraction"@en ;
+    dyn:hasDisplayName "Matrix Volume Fraction (%)" ;
+    dyn:hasFormGroup "CompositeProperties" ;
+    dyn:hasDisplayOrder 103 ;
+    rdfs:comment "Volume fraction of matrix material (0-100%)"@en .
+
+dyn:hasReinforcementVolumeFraction rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    rdfs:label "Reinforcement Volume Fraction"@en ;
+    dyn:hasDisplayName "Reinforcement Volume Fraction (%)" ;
+    dyn:hasFormGroup "CompositeProperties" ;
+    dyn:hasDisplayOrder 104 ;
+    rdfs:comment "Volume fraction of reinforcement material (0-100%)"@en .
+
+dyn:hasPhaseDistributionID rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:string ;
+    rdfs:label "Phase Distribution ID"@en ;
+    dyn:hasDisplayName "Phase Distribution ID" ;
+    dyn:hasFormGroup "CompositeProperties" ;
+    dyn:hasDisplayOrder 3 ;
+    rdfs:comment "Identifier for the phase distribution pattern"@en .
+
+#################################################################
+#    Data Properties - Original Dimensions
+#################################################################
+
+dyn:hasOriginalLength rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Original Length"@en ;
+    dyn:hasDisplayName "Original Length (mm)" ;
+    dyn:hasFormGroup "GeometryDimensions" ;
+    dyn:hasDisplayOrder 2 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Initial length of specimen before testing"@en .
+
+dyn:hasOriginalDiameter rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Original Diameter"@en ;
+    dyn:hasDisplayName "Original Diameter (mm)" ;
+    dyn:hasFormGroup "GeometryDimensions" ;
+    dyn:hasDisplayOrder 3 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Initial diameter for cylindrical specimens"@en .
+
+dyn:hasOriginalWidth rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Original Width"@en ;
+    dyn:hasDisplayName "Original Width (mm)" ;
+    dyn:hasFormGroup "GeometryDimensions" ;
+    dyn:hasDisplayOrder 4 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Initial width for rectangular specimens"@en .
+
+dyn:hasOriginalHeight rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Original Height"@en ;
+    dyn:hasDisplayName "Original Height (mm)" ;
+    dyn:hasFormGroup "GeometryDimensions" ;
+    dyn:hasDisplayOrder 5 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Initial height for rectangular specimens"@en .
+
+dyn:hasOriginalCrossSection rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Area ;
+    rdfs:label "Original Cross Section"@en ;
+    dyn:hasDisplayName "Original Cross Section (mm²)" ;
+    dyn:hasFormGroup "GeometryDimensions" ;
+    dyn:hasDisplayOrder 6 ;
+    dyn:hasDefaultUnit "unit:MilliM2" ;
+    rdfs:comment "Initial cross-sectional area of specimen"@en .
+
+dyn:hasOriginalMass rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Mass ;
+    rdfs:label "Original Mass"@en ;
+    dyn:hasDisplayName "Original Mass (g)" ;
+    dyn:hasFormGroup "GeometryDimensions" ;
+    dyn:hasDisplayOrder 7 ;
+    dyn:hasDefaultUnit "unit:GM" ;
+    rdfs:comment "Initial mass of specimen before testing"@en .
+
+#################################################################
+#    Data Properties - Post-Test Dimensions
+#################################################################
+
+dyn:hasFinalLength rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Final Length"@en ;
+    dyn:hasDisplayName "Final Length (mm)" ;
+    dyn:hasFormGroup "PostTestDimensions" ;
+    dyn:hasDisplayOrder 1 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Final length of specimen after testing"@en .
+
+dyn:hasFinalDiameter rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Final Diameter"@en ;
+    dyn:hasDisplayName "Final Diameter (mm)" ;
+    dyn:hasFormGroup "PostTestDimensions" ;
+    dyn:hasDisplayOrder 2 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Final diameter for cylindrical specimens after testing"@en .
+
+dyn:hasFinalCrossSection rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Area ;
+    rdfs:label "Final Cross Section"@en ;
+    dyn:hasDisplayName "Final Cross Section (mm²)" ;
+    dyn:hasFormGroup "PostTestDimensions" ;
+    dyn:hasDisplayOrder 3 ;
+    dyn:hasDefaultUnit "unit:MilliM2" ;
+    rdfs:comment "Final cross-sectional area after testing"@en .
+
+#################################################################
+#    Data Properties - Manufacturing and Metadata
+#################################################################
+# Batch relationship
+dyn:hasSpecimenBatch rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range dyn:SpecimenBatch ;
+    rdfs:label "Specimen Batch"@en ;
+    dyn:hasDisplayName "Specimen Batch" ;
+    dyn:hasFormGroup "Manufacturing" ;
+    dyn:hasDisplayOrder 1 ;
+    rdfs:comment "Manufacturing batch of the specimen"@en .
+
+dyn:hasCreationDate rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:date ;
+    rdfs:label "Creation Date"@en ;
+    dyn:hasDisplayName "Creation Date" ;
+    dyn:hasFormGroup "Manufacturing" ;
+    dyn:hasDisplayOrder 2 ;
+    rdfs:comment "Date when specimen was manufactured or prepared"@en .
+
+dyn:hasManufacturingMethod rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:string ;
+    rdfs:label "Manufacturing Method"@en ;
+    dyn:hasDisplayName "Manufacturing Method" ;
+    dyn:hasFormGroup "Manufacturing" ;
+    dyn:hasDisplayOrder 3 ;
+    dyn:hasValidValues "Additive Manufacturing, Machining, Casting, Forging, Other" ;
+    rdfs:comment "Primary method used to create the specimen"@en .
+
+dyn:hasSurfaceFinish rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:string ;
+    rdfs:label "Surface Finish"@en ;
+    dyn:hasDisplayName "Surface Finish" ;
+    dyn:hasFormGroup "Manufacturing" ;
+    dyn:hasDisplayOrder 4 ;
+    dyn:hasValidValues "As-Built, Machined, Polished, Ground, Other" ;
+    rdfs:comment "Surface finish condition of the specimen"@en .
+
+dyn:hasOriginalThickness rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Original Thickness"@en ;
+    dyn:hasDisplayName "Original Thickness (mm)" ;
+    dyn:hasFormGroup "GeometryDimensions" ;
+    dyn:hasDisplayOrder 1 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Initial thickness of specimen before testing"@en .
+
+dyn:hasFinalThickness rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Final Thickness"@en ;
+    dyn:hasDisplayName "Final Thickness (mm)" ;
+    dyn:hasFormGroup "PostTestDimensions" ;
+    dyn:hasDisplayOrder 4 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Final thickness of specimen after testing"@en .
+
+dyn:hasFinalHeight rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Final Height"@en ;
+    dyn:hasDisplayName "Final Height (mm)" ;
+    dyn:hasFormGroup "PostTestDimensions" ;
+    dyn:hasDisplayOrder 5 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Final height for rectangular specimens after testing"@en .
+
+dyn:hasFinalWidth rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Final Width"@en ;
+    dyn:hasDisplayName "Final Width (mm)" ;
+    dyn:hasFormGroup "PostTestDimensions" ;
+    dyn:hasDisplayOrder 6 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Final width for rectangular specimens after testing"@en .
+
+dyn:hasFinalMass rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Mass ;
+    rdfs:label "Final Mass"@en ;
+    dyn:hasDisplayName "Final Mass (g)" ;
+    dyn:hasFormGroup "PostTestDimensions" ;
+    dyn:hasDisplayOrder 7 ;
+    dyn:hasDefaultUnit "unit:GM" ;
+    rdfs:comment "Final mass of specimen after testing"@en .
 
 dyn:hasLatticeRingThickness rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
@@ -605,24 +546,7 @@ dyn:hasLatticeRingThickness rdf:type owl:DatatypeProperty, owl:FunctionalPropert
     rdfs:label "Lattice Ring Thickness"@en ;
     dyn:hasDisplayName "Lattice Ring Thickness (mm)" ;
     dyn:hasFormGroup "StructureParameters" ;
-    dyn:hasGroupOrder 10 ;
     dyn:hasDisplayOrder 15 ;
     dyn:hasDefaultUnit "unit:MilliM" ;
     rdfs:comment "Thickness of outer ring that encapsulates the lattice structure"@en .
-
-#################################################################
-#    11.Notes 
-#################################################################
-
-
-
-
-
-
-
-
-
-
-
-
 
