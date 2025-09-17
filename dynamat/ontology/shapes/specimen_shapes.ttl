@@ -380,26 +380,6 @@ dyn:SpecimenShape a sh:NodeShape ;
         sh:in ("As-Built" "Machined" "Polished" "Ground" "Other") ;
     ] ;
     
-    sh:property [
-        sh:path dyn:hasDescription ;
-        sh:datatype xsd:string ;
-        sh:maxCount 1 ;
-        sh:name "Description" ;
-        sh:description "Additional description or notes about the specimen" ;
-        sh:group "Notes" ;
-        sh:order 1 ;
-    ] ;
-    
-    sh:property [
-        sh:path dyn:hasSpecialNotes ;
-        sh:datatype xsd:string ;
-        sh:maxCount 1 ;
-        sh:name "Special Notes" ;
-        sh:description "Special observations or considerations for this specimen" ;
-        sh:group "Notes" ;
-        sh:order 2 ;
-    ] ;
-    
     # Data Properties - Structure Parameters (Lattice)
     sh:property [
         sh:path dyn:hasLatticeCellsX ;

@@ -25,7 +25,6 @@ class QueryMode(Enum):
     EXPLORATION = "exploration"  # General ontology exploration
     GUI_BUILDING = "gui_building"  # Form generation and UI metadata
     DATA_RETRIEVAL = "data_retrieval"  # Specific instance data queries
-
     
 @dataclass
 class PropertyMetadata:
@@ -44,12 +43,13 @@ class PropertyMetadata:
     domain_class: Optional[str]
     description: str
     
-    # NEW: Additional fields for better GUI support
+    # Enhanced fields for better GUI support
     widget_type: Optional[str] = None
     min_value: Optional[float] = None
     max_value: Optional[float] = None
     max_length: Optional[int] = None
     pattern: Optional[str] = None
+    group_order: Optional[int] = None  
     
     def __post_init__(self):
         """Validate and normalize after creation"""
@@ -60,7 +60,7 @@ class PropertyMetadata:
             self.form_group = "General"
         if self.valid_values:
             self.valid_values = [v.strip() for v in self.valid_values if v.strip()]
-    
+            
     def _extract_display_name(self, name: str) -> str:
         """Extract human-readable name"""
         if name.startswith("has") and len(name) > 3:
@@ -259,6 +259,7 @@ class OntologyManager:
     def _normalize_data_type(self, raw_type: str) -> str:
         """Normalize property data types from ontology"""
         raw_type = raw_type.lower()
+        
         if "objectproperty" in raw_type:
             return "object"
         elif "string" in raw_type:
@@ -274,7 +275,7 @@ class OntologyManager:
         elif "date" in raw_type:
             return "date"
         else:
-            return "data"
+            return "data"  # Generic data property
     
     # ============================================================================
     # EXPLORATION METHODS - General ontology navigation
@@ -359,9 +360,10 @@ class OntologyManager:
         else:
             class_filter = f"?domain = <{class_uri}> ."
         
+        # UPDATED QUERY - ADD dyn:hasGroupOrder
         query = f"""
         SELECT DISTINCT ?property ?propertyType ?domain ?range ?displayName ?formGroup 
-                       ?displayOrder ?validValues ?defaultUnit ?description ?functional WHERE {{
+                       ?displayOrder ?validValues ?defaultUnit ?description ?functional ?groupOrder WHERE {{
             ?property rdfs:domain ?domain .
             {class_filter}
             
@@ -375,37 +377,33 @@ class OntologyManager:
             OPTIONAL {{ ?property dyn:hasValidValues ?validValues }}
             OPTIONAL {{ ?property dyn:hasDefaultUnit ?defaultUnit }}
             OPTIONAL {{ ?property rdfs:comment ?description }}
+            OPTIONAL {{ ?property dyn:hasGroupOrder ?groupOrder }}
             
             BIND(EXISTS {{ ?property rdf:type owl:FunctionalProperty }} AS ?functional)
         }}
         ORDER BY ?formGroup ?displayOrder ?property
         """
         
-        results = self._execute_query(query)
+        results = self._execute_query(query)        
         properties = []
-
+        
         for row in results:
-            # Create enhanced PropertyMetadata with validation
+            # UPDATED PropertyMetadata creation - ADD group_order
             prop_metadata = PropertyMetadata(
                 uri=str(row['property']),
                 name=self._extract_local_name(str(row['property'])),
                 display_name=str(row.displayName) if row.displayName else "",  # Will be auto-generated
                 form_group=str(row.formGroup) if row.formGroup else "",  # Will default to "General"
                 display_order=int(row.displayOrder) if row.displayOrder else 999,
-                data_type=self._normalize_data_type(str(row.propertyType)),  # Add this helper method
+                data_type=self._normalize_data_type(str(row.propertyType)),
                 is_functional=bool(row.functional),
-                is_required=False,
+                is_required=False,  # Will be determined from SHACL shapes
                 valid_values=str(row.validValues).split(",") if row.validValues else [],
                 default_unit=str(row.defaultUnit) if row.defaultUnit else None,
                 range_class=str(row['range']) if row.range else None,
                 domain_class=str(row.domain),
-<<<<<<< HEAD
                 description=str(row.description) if row.description else "", 
                 group_order=int(row.groupOrder) if row.groupOrder else None  # ← ADD THIS LINE
-=======
-                description=str(row.description) if row.description else ""
-                # Enhanced fields will use defaults and auto-validation
->>>>>>> parent of ab2afd6 (Updated Specimen Form Formatting)
             )
             properties.append(prop_metadata)
         
@@ -413,6 +411,7 @@ class OntologyManager:
         self._enrich_with_shacl_constraints(class_uri, properties)
         
         self.properties_cache[class_uri] = properties
+
         
         return properties
     
@@ -549,20 +548,6 @@ class OntologyManager:
             return self.get_all_individuals(range_class)
         
         return []
-    
-    def get_form_groups_for_class(self, class_uri: str) -> List[str]:
-        """Get ordered list of form groups for a class"""
-        properties = self.get_class_properties(class_uri)
-        groups = list(set(prop.form_group for prop in properties))
-        
-        # Sort by the minimum display order in each group
-        group_orders = {}
-        for prop in properties:
-            group = prop.form_group
-            if group not in group_orders or prop.display_order < group_orders[group]:
-                group_orders[group] = prop.display_order
-        
-        return sorted(groups, key=lambda g: group_orders.get(g, 999))
     
     # ============================================================================
     # DATA RETRIEVAL METHODS - Specific instance queries

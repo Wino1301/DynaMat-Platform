@@ -54,6 +54,13 @@ dyn:hasFormGroup rdf:type owl:AnnotationProperty ;
                  rdfs:label "Form Group"@en ;
                  rdfs:range xsd:string .
 
+###  https://dynamat.utep.edu/ontology#hasGroupOrder
+dyn:hasGroupOrder rdf:type owl:AnnotationProperty ;
+                  rdfs:domain owl:Class ;
+                  rdfs:range xsd:integer ;
+                  rdfs:comment "Defines the display order for form groups within a class"@en ;
+                  rdfs:label "Group Order"@en .
+
 
 ###  https://dynamat.utep.edu/ontology#hasValidValues
 dyn:hasValidValues rdf:type owl:AnnotationProperty ;
@@ -163,7 +170,6 @@ dyn:hasDate rdf:type owl:DatatypeProperty ;
             rdfs:comment "Generic date property"@en ;
             rdfs:label "Date"@en .
 
-
 ###  https://dynamat.utep.edu/ontology#hasDescription
 dyn:hasDescription rdf:type owl:DatatypeProperty ;
     rdfs:domain dyn:Specimen ;
@@ -171,7 +177,8 @@ dyn:hasDescription rdf:type owl:DatatypeProperty ;
     rdfs:label "Description"@en ;
     dyn:hasDisplayName "Description" ;
     dyn:hasFormGroup "Identification" ;
-    dyn:hasDisplayOrder 10 ;
+    dyn:hasGroupOrder 1 ;
+    dyn:hasDisplayOrder 4 ;
     rdfs:comment "Additional description or notes about the specimen"@en .
 
 ###  https://dynamat.utep.edu/ontology#hasDimension
@@ -180,7 +187,6 @@ dyn:hasDimension rdf:type owl:DatatypeProperty ;
                  rdfs:range xsd:double ;
                  rdfs:comment "Physical dimension measurement"@en ;
                  rdfs:label "Dimension"@en .
-
 
 ###  https://dynamat.utep.edu/ontology#hasEmail
 dyn:hasEmail rdf:type owl:DatatypeProperty ,
@@ -192,7 +198,6 @@ dyn:hasEmail rdf:type owl:DatatypeProperty ,
              dyn:hasDisplayName "Email" ;
              dyn:hasDisplayOrder 2 ;
              dyn:hasFormGroup "UserInfo" .
-
 
 ###  https://dynamat.utep.edu/ontology#hasName
 dyn:hasName rdf:type owl:DatatypeProperty ,
@@ -217,14 +222,12 @@ dyn:hasORCID rdf:type owl:DatatypeProperty ,
              dyn:hasDisplayOrder 4 ;
              dyn:hasFormGroup "UserInfo" .
 
-
 ###  https://dynamat.utep.edu/ontology#hasProperty
 dyn:hasProperty rdf:type owl:DatatypeProperty ;
                 rdfs:domain dyn:Material ;
                 rdfs:range xsd:double ;
                 rdfs:comment "Measured or specified material property"@en ;
                 rdfs:label "Material Property"@en .
-
 
 ###  https://dynamat.utep.edu/ontology#hasRole
 dyn:hasRole rdf:type owl:DatatypeProperty ,
@@ -238,7 +241,6 @@ dyn:hasRole rdf:type owl:DatatypeProperty ,
             dyn:hasFormGroup "UserInfo" ;
             dyn:hasValidValues "Principal Investigator,Postdoc,Graduate Student,Undergraduate Student,Research Scientist,Technician" .
 
-
 ###  https://dynamat.utep.edu/ontology#hasSpecimenID
 dyn:hasSpecimenID rdf:type owl:DatatypeProperty ;
                   rdfs:subPropertyOf dyn:hasName ;
@@ -248,6 +250,7 @@ dyn:hasSpecimenID rdf:type owl:DatatypeProperty ;
                   rdfs:comment "Unique specimen identifier (format: SPN-MaterialID-Number)"@en ;
                   rdfs:label "Specimen ID"@en ;
                   dyn:hasDisplayName "Specimen ID" ;
+                  dyn:hasGroupOrder 1 ;
                   dyn:hasDisplayOrder 1 ;
                   dyn:hasFormGroup "Identification" .
 
