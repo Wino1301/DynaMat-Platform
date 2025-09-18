@@ -1,6 +1,7 @@
 """
 DynaMat Platform - Query Builder
 High-level query utilities for common DynaMat operations
+Clean implementation using new architecture
 """
 
 import logging
@@ -8,8 +9,8 @@ from typing import Dict, List, Optional, Any, Union
 from datetime import datetime, date
 from dataclasses import dataclass
 
-from .manager import OntologyManager, QueryMode
-
+from .query.sparql_executor import SPARQLExecutor
+from .core.namespace_manager import NamespaceManager
 
 logger = logging.getLogger(__name__)
 
@@ -52,600 +53,540 @@ class DynaMatQueryBuilder:
     and offer intuitive interfaces for materials testing data.
     """
     
-    def __init__(self, ontology_manager: OntologyManager):
+    def __init__(self, sparql_executor: SPARQLExecutor, namespace_manager: NamespaceManager):
         """
-        Initialize with an ontology manager instance.
+        Initialize with core components.
         
         Args:
-            ontology_manager: Initialized OntologyManager instance
+            sparql_executor: SPARQL executor for running queries
+            namespace_manager: Namespace manager for URI handling
         """
-        self.manager = ontology_manager
-        self.dyn = ontology_manager.DYN
+        self.sparql = sparql_executor
+        self.ns_manager = namespace_manager
+        
+        logger.info("DynaMatQueryBuilder initialized")
     
     # ============================================================================
     # MATERIAL QUERIES
     # ============================================================================
     
     def get_available_materials(self) -> List[Dict[str, Any]]:
-        """Get all available materials with basic properties"""
+        """Get all available materials with basic properties."""
         query = """
         SELECT ?material ?materialName ?materialCode ?alloyDesignation ?description WHERE {
             { ?material rdf:type dyn:Material }
             UNION 
-            { ?material rdf:type ?materialType . ?materialType rdfs:subClassOf* dyn:Material }
+            { ?material rdf:type ?materialType .
+              ?materialType rdfs:subClassOf* dyn:Material }
+            
             OPTIONAL { ?material dyn:hasMaterialName ?materialName }
-            OPTIONAL { ?material dyn:hasName ?materialName }
             OPTIONAL { ?material dyn:hasMaterialCode ?materialCode }
             OPTIONAL { ?material dyn:hasAlloyDesignation ?alloyDesignation }
-            OPTIONAL { ?material dyn:hasDescription ?description }
+            OPTIONAL { ?material rdfs:comment ?description }
         }
-        ORDER BY ?materialName ?materialCode
+        ORDER BY ?materialName ?material
         """
         
-        results = self.manager._execute_query(query)
-        
-        materials = []
-        for row in results:
-            material_data = {
-                "uri": str(row.material),
-                "materialName": str(row.materialName) if row.materialName else "",
-                "materialCode": str(row.materialCode) if row.materialCode else "",
-                "alloyDesignation": str(row.alloyDesignation) if row.alloyDesignation else "",
-                "description": str(row.description) if row.description else ""
-            }
-            materials.append(material_data)
-        
-        return materials
+        return self.sparql.execute_query(query)
     
-    def get_material_properties(self, material_uri: str) -> Dict[str, Any]:
-        """Get comprehensive material properties including provenance"""
-        query = """
-        SELECT ?property ?value ?unit ?uncertainty ?provenance ?source WHERE {
-            ?material dyn:hasPropertyValue ?propertyValue .
-            ?propertyValue dyn:hasProperty ?property .
-            ?propertyValue dyn:hasValue ?value .
-            OPTIONAL { ?propertyValue dyn:hasUnit ?unit }
-            OPTIONAL { ?propertyValue dyn:hasUncertainty ?uncertainty }
-            OPTIONAL { ?propertyValue dyn:hasProvenance ?provenance }
-            OPTIONAL { ?propertyValue dyn:hasSource ?source }
-        }
+    def find_material_by_property(self, property_name: str, property_value: Any) -> List[Dict[str, Any]]:
         """
+        Find materials by a specific property value.
         
-        results = self.manager._execute_query(query, {"material": self.manager.URIRef(material_uri)})
-        
-        properties = {}
-        for row in results:
-            prop_name = self.manager._extract_local_name(str(row.property))
-            prop_data = {
-                "value": float(row.value) if row.value else None,
-                "unit": str(row.unit) if row.unit else None,
-                "uncertainty": float(row.uncertainty) if row.uncertainty else None,
-                "provenance": str(row.provenance) if row.provenance else None,
-                "source": str(row.source) if row.source else None
-            }
-            properties[prop_name] = prop_data
-        
-        return properties
-    
-    def find_materials_by_property(self, property_name: str, 
-                                 value_min: Optional[float] = None,
-                                 value_max: Optional[float] = None) -> List[Dict[str, Any]]:
-        """Find materials based on property value ranges"""
-        conditions = []
-        bindings = {}
-        
-        if value_min is not None:
-            conditions.append("FILTER(?value >= ?minValue)")
-            bindings["minValue"] = self.manager.Literal(value_min)
-        
-        if value_max is not None:
-            conditions.append("FILTER(?value <= ?maxValue)")
-            bindings["maxValue"] = self.manager.Literal(value_max)
-        
-        # Try both direct property and PropertyValue pattern
+        Args:
+            property_name: Name of the property (e.g., 'hasDensity')
+            property_value: Value to search for
+            
+        Returns:
+            List of matching materials
+        """
         query = f"""
-        SELECT DISTINCT ?material ?materialName ?value ?unit WHERE {{
-            {{
-                # Direct property pattern
-                ?material dyn:has{property_name} ?value .
-                OPTIONAL {{ ?material dyn:hasMaterialName ?materialName }}
-                {' '.join(conditions)}
-            }}
-            UNION
-            {{
-                # PropertyValue pattern
-                ?material dyn:hasPropertyValue ?propertyValue .
-                ?propertyValue dyn:hasProperty dyn:{property_name} .
-                ?propertyValue dyn:hasValue ?value .
-                OPTIONAL {{ ?propertyValue dyn:hasUnit ?unit }}
-                OPTIONAL {{ ?material dyn:hasMaterialName ?materialName }}
-                {' '.join(conditions)}
-            }}
+        SELECT ?material ?materialName ?value WHERE {{
+            ?material rdf:type/rdfs:subClassOf* dyn:Material .
+            ?material dyn:{property_name} ?value .
+            ?material dyn:hasMaterialName ?materialName .
+            
+            FILTER(?value = "{property_value}")
         }}
-        ORDER BY ?value
+        ORDER BY ?materialName
         """
         
-        results = self.manager._execute_query(query, bindings)
-        
-        materials = []
-        for row in results:
-            material_data = {
-                "uri": str(row.material),
-                "name": str(row.materialName) if row.materialName else "",
-                "value": float(row.value) if row.value else None,
-                "unit": str(row.unit) if row.unit else None
-            }
-            materials.append(material_data)
-        
-        return materials
+        return self.sparql.execute_query(query)
     
     # ============================================================================
     # SPECIMEN QUERIES
     # ============================================================================
     
-    def search_specimens(self, criteria: SpecimenSearchCriteria) -> List[Dict[str, Any]]:
-        """Search specimens using structured criteria"""
-        conditions = []
-        bindings = {}
+    def find_specimens(self, criteria: Optional[SpecimenSearchCriteria] = None, **kwargs) -> List[Dict[str, Any]]:
+        """
+        Find specimens based on search criteria.
         
-        if criteria.material_name:
-            conditions.append("""
-                ?specimen dyn:hasMaterial ?material .
-                ?material dyn:hasMaterialName ?materialName .
-                FILTER(CONTAINS(LCASE(?materialName), LCASE(?materialFilter)))
-            """)
-            bindings["materialFilter"] = self.manager.Literal(criteria.material_name)
+        Args:
+            criteria: SpecimenSearchCriteria object with search parameters
+            **kwargs: Individual search parameters (alternative to criteria)
+            
+        Returns:
+            List of matching specimens
+        """
+        # Use criteria object or individual kwargs
+        if criteria:
+            search_params = criteria
+        else:
+            search_params = SpecimenSearchCriteria(**kwargs)
         
-        if criteria.structure_type:
-            conditions.append("""
-                ?specimen dyn:hasStructure ?structure .
-                ?structure dyn:hasName ?structureName .
-                FILTER(CONTAINS(LCASE(?structureName), LCASE(?structureFilter)))
-            """)
-            bindings["structureFilter"] = self.manager.Literal(criteria.structure_type)
+        # Build filter conditions
+        filters = []
         
-        if criteria.shape:
-            conditions.append("""
-                ?specimen dyn:hasShape ?shape .
-                ?shape dyn:hasName ?shapeName .
-                FILTER(CONTAINS(LCASE(?shapeName), LCASE(?shapeFilter)))
-            """)
-            bindings["shapeFilter"] = self.manager.Literal(criteria.shape)
+        if search_params.material_name:
+            filters.append(f'?specimen dyn:hasMaterial/dyn:hasMaterialName "{search_params.material_name}"')
         
-        if criteria.batch_id:
-            conditions.append("?specimen dyn:hasSpecimenBatchID ?batchId .")
-            bindings["batchId"] = self.manager.Literal(criteria.batch_id)
+        if search_params.structure_type:
+            filters.append(f'?specimen dyn:hasStructure/dyn:hasStructureType "{search_params.structure_type}"')
         
-        if criteria.creation_date_from:
-            date_str = criteria.creation_date_from if isinstance(criteria.creation_date_from, str) else criteria.creation_date_from.isoformat()
-            conditions.append("?specimen dyn:hasCreationDate ?creationDate . FILTER(?creationDate >= ?dateFrom)")
-            bindings["dateFrom"] = self.manager.Literal(date_str, datatype=self.manager.XSD.date)
+        if search_params.shape:
+            filters.append(f'?specimen dyn:hasShape "{search_params.shape}"')
         
-        if criteria.creation_date_to:
-            date_str = criteria.creation_date_to if isinstance(criteria.creation_date_to, str) else criteria.creation_date_to.isoformat()
-            conditions.append("?specimen dyn:hasCreationDate ?creationDate . FILTER(?creationDate <= ?dateTo)")
-            bindings["dateTo"] = self.manager.Literal(date_str, datatype=self.manager.XSD.date)
+        if search_params.batch_id:
+            filters.append(f'?specimen dyn:hasBatchId "{search_params.batch_id}"')
         
-        if criteria.diameter_min:
-            conditions.append("?specimen dyn:hasOriginalDiameter ?diameter . FILTER(?diameter >= ?diameterMin)")
-            bindings["diameterMin"] = self.manager.Literal(criteria.diameter_min)
+        if search_params.creation_date_from:
+            date_str = search_params.creation_date_from.isoformat() if hasattr(search_params.creation_date_from, 'isoformat') else str(search_params.creation_date_from)
+            filters.append(f'?specimen dyn:hasDate ?date . FILTER(?date >= "{date_str}"^^xsd:date)')
         
-        if criteria.diameter_max:
-            conditions.append("?specimen dyn:hasOriginalDiameter ?diameter . FILTER(?diameter <= ?diameterMax)")
-            bindings["diameterMax"] = self.manager.Literal(criteria.diameter_max)
+        if search_params.creation_date_to:
+            date_str = search_params.creation_date_to.isoformat() if hasattr(search_params.creation_date_to, 'isoformat') else str(search_params.creation_date_to)
+            filters.append(f'?specimen dyn:hasDate ?date . FILTER(?date <= "{date_str}"^^xsd:date)')
         
-        if criteria.length_min:
-            conditions.append("?specimen dyn:hasOriginalLength ?length . FILTER(?length >= ?lengthMin)")
-            bindings["lengthMin"] = self.manager.Literal(criteria.length_min)
+        # Dimensional filters
+        if search_params.diameter_min or search_params.diameter_max:
+            filters.append('?specimen dyn:hasDiameter/dyn:hasValue ?diameter')
+            if search_params.diameter_min:
+                filters.append(f'FILTER(?diameter >= {search_params.diameter_min})')
+            if search_params.diameter_max:
+                filters.append(f'FILTER(?diameter <= {search_params.diameter_max})')
         
-        if criteria.length_max:
-            conditions.append("?specimen dyn:hasOriginalLength ?length . FILTER(?length <= ?lengthMax)")
-            bindings["lengthMax"] = self.manager.Literal(criteria.length_max)
+        if search_params.length_min or search_params.length_max:
+            filters.append('?specimen dyn:hasLength/dyn:hasValue ?length')
+            if search_params.length_min:
+                filters.append(f'FILTER(?length >= {search_params.length_min})')
+            if search_params.length_max:
+                filters.append(f'FILTER(?length <= {search_params.length_max})')
+        
+        filter_clause = " . ".join(filters) if filters else ""
         
         query = f"""
-        SELECT ?specimen ?specimenID ?materialName ?structureName ?shapeName 
-               ?diameter ?length ?creationDate ?description WHERE {{
-            ?specimen rdf:type dyn:Specimen .
-            ?specimen dyn:hasSpecimenID ?specimenID .
+        SELECT ?specimen ?specimenId ?material ?materialName ?shape ?batchId ?date WHERE {{
+            ?specimen rdf:type/rdfs:subClassOf* dyn:Specimen .
             
-            OPTIONAL {{
-                ?specimen dyn:hasMaterial ?material .
-                ?material dyn:hasMaterialName ?materialName .
-            }}
+            OPTIONAL {{ ?specimen dyn:hasSpecimenId ?specimenId }}
+            OPTIONAL {{ ?specimen dyn:hasMaterial ?material }}
+            OPTIONAL {{ ?specimen dyn:hasMaterial/dyn:hasMaterialName ?materialName }}
+            OPTIONAL {{ ?specimen dyn:hasShape ?shape }}
+            OPTIONAL {{ ?specimen dyn:hasBatchId ?batchId }}
+            OPTIONAL {{ ?specimen dyn:hasDate ?date }}
             
-            OPTIONAL {{
-                ?specimen dyn:hasStructure ?structure .
-                ?structure dyn:hasName ?structureName .
-            }}
-            
-            OPTIONAL {{
-                ?specimen dyn:hasShape ?shape .
-                ?shape dyn:hasName ?shapeName .
-            }}
-            
-            OPTIONAL {{ ?specimen dyn:hasOriginalDiameter ?diameter }}
-            OPTIONAL {{ ?specimen dyn:hasOriginalLength ?length }}
-            OPTIONAL {{ ?specimen dyn:hasCreationDate ?creationDate }}
-            OPTIONAL {{ ?specimen dyn:hasDescription ?description }}
-            
-            {' '.join(conditions)}
+            {filter_clause}
         }}
-        ORDER BY ?specimenID
+        ORDER BY ?date DESC ?specimenId
         """
         
-        results = self.manager._execute_query(query, bindings)
-        
-        specimens = []
-        for row in results:
-            specimen_data = {
-                "uri": str(row.specimen),
-                "specimen_id": str(row.specimenID) if row.specimenID else "",
-                "material": str(row.materialName) if row.materialName else "",
-                "structure": str(row.structureName) if row.structureName else "",
-                "shape": str(row.shapeName) if row.shapeName else "",
-                "diameter": float(row.diameter) if row.diameter else None,
-                "length": float(row.length) if row.length else None,
-                "creation_date": str(row.creationDate) if row.creationDate else "",
-                "description": str(row.description) if row.description else ""
-            }
-            specimens.append(specimen_data)
-        
-        return specimens
+        return self.sparql.execute_query(query)
     
-    def get_specimen_test_history(self, specimen_uri: str) -> List[Dict[str, Any]]:
-        """Get all tests performed on a specimen"""
+    def get_specimen_details(self, specimen_uri: str) -> Dict[str, Any]:
+        """
+        Get detailed information about a specific specimen.
+        
+        Args:
+            specimen_uri: URI of the specimen
+            
+        Returns:
+            Dictionary with specimen details
+        """
         query = """
-        SELECT ?test ?testID ?testDate ?testType ?operator WHERE {
-            ?test dyn:performedOn ?specimen .
-            ?test dyn:hasTestID ?testID .
-            ?test rdf:type ?testType .
-            OPTIONAL { ?test dyn:hasTestDate ?testDate }
-            OPTIONAL { 
-                ?test dyn:hasUser ?user .
-                ?user dyn:hasName ?operator 
+        SELECT ?property ?value ?unit WHERE {
+            <{specimen_uri}> ?property ?value .
+            
+            # Get units for measurements
+            OPTIONAL {
+                <{specimen_uri}> ?property ?measurement .
+                ?measurement dyn:hasValue ?value .
+                ?measurement dyn:hasUnit ?unit .
             }
         }
-        ORDER BY DESC(?testDate)
-        """
+        """.format(specimen_uri=specimen_uri)
         
-        results = self.manager._execute_query(query, {"specimen": self.manager.URIRef(specimen_uri)})
+        results = self.sparql.execute_query(query)
         
-        tests = []
-        for row in results:
-            test_data = {
-                "uri": str(row.test),
-                "test_id": str(row.testID) if row.testID else "",
-                "test_date": str(row.testDate) if row.testDate else "",
-                "test_type": self.manager._extract_local_name(str(row.testType)),
-                "operator": str(row.operator) if row.operator else ""
-            }
-            tests.append(test_data)
+        # Organize results into a structured dictionary
+        details = {"uri": specimen_uri}
+        measurements = {}
         
-        return tests
+        for result in results:
+            prop = result['property']
+            value = result['value']
+            unit = result.get('unit')
+            
+            # Extract property name
+            prop_name = prop.split('#')[-1] if '#' in prop else prop.split('/')[-1]
+            
+            if unit:
+                # This is a measurement
+                measurements[prop_name] = {"value": value, "unit": unit}
+            else:
+                # Simple property
+                details[prop_name] = value
+        
+        if measurements:
+            details['measurements'] = measurements
+        
+        return details
     
     # ============================================================================
     # TEST QUERIES
     # ============================================================================
     
-    def search_tests(self, criteria: TestSearchCriteria) -> List[Dict[str, Any]]:
-        """Search tests using structured criteria"""
-        conditions = []
-        bindings = {}
+    def find_tests(self, criteria: Optional[TestSearchCriteria] = None, **kwargs) -> List[Dict[str, Any]]:
+        """
+        Find mechanical tests based on search criteria.
         
-        if criteria.specimen_id:
-            conditions.append("""
-                ?test dyn:performedOn ?specimen .
-                ?specimen dyn:hasSpecimenID ?specimenID .
-                FILTER(?specimenID = ?targetSpecimenID)
-            """)
-            bindings["targetSpecimenID"] = self.manager.Literal(criteria.specimen_id)
+        Args:
+            criteria: TestSearchCriteria object with search parameters
+            **kwargs: Individual search parameters (alternative to criteria)
+            
+        Returns:
+            List of matching tests
+        """
+        # Use criteria object or individual kwargs
+        if criteria:
+            search_params = criteria
+        else:
+            search_params = TestSearchCriteria(**kwargs)
         
-        if criteria.material_name:
-            conditions.append("""
-                ?test dyn:performedOn ?specimen .
-                ?specimen dyn:hasMaterial ?material .
-                ?material dyn:hasMaterialName ?materialName .
-                FILTER(CONTAINS(LCASE(?materialName), LCASE(?materialFilter)))
-            """)
-            bindings["materialFilter"] = self.manager.Literal(criteria.material_name)
+        # Build filter conditions
+        filters = []
         
-        if criteria.test_type:
-            # Map common test type names
-            type_mapping = {
-                "SHPB": "SHPBCompression",
-                "Quasistatic": "QuasistaticTest", 
-                "Tensile": "TensileTest"
-            }
-            test_type = type_mapping.get(criteria.test_type, criteria.test_type)
-            conditions.append("?test rdf:type dyn:%s ." % test_type)
+        if search_params.specimen_id:
+            filters.append(f'?test dyn:hasSpecimen/dyn:hasSpecimenId "{search_params.specimen_id}"')
         
-        if criteria.date_from:
-            date_str = criteria.date_from if isinstance(criteria.date_from, str) else criteria.date_from.isoformat()
-            conditions.append("?test dyn:hasTestDate ?testDate . FILTER(?testDate >= ?dateFrom)")
-            bindings["dateFrom"] = self.manager.Literal(date_str, datatype=self.manager.XSD.date)
+        if search_params.material_name:
+            filters.append(f'?test dyn:hasSpecimen/dyn:hasMaterial/dyn:hasMaterialName "{search_params.material_name}"')
         
-        if criteria.date_to:
-            date_str = criteria.date_to if isinstance(criteria.date_to, str) else criteria.date_to.isoformat()
-            conditions.append("?test dyn:hasTestDate ?testDate . FILTER(?testDate <= ?dateTo)")
-            bindings["dateTo"] = self.manager.Literal(date_str, datatype=self.manager.XSD.date)
+        if search_params.test_type:
+            filters.append(f'?test rdf:type dyn:{search_params.test_type}')
         
-        if criteria.strain_rate_min:
-            conditions.append("?test dyn:hasTargetStrainRate ?strainRate . FILTER(?strainRate >= ?strainRateMin)")
-            bindings["strainRateMin"] = self.manager.Literal(criteria.strain_rate_min)
+        if search_params.date_from:
+            date_str = search_params.date_from.isoformat() if hasattr(search_params.date_from, 'isoformat') else str(search_params.date_from)
+            filters.append(f'?test dyn:hasDate ?date . FILTER(?date >= "{date_str}"^^xsd:date)')
         
-        if criteria.strain_rate_max:
-            conditions.append("?test dyn:hasTargetStrainRate ?strainRate . FILTER(?strainRate <= ?strainRateMax)")
-            bindings["strainRateMax"] = self.manager.Literal(criteria.strain_rate_max)
+        if search_params.date_to:
+            date_str = search_params.date_to.isoformat() if hasattr(search_params.date_to, 'isoformat') else str(search_params.date_to)
+            filters.append(f'?test dyn:hasDate ?date . FILTER(?date <= "{date_str}"^^xsd:date)')
         
-        if criteria.temperature_min:
-            conditions.append("?test dyn:hasTestTemperature ?temperature . FILTER(?temperature >= ?tempMin)")
-            bindings["tempMin"] = self.manager.Literal(criteria.temperature_min)
+        if search_params.operator:
+            filters.append(f'?test dyn:hasOperator "{search_params.operator}"')
         
-        if criteria.temperature_max:
-            conditions.append("?test dyn:hasTestTemperature ?temperature . FILTER(?temperature <= ?tempMax)")
-            bindings["tempMax"] = self.manager.Literal(criteria.temperature_max)
+        # Strain rate filters
+        if search_params.strain_rate_min or search_params.strain_rate_max:
+            filters.append('?test dyn:hasStrainRate/dyn:hasValue ?strainRate')
+            if search_params.strain_rate_min:
+                filters.append(f'FILTER(?strainRate >= {search_params.strain_rate_min})')
+            if search_params.strain_rate_max:
+                filters.append(f'FILTER(?strainRate <= {search_params.strain_rate_max})')
         
-        if criteria.operator:
-            conditions.append("""
-                ?test dyn:hasUser ?user .
-                ?user dyn:hasName ?userName .
-                FILTER(CONTAINS(LCASE(?userName), LCASE(?operatorFilter)))
-            """)
-            bindings["operatorFilter"] = self.manager.Literal(criteria.operator)
+        # Temperature filters
+        if search_params.temperature_min or search_params.temperature_max:
+            filters.append('?test dyn:hasTemperature/dyn:hasValue ?temperature')
+            if search_params.temperature_min:
+                filters.append(f'FILTER(?temperature >= {search_params.temperature_min})')
+            if search_params.temperature_max:
+                filters.append(f'FILTER(?temperature <= {search_params.temperature_max})')
+        
+        filter_clause = " . ".join(filters) if filters else ""
         
         query = f"""
-        SELECT ?test ?testID ?testDate ?testType ?specimenID ?materialName 
-               ?strainRate ?temperature ?operator WHERE {{
-            ?test rdf:type dyn:MechanicalTest .
-            ?test dyn:hasTestID ?testID .
+        SELECT ?test ?testType ?specimen ?specimenId ?material ?materialName ?date ?operator WHERE {{
             ?test rdf:type ?testType .
+            ?testType rdfs:subClassOf* dyn:MechanicalTest .
             
-            OPTIONAL {{ ?test dyn:hasTestDate ?testDate }}
-            OPTIONAL {{ ?test dyn:hasTargetStrainRate ?strainRate }}
-            OPTIONAL {{ ?test dyn:hasTestTemperature ?temperature }}
+            OPTIONAL {{ ?test dyn:hasSpecimen ?specimen }}
+            OPTIONAL {{ ?test dyn:hasSpecimen/dyn:hasSpecimenId ?specimenId }}
+            OPTIONAL {{ ?test dyn:hasSpecimen/dyn:hasMaterial ?material }}
+            OPTIONAL {{ ?test dyn:hasSpecimen/dyn:hasMaterial/dyn:hasMaterialName ?materialName }}
+            OPTIONAL {{ ?test dyn:hasDate ?date }}
+            OPTIONAL {{ ?test dyn:hasOperator ?operator }}
             
-            OPTIONAL {{
-                ?test dyn:performedOn ?specimen .
-                ?specimen dyn:hasSpecimenID ?specimenID .
-                OPTIONAL {{
-                    ?specimen dyn:hasMaterial ?material .
-                    ?material dyn:hasMaterialName ?materialName .
-                }}
-            }}
-            
-            OPTIONAL {{
-                ?test dyn:hasUser ?user .
-                ?user dyn:hasName ?operator .
-            }}
-            
-            {' '.join(conditions)}
+            {filter_clause}
         }}
-        ORDER BY DESC(?testDate) ?testID
+        ORDER BY ?date DESC ?test
         """
         
-        results = self.manager._execute_query(query, bindings)
-        
-        tests = []
-        for row in results:
-            test_data = {
-                "uri": str(row.test),
-                "test_id": str(row.testID) if row.testID else "",
-                "test_date": str(row.testDate) if row.testDate else "",
-                "test_type": self.manager._extract_local_name(str(row.testType)),
-                "specimen_id": str(row.specimenID) if row.specimenID else "",
-                "material": str(row.materialName) if row.materialName else "",
-                "strain_rate": float(row.strainRate) if row.strainRate else None,
-                "temperature": float(row.temperature) if row.temperature else None,
-                "operator": str(row.operator) if row.operator else ""
-            }
-            tests.append(test_data)
-        
-        return tests
+        return self.sparql.execute_query(query)
     
-    def get_test_data_files(self, test_uri: str) -> List[Dict[str, Any]]:
-        """Get all data files associated with a test"""
-        query = """
-        SELECT ?dataFile ?fileName ?relativePath ?fileSize ?fileType WHERE {
-            ?test dyn:hasDataFile ?dataFile .
-            OPTIONAL { ?dataFile dyn:hasFileName ?fileName }
-            OPTIONAL { ?dataFile dyn:hasRelativePath ?relativePath }
-            OPTIONAL { ?dataFile dyn:hasFileSize ?fileSize }
-            OPTIONAL { ?dataFile dyn:hasFormat ?fileType }
-        }
-        ORDER BY ?fileName
+    def get_test_results(self, test_uri: str) -> Dict[str, Any]:
         """
+        Get detailed results for a specific test.
         
-        results = self.manager._execute_query(query, {"test": self.manager.URIRef(test_uri)})
-        
-        files = []
-        for row in results:
-            file_data = {
-                "uri": str(row.dataFile),
-                "filename": str(row.fileName) if row.fileName else "",
-                "path": str(row.relativePath) if row.relativePath else "",
-                "size": int(row.fileSize) if row.fileSize else 0,
-                "type": str(row.fileType) if row.fileType else ""
+        Args:
+            test_uri: URI of the test
+            
+        Returns:
+            Dictionary with test results and measurements
+        """
+        query = """
+        SELECT ?resultType ?measurement ?value ?unit ?description WHERE {
+            <{test_uri}> dyn:hasResult ?result .
+            ?result rdf:type ?resultType .
+            
+            OPTIONAL {
+                ?result ?measurement ?measurementValue .
+                ?measurementValue dyn:hasValue ?value .
+                ?measurementValue dyn:hasUnit ?unit .
+                OPTIONAL { ?measurementValue rdfs:comment ?description }
             }
-            files.append(file_data)
+        }
+        """.format(test_uri=test_uri)
         
-        return files
-
-    def get_available_tests(self, test_type: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Get available tests, optionally filtered by type"""
-        conditions = []
-        if test_type:
-            conditions.append(f"?test rdf:type dyn:{test_type} .")
+        results = self.sparql.execute_query(query)
+        
+        # Organize results
+        test_results = {"uri": test_uri, "results": {}}
+        
+        for result in results:
+            result_type = result['resultType']
+            measurement = result.get('measurement')
+            value = result.get('value')
+            unit = result.get('unit')
+            description = result.get('description')
+            
+            result_type_name = result_type.split('#')[-1] if '#' in result_type else result_type.split('/')[-1]
+            
+            if measurement and value:
+                measurement_name = measurement.split('#')[-1] if '#' in measurement else measurement.split('/')[-1]
+                test_results["results"][measurement_name] = {
+                    "value": value,
+                    "unit": unit,
+                    "description": description,
+                    "result_type": result_type_name
+                }
+        
+        return test_results
+    
+    # ============================================================================
+    # ANALYSIS AND COMPARISON QUERIES
+    # ============================================================================
+    
+    def compare_materials(self, materials: List[str], measurement_name: str) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Compare materials across a specific measurement.
+        
+        Args:
+            materials: List of material names to compare
+            measurement_name: Name of measurement to compare
+            
+        Returns:
+            Dictionary mapping material names to their measurement data
+        """
+        material_filter = " || ".join([f'?materialName = "{mat}"' for mat in materials])
         
         query = f"""
-        SELECT ?test ?testID ?testDate ?testType ?operator ?materialName WHERE {{
-            {{ ?test rdf:type dyn:MechanicalTest }}
-            UNION 
-            {{ ?test rdf:type ?testType . ?testType rdfs:subClassOf* dyn:MechanicalTest }}
+        SELECT ?materialName ?specimen ?specimenId ?value ?unit ?date ?test WHERE {{
+            ?specimen dyn:hasMaterial/dyn:hasMaterialName ?materialName .
+            FILTER({material_filter})
             
-            OPTIONAL {{ ?test dyn:hasTestID ?testID }}
-            OPTIONAL {{ ?test dyn:hasTestDate ?testDate }}
-            OPTIONAL {{ ?test rdf:type ?testType }}
-            OPTIONAL {{
-                ?test dyn:hasUser ?user .
-                ?user dyn:hasName ?operator
+            # Get measurements from specimens
+            {{
+                ?specimen dyn:{measurement_name} ?measurement .
+                ?measurement dyn:hasValue ?value .
+                OPTIONAL {{ ?measurement dyn:hasUnit ?unit }}
+                OPTIONAL {{ ?specimen dyn:hasDate ?date }}
+                OPTIONAL {{ ?specimen dyn:hasSpecimenId ?specimenId }}
+                BIND("specimen" AS ?source)
             }}
-            OPTIONAL {{
-                ?test dyn:performedOn ?specimen .
-                ?specimen dyn:hasMaterial ?material .
-                ?material dyn:hasMaterialName ?materialName
+            UNION
+            {{
+                # Get measurements from tests
+                ?test dyn:hasSpecimen ?specimen .
+                ?test dyn:hasResult/dyn:{measurement_name} ?measurement .
+                ?measurement dyn:hasValue ?value .
+                OPTIONAL {{ ?measurement dyn:hasUnit ?unit }}
+                OPTIONAL {{ ?test dyn:hasDate ?date }}
+                OPTIONAL {{ ?specimen dyn:hasSpecimenId ?specimenId }}
+                BIND("test" AS ?source)
             }}
-            
-            {' '.join(conditions)}
         }}
-        ORDER BY DESC(?testDate) ?testID
+        ORDER BY ?materialName ?date
         """
         
-        results = self.manager._execute_query(query)
+        results = self.sparql.execute_query(query)
         
-        tests = []
-        for row in results:
-            # Use testID if available, otherwise use extracted local name
-            test_name = (str(row.testID) if row.testID else 
-                        self.manager._extract_local_name(str(row.test)))
+        # Organize by material
+        comparison = {}
+        for result in results:
+            material = result['materialName']
+            if material not in comparison:
+                comparison[material] = []
             
-            test_data = {
-                "uri": str(row.test),
-                "testId": test_name,
-                "testDate": str(row.testDate) if row.testDate else "",
-                "testType": self.manager._extract_local_name(str(row.testType)) if row.testType else "",
-                "operator": str(row.operator) if row.operator else "",
-                "materialName": str(row.materialName) if row.materialName else ""
+            comparison[material].append({
+                'specimen': result.get('specimen'),
+                'specimen_id': result.get('specimenId'),
+                'value': result['value'],
+                'unit': result.get('unit'),
+                'date': result.get('date'),
+                'test': result.get('test'),
+                'source': result.get('source', 'unknown')
+            })
+        
+        return comparison
+    
+    def get_data_completeness(self, entity_uri: str) -> Dict[str, Any]:
+        """
+        Analyze data completeness for an entity.
+        
+        Args:
+            entity_uri: URI of the entity to analyze
+            
+        Returns:
+            Dictionary with completeness analysis
+        """
+        query = """
+        SELECT ?property ?hasValue WHERE {
+            {
+                # Properties this entity has
+                <{entity_uri}> ?property ?value .
+                BIND(true AS ?hasValue)
             }
-            tests.append(test_data)
+            UNION
+            {
+                # Expected properties (from class definition)
+                <{entity_uri}> rdf:type ?type .
+                ?property rdfs:domain ?type .
+                BIND(false AS ?hasValue)
+                
+                # Only include if not already present
+                FILTER NOT EXISTS {
+                    <{entity_uri}> ?property ?anyValue .
+                }
+            }
+        }
+        """.format(entity_uri=entity_uri)
         
-        return tests
+        results = self.sparql.execute_query(query)
+        
+        # Analyze completeness
+        present_properties = []
+        missing_properties = []
+        
+        for result in results:
+            prop = result['property']
+            has_value = result['hasValue']
+            
+            prop_name = prop.split('#')[-1] if '#' in prop else prop.split('/')[-1]
+            
+            if has_value:
+                present_properties.append(prop_name)
+            else:
+                missing_properties.append(prop_name)
+        
+        total_expected = len(present_properties) + len(missing_properties)
+        completeness_ratio = len(present_properties) / total_expected if total_expected > 0 else 1.0
+        
+        return {
+            "entity_uri": entity_uri,
+            "present_properties": present_properties,
+            "missing_properties": missing_properties,
+            "completeness_ratio": completeness_ratio,
+            "completeness_percentage": completeness_ratio * 100
+        }
+    
+    def find_invalid_tests(self) -> List[Dict[str, Any]]:
+        """
+        Find tests that may have data quality issues.
+        
+        Returns:
+            List of potentially invalid tests with issues
+        """
+        query = """
+        SELECT ?test ?issue ?description WHERE {
+            {
+                # Tests without specimens
+                ?test rdf:type/rdfs:subClassOf* dyn:MechanicalTest .
+                FILTER NOT EXISTS { ?test dyn:hasSpecimen ?specimen }
+                BIND("missing_specimen" AS ?issue)
+                BIND("Test has no associated specimen" AS ?description)
+            }
+            UNION
+            {
+                # Tests without dates
+                ?test rdf:type/rdfs:subClassOf* dyn:MechanicalTest .
+                FILTER NOT EXISTS { ?test dyn:hasDate ?date }
+                BIND("missing_date" AS ?issue)
+                BIND("Test has no date" AS ?description)
+            }
+            UNION
+            {
+                # Tests with invalid strain rates (negative or extremely high)
+                ?test dyn:hasStrainRate/dyn:hasValue ?strainRate .
+                FILTER(?strainRate < 0 || ?strainRate > 10000)
+                BIND("invalid_strain_rate" AS ?issue)
+                BIND(CONCAT("Invalid strain rate: ", STR(?strainRate)) AS ?description)
+            }
+        }
+        ORDER BY ?test ?issue
+        """
+        
+        return self.sparql.execute_query(query)
     
     # ============================================================================
-    # EQUIPMENT QUERIES
+    # UTILITY METHODS
     # ============================================================================
     
-    def get_available_equipment(self, equipment_type: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Get available equipment, optionally filtered by type"""
-        conditions = []
-        if equipment_type:
-            conditions.append(f"?equipment rdf:type dyn:{equipment_type} .")
+    def count_entities_by_type(self, entity_type: str) -> int:
+        """
+        Count entities of a specific type.
         
+        Args:
+            entity_type: Type of entity to count (e.g., 'Specimen', 'MechanicalTest')
+            
+        Returns:
+            Number of entities
+        """
         query = f"""
-        SELECT ?equipment ?name ?model ?manufacturer ?description WHERE {{
-            ?equipment rdf:type dyn:Equipment .
-            OPTIONAL {{ ?equipment dyn:hasName ?name }}
-            OPTIONAL {{ ?equipment dyn:hasModel ?model }}
-            OPTIONAL {{ ?equipment dyn:hasManufacturer ?manufacturer }}
-            OPTIONAL {{ ?equipment dyn:hasDescription ?description }}
-            
-            {' '.join(conditions)}
+        SELECT (COUNT(?entity) AS ?count) WHERE {{
+            ?entity rdf:type/rdfs:subClassOf* dyn:{entity_type} .
         }}
-        ORDER BY ?name
         """
         
-        results = self.manager._execute_query(query)
+        results = self.sparql.execute_query(query)
+        return int(results[0]['count']) if results else 0
+    
+    def get_property_statistics(self, property_name: str) -> Dict[str, Any]:
+        """
+        Get statistics for a numeric property across all entities.
         
-        equipment = []
-        for row in results:
-            # Use name if available, otherwise use model, otherwise use extracted local name
-            equipment_name = (str(row.name) if row.name else 
-                             str(row.model) if row.model else 
-                             self.manager._extract_local_name(str(row.equipment)))
+        Args:
+            property_name: Name of the property to analyze
             
-            equip_data = {
-                "uri": str(row.equipment),
-                "equipmentName": equipment_name,
-                "model": str(row.model) if row.model else "",
-                "manufacturer": str(row.manufacturer) if row.manufacturer else "",
-                "description": str(row.description) if row.description else ""
-            }
-            equipment.append(equip_data)
-        
-        return equipment
-    
-    # ============================================================================
-    # STATISTICAL QUERIES
-    # ============================================================================
-    
-    def get_test_statistics(self) -> Dict[str, Any]:
-        """Get statistics about tests in the database"""
-        stats = {}
-        
-        # Total test count
-        query = "SELECT (COUNT(?test) AS ?count) WHERE { ?test rdf:type dyn:MechanicalTest }"
-        result = self.manager._execute_query(query)
-        stats["total_tests"] = int(result[0].count) if result else 0
-        
-        # Tests by type
-        query = """
-        SELECT ?testType (COUNT(?test) AS ?count) WHERE {
-            ?test rdf:type ?testType .
-            ?testType rdfs:subClassOf dyn:MechanicalTest .
-        }
-        GROUP BY ?testType
-        ORDER BY DESC(?count)
+        Returns:
+            Dictionary with statistical information
         """
-        results = self.manager._execute_query(query)
-        stats["tests_by_type"] = {}
-        for row in results:
-            test_type = self.manager._extract_local_name(str(row.testType))
-            stats["tests_by_type"][test_type] = int(row.count)
-        
-        # Tests by material
-        query = """
-        SELECT ?materialName (COUNT(?test) AS ?count) WHERE {
-            ?test dyn:performedOn ?specimen .
-            ?specimen dyn:hasMaterial ?material .
-            ?material dyn:hasMaterialName ?materialName .
-        }
-        GROUP BY ?materialName
-        ORDER BY DESC(?count)
+        query = f"""
+        SELECT ?value WHERE {{
+            ?entity dyn:{property_name}/dyn:hasValue ?value .
+            FILTER(isNumeric(?value))
+        }}
         """
-        results = self.manager._execute_query(query)
-        stats["tests_by_material"] = {}
-        for row in results:
-            material = str(row.materialName)
-            stats["tests_by_material"][material] = int(row.count)
         
-        return stats
-    
-    def get_specimen_statistics(self) -> Dict[str, Any]:
-        """Get statistics about specimens in the database"""
-        stats = {}
+        results = self.sparql.execute_query(query)
+        values = [float(r['value']) for r in results if r['value']]
         
-        # Total specimen count
-        query = "SELECT (COUNT(?specimen) AS ?count) WHERE { ?specimen rdf:type dyn:Specimen }"
-        result = self.manager._execute_query(query)
-        stats["total_specimens"] = int(result[0].count) if result else 0
+        if not values:
+            return {"property": property_name, "count": 0}
         
-        # Specimens by material
-        query = """
-        SELECT ?materialName (COUNT(?specimen) AS ?count) WHERE {
-            ?specimen dyn:hasMaterial ?material .
-            ?material dyn:hasMaterialName ?materialName .
+        return {
+            "property": property_name,
+            "count": len(values),
+            "min": min(values),
+            "max": max(values),
+            "average": sum(values) / len(values),
+            "total": sum(values)
         }
-        GROUP BY ?materialName
-        ORDER BY DESC(?count)
-        """
-        results = self.manager._execute_query(query)
-        stats["specimens_by_material"] = {}
-        for row in results:
-            material = str(row.materialName)
-            stats["specimens_by_material"][material] = int(row.count)
-        
-        # Specimens by structure
-        query = """
-        SELECT ?structureName (COUNT(?specimen) AS ?count) WHERE {
-            ?specimen dyn:hasStructure ?structure .
-            ?structure dyn:hasName ?structureName .
-        }
-        GROUP BY ?structureName
-        ORDER BY DESC(?count)
-        """
-        results = self.manager._execute_query(query)
-        stats["specimens_by_structure"] = {}
-        for row in results:
-            structure = str(row.structureName)
-            stats["specimens_by_structure"][structure] = int(row.count)
-        
-        return stats

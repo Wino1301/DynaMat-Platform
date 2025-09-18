@@ -1,6 +1,7 @@
 """
 DynaMat Platform - Template Manager
 Manages configuration templates for pre-filling GUI forms and common setups
+Clean implementation using new architecture
 """
 
 import logging
@@ -10,13 +11,11 @@ from typing import Dict, List, Optional, Any, Union, Tuple
 from datetime import datetime
 from dataclasses import dataclass
 
-import rdflib
-from rdflib import Graph, Namespace, URIRef, Literal
+from rdflib import Graph, URIRef, Literal
 from rdflib.namespace import RDF, RDFS, OWL, XSD
 
-from .manager import OntologyManager
+from .core.namespace_manager import NamespaceManager
 from ..config import config
-
 
 logger = logging.getLogger(__name__)
 
@@ -45,16 +44,19 @@ class TemplateManager:
     common material property sets, etc.
     """
     
-    def __init__(self, ontology_manager: OntologyManager, template_dir: Optional[Path] = None):
+    def __init__(self, namespace_manager: NamespaceManager, template_dir: Optional[Path] = None):
         """
         Initialize the template manager.
         
         Args:
-            ontology_manager: Main ontology manager instance
-            template_dir: Path to templates directory, defaults to config.TEMPLATE_DIR
+            namespace_manager: Namespace manager for URI handling
+            template_dir: Path to templates directory
         """
-        self.manager = ontology_manager
-        self.template_dir = template_dir or config.TEMPLATE_DIR
+        self.ns_manager = namespace_manager
+        self.template_dir = template_dir or (config.PROJECT_ROOT / "templates")
+        
+        # Template namespace
+        self.TEMPLATE = self.ns_manager.get_namespace('dyn')  # Use DYN for templates
         
         # Ensure template directory structure exists
         self._ensure_template_structure()
@@ -62,10 +64,6 @@ class TemplateManager:
         # Template cache
         self.template_cache = {}  # template_path -> (metadata, graph)
         self.metadata_cache = {}  # category -> list of metadata
-        
-        # Setup namespaces
-        self.DYN = self.manager.DYN
-        self.TEMPLATE = Namespace("https://dynamat.utep.edu/templates/")
         
         # Load all templates
         self._load_all_templates()
@@ -76,7 +74,7 @@ class TemplateManager:
         """Create the template directory structure if it doesn't exist."""
         categories = ["equipment", "materials", "structures", "processes", "tests"]
         
-        self.template_dir.mkdir(exist_ok=True)
+        self.template_dir.mkdir(parents=True, exist_ok=True)
         
         for category in categories:
             category_dir = self.template_dir / category
@@ -85,35 +83,48 @@ class TemplateManager:
             # Create a README if it doesn't exist
             readme_file = category_dir / "README.md"
             if not readme_file.exists():
-                with readme_file.open("w") as f:
-                    f.write(f"# {category.title()} Templates\n\n")
-                    f.write(f"This directory contains {category} configuration templates.\n\n")
-                    f.write("## Template Structure\n\n")
-                    f.write("Each template should include:\n")
-                    f.write("- Template metadata (name, description, etc.)\n")
-                    f.write("- Default property values\n")
-                    f.write("- Target class information\n\n")
+                self._create_category_readme(readme_file, category)
+    
+    def _create_category_readme(self, readme_file: Path, category: str):
+        """Create a README file for a template category."""
+        content = f"""# {category.title()} Templates
+
+This directory contains {category} configuration templates.
+
+## Template Structure
+
+Each template should include:
+- Template metadata (name, description, etc.)
+- Default property values
+- Target class information
+
+## Usage
+
+Templates can be loaded and applied to new instances to provide
+default configurations for common {category} setups.
+"""
+        readme_file.write_text(content)
     
     def _load_all_templates(self):
         """Load all template files from the template directory."""
         template_files = list(self.template_dir.rglob("*.ttl"))
         
+        loaded_count = 0
         for template_file in template_files:
             try:
                 self._load_template_file(template_file)
+                loaded_count += 1
             except Exception as e:
                 logger.warning(f"Failed to load template {template_file}: {e}")
         
-        logger.info(f"Loaded {len(template_files)} template files")
+        logger.info(f"Loaded {loaded_count} template files")
     
     def _load_template_file(self, template_file: Path):
         """Load a single template file and extract metadata."""
         graph = Graph()
         
         # Bind namespaces
-        for prefix, namespace in self.manager.namespaces.items():
-            graph.bind(prefix, namespace)
-        graph.bind("template", self.TEMPLATE)
+        self.ns_manager.setup_graph_namespaces(graph)
         
         # Parse the template file
         graph.parse(template_file, format="turtle")
@@ -134,73 +145,79 @@ class TemplateManager:
     def _extract_template_metadata(self, graph: Graph, template_file: Path) -> TemplateMetadata:
         """Extract metadata from a template graph."""
         # Look for template metadata in the graph
-        template_query = """
+        template_query = f"""
         SELECT ?template ?name ?description ?category ?version ?targetClass 
-               ?author ?created ?modified ?tags WHERE {
+               ?author ?created ?modified WHERE {{
             ?template rdf:type dyn:Template .
-            OPTIONAL { ?template dyn:hasName ?name }
-            OPTIONAL { ?template dyn:hasDescription ?description }
-            OPTIONAL { ?template dyn:hasCategory ?category }
-            OPTIONAL { ?template dyn:hasVersion ?version }
-            OPTIONAL { ?template dyn:hasTargetClass ?targetClass }
-            OPTIONAL { ?template dyn:hasAuthor ?author }
-            OPTIONAL { ?template dyn:hasCreatedDate ?created }
-            OPTIONAL { ?template dyn:hasLastModified ?modified }
-            OPTIONAL { ?template dyn:hasTags ?tags }
-        }
+            OPTIONAL {{ ?template dyn:hasName ?name }}
+            OPTIONAL {{ ?template dyn:hasDescription ?description }}
+            OPTIONAL {{ ?template dyn:hasCategory ?category }}
+            OPTIONAL {{ ?template dyn:hasVersion ?version }}
+            OPTIONAL {{ ?template dyn:hasTargetClass ?targetClass }}
+            OPTIONAL {{ ?template dyn:hasAuthor ?author }}
+            OPTIONAL {{ ?template dyn:hasCreatedDate ?created }}
+            OPTIONAL {{ ?template dyn:hasModifiedDate ?modified }}
+        }}
         """
         
-        results = list(graph.query(template_query))
+        # Execute query manually since we don't have SPARQL executor here
+        results = []
+        for subj, pred, obj in graph:
+            if pred == RDF.type and obj == self.ns_manager.DYN.Template:
+                template_uri = subj
+                # Extract metadata properties
+                metadata_result = {'template': str(template_uri)}
+                
+                for prop, val in graph.predicate_objects(template_uri):
+                    prop_name = str(prop).split('#')[-1] if '#' in str(prop) else str(prop).split('/')[-1]
+                    if prop_name.startswith('has'):
+                        prop_name = prop_name[3:].lower()
+                    metadata_result[prop_name] = str(val)
+                
+                results.append(metadata_result)
+                break
         
         if results:
-            row = results[0]
-            
-            # Parse tags if present
+            result = results[0]
+            # Extract tags if they exist
             tags = []
-            if row.tags:
-                tags = [tag.strip() for tag in str(row.tags).split(",")]
+            tag_pred = self.ns_manager.DYN.hasTag
+            for obj in graph.objects(URIRef(result['template']), tag_pred):
+                tags.append(str(obj))
             
             return TemplateMetadata(
-                name=str(row.name) if row.name else template_file.stem,
-                description=str(row.description) if row.description else "",
-                category=str(row.category) if row.category else self._infer_category(template_file),
-                version=str(row.version) if row.version else "1.0",
-                target_class=str(row.targetClass) if row.targetClass else "",
-                author=str(row.author) if row.author else "",
-                created_date=str(row.created) if row.created else "",
-                last_modified=str(row.modified) if row.modified else "",
+                name=result.get('name', template_file.stem),
+                description=result.get('description', ''),
+                category=result.get('category', 'general'),
+                version=result.get('version', '1.0'),
+                target_class=result.get('targetclass', ''),
+                author=result.get('author', ''),
+                created_date=result.get('createddate', ''),
+                last_modified=result.get('modifieddate', ''),
                 tags=tags,
                 file_path=str(template_file)
             )
         else:
-            # No explicit metadata, infer from file structure
+            # Fallback metadata from file info
             return TemplateMetadata(
-                name=template_file.stem.replace("_", " ").title(),
-                description=f"Template for {template_file.stem}",
-                category=self._infer_category(template_file),
+                name=template_file.stem,
+                description=f"Template from {template_file.name}",
+                category=template_file.parent.name,
                 version="1.0",
                 target_class="",
                 author="",
-                created_date="",
-                last_modified="",
+                created_date=datetime.fromtimestamp(template_file.stat().st_ctime).isoformat(),
+                last_modified=datetime.fromtimestamp(template_file.stat().st_mtime).isoformat(),
                 tags=[],
                 file_path=str(template_file)
             )
-    
-    def _infer_category(self, template_file: Path) -> str:
-        """Infer template category from file path."""
-        parts = template_file.parts
-        for part in parts:
-            if part in ["equipment", "materials", "structures", "processes", "tests"]:
-                return part
-        return "general"
     
     def get_available_templates(self, category: Optional[str] = None) -> List[TemplateMetadata]:
         """
         Get list of available templates.
         
         Args:
-            category: Filter by category, returns all if None
+            category: Optional category filter
             
         Returns:
             List of template metadata
@@ -209,8 +226,8 @@ class TemplateManager:
             return self.metadata_cache.get(category, [])
         else:
             all_templates = []
-            for category_templates in self.metadata_cache.values():
-                all_templates.extend(category_templates)
+            for templates in self.metadata_cache.values():
+                all_templates.extend(templates)
             return all_templates
     
     def get_template_categories(self) -> List[str]:
@@ -219,102 +236,71 @@ class TemplateManager:
     
     def load_template(self, template_name_or_path: str) -> Tuple[TemplateMetadata, Dict[str, Any]]:
         """
-        Load a template and return its metadata and property values.
+        Load a template and return its metadata and values.
         
         Args:
             template_name_or_path: Template name or file path
             
         Returns:
-            Tuple of (metadata, property_values_dict)
+            Tuple of (metadata, template_values)
         """
         # Find the template
         template_key = None
+        metadata = None
+        graph = None
         
+        # First try direct path lookup
         if template_name_or_path in self.template_cache:
             template_key = template_name_or_path
+            metadata, graph = self.template_cache[template_key]
         else:
             # Search by name
-            for key, (metadata, graph) in self.template_cache.items():
-                if metadata.name == template_name_or_path:
+            for key, (tmpl_metadata, tmpl_graph) in self.template_cache.items():
+                if tmpl_metadata.name == template_name_or_path:
                     template_key = key
+                    metadata = tmpl_metadata
+                    graph = tmpl_graph
                     break
         
         if not template_key:
             raise ValueError(f"Template not found: {template_name_or_path}")
         
-        metadata, graph = self.template_cache[template_key]
+        # Extract template values
+        template_values = self._extract_template_values(graph, metadata)
         
-        # Extract property values from the template
-        property_values = self._extract_template_values(graph)
-        
-        return metadata, property_values
+        return metadata, template_values
     
-    def _extract_template_values(self, graph: Graph) -> Dict[str, Any]:
+    def _extract_template_values(self, graph: Graph, metadata: TemplateMetadata) -> Dict[str, Any]:
         """Extract property values from a template graph."""
         values = {}
         
-        # Look for template instance with default values
-        template_query = """
-        SELECT ?property ?value WHERE {
-            ?templateInstance dyn:hasDefaultValue ?defaultValue .
-            ?defaultValue dyn:hasProperty ?property .
-            ?defaultValue dyn:hasValue ?value .
-        }
-        """
-        
-        results = list(graph.query(template_query))
-        
-        for row in results:
-            property_uri = str(row.property)
-            value = self._convert_from_rdf_value(row.value)
-            
-            # Use local name as key for easier access
-            property_name = self.manager._extract_local_name(property_uri)
-            values[property_name] = value
-            values[property_uri] = value  # Also store full URI
-        
-        # If no explicit default values, extract all property-value pairs
-        if not values:
-            instance_query = """
-            SELECT ?instance ?property ?value WHERE {
-                ?instance rdf:type ?class .
-                ?instance ?property ?value .
-                FILTER(?property != rdf:type)
-                FILTER(?property != dyn:hasName)
-                FILTER(?property != dyn:hasDescription)
-            }
-            """
-            
-            results = list(graph.query(instance_query))
-            
-            for row in results:
-                property_uri = str(row.property)
-                value = self._convert_from_rdf_value(row.value)
+        # Find template instances
+        for subj in graph.subjects(RDF.type, self.ns_manager.DYN.Template):
+            # Get all properties of this template
+            for pred, obj in graph.predicate_objects(subj):
+                pred_name = str(pred).split('#')[-1] if '#' in str(pred) else str(pred).split('/')[-1]
                 
-                property_name = self.manager._extract_local_name(property_uri)
+                # Skip metadata properties
+                if pred_name.startswith('has') and pred_name[3:].lower() in [
+                    'name', 'description', 'category', 'version', 'targetclass', 
+                    'author', 'createddate', 'modifieddate', 'tag'
+                ]:
+                    continue
                 
-                # Handle multiple values for the same property
-                if property_name in values:
-                    if not isinstance(values[property_name], list):
-                        values[property_name] = [values[property_name]]
-                    values[property_name].append(value)
+                # Convert RDF value to Python value
+                if isinstance(obj, URIRef):
+                    values[pred_name] = str(obj)
+                elif isinstance(obj, Literal):
+                    values[pred_name] = obj.toPython()
                 else:
-                    values[property_name] = value
-                
-                # Also store with full URI
-                if property_uri in values:
-                    if not isinstance(values[property_uri], list):
-                        values[property_uri] = [values[property_uri]]
-                    values[property_uri].append(value)
-                else:
-                    values[property_uri] = value
+                    values[pred_name] = str(obj)
         
         return values
     
     def apply_template(self, template_name_or_path: str, instance_uri: str, 
                       override_values: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
-        Apply a template to an instance, returning the combined property values.
+        Apply a template to an instance URI with optional value overrides.
         
         Args:
             template_name_or_path: Template to apply
@@ -332,8 +318,7 @@ class TemplateManager:
         
         # Apply overrides
         if override_values:
-            for key, value in override_values.items():
-                final_values[key] = value
+            final_values.update(override_values)
         
         # Add instance URI
         final_values["uri"] = instance_uri
@@ -364,56 +349,47 @@ class TemplateManager:
         template_file = self.template_dir / category / f"{safe_name}.ttl"
         
         # Ensure category directory exists
-        template_file.parent.mkdir(exist_ok=True)
+        template_file.parent.mkdir(parents=True, exist_ok=True)
         
         # Create template graph
         graph = Graph()
-        
-        # Bind namespaces
-        for prefix, namespace in self.manager.namespaces.items():
-            graph.bind(prefix, namespace)
-        graph.bind("template", self.TEMPLATE)
+        self.ns_manager.setup_graph_namespaces(graph)
         
         # Create template metadata
-        template_uri = self.TEMPLATE[safe_name]
+        template_uri = self.ns_manager.DYN[safe_name]
         
-        graph.add((template_uri, RDF.type, self.DYN.Template))
-        graph.add((template_uri, self.DYN.hasName, Literal(template_name)))
-        graph.add((template_uri, self.DYN.hasCategory, Literal(category)))
-        graph.add((template_uri, self.DYN.hasTargetClass, URIRef(target_class)))
-        graph.add((template_uri, self.DYN.hasCreatedDate, Literal(datetime.now().isoformat(), datatype=XSD.dateTime)))
-        graph.add((template_uri, self.DYN.hasVersion, Literal("1.0")))
+        graph.add((template_uri, RDF.type, self.ns_manager.DYN.Template))
+        graph.add((template_uri, self.ns_manager.DYN.hasName, Literal(template_name)))
+        graph.add((template_uri, self.ns_manager.DYN.hasCategory, Literal(category)))
+        graph.add((template_uri, self.ns_manager.DYN.hasTargetClass, URIRef(target_class)))
+        graph.add((template_uri, self.ns_manager.DYN.hasVersion, Literal("1.0")))
+        graph.add((template_uri, self.ns_manager.DYN.hasCreatedDate, 
+                  Literal(datetime.now().isoformat())))
         
-        # Add optional metadata
+        # Add additional metadata
         if metadata:
-            if "description" in metadata:
-                graph.add((template_uri, self.DYN.hasDescription, Literal(metadata["description"])))
-            if "author" in metadata:
-                graph.add((template_uri, self.DYN.hasAuthor, Literal(metadata["author"])))
-            if "tags" in metadata:
-                graph.add((template_uri, self.DYN.hasTags, Literal(metadata["tags"])))
-        
-        # Create example instance with property values
-        example_uri = self.TEMPLATE[f"{safe_name}_example"]
-        graph.add((example_uri, RDF.type, URIRef(target_class)))
-        graph.add((example_uri, RDF.type, OWL.NamedIndividual))
+            for key, value in metadata.items():
+                if hasattr(self.ns_manager.DYN, f'has{key.title()}'):
+                    prop = getattr(self.ns_manager.DYN, f'has{key.title()}')
+                    graph.add((template_uri, prop, Literal(value)))
         
         # Add property values
-        for property_name, value in property_values.items():
-            if property_name.startswith("http"):
-                property_uri = property_name
+        for prop_name, value in property_values.items():
+            if prop_name.startswith('http'):
+                prop_uri = URIRef(prop_name)
             else:
-                property_uri = str(self.DYN[property_name])
+                prop_uri = self.ns_manager.DYN[prop_name]
             
-            if value is not None and value != "":
-                rdf_value = self._convert_to_rdf_value(value)
-                graph.add((example_uri, URIRef(property_uri), rdf_value))
+            if isinstance(value, str) and value.startswith('http'):
+                graph.add((template_uri, prop_uri, URIRef(value)))
+            else:
+                graph.add((template_uri, prop_uri, Literal(value)))
         
         # Save to file
         with template_file.open("w", encoding="utf-8") as f:
-            f.write(graph.serialize(format="turtle").decode("utf-8"))
+            f.write(graph.serialize(format="turtle"))
         
-        # Reload template cache
+        # Reload templates to update cache
         self._load_template_file(template_file)
         
         logger.info(f"Saved template '{template_name}' to {template_file}")
@@ -431,21 +407,23 @@ class TemplateManager:
         """
         # Find the template
         template_key = None
+        metadata = None
         
         if template_name_or_path in self.template_cache:
             template_key = template_name_or_path
+            metadata, _ = self.template_cache[template_key]
         else:
             # Search by name
-            for key, (metadata, graph) in self.template_cache.items():
-                if metadata.name == template_name_or_path:
+            for key, (tmpl_metadata, _) in self.template_cache.items():
+                if tmpl_metadata.name == template_name_or_path:
                     template_key = key
+                    metadata = tmpl_metadata
                     break
         
         if not template_key:
             logger.warning(f"Template not found for deletion: {template_name_or_path}")
             return False
         
-        metadata, graph = self.template_cache[template_key]
         template_file = Path(metadata.file_path)
         
         try:
@@ -506,57 +484,18 @@ class TemplateManager:
     
     def get_template_usage_stats(self) -> Dict[str, Any]:
         """Get statistics about template usage and availability."""
-        stats = {}
+        total_templates = sum(len(templates) for templates in self.metadata_cache.values())
         
-        # Count by category
-        stats["by_category"] = {}
-        for category, templates in self.metadata_cache.items():
-            stats["by_category"][category] = len(templates)
-        
-        # Total count
-        stats["total_templates"] = len(self.template_cache)
-        
-        # Most recent templates
-        all_templates = self.get_available_templates()
-        recent_templates = sorted(all_templates, 
-                                key=lambda t: t.last_modified or t.created_date, 
-                                reverse=True)[:5]
-        stats["recent_templates"] = [t.name for t in recent_templates]
-        
-        return stats
+        return {
+            'total_templates': total_templates,
+            'categories': list(self.metadata_cache.keys()),
+            'templates_by_category': {cat: len(templates) for cat, templates in self.metadata_cache.items()},
+            'template_directory': str(self.template_dir)
+        }
     
-    def _convert_to_rdf_value(self, value: Any) -> Union[URIRef, Literal]:
-        """Convert Python value to appropriate RDF value."""
-        if isinstance(value, str):
-            if value.startswith("http"):
-                return URIRef(value)
-            else:
-                return Literal(value)
-        elif isinstance(value, bool):
-            return Literal(value, datatype=XSD.boolean)
-        elif isinstance(value, int):
-            return Literal(value, datatype=XSD.integer)
-        elif isinstance(value, float):
-            return Literal(value, datatype=XSD.double)
-        elif hasattr(value, 'isoformat'):  # datetime/date
-            return Literal(value.isoformat(), datatype=XSD.dateTime)
-        else:
-            return Literal(str(value))
-    
-    def _convert_from_rdf_value(self, rdf_value: Union[URIRef, Literal]) -> Any:
-        """Convert RDF value to appropriate Python value."""
-        if isinstance(rdf_value, URIRef):
-            return str(rdf_value)
-        elif isinstance(rdf_value, Literal):
-            if rdf_value.datatype == XSD.boolean:
-                return bool(rdf_value)
-            elif rdf_value.datatype == XSD.integer:
-                return int(rdf_value)
-            elif rdf_value.datatype == XSD.double:
-                return float(rdf_value)
-            elif rdf_value.datatype in (XSD.dateTime, XSD.date):
-                return str(rdf_value)
-            else:
-                return str(rdf_value)
-        else:
-            return str(rdf_value)
+    def reload_templates(self):
+        """Reload all templates from disk."""
+        self.template_cache.clear()
+        self.metadata_cache.clear()
+        self._load_all_templates()
+        logger.info("Templates reloaded from disk")

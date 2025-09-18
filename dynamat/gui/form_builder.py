@@ -1,7 +1,7 @@
 """
-DynaMat Platform - Ontology Form Builder
+DynaMat Platform - Ontology Form Builder (CORRECTED IMPORTS)
 Generates PyQt6 forms from ontology class definitions
-Compatible with existing OntologyManager structure
+Compatible with refactored ontology module structure
 """
 
 import logging
@@ -19,7 +19,8 @@ from PyQt6.QtGui import QFont
 
 from rdflib import URIRef
 
-from ..ontology.manager import OntologyManager, PropertyMetadata, ClassMetadata, UnitInfo
+# CORRECTED IMPORTS - Now import from ontology module level
+from ..ontology import OntologyManager, PropertyMetadata, ClassMetadata, UnitInfo
 from .dependency_manager import DependencyManager
 from .widgets.unit_value_widget import UnitValueWidget
 
@@ -79,7 +80,7 @@ class OntologyFormBuilder:
         try:
             self.logger.info(f"Building form for class: {class_uri}")
             
-            # Get class metadata - using your existing method
+            # Get class metadata - using the refactored method
             self.ontology_manager.classes_cache.clear()
             class_metadata = self.ontology_manager.get_class_metadata_for_form(class_uri)
             self.logger.info(f"Got metadata for {class_metadata.name} with {len(class_metadata.properties)} properties")
@@ -110,56 +111,38 @@ class OntologyFormBuilder:
             form_fields = {}
             groups_created = 0
             
-            # Sort form groups by explicit group order from ontology
-            def get_group_sort_key(group_items):
-                group_name, group_properties = group_items
-                if not group_properties:
-                    return (999, group_name)  # Empty groups last, then alphabetical
-                
-                # Get group order from properties in the group
-                # Check for group_order attribute
-                group_orders = []
-                for prop in group_properties:
-                    # Try different possible attribute names for group order
-                    if hasattr(prop, 'group_order') and prop.group_order is not None:
-                        group_orders.append(prop.group_order)
-                    elif hasattr(prop, 'form_group_order') and prop.form_group_order is not None:
-                        group_orders.append(prop.form_group_order)
-                
-                if group_orders:
-                    # Use explicit group order (all properties in same group should have same order)
-                    group_order = min(group_orders)
-                    self.logger.debug(f"Group '{group_name}' using explicit order: {group_order}")
-                    return (group_order, group_name)
-                else:
-                    # Fallback to old behavior for groups without explicit ordering
-                    min_display_order = min(p.display_order for p in group_properties)
-                    fallback_order = min_display_order + 1000  # Offset to put after explicitly ordered groups
-                    self.logger.debug(f"Group '{group_name}' using fallback order: {fallback_order} (display_order: {min_display_order})")
-                    return (fallback_order, group_name)
+            # Sort form groups by their order
+            ordered_groups = class_metadata.get_ordered_groups()
             
-            sorted_groups = sorted(class_metadata.form_groups.items(), key=get_group_sort_key)
-            
-            # Log the final group ordering for verification
-            if class_uri == "https://dynamat.utep.edu/ontology#Specimen":
-                self.logger.info("Final form group order:")
-                for i, (group_name, _) in enumerate(sorted_groups, 1):
-                    self.logger.info(f"  {i}. {group_name}")
-    
-            for group_name, group_properties in sorted_groups:
-                if group_properties:  # Only create groups with properties
-                    self.logger.info(f"Creating group '{group_name}' with {len(group_properties)} properties")
-                    
+            for group_name in ordered_groups:
+                group_properties = class_metadata.form_groups[group_name]
+                
+                if group_properties:  # Only create groups that have properties
                     group_widget, group_fields = self._build_form_group(group_name, group_properties)
+                    
+                    if group_fields:  # Only add groups that successfully created fields
+                        content_layout.addWidget(group_widget)
+                        form_fields.update(group_fields)
+                        groups_created += 1
+                        self.logger.debug(f"Created group '{group_name}' with {len(group_fields)} fields")
+            
+            # Handle ungrouped properties (shouldn't happen with good ontology design)
+            ungrouped_props = []
+            for prop in class_metadata.properties:
+                if prop.uri not in form_fields:
+                    ungrouped_props.append(prop)
+            
+            if ungrouped_props:
+                self.logger.warning(f"Found {len(ungrouped_props)} ungrouped properties, adding to 'Other' group")
+                group_widget, group_fields = self._build_form_group("Other", ungrouped_props)
+                if group_fields:
                     content_layout.addWidget(group_widget)
                     form_fields.update(group_fields)
                     groups_created += 1
-                    
-                    self.logger.info(f"Group '{group_name}' created with {len(group_fields)} fields")
             
-            if groups_created == 0:
-                self.logger.warning("No form groups were created")
-                error_widget = QLabel("No form groups could be created.")
+            if not form_fields:
+                self.logger.error("No form fields were created")
+                error_widget = QLabel("Failed to create form fields.\nCheck terminal for details.")
                 error_widget.setStyleSheet("color: orange; padding: 20px;")
                 return error_widget
             
@@ -256,174 +239,132 @@ class OntologyFormBuilder:
                         group_name=group_name,
                         required=prop.is_required
                     )
+                    
                     group_fields[prop.uri] = field
                     
             except Exception as e:
-                self.logger.warning(f"Failed to create field for {prop.uri}: {e}")
-                continue
+                self.logger.error(f"Failed to create field widget for {prop.uri}: {e}")
         
         return group_box, group_fields
     
     def _format_group_name(self, group_name: str) -> str:
-        """Format group name for display"""
+        """Format group name for display."""
         if not group_name or group_name == "General":
-            return "General Information"
+            return "General Properties"
         
-        # Convert camelCase or snake_case to Title Case
-        formatted = group_name.replace("_", " ")
+        # Convert camelCase to Title Case
+        formatted = ""
+        for i, char in enumerate(group_name):
+            if char.isupper() and i > 0:
+                formatted += " "
+            formatted += char
         
-        # Split camelCase
-        result = ""
-        for i, char in enumerate(formatted):
-            if char.isupper() and i > 0 and formatted[i-1].islower():
-                result += " "
-            result += char
-        
-        return result.title()
+        return formatted.title()
     
     def _create_field_widget(self, prop: PropertyMetadata) -> Optional[QWidget]:
         """
-        Create appropriate widget for a property based on its metadata.
+        Create appropriate widget based on property metadata.
+        
+        Args:
+            prop: Property metadata
+            
+        Returns:
+            Widget for the property or None if creation failed
         """
-        print(f"@@@ _create_field_widget CALLED: {prop.uri}")
-        
-        data_type = prop.data_type.lower()
-        
-        # Handle different data types
-        if data_type == "object":
-            return self._create_object_combo_widget(prop)
-        elif "string" in data_type or data_type == "data":
-            if prop.valid_values:
+        try:
+            widget_type = prop.suggested_widget_type
+            
+            if widget_type == "line_edit":
+                return self._create_line_edit_widget(prop)
+            elif widget_type == "text_area":
+                return self._create_text_area_widget(prop)
+            elif widget_type == "combo":
                 return self._create_combo_widget(prop)
+            elif widget_type == "object_combo":
+                return self._create_object_combo_widget(prop)
+            elif widget_type == "checkbox":
+                return self._create_checkbox_widget(prop)
+            elif widget_type == "spinbox":
+                return self._create_spinbox_widget(prop)
+            elif widget_type == "double_spinbox":
+                return self._create_double_spinbox_widget(prop)
+            elif widget_type == "date":
+                return self._create_date_widget(prop)
             else:
-                return self._create_string_widget(prop)
-        elif "int" in data_type:
-            return self._create_integer_widget(prop)
-        elif "double" in data_type or "float" in data_type or "decimal" in data_type:
-            # MEASUREMENT PROPERTY CHECK - This is the key addition!
-            if hasattr(prop, 'is_measurement_property') and prop.is_measurement_property:
-                print(f"!!! Creating unit value widget for {prop.uri}")
-                return self._create_unit_value_widget(prop)
-            else:
-                return self._create_float_widget(prop)
-        elif "date" in data_type:
-            return self._create_date_widget(prop)
-        elif "bool" in data_type:
-            return self._create_boolean_widget(prop)
-        else:
-            self.logger.info(f"Unknown data type '{data_type}' for {prop.uri}, using string widget")
-            return self._create_string_widget(prop)
+                # Default to line edit
+                self.logger.debug(f"Unknown widget type '{widget_type}' for {prop.uri}, using line edit")
+                return self._create_line_edit_widget(prop)
+                
+        except Exception as e:
+            self.logger.error(f"Failed to create widget for {prop.uri}: {e}")
+            return None
     
-    def _create_string_widget(self, prop: PropertyMetadata) -> QWidget:
-        """Create string input widget"""
-        if prop.description and ("note" in prop.description.lower() or "description" in prop.description.lower()):
-            # Use text area for notes and descriptions
-            text_edit = QTextEdit()
-            text_edit.setMaximumHeight(100)
-            return text_edit
-        else:
-            # Use line edit for regular strings
-            line_edit = QLineEdit()
-            line_edit.setMaxLength(255)  # Reasonable default
-            return line_edit
+    def _create_line_edit_widget(self, prop: PropertyMetadata) -> QLineEdit:
+        """Create a line edit widget."""
+        widget = QLineEdit()
+        if prop.max_length:
+            widget.setMaxLength(prop.max_length)
+        return widget
+    
+    def _create_text_area_widget(self, prop: PropertyMetadata) -> QTextEdit:
+        """Create a text area widget."""
+        widget = QTextEdit()
+        widget.setMaximumHeight(100)  # Reasonable height for forms
+        return widget
     
     def _create_combo_widget(self, prop: PropertyMetadata) -> QComboBox:
-        """Create combo box widget with valid values"""
-        combo = QComboBox()
-        
-        # Add empty option for non-required fields
-        if not prop.is_required:
-            combo.addItem("", "")
-        
-        # Add valid values
-        for value in prop.valid_values:
-            if value.strip():  # Skip empty values
-                combo.addItem(value.strip(), value.strip())
-        
-        return combo
+        """Create a combo box widget with valid values."""
+        widget = QComboBox()
+        if prop.valid_values:
+            for value in prop.valid_values:
+                widget.addItem(value, value)
+        return widget
     
     def _create_object_combo_widget(self, prop: PropertyMetadata) -> QComboBox:
-        """Create combo box for object properties"""
-        combo = QComboBox()
-        
-        # Add empty option
-        combo.addItem("", "")
-        
-        # Try to get available instances for the range class
-        if prop.range_class:
-            try:
-                instances = self.ontology_manager.get_all_individuals(prop.range_class)
-                for instance in instances:
-                    # Extract display name from URI
-                    display_name = instance.split('#')[-1].replace('_', ' ')
-                    combo.addItem(display_name, instance)
-            except Exception as e:
-                self.logger.warning(f"Could not load instances for {prop.range_class}: {e}")
-        
-        return combo
+        """Create a combo box for object properties."""
+        widget = QComboBox()
+        # This would be populated with available individuals of the range class
+        # For now, just add a placeholder
+        widget.addItem("Select...", None)
+        return widget
     
-    def _create_integer_widget(self, prop: PropertyMetadata) -> QSpinBox:
-        """Create integer input widget"""
-        spin_box = QSpinBox()
-        spin_box.setMinimum(-2147483648)  # int32 min
-        spin_box.setMaximum(2147483647)   # int32 max
-        return spin_box
+    def _create_checkbox_widget(self, prop: PropertyMetadata) -> QCheckBox:
+        """Create a checkbox widget."""
+        return QCheckBox()
     
-    def _create_float_widget(self, prop: PropertyMetadata) -> QWidget:
-        """Create float input widget"""
-        spin_box = QDoubleSpinBox()
-        spin_box.setMinimum(-1e10)
-        spin_box.setMaximum(1e10)
-        spin_box.setDecimals(6)
-        
-        # Add unit label if available
-        if prop.default_unit:
-            unit_widget = QWidget()
-            layout = QHBoxLayout(unit_widget)
-            layout.setContentsMargins(0, 0, 0, 0)
-            layout.addWidget(spin_box)
-            unit_label = QLabel(self._extract_unit_symbol(prop.default_unit))
-            unit_label.setStyleSheet("font-weight: bold; color: gray;")
-            layout.addWidget(unit_label)
-            return unit_widget
-        
-        return spin_box
+    def _create_spinbox_widget(self, prop: PropertyMetadata) -> QSpinBox:
+        """Create a spin box widget for integers."""
+        widget = QSpinBox()
+        if prop.min_value is not None:
+            widget.setMinimum(int(prop.min_value))
+        if prop.max_value is not None:
+            widget.setMaximum(int(prop.max_value))
+        return widget
+    
+    def _create_double_spinbox_widget(self, prop: PropertyMetadata) -> QDoubleSpinBox:
+        """Create a double spin box widget for floats."""
+        widget = QDoubleSpinBox()
+        if prop.min_value is not None:
+            widget.setMinimum(prop.min_value)
+        if prop.max_value is not None:
+            widget.setMaximum(prop.max_value)
+        widget.setDecimals(3)  # Default to 3 decimal places
+        return widget
     
     def _create_date_widget(self, prop: PropertyMetadata) -> QDateEdit:
-        """Create date input widget"""
-        date_edit = QDateEdit()
-        date_edit.setDate(QDate.currentDate())
-        date_edit.setCalendarPopup(True)
-        return date_edit
+        """Create a date widget."""
+        widget = QDateEdit()
+        widget.setDate(QDate.currentDate())
+        widget.setCalendarPopup(True)
+        return widget
     
-    def _create_boolean_widget(self, prop: PropertyMetadata) -> QCheckBox:
-        """Create boolean input widget"""
-        checkbox = QCheckBox()
-        return checkbox
-    
-    def _extract_unit_symbol(self, unit_uri: str) -> str:
-        """Extract unit symbol from unit URI"""
-        if not unit_uri:
-            return ""
-        
-        # Simple extraction from common unit URIs
-        unit_mappings = {
-            "unit:MilliM": "mm",
-            "unit:MilliM2": "mm²", 
-            "unit:MilliM3": "mm³",
-            "unit:GRAM": "g",
-            "unit:KiloGRAM": "kg",
-            "unit:MegaPA": "MPa",
-            "unit:PA": "Pa",
-            "unit:PERCENT": "%",
-            "unit:DegreeCelsius": "°C",
-        }
-        
-        return unit_mappings.get(unit_uri, unit_uri.split(":")[-1])
+    # ============================================================================
+    # DATA EXTRACTION AND POPULATION METHODS
+    # ============================================================================
     
     def get_form_data(self, form_widget: QWidget) -> Dict[str, Any]:
         """
-        Extract data from form widget.
+        Extract data from form widgets.
         
         Args:
             form_widget: Widget created by build_form()
@@ -445,160 +386,6 @@ class OntologyFormBuilder:
                 self.logger.warning(f"Failed to extract value for {prop_uri}: {e}")
         
         return data
-    
-    def _extract_widget_value(self, widget: QWidget) -> Any:
-        """Extract value from a widget"""
-        if isinstance(widget, QLineEdit):
-            return widget.text()
-        elif isinstance(widget, QComboBox):
-            return widget.currentData() or widget.currentText()
-        elif isinstance(widget, QSpinBox):
-            return widget.value()
-        elif isinstance(widget, QDoubleSpinBox):
-            return widget.value()
-        elif isinstance(widget, QDateEdit):
-            return widget.date().toString(Qt.DateFormat.ISODate)
-        elif isinstance(widget, QCheckBox):
-            return widget.isChecked()
-        elif isinstance(widget, QTextEdit):
-            return widget.toPlainText()
-        else:
-            # Try to handle compound widgets (like float with unit)
-            if hasattr(widget, 'layout') and widget.layout():
-                layout = widget.layout()
-                if layout.count() > 0:
-                    first_widget = layout.itemAt(0).widget()
-                    return self._extract_widget_value(first_widget)
-        
-        return None
-    
-    def populate_form(self, form_widget: QWidget, data: Dict[str, Any]):
-        """
-        Populate form with data.
-        
-        Args:
-            form_widget: Widget created by build_form()
-            data: Dictionary of property URIs to values
-        """
-        if not hasattr(form_widget, 'form_fields'):
-            return
-        
-        for prop_uri, value in data.items():
-            if prop_uri in form_widget.form_fields:
-                field = form_widget.form_fields[prop_uri]
-                try:
-                    self._populate_widget_value(field.widget, value)
-                except Exception as e:
-                    self.logger.warning(f"Failed to populate value for {prop_uri}: {e}")
-    
-    def _populate_widget_value(self, widget: QWidget, value: Any):
-        """Populate a widget with a value"""
-        if isinstance(widget, QLineEdit):
-            widget.setText(str(value))
-        elif isinstance(widget, QComboBox):
-            index = widget.findData(value)
-            if index >= 0:
-                widget.setCurrentIndex(index)
-            else:
-                # Try to find by text
-                index = widget.findText(str(value))
-                if index >= 0:
-                    widget.setCurrentIndex(index)
-        elif isinstance(widget, QSpinBox):
-            widget.setValue(int(value))
-        elif isinstance(widget, QDoubleSpinBox):
-            widget.setValue(float(value))
-        elif isinstance(widget, QDateEdit):
-            if isinstance(value, str):
-                widget.setDate(QDate.fromString(value, Qt.DateFormat.ISODate))
-        elif isinstance(widget, QCheckBox):
-            widget.setChecked(bool(value))
-        elif isinstance(widget, QTextEdit):
-            widget.setPlainText(str(value))
-        else:
-            # Handle compound widgets
-            if hasattr(widget, 'layout') and widget.layout():
-                layout = widget.layout()
-                if layout.count() > 0:
-                    first_widget = layout.itemAt(0).widget()
-                    self._populate_widget_value(first_widget, value)
-
-    def _create_widget_for_property(self, prop: PropertyMetadata) -> QWidget:
-        """
-        Create appropriate widget for property - MODIFIED to handle measurement properties with debugging
-        """
-        # DEBUG: Log widget creation
-        print(f"@@@ _create_widget_for_property CALLED: {prop.uri}")
-        logger.debug(f"Creating widget for property: {prop.uri}, data_type: {prop.data_type}, is_measurement: {getattr(prop, 'is_measurement_property', False)}")
-        
-        # Use the actual data_type attribute from your PropertyMetadata
-        data_type = prop.data_type.lower()
-        
-        # Handle different data types based on your ontology structure
-        if data_type == "object":
-            # Object properties - create combo with valid instances
-            return self._create_object_combo_widget(prop)
-        elif "string" in data_type or data_type == "data":
-            # String/text properties
-            if prop.valid_values:
-                return self._create_combo_widget(prop)
-            else:
-                return self._create_string_widget(prop)
-        elif "int" in data_type:
-            return self._create_integer_widget(prop)
-            
-        elif "double" in data_type or "float" in data_type or "decimal" in data_type:
-            # TEMP: Force logging for measurement-like properties
-            if any(keyword in prop.uri.lower() for keyword in ['thickness', 'length', 'diameter', 'width', 'height', 'mass']):
-                print(f"!!! PROCESSING MEASUREMENT PROPERTY: {prop.uri}")
-                print(f"!!!   has is_measurement_property: {hasattr(prop, 'is_measurement_property')}")
-                if hasattr(prop, 'is_measurement_property'):
-                    print(f"!!!   is_measurement_property value: {prop.is_measurement_property}")
-                if hasattr(prop, 'compatible_units'):
-                    print(f"!!!   compatible_units count: {len(prop.compatible_units)}")
-                print(f"!!!   default_unit: {getattr(prop, 'default_unit', 'MISSING')}")
-            
-            # Check if this is a measurement property
-            if hasattr(prop, 'is_measurement_property') and prop.is_measurement_property:
-                print(f"!!! CALLING _create_unit_value_widget for {prop.uri}")
-                return self._create_unit_value_widget(prop)
-            else:
-                return self._create_float_widget(prop)
-                
-        elif "date" in data_type:
-            return self._create_date_widget(prop)
-        elif "bool" in data_type:
-            return self._create_boolean_widget(prop)
-        else:
-            # Default to string widget for unknown types
-            self.logger.info(f"Unknown data type '{data_type}' for {prop.uri}, using string widget")
-            return self._create_string_widget(prop)
-    
-    def _create_unit_value_widget(self, prop: PropertyMetadata) -> QWidget:
-        """Create unit-value widget for measurement properties"""
-        try:
-            # Import the widget
-            from .widgets.unit_value_widget import UnitValueWidget
-            
-            # Get units from property
-            compatible_units = getattr(prop, 'compatible_units', [])
-            default_unit = getattr(prop, 'default_unit', None)
-            
-            if not compatible_units:
-                return self._create_float_widget(prop)
-            
-            # Create widget
-            widget = UnitValueWidget(
-                default_unit=default_unit,
-                available_units=compatible_units,
-                property_uri=prop.uri
-            )
-            
-            return widget
-            
-        except Exception as e:
-            self.logger.error(f"Failed to create unit widget: {e}")
-            return self._create_float_widget(prop)
     
     def _extract_widget_value(self, widget: QWidget) -> Any:
         """Extract value from a widget - MODIFIED to handle UnitValueWidget"""
@@ -629,37 +416,86 @@ class OntologyFormBuilder:
         
         return None
     
+    def populate_form(self, form_widget: QWidget, data: Dict[str, Any]):
+        """
+        Populate form with data.
+        
+        Args:
+            form_widget: Widget created by build_form()
+            data: Dictionary of property URIs to values
+        """
+        if not hasattr(form_widget, 'form_fields'):
+            return
+        
+        for prop_uri, value in data.items():
+            if prop_uri in form_widget.form_fields:
+                field = form_widget.form_fields[prop_uri]
+                try:
+                    self._populate_widget_value(field.widget, value)
+                except Exception as e:
+                    self.logger.warning(f"Failed to populate value for {prop_uri}: {e}")
+    
     def _populate_widget_value(self, widget: QWidget, value: Any):
         """Populate widget with value - MODIFIED to handle UnitValueWidget"""
-        try:
-            if isinstance(widget, UnitValueWidget):
-                # Handle both simple values and complex unit data
-                if isinstance(value, dict):
-                    widget.setData(value)
-                else:
-                    # Simple numeric value, use default unit
-                    widget.setValue(float(value))
-            elif isinstance(widget, QLineEdit):
-                widget.setText(str(value))
-            elif isinstance(widget, QComboBox):
-                index = widget.findData(value)
+        if isinstance(widget, UnitValueWidget):
+            if isinstance(value, dict):
+                widget.setData(value)
+            else:
+                widget.setValue(value)
+        elif isinstance(widget, QLineEdit):
+            widget.setText(str(value))
+        elif isinstance(widget, QComboBox):
+            # Try to find and set the value
+            index = widget.findData(value)
+            if index >= 0:
+                widget.setCurrentIndex(index)
+            else:
+                # Try by text
+                index = widget.findText(str(value))
                 if index >= 0:
                     widget.setCurrentIndex(index)
-                else:
-                    index = widget.findText(str(value))
-                    if index >= 0:
-                        widget.setCurrentIndex(index)
-            elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
-                widget.setValue(float(value))
-            elif isinstance(widget, QCheckBox):
-                widget.setChecked(bool(value))
-            elif isinstance(widget, QTextEdit):
-                widget.setPlainText(str(value))
-            elif isinstance(widget, QDateEdit):
-                # Handle date string conversion
-                if isinstance(value, str):
-                    date = QDate.fromString(value, Qt.DateFormat.ISODate)
-                    if date.isValid():
-                        widget.setDate(date)
-        except Exception as e:
-            self.logger.warning(f"Failed to populate widget with value {value}: {e}")
+        elif isinstance(widget, QSpinBox):
+            widget.setValue(int(value))
+        elif isinstance(widget, QDoubleSpinBox):
+            widget.setValue(float(value))
+        elif isinstance(widget, QDateEdit):
+            if isinstance(value, str):
+                widget.setDate(QDate.fromString(value, Qt.DateFormat.ISODate))
+            else:
+                widget.setDate(QDate.fromString(str(value), Qt.DateFormat.ISODate))
+        elif isinstance(widget, QCheckBox):
+            widget.setChecked(bool(value))
+        elif isinstance(widget, QTextEdit):
+            widget.setPlainText(str(value))
+    
+    def validate_form(self, form_widget: QWidget) -> Dict[str, List[str]]:
+        """
+        Validate form data.
+        
+        Args:
+            form_widget: Widget created by build_form()
+            
+        Returns:
+            Dictionary of field URIs to list of validation errors
+        """
+        errors = {}
+        
+        if not hasattr(form_widget, 'form_fields'):
+            return errors
+        
+        for prop_uri, field in form_widget.form_fields.items():
+            field_errors = []
+            
+            # Check required fields
+            if field.required:
+                value = self._extract_widget_value(field.widget)
+                if value is None or (isinstance(value, str) and value.strip() == ""):
+                    field_errors.append("This field is required")
+            
+            # Additional validation could be added here based on property metadata
+            # e.g., min/max values, patterns, etc.
+            
+            if field_errors:
+                errors[prop_uri] = field_errors
+        
+        return errors
