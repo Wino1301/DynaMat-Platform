@@ -12,9 +12,9 @@ from enum import Enum
 import rdflib
 from rdflib import Graph, Namespace, URIRef, Literal, BNode
 from rdflib.namespace import RDF, RDFS, OWL, XSD
+import time
 
 from ..config import config
-
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -25,6 +25,23 @@ class QueryMode(Enum):
     EXPLORATION = "exploration"  # General ontology exploration
     GUI_BUILDING = "gui_building"  # Form generation and UI metadata
     DATA_RETRIEVAL = "data_retrieval"  # Specific instance data queries
+
+@dataclass
+class UnitInfo:
+    """Information about a measurement unit from QUDT"""
+    symbol: str          # Display symbol (mm, kg, etc.)
+    uri: str            # QUDT URI (unit:MilliM, unit:KiloGM)
+    name: str           # Full name (Millimeter, Kilogram)
+    quantity_kind: str  # Quantity kind URI (qkdv:Length, qkdv:Mass)
+    is_default: bool = False
+
+@dataclass 
+class CacheStatus:
+    """Status information about the QUDT cache"""
+    total_quantity_kinds: int
+    total_units: int
+    last_updated: Optional[float]
+    is_loaded: bool
     
 @dataclass
 class PropertyMetadata:
@@ -50,6 +67,11 @@ class PropertyMetadata:
     max_length: Optional[int] = None
     pattern: Optional[str] = None
     group_order: Optional[int] = None  
+
+    # Unit-related fields
+    quantity_kind: Optional[str] = None
+    compatible_units: Optional[List[UnitInfo]] = field(default_factory=list)
+    is_measurement_property: bool = False
     
     def __post_init__(self):
         """Validate and normalize after creation"""
@@ -60,6 +82,13 @@ class PropertyMetadata:
             self.form_group = "General"
         if self.valid_values:
             self.valid_values = [v.strip() for v in self.valid_values if v.strip()]
+
+        # Determine if this is a measurement property
+        self.is_measurement_property = (
+            self.quantity_kind is not None and 
+            self.default_unit is not None and
+            self.data_type.lower() in ['double', 'float', 'decimal']
+        )
             
     def _extract_display_name(self, name: str) -> str:
         """Extract human-readable name"""
@@ -117,7 +146,7 @@ class ClassMetadata:
     is_abstract: bool = False
     validation_rules: Dict[str, Any] = field(default_factory=dict)
     creation_template: Optional[str] = None
-    
+
     def __post_init__(self):
         if not self.label:
             self.label = self._extract_display_name(self.name)
@@ -166,6 +195,16 @@ class OntologyManager:
         
         # Load ontology files
         self._load_ontology_files()
+
+        # QUDT Cache
+        self._qudt_cache: Dict[str, List[UnitInfo]] = {}
+        self._unit_lookup: Dict[str, UnitInfo] = {}  # URI -> UnitInfo
+        self._symbol_lookup: Dict[str, UnitInfo] = {}  # Symbol -> UnitInfo
+        self._cache_timestamp: Optional[float] = None
+        self._cache_loaded = False
+        
+        # Load QUDT cache on initialization
+        self._load_qudt_cache()
         
         logger.info(f"Ontology manager initialized with {len(self.graph)} triples")
     
@@ -395,7 +434,7 @@ class OntologyManager:
                 display_name=str(row.displayName) if row.displayName else "",  # Will be auto-generated
                 form_group=str(row.formGroup) if row.formGroup else "",  # Will default to "General"
                 display_order=int(row.displayOrder) if row.displayOrder else 999,
-                data_type=self._normalize_data_type(str(row.propertyType)),
+                data_type=self._get_data_type_from_range(str(row['range']) if row.range else None, str(row.propertyType)),
                 is_functional=bool(row.functional),
                 is_required=False,  # Will be determined from SHACL shapes
                 valid_values=str(row.validValues).split(",") if row.validValues else [],
@@ -558,16 +597,14 @@ class OntologyManager:
     # ============================================================================
     
     def get_class_metadata_for_form(self, class_uri: str) -> ClassMetadata:
-        """
-        Get comprehensive metadata for generating GUI forms.
+        """ENHANCED VERSION - Get comprehensive metadata for generating GUI forms."""
         
-        Args:
-            class_uri: URI of the class
-            
-        Returns:
-            ClassMetadata object with all form-building information
-        """
+        # FORCE DEBUG OUTPUT
+        print(f"!!! GET_CLASS_METADATA_FOR_FORM CALLED FOR: {class_uri}")
+        logger.info(f"!!! GET_CLASS_METADATA_FOR_FORM CALLED FOR: {class_uri}")
+        
         if class_uri in self.classes_cache:
+            print("!!! RETURNING CACHED METADATA")
             return self.classes_cache[class_uri]
         
         # Get basic class info
@@ -596,7 +633,13 @@ class OntologyManager:
         parent_classes = [str(row['parent']) for row in parent_results]
         
         # Get properties with GUI metadata
+        print("!!! GETTING CLASS PROPERTIES")
         properties = self.get_class_properties(class_uri, include_inherited=True)
+        print(f"!!! FOUND {len(properties)} PROPERTIES")
+        
+        # ENHANCED: Add unit information to properties that need it
+        print("!!! CALLING _enhance_properties_with_unit_info")
+        self._enhance_properties_with_unit_info(properties)
         
         # Group properties by form group
         form_groups = {}
@@ -621,7 +664,69 @@ class OntologyManager:
         )
         
         self.classes_cache[class_uri] = metadata
+        print("!!! METADATA CREATED AND CACHED")
         return metadata
+    
+    def _enhance_properties_with_unit_info(self, properties: List[PropertyMetadata]):
+        """
+        Enhance existing property metadata objects with unit information.
+        """
+        
+        print(f"!!! _enhance_properties_with_unit_info CALLED WITH {len(properties)} PROPERTIES")
+        logger.info(f"!!! _enhance_properties_with_unit_info CALLED WITH {len(properties)} PROPERTIES")
+        
+        measurement_count = 0
+        
+        for i, prop in enumerate(properties):
+            print(f"!!! Processing property {i+1}/{len(properties)}: {prop.uri}")
+            
+            # Check if property already has the new attributes
+            if not hasattr(prop, 'quantity_kind'):
+                print(f"!!! Adding unit attributes to property {prop.uri}")
+                prop.quantity_kind = None
+                prop.compatible_units = []
+                prop.is_measurement_property = False
+            
+            # Check data type
+            print(f"!!! Property {prop.uri} data_type: '{prop.data_type}'")
+            
+            # FIXED: Check for measurement properties regardless of detected data_type
+            # Instead, check if property has QUDT annotations (which indicates it's a measurement)
+            quantity_kind = self.get_quantity_kind_for_property(prop.uri)
+            default_unit = self.get_default_unit_for_property(prop.uri)
+            
+            print(f"!!! Property {prop.uri}: quantity_kind='{quantity_kind}', default_unit='{default_unit}'")
+            
+            if quantity_kind and default_unit:
+                # This is definitely a measurement property - QUDT annotations prove it
+                print(f"!!! *** MEASUREMENT PROPERTY DETECTED: {prop.uri} ***")
+                print(f"!!!     (Has QUDT annotations regardless of data_type='{prop.data_type}')")
+                
+                compatible_units, _ = self.get_units_for_property(prop.uri)
+                
+                # Enhance the existing property object
+                prop.quantity_kind = quantity_kind
+                prop.compatible_units = compatible_units
+                prop.is_measurement_property = True
+                
+                measurement_count += 1
+                print(f"!!! Enhanced measurement property {prop.uri} with {len(compatible_units)} units")
+                
+                # Print available units
+                for unit in compatible_units:
+                    print(f"!!!   Available unit: {unit.symbol} ({unit.uri})")
+            else:
+                if quantity_kind:
+                    print(f"!!! Property {prop.uri} has quantity_kind but no default_unit")
+                elif default_unit:
+                    print(f"!!! Property {prop.uri} has default_unit but no quantity_kind")
+                else:
+                    # Only log for properties that look like they should be measurements
+                    if any(keyword in prop.uri.lower() for keyword in ['thickness', 'length', 'diameter', 'width', 'height', 'mass']):
+                        print(f"!!! Property {prop.uri} looks like measurement but has no QUDT annotations")
+        
+        print(f"!!! FINAL RESULT: Enhanced {measurement_count} measurement properties out of {len(properties)} total")
+        logger.info(f"!!! FINAL RESULT: Enhanced {measurement_count} measurement properties out of {len(properties)} total")
     
     def get_valid_values_for_property(self, property_uri: str) -> List[str]:
         """Get valid values for a property (for dropdowns)"""
@@ -969,3 +1074,219 @@ class OntologyManager:
         stats["individuals"] = int(result[0].count) if result else 0
         
         return stats
+
+    def _load_qudt_cache(self):
+        """Load QUDT unit cache from the ontology"""
+        try:
+            logger.info("Loading QUDT unit cache...")
+            
+            # Get all quantity kinds that have units in the graph
+            quantity_kinds = self._discover_quantity_kinds()
+            
+            for qk_uri in quantity_kinds:
+                units = self._get_units_for_quantity_kind(qk_uri)
+                if units:
+                    self._qudt_cache[qk_uri] = units
+                    
+                    # Build lookup indices
+                    for unit in units:
+                        self._unit_lookup[unit.uri] = unit
+                        self._symbol_lookup[unit.symbol] = unit
+            
+            self._cache_timestamp = time.time()
+            self._cache_loaded = True
+            
+            total_units = sum(len(units) for units in self._qudt_cache.values())
+            logger.info(f"QUDT cache loaded: {len(self._qudt_cache)} quantity kinds, {total_units} units")
+            
+        except Exception as e:
+            logger.error(f"Failed to load QUDT cache: {e}")
+            self._cache_loaded = False
+    
+    def _discover_quantity_kinds(self) -> List[str]:
+        """Discover all quantity kinds that have associated units in the ontology"""
+        try:
+            query = """
+            SELECT DISTINCT ?quantityKind WHERE {
+                ?property qudt:hasQuantityKind ?quantityKind .
+            }
+            """
+            
+            results = self.graph.query(query, initNs=self.namespaces)
+            quantity_kinds = [str(row.quantityKind) for row in results]
+            
+            logger.debug(f"Found {len(quantity_kinds)} quantity kinds: {quantity_kinds}")
+            return quantity_kinds
+            
+        except Exception as e:
+            logger.error(f"Error discovering quantity kinds: {e}")
+            return []
+    
+    def _get_units_for_quantity_kind(self, quantity_kind_uri: str) -> List[UnitInfo]:
+        """Get all units for a specific quantity kind from external QUDT data"""
+        # For now, return curated lists based on quantity kind
+        # This can be expanded later to query external QUDT vocabulary
+        
+        curated_units = {
+            str(self.QKDV.Length): [
+                UnitInfo("mm", "unit:MilliM", "Millimeter", str(self.QKDV.Length)),
+                UnitInfo("cm", "unit:CentiM", "Centimeter", str(self.QKDV.Length)),
+                UnitInfo("m", "unit:M", "Meter", str(self.QKDV.Length)),
+                UnitInfo("in", "unit:IN", "Inch", str(self.QKDV.Length)),
+                UnitInfo("ft", "unit:FT", "Foot", str(self.QKDV.Length)),
+            ],
+            str(self.QKDV.Mass): [
+                UnitInfo("g", "unit:GM", "Gram", str(self.QKDV.Mass)),
+                UnitInfo("kg", "unit:KiloGM", "Kilogram", str(self.QKDV.Mass)),
+                UnitInfo("mg", "unit:MilliGM", "Milligram", str(self.QKDV.Mass)),
+                UnitInfo("lb", "unit:LB", "Pound", str(self.QKDV.Mass)),
+            ],
+            str(self.QKDV.Area): [
+                UnitInfo("mm²", "unit:MilliM2", "Square Millimeter", str(self.QKDV.Area)),
+                UnitInfo("cm²", "unit:CentiM2", "Square Centimeter", str(self.QKDV.Area)),
+                UnitInfo("m²", "unit:M2", "Square Meter", str(self.QKDV.Area)),
+                UnitInfo("in²", "unit:IN2", "Square Inch", str(self.QKDV.Area)),
+            ],
+            str(self.QKDV.Pressure): [
+                UnitInfo("Pa", "unit:PA", "Pascal", str(self.QKDV.Pressure)),
+                UnitInfo("kPa", "unit:KiloPA", "Kilopascal", str(self.QKDV.Pressure)),
+                UnitInfo("MPa", "unit:MegaPA", "Megapascal", str(self.QKDV.Pressure)),
+                UnitInfo("GPa", "unit:GigaPA", "Gigapascal", str(self.QKDV.Pressure)),
+                UnitInfo("psi", "unit:PSI", "Pounds per Square Inch", str(self.QKDV.Pressure)),
+            ],
+            str(self.QKDV.Temperature): [
+                UnitInfo("°C", "unit:DEG_C", "Degree Celsius", str(self.QKDV.Temperature)),
+                UnitInfo("°F", "unit:DEG_F", "Degree Fahrenheit", str(self.QKDV.Temperature)),
+                UnitInfo("K", "unit:K", "Kelvin", str(self.QKDV.Temperature)),
+            ]
+        }
+        
+        return curated_units.get(quantity_kind_uri, [])
+    
+    def get_quantity_kind_for_property(self, property_uri: str) -> Optional[str]:
+        """Get the quantity kind for a property"""
+        try:
+            query = f"""
+            SELECT ?quantityKind WHERE {{
+                <{property_uri}> qudt:hasQuantityKind ?quantityKind .
+            }}
+            """
+            results = self.graph.query(query, initNs=self.namespaces)
+            for row in results:
+                return str(row.quantityKind)
+            return None
+        except Exception as e:
+            logger.error(f"Error getting quantity kind for {property_uri}: {e}")
+            return None
+    
+    def get_default_unit_for_property(self, property_uri: str) -> Optional[str]:
+        """Get the default unit URI for a property"""
+        try:
+            query = f"""
+            SELECT ?defaultUnit WHERE {{
+                <{property_uri}> dyn:hasDefaultUnit ?defaultUnit .
+            }}
+            """
+            results = self.graph.query(query, initNs=self.namespaces)
+            for row in results:
+                return str(row.defaultUnit)
+            return None
+        except Exception as e:
+            logger.error(f"Error getting default unit for {property_uri}: {e}")
+            return None
+    
+    def get_units_for_property(self, property_uri: str) -> Tuple[List[UnitInfo], Optional[str]]:
+        """
+        Get compatible units and default unit for a property.
+        
+        Returns:
+            Tuple of (compatible_units_list, default_unit_uri)
+        """
+        quantity_kind = self.get_quantity_kind_for_property(property_uri)
+        default_unit = self.get_default_unit_for_property(property_uri)
+        
+        if not quantity_kind:
+            logger.debug(f"No quantity kind found for property {property_uri}")
+            return [], default_unit
+        
+        compatible_units = self._qudt_cache.get(quantity_kind, [])
+        
+        # Mark default unit in the list
+        if default_unit:
+            for unit in compatible_units:
+                unit.is_default = (unit.uri == default_unit)
+        
+        logger.debug(f"Found {len(compatible_units)} compatible units for {property_uri}")
+        return compatible_units, default_unit
+    
+    def find_unit_by_uri(self, unit_uri: str) -> Optional[UnitInfo]:
+        """Find unit information by URI"""
+        return self._unit_lookup.get(unit_uri)
+    
+    def find_unit_by_symbol(self, unit_symbol: str) -> Optional[UnitInfo]:
+        """Find unit information by symbol"""
+        return self._symbol_lookup.get(unit_symbol)
+    
+    def is_measurement_property(self, property_uri: str) -> bool:
+        """Check if a property is a measurement property (has quantity kind and default unit)"""
+        quantity_kind = self.get_quantity_kind_for_property(property_uri)
+        default_unit = self.get_default_unit_for_property(property_uri)
+        return quantity_kind is not None and default_unit is not None
+    
+    def get_cache_status(self) -> CacheStatus:
+        """Get status information about the QUDT cache"""
+        total_units = sum(len(units) for units in self._qudt_cache.values())
+        return CacheStatus(
+            total_quantity_kinds=len(self._qudt_cache),
+            total_units=total_units,
+            last_updated=self._cache_timestamp,
+            is_loaded=self._cache_loaded
+        )
+    
+    def refresh_qudt_cache(self):
+        """Refresh the QUDT cache"""
+        self._qudt_cache.clear()
+        self._unit_lookup.clear()
+        self._symbol_lookup.clear()
+        self._cache_timestamp = None
+        self._cache_loaded = False
+        self._load_qudt_cache()
+
+    def _get_data_type_from_range(self, range_value: Optional[str], property_type: str) -> str:
+        """
+        Determine proper data type from rdfs:range value.
+        
+        Args:
+            range_value: The rdfs:range value (e.g., "http://www.w3.org/2001/XMLSchema#double")
+            property_type: The property type (e.g., "owl:DatatypeProperty")
+            
+        Returns:
+            Normalized data type string
+        """
+        if not range_value:
+            # Fallback to your existing method
+            return self._normalize_data_type(property_type)
+        
+        # Check for XSD types
+        if "XMLSchema#double" in range_value or "xsd:double" in range_value:
+            return "double"
+        elif "XMLSchema#float" in range_value or "xsd:float" in range_value:
+            return "float"
+        elif "XMLSchema#decimal" in range_value or "xsd:decimal" in range_value:
+            return "decimal"
+        elif "XMLSchema#integer" in range_value or "xsd:integer" in range_value or "XMLSchema#int" in range_value:
+            return "integer"
+        elif "XMLSchema#boolean" in range_value or "xsd:boolean" in range_value:
+            return "boolean"
+        elif "XMLSchema#string" in range_value or "xsd:string" in range_value:
+            return "string"
+        elif "XMLSchema#date" in range_value or "xsd:date" in range_value:
+            return "date"
+        elif "XMLSchema#dateTime" in range_value or "xsd:dateTime" in range_value:
+            return "datetime"
+        elif range_value.startswith(str(self.DYN)) or ("dynamat.utep.edu" in range_value):
+            # Custom ontology class - object property
+            return "object"
+        else:
+            # Fallback to your existing method
+            return self._normalize_data_type(property_type)

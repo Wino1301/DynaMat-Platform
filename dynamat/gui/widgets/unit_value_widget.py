@@ -1,42 +1,61 @@
+# Replace dynamat/gui/widgets/unit_value_widget.py
+
 """
 DynaMat Platform - Unit-Value Widget
-Custom widget for entering dimensional values with units
+Custom widget for entering dimensional values with units from QUDT ontology
 """
 
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 
 from PyQt6.QtWidgets import (
     QWidget, QHBoxLayout, QDoubleSpinBox, QComboBox, QLabel
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 
+# Import UnitInfo from ontology manager
+from ...ontology.manager import UnitInfo, PropertyMetadata
+
 logger = logging.getLogger(__name__)
 
 
+# Add debug output to your UnitValueWidget class
+
 class UnitValueWidget(QWidget):
-    """
-    Custom widget for entering dimensional values with units.
-    
-    Combines a QDoubleSpinBox for the value with a QComboBox for the unit.
-    """
-    
-    # Signals
+    """Enhanced UnitValueWidget with debugging"""
+
+    # Signals 
     valueChanged = pyqtSignal(float)
     unitChanged = pyqtSignal(str)
     dataChanged = pyqtSignal()
     
-    def __init__(self, default_unit: str = None, available_units: List[str] = None, parent=None):
+    def __init__(self, default_unit: str = None, available_units: List = None,
+                 property_uri: str = None, parent=None):
         super().__init__(parent)
+        
+        print(f"!!! UnitValueWidget.__init__ called")
+        print(f"!!!   property_uri: {property_uri}")
+        print(f"!!!   default_unit: {default_unit}")
+        print(f"!!!   available_units: {len(available_units) if available_units else 0}")
+        
+        if available_units:
+            for i, unit in enumerate(available_units):
+                print(f"!!!     Unit {i}: {unit.symbol} ({unit.uri})")
         
         self.default_unit = default_unit
         self.available_units = available_units or []
+        self.property_uri = property_uri
         
         self._setup_ui()
+        self._populate_units()
         self._connect_signals()
-    
+        
+        print(f"!!! UnitValueWidget created - combo box has {self.unit_combobox.count()} items")
+        
     def _setup_ui(self):
         """Setup the widget UI"""
+        print("!!! Setting up UnitValueWidget UI")
+        
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
@@ -48,83 +67,111 @@ class UnitValueWidget(QWidget):
         self.value_spinbox.setDecimals(6)
         self.value_spinbox.setSingleStep(0.1)
         self.value_spinbox.setMinimumWidth(100)
-        layout.addWidget(self.value_spinbox, 1)  # Give more space to the value
+        layout.addWidget(self.value_spinbox, 1)
         
-        # Unit combobox
+        # Unit combobox - MAKE IT WIDER AND MORE VISIBLE
         self.unit_combobox = QComboBox()
-        self.unit_combobox.setMinimumWidth(60)
-        self.unit_combobox.setMaximumWidth(80)
-        layout.addWidget(self.unit_combobox, 0)  # Fixed size for unit
+        self.unit_combobox.setMinimumWidth(100)  # Increased from 60
+        self.unit_combobox.setMaximumWidth(120)  # Increased from 80
+        self.unit_combobox.setStyleSheet("QComboBox { border: 1px solid gray; padding: 2px; }")  # Make it more visible
+        layout.addWidget(self.unit_combobox, 0)
         
-        # Populate units
-        self._populate_units()
+        print(f"!!! Created unit combobox - initial count: {self.unit_combobox.count()}")
     
     def _populate_units(self):
-        """Populate the unit combobox"""
+        """Populate the unit combobox from available units"""
+        print(f"!!! _populate_units called with {len(self.available_units)} units")
+        
         self.unit_combobox.clear()
         
-        if self.available_units:
-            # Use provided units
-            for unit in self.available_units:
-                unit_symbol = self._extract_unit_symbol(unit)
-                self.unit_combobox.addItem(unit_symbol, unit)
-        else:
-            # Default units based on default unit
-            default_symbol = self._extract_unit_symbol(self.default_unit) if self.default_unit else "mm"
-            
-            # Add common units based on the default unit type
-            if "length" in default_symbol.lower() or "mm" in default_symbol.lower() or "m" in default_symbol:
-                self.unit_combobox.addItem("mm", "unit:MilliM")
-                self.unit_combobox.addItem("cm", "unit:CentiM")  
-                self.unit_combobox.addItem("m", "unit:M")
-                self.unit_combobox.addItem("in", "unit:IN")
-            elif "mass" in default_symbol.lower() or "g" in default_symbol:
-                self.unit_combobox.addItem("g", "unit:GM")
-                self.unit_combobox.addItem("kg", "unit:KiloGM")
-                self.unit_combobox.addItem("mg", "unit:MilliGM")
-            elif "area" in default_symbol.lower() or "²" in default_symbol:
-                self.unit_combobox.addItem("mm²", "unit:MilliM2")
-                self.unit_combobox.addItem("cm²", "unit:CentiM2")
-                self.unit_combobox.addItem("m²", "unit:M2")
-                self.unit_combobox.addItem("in²", "unit:IN2")
-            else:
-                # Generic unit
-                self.unit_combobox.addItem(default_symbol, self.default_unit or "")
+        if not self.available_units:
+            print("!!! No available units - adding fallback")
+            self.unit_combobox.addItem("unit", "")
+            return
         
-        # Set default unit if specified
-        if self.default_unit:
-            default_symbol = self._extract_unit_symbol(self.default_unit)
-            for i in range(self.unit_combobox.count()):
-                if self.unit_combobox.itemText(i) == default_symbol:
-                    self.unit_combobox.setCurrentIndex(i)
-                    break
-    
-    def _extract_unit_symbol(self, unit_uri: str) -> str:
-        """Extract unit symbol from QUDT URI or unit string"""
-        if not unit_uri:
-            return "unit"
+        print("!!! Starting to add units to combobox...")
+        default_index = -1
         
-        # Handle QUDT URIs
-        if "unit:" in unit_uri:
-            unit_part = unit_uri.split("unit:")[-1]
-            
-            # Common unit mappings
-            unit_mappings = {
-                "MilliM": "mm", "MilliM2": "mm²", "MilliM3": "mm³",
-                "CentiM": "cm", "CentiM2": "cm²", "CentiM3": "cm³",
-                "M": "m", "M2": "m²", "M3": "m³",
-                "IN": "in", "IN2": "in²", "IN3": "in³",
-                "GM": "g", "KiloGM": "kg", "MilliGM": "mg",
-                "PA": "Pa", "KiloPA": "kPa", "MegaPA": "MPa", "GigaPA": "GPa",
-                "SEC": "s", "MIN": "min", "HR": "hr",
-                "DEG_C": "°C", "DEG_F": "°F", "K": "K"
-            }
-            
-            return unit_mappings.get(unit_part, unit_part.lower())
+        for i, unit_info in enumerate(self.available_units):
+            try:
+                print(f"!!! Processing unit {i}: {unit_info}")
+                
+                # Handle UnitInfo objects
+                symbol = unit_info.symbol
+                uri = unit_info.uri
+                
+                print(f"!!!   symbol: {symbol}, uri: {uri}")
+                
+                self.unit_combobox.addItem(symbol, uri)
+                print(f"!!!   Added item - combobox count now: {self.unit_combobox.count()}")
+                
+                self.unit_combobox.setItemData(i, unit_info.name, Qt.ItemDataRole.ToolTipRole)
+                
+                # Set default
+                if self.default_unit and uri == self.default_unit:
+                    default_index = i
+                    print(f"!!!   Found default unit at index {i}")
+                    
+            except Exception as e:
+                print(f"!!! ERROR processing unit {i}: {e}")
         
-        # Handle direct unit symbols
-        return unit_uri
-    
+        print(f"!!! Final combobox count: {self.unit_combobox.count()}")
+        
+        if default_index >= 0:
+            self.unit_combobox.setCurrentIndex(default_index)
+            print(f"!!! Set default to index {default_index}")
+
+# Also add debugging to the form builder's _create_unit_value_widget method:
+
+    def _create_unit_value_widget(self, prop: PropertyMetadata) -> QWidget:
+        """Create unit-value widget for measurement properties - ENHANCED DEBUGGING"""
+        print(f"!!! _create_unit_value_widget CALLED for {prop.uri}")
+        
+        try:
+            # Get compatible units from the property
+            compatible_units = getattr(prop, 'compatible_units', [])
+            default_unit = getattr(prop, 'default_unit', None)
+            
+            print(f"!!! Property {prop.uri}:")
+            print(f"!!!   compatible_units: {len(compatible_units)}")
+            print(f"!!!   default_unit: {default_unit}")
+            
+            if compatible_units:
+                print("!!! Compatible units found:")
+                for i, unit in enumerate(compatible_units):
+                    print(f"!!!   {i}: {unit.symbol} ({unit.uri}) - default: {unit.is_default}")
+            
+            if not compatible_units:
+                print(f"!!! ERROR: No compatible units for {prop.uri}, falling back to regular float widget")
+                return self._create_float_widget(prop)
+            
+            # Create unit value widget
+            print(f"!!! Creating UnitValueWidget with {len(compatible_units)} units...")
+            
+            widget = UnitValueWidget(
+                default_unit=default_unit,
+                available_units=compatible_units,
+                property_uri=prop.uri
+            )
+            
+            print(f"!!! UnitValueWidget created successfully")
+            
+            # Set validation constraints if available
+            if hasattr(prop, 'min_value') and prop.min_value is not None:
+                widget.setMinimum(prop.min_value)
+            if hasattr(prop, 'max_value') and prop.max_value is not None:
+                widget.setMaximum(prop.max_value)
+            
+            # Final check
+            print(f"!!! Final widget has {widget.unit_combobox.count()} combo items")
+            return widget
+            
+        except Exception as e:
+            print(f"!!! ERROR: Exception in _create_unit_value_widget: {e}")
+            import traceback
+            traceback.print_exc()
+            return self._create_float_widget(prop)
+
     def _connect_signals(self):
         """Connect internal signals"""
         self.value_spinbox.valueChanged.connect(self.valueChanged.emit)

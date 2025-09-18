@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from ..ontology.manager import OntologyManager
+from .widgets.unit_value_widget import UnitValueWidget
 
 
 logger = logging.getLogger(__name__)
@@ -126,7 +127,11 @@ class DependencyManager(QObject):
     def _connect_widget_signal(self, widget: QWidget, rule_name: str, rule_config: dict):
         """Connect appropriate signal based on widget type"""
         try:
-            if isinstance(widget, QComboBox):
+            if isinstance(widget, UnitValueWidget):
+                widget.valueChanged.connect(
+                    lambda: self._on_trigger_changed(rule_name, rule_config)
+                )
+            elif isinstance(widget, QComboBox):
                 widget.currentTextChanged.connect(
                     lambda: self._on_trigger_changed(rule_name, rule_config)
                 )
@@ -610,7 +615,6 @@ class DependencyManager(QObject):
         if len(dimension_properties) < 2:
             return
         
-        # Use the first property as the source
         source_prop = dimension_properties[0]
         source_uri = f"https://dynamat.utep.edu/ontology#{source_prop}"
         
@@ -628,8 +632,9 @@ class DependencyManager(QObject):
                         target_field = self.active_form.form_fields[target_uri]
                         self._set_widget_value(target_field.widget, value)
         
-        # Connect the synchronization
-        if isinstance(source_field.widget, QLineEdit):
+        if isinstance(source_field.widget, UnitValueWidget):
+            source_field.widget.valueChanged.connect(sync_dimensions)
+        elif isinstance(source_field.widget, QLineEdit):
             source_field.widget.textChanged.connect(sync_dimensions)
         elif isinstance(source_field.widget, (QSpinBox, QDoubleSpinBox)):
             source_field.widget.valueChanged.connect(sync_dimensions)
@@ -641,7 +646,9 @@ class DependencyManager(QObject):
     def _extract_widget_value(self, widget: QWidget) -> Any:
         """Extract current value from a widget"""
         try:
-            if isinstance(widget, QComboBox):
+            if isinstance(widget, UnitValueWidget):
+                return widget.getValue()
+            elif isinstance(widget, QComboBox):
                 # For ComboBox, try to get data first (URI), then text (display name)
                 data = widget.currentData()
                 text = widget.currentText()
@@ -672,7 +679,10 @@ class DependencyManager(QObject):
     def _set_widget_value(self, widget: QWidget, value: Any) -> bool:
         """Set value in a specific widget"""
         try:
-            if isinstance(widget, QComboBox):
+            if isinstance(widget, UnitValueWidget):
+                widget.setValue(float(value))
+                return True
+            elif isinstance(widget, QComboBox):
                 # Try to set by data first, then by text
                 index = widget.findData(value)
                 if index >= 0:
@@ -709,21 +719,51 @@ class DependencyManager(QObject):
                 field = self.active_form.form_fields[uri]
                 field.widget.setVisible(visible)
                 
-                # Also hide/show the label if it exists
-                if hasattr(field.widget.parent(), 'layout'):
-                    layout = field.widget.parent().layout()
-                    if layout:
-                        # Find the label widget in the form layout
-                        for i in range(layout.count()):
-                            item = layout.itemAt(i)
-                            if item and item.widget():
-                                widget = item.widget()
-                                # Check if this is a label for our field
-                                if (hasattr(widget, 'buddy') and widget.buddy() == field.widget) or \
-                                   (hasattr(widget, 'text') and callable(getattr(widget, 'text', None)) and 
-                                    widget.text() and field.property_metadata.display_name in widget.text()):
-                                    widget.setVisible(visible)
-                                    break
+                # Find and hide/show the associated label
+                self._set_field_label_visibility(field, visible)
+    
+    def _set_field_label_visibility(self, field, visible: bool):
+        """Set visibility for a field's label"""
+        try:
+            # Get the parent form layout
+            widget = field.widget
+            parent = widget.parent()
+            
+            if not parent or not hasattr(parent, 'layout'):
+                return
+                
+            layout = parent.layout()
+            if not layout:
+                return
+            
+            # For QFormLayout, find the label in the same row
+            from PyQt6.QtWidgets import QFormLayout
+            if isinstance(layout, QFormLayout):
+                # Find which row this widget is in
+                for i in range(layout.rowCount()):
+                    if layout.itemAt(i, QFormLayout.ItemRole.FieldRole):
+                        field_item = layout.itemAt(i, QFormLayout.ItemRole.FieldRole)
+                        if field_item.widget() == widget:
+                            # Found our widget, now get the label
+                            label_item = layout.itemAt(i, QFormLayout.ItemRole.LabelRole)
+                            if label_item and label_item.widget():
+                                label_item.widget().setVisible(visible)
+                            break
+            else:
+                # Fallback: search for label by text matching
+                for i in range(layout.count()):
+                    item = layout.itemAt(i)
+                    if item and item.widget():
+                        label_widget = item.widget()
+                        if (hasattr(label_widget, 'text') and 
+                            callable(getattr(label_widget, 'text', None)) and
+                            hasattr(field, 'property_metadata') and
+                            field.property_metadata.display_name in str(label_widget.text())):
+                            label_widget.setVisible(visible)
+                            break
+                            
+        except Exception as e:
+            self.logger.error(f"Error setting label visibility: {e}")
     
     def _get_material_code(self, material_uri: str) -> str:
         """Get material code from material URI"""

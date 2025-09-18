@@ -19,8 +19,9 @@ from PyQt6.QtGui import QFont
 
 from rdflib import URIRef
 
-from ..ontology.manager import OntologyManager, PropertyMetadata, ClassMetadata
+from ..ontology.manager import OntologyManager, PropertyMetadata, ClassMetadata, UnitInfo
 from .dependency_manager import DependencyManager
+from .widgets.unit_value_widget import UnitValueWidget
 
 logger = logging.getLogger(__name__)
 
@@ -74,10 +75,12 @@ class OntologyFormBuilder:
         Returns:
             Widget containing the complete form
         """
+        print(f"@@@ build_form CALLED for {class_uri}")
         try:
             self.logger.info(f"Building form for class: {class_uri}")
             
             # Get class metadata - using your existing method
+            self.ontology_manager.classes_cache.clear()
             class_metadata = self.ontology_manager.get_class_metadata_for_form(class_uri)
             self.logger.info(f"Got metadata for {class_metadata.name} with {len(class_metadata.properties)} properties")
             
@@ -281,36 +284,33 @@ class OntologyFormBuilder:
     def _create_field_widget(self, prop: PropertyMetadata) -> Optional[QWidget]:
         """
         Create appropriate widget for a property based on its metadata.
-        
-        Args:
-            prop: Property metadata
-            
-        Returns:
-            Appropriate widget for the property
         """
-        # Use the actual data_type attribute from your PropertyMetadata
+        print(f"@@@ _create_field_widget CALLED: {prop.uri}")
+        
         data_type = prop.data_type.lower()
         
-        # Handle different data types based on your ontology structure
+        # Handle different data types
         if data_type == "object":
-            # Object properties - create combo with valid instances
             return self._create_object_combo_widget(prop)
         elif "string" in data_type or data_type == "data":
-            # String/text properties
             if prop.valid_values:
                 return self._create_combo_widget(prop)
             else:
                 return self._create_string_widget(prop)
         elif "int" in data_type:
             return self._create_integer_widget(prop)
-        elif "double" in data_type or "float" in data_type:
-            return self._create_float_widget(prop)
+        elif "double" in data_type or "float" in data_type or "decimal" in data_type:
+            # MEASUREMENT PROPERTY CHECK - This is the key addition!
+            if hasattr(prop, 'is_measurement_property') and prop.is_measurement_property:
+                print(f"!!! Creating unit value widget for {prop.uri}")
+                return self._create_unit_value_widget(prop)
+            else:
+                return self._create_float_widget(prop)
         elif "date" in data_type:
             return self._create_date_widget(prop)
         elif "bool" in data_type:
             return self._create_boolean_widget(prop)
         else:
-            # Default to string widget for unknown types
             self.logger.info(f"Unknown data type '{data_type}' for {prop.uri}, using string widget")
             return self._create_string_widget(prop)
     
@@ -522,3 +522,144 @@ class OntologyFormBuilder:
                 if layout.count() > 0:
                     first_widget = layout.itemAt(0).widget()
                     self._populate_widget_value(first_widget, value)
+
+    def _create_widget_for_property(self, prop: PropertyMetadata) -> QWidget:
+        """
+        Create appropriate widget for property - MODIFIED to handle measurement properties with debugging
+        """
+        # DEBUG: Log widget creation
+        print(f"@@@ _create_widget_for_property CALLED: {prop.uri}")
+        logger.debug(f"Creating widget for property: {prop.uri}, data_type: {prop.data_type}, is_measurement: {getattr(prop, 'is_measurement_property', False)}")
+        
+        # Use the actual data_type attribute from your PropertyMetadata
+        data_type = prop.data_type.lower()
+        
+        # Handle different data types based on your ontology structure
+        if data_type == "object":
+            # Object properties - create combo with valid instances
+            return self._create_object_combo_widget(prop)
+        elif "string" in data_type or data_type == "data":
+            # String/text properties
+            if prop.valid_values:
+                return self._create_combo_widget(prop)
+            else:
+                return self._create_string_widget(prop)
+        elif "int" in data_type:
+            return self._create_integer_widget(prop)
+            
+        elif "double" in data_type or "float" in data_type or "decimal" in data_type:
+            # TEMP: Force logging for measurement-like properties
+            if any(keyword in prop.uri.lower() for keyword in ['thickness', 'length', 'diameter', 'width', 'height', 'mass']):
+                print(f"!!! PROCESSING MEASUREMENT PROPERTY: {prop.uri}")
+                print(f"!!!   has is_measurement_property: {hasattr(prop, 'is_measurement_property')}")
+                if hasattr(prop, 'is_measurement_property'):
+                    print(f"!!!   is_measurement_property value: {prop.is_measurement_property}")
+                if hasattr(prop, 'compatible_units'):
+                    print(f"!!!   compatible_units count: {len(prop.compatible_units)}")
+                print(f"!!!   default_unit: {getattr(prop, 'default_unit', 'MISSING')}")
+            
+            # Check if this is a measurement property
+            if hasattr(prop, 'is_measurement_property') and prop.is_measurement_property:
+                print(f"!!! CALLING _create_unit_value_widget for {prop.uri}")
+                return self._create_unit_value_widget(prop)
+            else:
+                return self._create_float_widget(prop)
+                
+        elif "date" in data_type:
+            return self._create_date_widget(prop)
+        elif "bool" in data_type:
+            return self._create_boolean_widget(prop)
+        else:
+            # Default to string widget for unknown types
+            self.logger.info(f"Unknown data type '{data_type}' for {prop.uri}, using string widget")
+            return self._create_string_widget(prop)
+    
+    def _create_unit_value_widget(self, prop: PropertyMetadata) -> QWidget:
+        """Create unit-value widget for measurement properties"""
+        try:
+            # Import the widget
+            from .widgets.unit_value_widget import UnitValueWidget
+            
+            # Get units from property
+            compatible_units = getattr(prop, 'compatible_units', [])
+            default_unit = getattr(prop, 'default_unit', None)
+            
+            if not compatible_units:
+                return self._create_float_widget(prop)
+            
+            # Create widget
+            widget = UnitValueWidget(
+                default_unit=default_unit,
+                available_units=compatible_units,
+                property_uri=prop.uri
+            )
+            
+            return widget
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create unit widget: {e}")
+            return self._create_float_widget(prop)
+    
+    def _extract_widget_value(self, widget: QWidget) -> Any:
+        """Extract value from a widget - MODIFIED to handle UnitValueWidget"""
+        if isinstance(widget, UnitValueWidget):
+            # Return dictionary with value, unit, and unit symbol
+            return widget.getData()
+        elif isinstance(widget, QLineEdit):
+            return widget.text()
+        elif isinstance(widget, QComboBox):
+            return widget.currentData() or widget.currentText()
+        elif isinstance(widget, QSpinBox):
+            return widget.value()
+        elif isinstance(widget, QDoubleSpinBox):
+            return widget.value()
+        elif isinstance(widget, QDateEdit):
+            return widget.date().toString(Qt.DateFormat.ISODate)
+        elif isinstance(widget, QCheckBox):
+            return widget.isChecked()
+        elif isinstance(widget, QTextEdit):
+            return widget.toPlainText()
+        else:
+            # Try to handle compound widgets (existing logic)
+            if hasattr(widget, 'layout') and widget.layout():
+                layout = widget.layout()
+                if layout.count() > 0:
+                    first_widget = layout.itemAt(0).widget()
+                    return self._extract_widget_value(first_widget)
+        
+        return None
+    
+    def _populate_widget_value(self, widget: QWidget, value: Any):
+        """Populate widget with value - MODIFIED to handle UnitValueWidget"""
+        try:
+            if isinstance(widget, UnitValueWidget):
+                # Handle both simple values and complex unit data
+                if isinstance(value, dict):
+                    widget.setData(value)
+                else:
+                    # Simple numeric value, use default unit
+                    widget.setValue(float(value))
+            elif isinstance(widget, QLineEdit):
+                widget.setText(str(value))
+            elif isinstance(widget, QComboBox):
+                index = widget.findData(value)
+                if index >= 0:
+                    widget.setCurrentIndex(index)
+                else:
+                    index = widget.findText(str(value))
+                    if index >= 0:
+                        widget.setCurrentIndex(index)
+            elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+                widget.setValue(float(value))
+            elif isinstance(widget, QCheckBox):
+                widget.setChecked(bool(value))
+            elif isinstance(widget, QTextEdit):
+                widget.setPlainText(str(value))
+            elif isinstance(widget, QDateEdit):
+                # Handle date string conversion
+                if isinstance(value, str):
+                    date = QDate.fromString(value, Qt.DateFormat.ISODate)
+                    if date.isValid():
+                        widget.setDate(date)
+        except Exception as e:
+            self.logger.warning(f"Failed to populate widget with value {value}: {e}")

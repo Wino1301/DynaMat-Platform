@@ -16,6 +16,7 @@ import time
 
 from ..config import config
 
+
 # Set up logging
 logger = logging.getLogger(__name__)
 
@@ -67,11 +68,6 @@ class PropertyMetadata:
     max_length: Optional[int] = None
     pattern: Optional[str] = None
     group_order: Optional[int] = None  
-
-    # Unit-related fields
-    quantity_kind: Optional[str] = None
-    compatible_units: Optional[List[UnitInfo]] = field(default_factory=list)
-    is_measurement_property: bool = False
     
     def __post_init__(self):
         """Validate and normalize after creation"""
@@ -82,13 +78,6 @@ class PropertyMetadata:
             self.form_group = "General"
         if self.valid_values:
             self.valid_values = [v.strip() for v in self.valid_values if v.strip()]
-
-        # Determine if this is a measurement property
-        self.is_measurement_property = (
-            self.quantity_kind is not None and 
-            self.default_unit is not None and
-            self.data_type.lower() in ['double', 'float', 'decimal']
-        )
             
     def _extract_display_name(self, name: str) -> str:
         """Extract human-readable name"""
@@ -434,7 +423,7 @@ class OntologyManager:
                 display_name=str(row.displayName) if row.displayName else "",  # Will be auto-generated
                 form_group=str(row.formGroup) if row.formGroup else "",  # Will default to "General"
                 display_order=int(row.displayOrder) if row.displayOrder else 999,
-                data_type=self._get_data_type_from_range(str(row['range']) if row.range else None, str(row.propertyType)),
+                data_type=self._normalize_data_type(str(row.propertyType)),
                 is_functional=bool(row.functional),
                 is_required=False,  # Will be determined from SHACL shapes
                 valid_values=str(row.validValues).split(",") if row.validValues else [],
@@ -597,14 +586,17 @@ class OntologyManager:
     # ============================================================================
     
     def get_class_metadata_for_form(self, class_uri: str) -> ClassMetadata:
-        """ENHANCED VERSION - Get comprehensive metadata for generating GUI forms."""
+        """
+        Get comprehensive metadata for generating GUI forms.
         
-        # FORCE DEBUG OUTPUT
-        print(f"!!! GET_CLASS_METADATA_FOR_FORM CALLED FOR: {class_uri}")
-        logger.info(f"!!! GET_CLASS_METADATA_FOR_FORM CALLED FOR: {class_uri}")
-        
+        Args:
+            class_uri: URI of the class
+            
+        Returns:
+            ClassMetadata object with all form-building information
+        """
         if class_uri in self.classes_cache:
-            del self.classes_cache[class_uri]
+            return self.classes_cache[class_uri]
         
         # Get basic class info
         query = """
@@ -632,13 +624,7 @@ class OntologyManager:
         parent_classes = [str(row['parent']) for row in parent_results]
         
         # Get properties with GUI metadata
-        print("!!! GETTING CLASS PROPERTIES")
         properties = self.get_class_properties(class_uri, include_inherited=True)
-        print(f"!!! FOUND {len(properties)} PROPERTIES")
-        
-        # ENHANCED: Add unit information to properties that need it
-        print("!!! CALLING _enhance_properties_with_unit_info")
-        self._enhance_properties_with_unit_info(properties)
         
         # Group properties by form group
         form_groups = {}
@@ -663,69 +649,7 @@ class OntologyManager:
         )
         
         self.classes_cache[class_uri] = metadata
-        print("!!! METADATA CREATED AND CACHED")
         return metadata
-    
-    def _enhance_properties_with_unit_info(self, properties: List[PropertyMetadata]):
-        """
-        Enhance existing property metadata objects with unit information.
-        """
-        
-        print(f"!!! _enhance_properties_with_unit_info CALLED WITH {len(properties)} PROPERTIES")
-        logger.info(f"!!! _enhance_properties_with_unit_info CALLED WITH {len(properties)} PROPERTIES")
-        
-        measurement_count = 0
-        
-        for i, prop in enumerate(properties):
-            print(f"!!! Processing property {i+1}/{len(properties)}: {prop.uri}")
-            
-            # Check if property already has the new attributes
-            if not hasattr(prop, 'quantity_kind'):
-                print(f"!!! Adding unit attributes to property {prop.uri}")
-                prop.quantity_kind = None
-                prop.compatible_units = []
-                prop.is_measurement_property = False
-            
-            # Check data type
-            print(f"!!! Property {prop.uri} data_type: '{prop.data_type}'")
-            
-            # FIXED: Check for measurement properties regardless of detected data_type
-            # Instead, check if property has QUDT annotations (which indicates it's a measurement)
-            quantity_kind = self.get_quantity_kind_for_property(prop.uri)
-            default_unit = self.get_default_unit_for_property(prop.uri)
-            
-            print(f"!!! Property {prop.uri}: quantity_kind='{quantity_kind}', default_unit='{default_unit}'")
-            
-            if quantity_kind and default_unit:
-                # This is definitely a measurement property - QUDT annotations prove it
-                print(f"!!! *** MEASUREMENT PROPERTY DETECTED: {prop.uri} ***")
-                print(f"!!!     (Has QUDT annotations regardless of data_type='{prop.data_type}')")
-                
-                compatible_units, _ = self.get_units_for_property(prop.uri)
-                
-                # Enhance the existing property object
-                prop.quantity_kind = quantity_kind
-                prop.compatible_units = compatible_units
-                prop.is_measurement_property = True
-                
-                measurement_count += 1
-                print(f"!!! Enhanced measurement property {prop.uri} with {len(compatible_units)} units")
-                
-                # Print available units
-                for unit in compatible_units:
-                    print(f"!!!   Available unit: {unit.symbol} ({unit.uri})")
-            else:
-                if quantity_kind:
-                    print(f"!!! Property {prop.uri} has quantity_kind but no default_unit")
-                elif default_unit:
-                    print(f"!!! Property {prop.uri} has default_unit but no quantity_kind")
-                else:
-                    # Only log for properties that look like they should be measurements
-                    if any(keyword in prop.uri.lower() for keyword in ['thickness', 'length', 'diameter', 'width', 'height', 'mass']):
-                        print(f"!!! Property {prop.uri} looks like measurement but has no QUDT annotations")
-        
-        print(f"!!! FINAL RESULT: Enhanced {measurement_count} measurement properties out of {len(properties)} total")
-        logger.info(f"!!! FINAL RESULT: Enhanced {measurement_count} measurement properties out of {len(properties)} total")
     
     def get_valid_values_for_property(self, property_uri: str) -> List[str]:
         """Get valid values for a property (for dropdowns)"""
@@ -1250,42 +1174,3 @@ class OntologyManager:
         self._cache_timestamp = None
         self._cache_loaded = False
         self._load_qudt_cache()
-
-    def _get_data_type_from_range(self, range_value: Optional[str], property_type: str) -> str:
-        """
-        Determine proper data type from rdfs:range value.
-        
-        Args:
-            range_value: The rdfs:range value (e.g., "http://www.w3.org/2001/XMLSchema#double")
-            property_type: The property type (e.g., "owl:DatatypeProperty")
-            
-        Returns:
-            Normalized data type string
-        """
-        if not range_value:
-            # Fallback to your existing method
-            return self._normalize_data_type(property_type)
-        
-        # Check for XSD types
-        if "XMLSchema#double" in range_value or "xsd:double" in range_value:
-            return "double"
-        elif "XMLSchema#float" in range_value or "xsd:float" in range_value:
-            return "float"
-        elif "XMLSchema#decimal" in range_value or "xsd:decimal" in range_value:
-            return "decimal"
-        elif "XMLSchema#integer" in range_value or "xsd:integer" in range_value or "XMLSchema#int" in range_value:
-            return "integer"
-        elif "XMLSchema#boolean" in range_value or "xsd:boolean" in range_value:
-            return "boolean"
-        elif "XMLSchema#string" in range_value or "xsd:string" in range_value:
-            return "string"
-        elif "XMLSchema#date" in range_value or "xsd:date" in range_value:
-            return "date"
-        elif "XMLSchema#dateTime" in range_value or "xsd:dateTime" in range_value:
-            return "datetime"
-        elif range_value.startswith(str(self.DYN)) or ("dynamat.utep.edu" in range_value):
-            # Custom ontology class - object property
-            return "object"
-        else:
-            # Fallback to your existing method
-            return self._normalize_data_type(property_type)

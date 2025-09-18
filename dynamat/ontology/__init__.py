@@ -7,7 +7,9 @@ from .manager import (
     OntologyManager, 
     PropertyMetadata, 
     ClassMetadata, 
-    QueryMode
+    QueryMode,
+    UnitInfo,          
+    CacheStatus        
 )
 
 from .query_builder import (
@@ -38,6 +40,8 @@ __all__ = [
     'PropertyMetadata', 
     'ClassMetadata',
     'QueryMode',
+    'UnitInfo',         
+    'CacheStatus', 
     
     # Query building
     'DynaMatQueryBuilder',
