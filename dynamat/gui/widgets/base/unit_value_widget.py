@@ -13,9 +13,6 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 
-# Import UnitInfo from ontology manager
-from ...ontology.manager import UnitInfo, PropertyMetadata
-
 logger = logging.getLogger(__name__)
 
 
@@ -122,55 +119,6 @@ class UnitValueWidget(QWidget):
             print(f"!!! Set default to index {default_index}")
 
 # Also add debugging to the form builder's _create_unit_value_widget method:
-
-    def _create_unit_value_widget(self, prop: PropertyMetadata) -> QWidget:
-        """Create unit-value widget for measurement properties - ENHANCED DEBUGGING"""
-        print(f"!!! _create_unit_value_widget CALLED for {prop.uri}")
-        
-        try:
-            # Get compatible units from the property
-            compatible_units = getattr(prop, 'compatible_units', [])
-            default_unit = getattr(prop, 'default_unit', None)
-            
-            print(f"!!! Property {prop.uri}:")
-            print(f"!!!   compatible_units: {len(compatible_units)}")
-            print(f"!!!   default_unit: {default_unit}")
-            
-            if compatible_units:
-                print("!!! Compatible units found:")
-                for i, unit in enumerate(compatible_units):
-                    print(f"!!!   {i}: {unit.symbol} ({unit.uri}) - default: {unit.is_default}")
-            
-            if not compatible_units:
-                print(f"!!! ERROR: No compatible units for {prop.uri}, falling back to regular float widget")
-                return self._create_float_widget(prop)
-            
-            # Create unit value widget
-            print(f"!!! Creating UnitValueWidget with {len(compatible_units)} units...")
-            
-            widget = UnitValueWidget(
-                default_unit=default_unit,
-                available_units=compatible_units,
-                property_uri=prop.uri
-            )
-            
-            print(f"!!! UnitValueWidget created successfully")
-            
-            # Set validation constraints if available
-            if hasattr(prop, 'min_value') and prop.min_value is not None:
-                widget.setMinimum(prop.min_value)
-            if hasattr(prop, 'max_value') and prop.max_value is not None:
-                widget.setMaximum(prop.max_value)
-            
-            # Final check
-            print(f"!!! Final widget has {widget.unit_combobox.count()} combo items")
-            return widget
-            
-        except Exception as e:
-            print(f"!!! ERROR: Exception in _create_unit_value_widget: {e}")
-            import traceback
-            traceback.print_exc()
-            return self._create_float_widget(prop)
 
     def _connect_signals(self):
         """Connect internal signals"""

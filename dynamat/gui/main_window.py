@@ -17,7 +17,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QIcon, QFont
 
 from ..ontology.manager import OntologyManager
-from .widgets.specimen_form import SpecimenFormWidget
+from .widgets.forms.specimen_form import SpecimenFormWidget
 from .widgets.terminal_widget import TerminalWidget
 from .widgets.action_panel import ActionPanelWidget
 
@@ -41,8 +41,15 @@ class MainWindow(QMainWindow):
     
     def __init__(self, ontology_manager: OntologyManager, parent=None):
         super().__init__(parent)
+
+        try:
+            self.ontology_manager = OntologyManager()
+            print(f"OntologyManager created: {self.ontology_manager}")
+            print(f"Has get_class_metadata_for_form: {hasattr(self.ontology_manager, 'get_class_metadata_for_form')}")
+        except Exception as e:
+            print(f"OntologyManager creation failed: {e}")
+            self.ontology_manager = None
         
-        self.ontology_manager = ontology_manager
         self.current_activity = "specimen"
         self.activity_widgets = {}
         self.content_widget = None

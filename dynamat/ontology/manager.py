@@ -45,7 +45,11 @@ class OntologyManager:
         """
         # Determine ontology directory
         if ontology_dir is None:
-            ontology_dir = config.PROJECT_ROOT / "dynamat" / "ontology"
+            # Instead of using config.PROJECT_ROOT, use a relative path
+            current_file = Path(__file__).parent
+            ontology_dir = current_file  # This should be dynamat/ontology/
+        
+        self.ontology_dir = Path(ontology_dir)
         
         self.ontology_dir = Path(ontology_dir)
         
@@ -65,6 +69,7 @@ class OntologyManager:
         graph = self.loader.load_ontology_files()
         
         # Setup namespaces
+        self.namespace_manager = NamespaceManager(graph)
         self.namespace_manager.setup_graph_namespaces(graph)
         
         # Initialize query and schema components

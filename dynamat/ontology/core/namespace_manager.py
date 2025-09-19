@@ -23,8 +23,9 @@ class NamespaceManager:
     - Maintain namespace registry
     """
     
-    def __init__(self):
-        """Initialize the namespace manager."""
+    def __init__(self, graph=None):
+        """Initialize the namespace manager with optional graph."""
+        self.graph = graph
         self.namespaces = {}
         self.DYN = None
         self.QUDT = None
@@ -102,9 +103,17 @@ class NamespaceManager:
             raise KeyError(f"Namespace prefix '{prefix}' not found")
         return self.namespaces[prefix]
     
-    def get_all_namespaces(self) -> Dict[str, Namespace]:
+    def get_all_namespaces(self) -> Dict[str, str]:
         """Get all registered namespaces."""
-        return self.namespaces.copy()
+        if self.graph:
+            # Get namespaces from the actual ontology graph
+            graph_namespaces = dict(self.graph.namespaces())
+            # Combine with manually registered ones
+            all_namespaces = {**self.namespaces, **graph_namespaces}
+            return all_namespaces
+        else:
+            # Fallback to manually registered namespaces only
+            return self.namespaces.copy()
     
     def get_dyn_namespace(self) -> Namespace:
         """Get the main DynaMat namespace."""

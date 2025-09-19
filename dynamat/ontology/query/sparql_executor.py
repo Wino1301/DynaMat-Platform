@@ -69,6 +69,18 @@ class SPARQLExecutor:
             prefixed_query = self._add_namespace_prefixes(query)
             
             # Prepare and execute query
+
+            # DEBUG: Check namespaces before query preparation
+            namespaces = self.namespace_manager.get_all_namespaces()
+            print(f"Namespaces passed to prepareQuery: {namespaces}")
+            
+            # Check for None values
+            none_keys = [k for k, v in namespaces.items() if k is None or v is None]
+            if none_keys:
+                print(f"ERROR: Found None keys/values in namespaces: {none_keys}")
+                # Filter out None values
+                namespaces = {k: v for k, v in namespaces.items() if k is not None and v is not None}
+
             prepared = prepareQuery(prefixed_query, initNs=self.namespace_manager.get_all_namespaces())
             results = self.graph.query(prepared, initBindings=bindings or {})
             
@@ -100,10 +112,15 @@ class SPARQLExecutor:
             Query with namespace prefixes added
         """
         prefixes = []
-        for prefix, namespace in self.namespace_manager.get_all_namespaces().items():
-            prefixes.append(f"PREFIX {prefix}: <{namespace}>")
+        namespaces = self.namespace_manager.get_all_namespaces()
         
-        return "\n".join(prefixes) + "\n" + query
+        for prefix, uri in namespaces.items():
+            if prefix and uri:  # Ensure both are not None/empty
+                prefixes.append(f"PREFIX {prefix}: <{uri}>")
+            else:
+                print(f"WARNING: Skipping invalid namespace - prefix: {prefix}, uri: {uri}")
+        
+        return "\n".join(prefixes) + "\n" + query if prefixes else query
     
     def _process_query_results(self, results) -> List[Dict[str, Any]]:
         """

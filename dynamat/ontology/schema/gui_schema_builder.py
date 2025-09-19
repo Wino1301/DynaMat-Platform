@@ -232,24 +232,13 @@ class GUISchemaBuilder:
     def _get_basic_class_info(self, class_uri: str) -> Dict[str, Any]:
         """Get basic information about a class."""
         query = """
-        SELECT ?name ?label ?description ?parent ?isAbstract WHERE {
-            BIND(<{class_uri}> AS ?class)
-            
-            # Get class name (last part of URI)
-            BIND(STRAFTER(STR(?class), "#") AS ?name)
-            
-            # Get label
-            OPTIONAL { ?class rdfs:label ?label }
-            
-            # Get description
-            OPTIONAL { ?class rdfs:comment ?description }
-            
-            # Get parent classes
-            OPTIONAL { ?class rdfs:subClassOf ?parent }
-            
-            # Check if abstract
-            OPTIONAL { ?class dyn:isAbstract ?isAbstract }
-        }
+        SELECT ?name ?label ?description ?parent
+        WHERE {{
+            OPTIONAL {{ <{class_uri}> rdfs:label ?label . }}
+            OPTIONAL {{ <{class_uri}> rdfs:comment ?description . }}
+            OPTIONAL {{ <{class_uri}> rdfs:subClassOf ?parent . }}
+            BIND(STRAFTER(STR(<{class_uri}>), "#") AS ?name)
+        }}
         """.format(class_uri=class_uri)
         
         results = self.sparql.execute_query(query)
@@ -278,70 +267,33 @@ class GUISchemaBuilder:
     
     def _get_class_properties_with_metadata(self, class_uri: str) -> List[PropertyMetadata]:
         """Get all properties for a class with complete metadata."""
+
+        # Make sure class_uri is a proper URI, not just "Specimen"
+        if not class_uri.startswith("http"):
+            class_uri = f"{self.ns.DYN}{class_uri}"
+        
         query = """
-        SELECT DISTINCT ?property ?propertyName ?displayName ?formGroup ?displayOrder
-               ?dataType ?isFunctional ?isRequired ?range ?description 
-               ?minValue ?maxValue ?pattern ?widgetType ?defaultUnit WHERE {
+        SELECT DISTINCT ?property ?label ?description ?datatype ?required ?displayOrder ?formGroup
+        WHERE {{
+            {{
+                <{class_uri}> rdfs:subClassOf* ?class .
+                ?class rdfs:subClassOf ?restriction .
+                ?restriction owl:onProperty ?property .
+            }}
+            UNION
+            {{
+                ?property rdfs:domain <{class_uri}> .
+            }}
             
-            # Get properties that have this class in their domain
-            ?property rdfs:domain ?domain .
-            { 
-                BIND(<{class_uri}> AS ?domain) 
-            } UNION {
-                <{class_uri}> rdfs:subClassOf* ?domain 
-            }
-            
-            # Get property name
-            BIND(STRAFTER(STR(?property), "#") AS ?propertyName)
-            
-            # Get property type for data type inference
-            ?property rdf:type ?propertyType .
-            
-            # Determine data type
-            BIND(
-                IF(?propertyType = owl:ObjectProperty, "object",
-                IF(?propertyType = owl:DatatypeProperty, "data", 
-                   "unknown")) AS ?dataType
-            )
-            
-            # Get display name (prefer rdfs:label)
-            OPTIONAL { ?property rdfs:label ?displayName }
-            
-            # Get form metadata from SHACL shapes
-            OPTIONAL {
-                ?shape sh:targetClass <{class_uri}> ;
-                       sh:property ?propShape .
-                ?propShape sh:path ?property .
-                
-                OPTIONAL { ?propShape sh:group ?formGroup }
-                OPTIONAL { ?propShape sh:order ?displayOrder }
-                OPTIONAL { ?propShape sh:name ?shapeDisplayName }
-                OPTIONAL { ?propShape sh:description ?description }
-                OPTIONAL { ?propShape sh:minCount ?minCount }
-                OPTIONAL { ?propShape sh:datatype ?shapeDataType }
-                OPTIONAL { ?propShape sh:class ?range }
-                OPTIONAL { ?propShape sh:minInclusive ?minValue }
-                OPTIONAL { ?propShape sh:maxInclusive ?maxValue }
-                OPTIONAL { ?propShape sh:pattern ?pattern }
-                OPTIONAL { ?propShape dyn:widgetType ?widgetType }
-                OPTIONAL { ?propShape dyn:defaultUnit ?defaultUnit }
-                
-                BIND(IF(BOUND(?minCount) && ?minCount > 0, true, false) AS ?isRequired)
-            }
-            
-            # Check if functional
-            OPTIONAL { 
-                ?property rdf:type owl:FunctionalProperty .
-                BIND(true AS ?isFunctional)
-            }
-            
-            # Get range for object properties
-            OPTIONAL { 
-                ?property rdfs:range ?range 
-                FILTER(?propertyType = owl:ObjectProperty)
-            }
-        }
-        ORDER BY ?displayOrder ?propertyName
+            OPTIONAL {{ ?property rdfs:label ?label . }}
+            OPTIONAL {{ ?property rdfs:comment ?description . }}
+            OPTIONAL {{ ?property rdfs:range ?datatype . }}
+            OPTIONAL {{ ?property dyn:isRequired ?required . }}
+            OPTIONAL {{ ?property dyn:displayOrder ?displayOrder . }}
+            OPTIONAL {{ ?property dyn:formGroup ?formGroup . }}
+
+        }}
+        ORDER BY ?displayOrder ?property
         """.format(class_uri=class_uri)
         
         results = self.sparql.execute_query(query)

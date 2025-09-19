@@ -5,7 +5,7 @@ Handles form layout creation and widget grouping
 
 import logging
 from typing import Dict, List, Optional, Any, Tuple
-from dataclasses import dataclass
+from enum import Enum
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QFormLayout,
@@ -18,17 +18,14 @@ from ...ontology import PropertyMetadata
 
 logger = logging.getLogger(__name__)
 
-
-@dataclass
-class FormField:
-    """Represents a form field with its widget and metadata."""
-    widget: QWidget
-    property_uri: str
-    property_metadata: PropertyMetadata
-    group_name: str
-    required: bool = False
-    label: Optional[str] = None
-
+class LayoutStyle(Enum):
+    """Available layout styles for forms."""
+    GROUPED_FORM = "grouped_form"       # Groups with form layouts (default)
+    TABBED_FORM = "tabbed_form"         # Groups as tabs
+    SINGLE_COLUMN = "single_column"     # Single column, no groups
+    TWO_COLUMN = "two_column"           # Two columns with groups
+    GRID_LAYOUT = "grid_layout"         # Grid-based layout
+    
 
 class LayoutManager:
     """
@@ -181,7 +178,7 @@ class LayoutManager:
     
     def _create_group_widget(self, group_name: str, 
                            properties: List[PropertyMetadata],
-                           widgets: Dict[str, QWidget]) -> Tuple[QWidget, Dict[str, FormField]]:
+                           widgets: Dict[str, QWidget]) -> QWidget:
         """
         Create a widget for a group of properties.
         
@@ -495,3 +492,5 @@ class LayoutManager:
             self.logger.error(f"Error creating tabbed form: {e}")
             # Fallback to grouped form
             return self.create_grouped_form(form_groups, widgets, parent)
+            
+__all__ = ['LayoutManager', 'LayoutStyle']

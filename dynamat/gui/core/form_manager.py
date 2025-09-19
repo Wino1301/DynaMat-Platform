@@ -6,16 +6,17 @@ Coordinates form creation using specialized components
 import logging
 from typing import Dict, List, Optional, Any
 from enum import Enum
+from dataclasses import dataclass
 
-from PyQt6.QtWidgets import QWidget, QLabel
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout
 
-from ...ontology import OntologyManager, ClassMetadata
+from ...ontology import OntologyManager, PropertyMetadata, ClassMetadata
 from .widget_factory import WidgetFactory
 from .data_handler import FormDataHandler
 from ..builders.layout_manager import LayoutManager
 
 logger = logging.getLogger(__name__)
-
 
 class FormStyle(Enum):
     """Available form layout styles."""
@@ -24,6 +25,15 @@ class FormStyle(Enum):
     TWO_COLUMN = "two_column"
     TABBED = "tabbed"
 
+@dataclass
+class FormField:
+    """Represents a form field with its widget and metadata."""
+    widget: QWidget
+    property_uri: str
+    property_metadata: PropertyMetadata
+    group_name: str
+    required: bool = False
+    label: Optional[str] = None
 
 class FormManager:
     """
@@ -43,6 +53,9 @@ class FormManager:
         Args:
             ontology_manager: Ontology manager instance
         """
+        if ontology_manager is None:
+            raise ValueError("OntologyManager cannot be None")
+        
         self.ontology_manager = ontology_manager
         self.logger = logging.getLogger(__name__)
         
@@ -79,7 +92,18 @@ class FormManager:
         """
         try:
             self.logger.info(f"Creating form for class: {class_uri} with style: {style.value}")
-            
+
+            if self.ontology_manager is None:
+                raise ValueError("OntologyManager is None")
+
+            # Get class metadata from ontology - add debugging
+            try:
+                class_metadata = self.ontology_manager.get_class_metadata_for_form(class_uri)
+            except Exception as e:
+                self.logger.error(f"Ontology error for {class_uri}: {str(e)}")
+                # Create a minimal fallback form
+                return self._create_error_form(f"Ontology error: {str(e)}")
+                
             # Check cache if requested
             cache_key = f"{class_uri}_{style.value}"
             if use_cache and cache_key in self._form_cache:
@@ -290,6 +314,25 @@ class FormManager:
         )
         error_widget.setWordWrap(True)
         return error_widget
+
+    def _create_error_form(self, error_message: str) -> QWidget:
+        """Create widget showing error message."""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        label = QLabel(f"Error creating form:\n\n{error_message}\n\nCheck terminal for details.")
+        label.setStyleSheet("""
+            color: red; 
+            padding: 20px; 
+            background-color: #2a1a1a; 
+            border: 1px solid red;
+            text-align: center;
+        """)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label.setWordWrap(True)
+        
+        layout.addWidget(label)
+        return widget
     
     def _clone_form(self, original_form: QWidget, parent: Optional[QWidget]) -> QWidget:
         """

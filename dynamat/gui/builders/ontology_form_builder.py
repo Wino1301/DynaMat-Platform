@@ -10,182 +10,158 @@ from pathlib import Path
 from PyQt6.QtWidgets import QWidget
 
 from ...ontology import OntologyManager
-from ..core.form_manager import FormManager, FormStyle
-from ..dependencies.dependency_manager import DependencyManager
+from ..core.form_manager import FormManager
+from .layout_manager import LayoutManager, LayoutStyle
 
 logger = logging.getLogger(__name__)
 
 
 class OntologyFormBuilder:
     """
-    Simplified facade for building forms from ontology classes.
+    Simplified facade for building forms from ontology definitions.
     
-    This is the main entry point for GUI components that need to create forms.
-    It orchestrates the specialized components:
-    - FormManager: Coordinates form creation
-    - DependencyManager: Handles form field dependencies
+    This class coordinates the specialized components to provide a clean,
+    simple interface for creating ontology-based forms.
     """
     
     def __init__(self, ontology_manager: OntologyManager, 
-                 dependency_config: Optional[str] = None):
+                 default_layout: LayoutStyle = LayoutStyle.GROUPED_FORM):
         """
         Initialize the form builder.
         
         Args:
-            ontology_manager: Ontology manager instance
-            dependency_config: Path to dependency configuration file
+            ontology_manager: The ontology manager instance
+            default_layout: Default layout style to use
         """
         self.ontology_manager = ontology_manager
+        self.default_layout = default_layout
         self.logger = logging.getLogger(__name__)
         
-        # Initialize core components
+        # Initialize specialized components
         self.form_manager = FormManager(ontology_manager)
+        self.layout_manager = LayoutManager()
         
-        # Initialize dependency manager
+        # Optional dependency manager (will be initialized if needed)
         self.dependency_manager = None
-        self._setup_dependency_manager(dependency_config)
         
         self.logger.info("Ontology form builder initialized")
     
-    def _setup_dependency_manager(self, dependency_config: Optional[str]):
-        """Setup the dependency manager with proper error handling."""
-        try:
-            if dependency_config is not None:
-                self.dependency_manager = DependencyManager(
-                    self.ontology_manager, dependency_config
-                )
-                self.logger.info("Dependency manager initialized with custom config")
-            else:
-                # Try to find default config
-                default_config = self._find_default_dependency_config()
-                if default_config and default_config.exists():
-                    self.dependency_manager = DependencyManager(
-                        self.ontology_manager, str(default_config)
-                    )
-                    self.logger.info("Dependency manager initialized with default config")
-                else:
-                    self.dependency_manager = DependencyManager(self.ontology_manager)
-                    self.logger.info("Dependency manager initialized without config")
-        except Exception as e:
-            self.logger.error(f"Failed to initialize dependency manager: {e}")
-            self.dependency_manager = None
-    
-    def _find_default_dependency_config(self) -> Optional[Path]:
-        """Find default dependency configuration file."""
-        # Look for dependencies.json in gui directory
-        gui_dir = Path(__file__).parent.parent
-        config_path = gui_dir / "dependencies.json"
-        
-        if config_path.exists():
-            return config_path
-        
-        # Look for it in the dependencies directory
-        dep_config_path = gui_dir / "dependencies" / "dependencies.json"
-        if dep_config_path.exists():
-            return dep_config_path
-        
-        return None
-    
-    # ============================================================================
-    # MAIN FORM BUILDING INTERFACE
-    # ============================================================================
-    
-    def build_form(self, class_uri: str, 
-                  parent: Optional[QWidget] = None,
-                  style: FormStyle = FormStyle.GROUPED) -> QWidget:
+    def build_form(self, class_uri: str, parent: Optional[QWidget] = None, 
+                   layout_style: Optional[LayoutStyle] = None) -> QWidget:
         """
         Build a complete form for the given class.
         
-        This is the main entry point used by GUI components.
+        This is the main entry point that delegates to specialized components.
         
         Args:
             class_uri: URI of the ontology class
-            parent: Parent widget
-            style: Form layout style
+            parent: Parent widget (optional)
+            layout_style: Layout style override (optional)
             
         Returns:
-            Complete form widget with dependencies configured
+            Complete form widget ready for use
         """
         try:
             self.logger.info(f"Building form for class: {class_uri}")
             
-            # Create form using form manager
-            form_widget = self.form_manager.create_form(
-                class_uri, style=style, parent=parent
-            )
+            # Use FormManager to create the base form
+            form_widget = self.form_manager.create_form(class_uri)
             
-            if not form_widget:
-                self.logger.error("Form manager returned no widget")
-                return self._create_error_widget("Form creation failed")
-            
-            # Setup dependencies if available
+            # Set up dependencies if available
             if self.dependency_manager:
                 try:
-                    self.logger.debug("Setting up form dependencies...")
                     self.dependency_manager.setup_dependencies(form_widget, class_uri)
-                    self.logger.debug("Dependencies configured successfully")
+                    self.logger.info("Dependencies configured successfully")
                 except Exception as e:
                     self.logger.error(f"Failed to setup dependencies: {e}")
-                    # Continue without dependencies rather than failing
-            else:
-                self.logger.info("No dependency manager available")
             
-            # Add form builder reference to widget
-            form_widget.form_builder = self
+            # Set parent if provided
+            if parent:
+                form_widget.setParent(parent)
             
-            self.logger.info(f"Successfully built form for {class_uri}")
+            self.logger.info(f"Form built successfully for {class_uri}")
             return form_widget
             
         except Exception as e:
-            self.logger.error(f"Failed to build form for {class_uri}: {e}", exc_info=True)
-            return self._create_error_widget(f"Error building form: {str(e)}")
+            error_msg = f"Failed to build form for {class_uri}: {e}"
+            self.logger.error(error_msg, exc_info=True)
+            
+            # Emit error signal
+            self.form_error.emit(class_uri, str(e))
+            
+            # Return error form
+            return self._create_error_form(error_msg)
     
-    def build_form_with_style(self, class_uri: str,
-                            style: str,
-                            parent: Optional[QWidget] = None) -> QWidget:
+    def build_form_with_layout(self, class_uri: str, layout_style: LayoutStyle, 
+                               parent: Optional[QWidget] = None) -> QWidget:
         """
-        Build form with style specified as string.
+        Build form with specific layout style.
         
         Args:
             class_uri: URI of the ontology class
-            style: Style name ('grouped', 'simple', 'two_column', 'tabbed')
-            parent: Parent widget
+            layout_style: Specific layout style to use
+            parent: Parent widget (optional)
             
         Returns:
-            Complete form widget
+            Form widget with specified layout
+        """
+        return self.build_form(class_uri, parent, layout_style)
+    
+    def enable_dependencies(self, config_path: Optional[str] = None):
+        """
+        Enable dependency management for forms.
+        
+        Args:
+            config_path: Path to dependency configuration file
         """
         try:
-            # Convert string to FormStyle enum
-            form_style = FormStyle(style.lower())
-        except ValueError:
-            self.logger.warning(f"Unknown form style: {style}, using grouped")
-            form_style = FormStyle.GROUPED
-        
-        return self.build_form(class_uri, parent, form_style)
+            from ..dependencies.dependency_manager import DependencyManager
+            
+            # Initialize dependency manager
+            if config_path:
+                self.dependency_manager = DependencyManager(self.ontology_manager, config_path)
+            else:
+                # Try default config path
+                default_path = Path(__file__).parent.parent / "dependencies.json"
+                if default_path.exists():
+                    self.dependency_manager = DependencyManager(self.ontology_manager, str(default_path))
+                else:
+                    self.dependency_manager = DependencyManager(self.ontology_manager)
+            
+            self.logger.info("Dependency management enabled")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to enable dependencies: {e}")
+            self.dependency_manager = None
+    
+    def disable_dependencies(self):
+        """Disable dependency management."""
+        self.dependency_manager = None
+        self.logger.info("Dependency management disabled")
     
     # ============================================================================
-    # FORM DATA OPERATIONS
+    # FORM DATA METHODS (Delegated to FormManager)
     # ============================================================================
     
     def get_form_data(self, form_widget: QWidget) -> Dict[str, Any]:
         """
-        Extract data from a form created by this builder.
+        Extract data from a form widget.
         
         Args:
-            form_widget: Form widget
+            form_widget: Form widget created by this builder
             
         Returns:
             Dictionary of form data
         """
         return self.form_manager.get_form_data(form_widget)
     
-    def populate_form(self, form_widget: QWidget, data: Dict[str, Any]) -> bool:
+    def set_form_data(self, form_widget: QWidget, data: Dict[str, Any]) -> bool:
         """
-        Populate form with data.
+        Populate form widget with data.
         
         Args:
-            form_widget: Form widget
-            data: Dictionary of data to populate
+            form_widget: Form widget created by this builder
+            data: Data to populate
             
         Returns:
             True if successful
@@ -194,114 +170,90 @@ class OntologyFormBuilder:
     
     def validate_form(self, form_widget: QWidget) -> Dict[str, List[str]]:
         """
-        Validate form data.
+        Validate form data and return errors.
         
         Args:
-            form_widget: Form widget to validate
+            form_widget: Form widget created by this builder
             
         Returns:
-            Dictionary of validation errors (empty if valid)
+            Dictionary mapping property URIs to lists of error messages
         """
         return self.form_manager.validate_form(form_widget)
     
-    def clear_form(self, form_widget: QWidget) -> bool:
+    def clear_form(self, form_widget: QWidget):
         """
         Clear all form data.
         
         Args:
-            form_widget: Form widget to clear
-            
-        Returns:
-            True if successful
+            form_widget: Form widget created by this builder
         """
-        return self.form_manager.clear_form(form_widget)
+        self.form_manager.clear_form(form_widget)
     
-    def is_form_valid(self, form_widget: QWidget) -> bool:
+    def is_form_modified(self, form_widget: QWidget, original_data: Dict[str, Any]) -> bool:
         """
-        Check if form is valid.
+        Check if form has been modified from original data.
         
         Args:
-            form_widget: Form widget to check
+            form_widget: Form widget created by this builder
+            original_data: Original data to compare against
             
         Returns:
-            True if form is valid
+            True if form has been modified
         """
-        errors = self.validate_form(form_widget)
-        return len(errors) == 0
+        return self.form_manager.is_form_modified(form_widget, original_data)
     
     # ============================================================================
-    # FORM MANAGEMENT
+    # LAYOUT METHODS (Delegated to LayoutManager)
     # ============================================================================
     
-    def reload_form(self, form_widget: QWidget) -> QWidget:
+    def get_layout_suggestion(self, class_uri: str) -> LayoutStyle:
         """
-        Reload a form (useful after ontology changes).
+        Get suggested layout style for a class.
         
         Args:
-            form_widget: Existing form widget
+            class_uri: URI of the ontology class
             
         Returns:
-            New form widget
+            Suggested layout style
         """
-        return self.form_manager.reload_form(form_widget)
+        try:
+            # Get class metadata
+            class_metadata = self.ontology_manager.get_class_metadata_for_form(class_uri)
+            return self.layout_manager.suggest_layout_style(class_metadata.form_groups)
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get layout suggestion for {class_uri}: {e}")
+            return LayoutStyle.GROUPED_FORM
     
-    def get_form_info(self, form_widget: QWidget) -> Dict[str, Any]:
+    def analyze_form_complexity(self, class_uri: str) -> Dict[str, Any]:
         """
-        Get information about a form.
+        Analyze complexity of a form.
         
         Args:
-            form_widget: Form widget
+            class_uri: URI of the ontology class
             
         Returns:
-            Dictionary with form information
+            Dictionary with complexity analysis
         """
-        info = self.form_manager.get_form_summary(form_widget)
-        
-        # Add builder-specific information
-        info.update({
-            'has_dependencies': self.dependency_manager is not None,
-            'builder_type': 'OntologyFormBuilder'
-        })
-        
-        return info
-    
-    # ============================================================================
-    # CACHE MANAGEMENT
-    # ============================================================================
-    
-    def clear_cache(self):
-        """Clear all caches."""
-        self.form_manager.clear_cache()
-        if self.dependency_manager:
-            # Clear dependency manager cache if it has one
-            pass
-        self.logger.info("Form builder caches cleared")
-    
-    def get_cache_info(self) -> Dict[str, Any]:
-        """Get cache information."""
-        info = self.form_manager.get_cache_info()
-        info['dependency_manager_available'] = self.dependency_manager is not None
-        return info
+        try:
+            class_metadata = self.ontology_manager.get_class_metadata_for_form(class_uri)
+            return self.layout_manager.analyze_form_complexity(class_metadata.form_groups)
+            
+        except Exception as e:
+            self.logger.error(f"Failed to analyze form complexity for {class_uri}: {e}")
+            return {}
     
     # ============================================================================
     # UTILITY METHODS
     # ============================================================================
     
-    def _create_error_widget(self, message: str) -> QWidget:
-        """Create an error display widget."""
-        from PyQt6.QtWidgets import QLabel
-        
-        error_widget = QLabel(f"Form Builder Error:\n\n{message}\n\nCheck logs for details.")
-        error_widget.setStyleSheet(
-            "color: red; padding: 20px; background-color: #2a1a1a; "
-            "border: 1px solid red; border-radius: 5px;"
-        )
-        error_widget.setWordWrap(True)
-        return error_widget
+    def _create_error_form(self, error_message: str) -> QWidget:
+        """Create a form widget showing an error message."""
+        return self.form_manager._create_error_form(error_message)
     
     def get_available_classes(self) -> List[str]:
         """
-        Get list of available ontology classes.
+        Get list of available classes for form building.
         
         Returns:
             List of class URIs
@@ -309,50 +261,57 @@ class OntologyFormBuilder:
         try:
             return self.ontology_manager.get_all_classes()
         except Exception as e:
-            self.logger.error(f"Error getting available classes: {e}")
+            self.logger.error(f"Failed to get available classes: {e}")
             return []
     
     def get_class_info(self, class_uri: str) -> Dict[str, Any]:
         """
-        Get information about a class.
+        Get basic information about a class.
         
         Args:
-            class_uri: Class URI
+            class_uri: URI of the ontology class
             
         Returns:
             Dictionary with class information
         """
         try:
-            metadata = self.ontology_manager.get_class_metadata_for_form(class_uri)
+            class_metadata = self.ontology_manager.get_class_metadata_for_form(class_uri)
             return {
-                'uri': metadata.uri,
-                'name': metadata.name,
-                'label': metadata.label,
-                'description': metadata.description,
-                'property_count': len(metadata.properties),
-                'group_count': len(metadata.form_groups),
-                'is_abstract': metadata.is_abstract
+                'uri': class_metadata.uri,
+                'name': class_metadata.name,
+                'label': class_metadata.label,
+                'description': class_metadata.description,
+                'property_count': len(class_metadata.properties),
+                'group_count': len(class_metadata.form_groups),
+                'is_abstract': class_metadata.is_abstract
             }
         except Exception as e:
-            self.logger.error(f"Error getting class info for {class_uri}: {e}")
-            return {'uri': class_uri, 'error': str(e)}
+            self.logger.error(f"Failed to get class info for {class_uri}: {e}")
+            return {}
     
-    # ============================================================================
-    # DEPRECATED METHODS (for backward compatibility)
-    # ============================================================================
+    def refresh_ontology(self):
+        """Refresh the underlying ontology data."""
+        try:
+            self.ontology_manager.clear_caches()
+            self.logger.info("Ontology data refreshed")
+        except Exception as e:
+            self.logger.error(f"Failed to refresh ontology: {e}")
     
-    def build_form_group(self, group_name: str, properties: List, widgets: Dict) -> QWidget:
+    def get_statistics(self) -> Dict[str, Any]:
         """
-        Deprecated: Use form_manager directly for advanced operations.
+        Get statistics about the form builder.
+        
+        Returns:
+            Dictionary with statistics
         """
-        self.logger.warning("build_form_group is deprecated, use form_manager directly")
-        return self.form_manager.layout_manager._create_group_widget(
-            group_name, properties, widgets
-        )[0]
-    
-    def create_widget_for_property(self, property_metadata) -> QWidget:
-        """
-        Deprecated: Use form_manager.widget_factory directly.
-        """
-        self.logger.warning("create_widget_for_property is deprecated, use widget_factory directly")
-        return self.form_manager.widget_factory.create_widget(property_metadata)
+        try:
+            ontology_stats = self.ontology_manager.get_statistics()
+            return {
+                'ontology_stats': ontology_stats,
+                'default_layout': self.default_layout.value,
+                'dependencies_enabled': self.dependency_manager is not None,
+                'available_layouts': [style.value for style in LayoutStyle]
+            }
+        except Exception as e:
+            self.logger.error(f"Failed to get statistics: {e}")
+            return {}
