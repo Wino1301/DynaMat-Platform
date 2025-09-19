@@ -83,6 +83,9 @@ class LayoutManager:
         try:
             self.logger.info(f"Creating grouped form with {len(form_groups)} groups")
             
+            # Import FormField here to avoid import issues
+            from ..core.form_manager import FormField
+            
             # Create main form widget
             form_widget = QWidget(parent)
             main_layout = QVBoxLayout(form_widget)
@@ -104,6 +107,7 @@ class LayoutManager:
             form_fields = {}
             groups_created = 0
             total_fields = 0
+            widgets_added = 0
             
             # Create groups in display order
             ordered_groups = self._get_ordered_groups(form_groups)
@@ -114,36 +118,55 @@ class LayoutManager:
                 if not properties:
                     continue
                 
-                # Create group widget
-                group_widget, group_fields = self._create_group_widget(
-                    group_name, properties, widgets
-                )
-                
-                if group_widget:
-                    content_layout.addWidget(group_widget)
-                    form_fields.update(group_fields)
-                    groups_created += 1
-                    total_fields += len(group_fields)
+                try:
+                    # Create group widget
+                    group_widget, group_fields = self._create_group_widget(
+                        group_name, properties, widgets
+                    )
+                    
+                    if group_widget:
+                        content_layout.addWidget(group_widget)
+                        form_fields.update(group_fields)
+                        groups_created += 1
+                        total_fields += len(group_fields)
+                        
+                        # Count widgets actually added
+                        for field in group_fields.values():
+                            if field.widget and field.widget.parent():
+                                widgets_added += 1
+                        
+                        self.logger.info(f"Successfully created group '{group_name}' with {len(group_fields)} fields")
+                    else:
+                        self.logger.error(f"Failed to create group widget for '{group_name}'")
+                        
+                except Exception as e:
+                    self.logger.error(f"Error creating group '{group_name}': {e}", exc_info=True)
+                    continue
             
             # Add stretch to push groups to top
             content_layout.addStretch()
             
-            # Set content in scroll area
+            # Set up scroll area
             scroll_area.setWidget(content_widget)
             main_layout.addWidget(scroll_area)
             
-            # Store form fields for data handler
+            # Add metadata to form widget
             form_widget.form_fields = form_fields
             form_widget.groups_created = groups_created
-            form_widget.total_fields = total_fields
+            form_widget.widgets_added = widgets_added
             
-            self.logger.info(f"Created form with {groups_created} groups and {total_fields} fields")
+            self.logger.info(f"Created form with {groups_created} groups, {total_fields} fields, and {widgets_added} widgets properly added")
+            
+            # VERIFICATION: Check that widgets are actually in the form
+            if widgets_added == 0 and total_fields > 0:
+                self.logger.error("CRITICAL: Fields created but no widgets properly added to form!")
+            
             return form_widget
             
         except Exception as e:
-            self.logger.error(f"Failed to create grouped form: {e}")
-            # Return error widget
-            error_widget = QLabel(f"Error creating form: {str(e)}")
+            self.logger.error(f"Failed to create grouped form: {e}", exc_info=True)
+            # Return a minimal error form
+            error_widget = QLabel(f"Layout Error: {str(e)}")
             error_widget.setStyleSheet("color: red; padding: 20px;")
             return error_widget
     
@@ -190,6 +213,8 @@ class LayoutManager:
         Returns:
             Tuple of (group_widget, form_fields_dict)
         """
+        from ..core.form_manager import FormField # avoid circular imports
+        
         try:
             # Create group box
             group_box = QGroupBox(self._format_group_name(group_name))

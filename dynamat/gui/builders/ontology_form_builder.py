@@ -7,7 +7,8 @@ import logging
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 
-from PyQt6.QtWidgets import QWidget
+from PyQt6.QtCore import QObject, pyqtSignal, Qt
+from PyQt6.QtWidgets import QWidget, QLabel
 
 from ...ontology import OntologyManager
 from ..core.form_manager import FormManager
@@ -16,7 +17,7 @@ from .layout_manager import LayoutManager, LayoutStyle
 logger = logging.getLogger(__name__)
 
 
-class OntologyFormBuilder:
+class OntologyFormBuilder(QObject):
     """
     Simplified facade for building forms from ontology definitions.
     
@@ -24,8 +25,12 @@ class OntologyFormBuilder:
     simple interface for creating ontology-based forms.
     """
     
-    def __init__(self, ontology_manager: OntologyManager, 
-                 default_layout: LayoutStyle = LayoutStyle.GROUPED_FORM):
+    # Define signals
+    form_error = pyqtSignal(str, str)  # class_uri, error_message
+    form_created = pyqtSignal(str)     # class_uri    
+    
+    def __init__(self, ontology_manager, default_layout=LayoutStyle.GROUPED_FORM):
+        super().__init__() 
         """
         Initialize the form builder.
         
@@ -41,7 +46,7 @@ class OntologyFormBuilder:
         self.form_manager = FormManager(ontology_manager)
         self.layout_manager = LayoutManager()
         
-        # Optional dependency manager (will be initialized if needed)
+        # Optional dependency manager 
         self.dependency_manager = None
         
         self.logger.info("Ontology form builder initialized")
@@ -61,11 +66,30 @@ class OntologyFormBuilder:
         Returns:
             Complete form widget ready for use
         """
+        
         try:
             self.logger.info(f"Building form for class: {class_uri}")
             
+            # Validate inputs
+            if not class_uri:
+                raise ValueError("class_uri cannot be empty")
+            
+            if not isinstance(class_uri, str):
+                raise ValueError("class_uri must be a string")
+            
             # Use FormManager to create the base form
             form_widget = self.form_manager.create_form(class_uri)
+            
+            if not form_widget:
+                raise RuntimeError("FormManager returned None")
+            
+            # Ensure form widget has expected attributes for compatibility
+            if not hasattr(form_widget, 'form_fields'):
+                form_widget.form_fields = {}
+                self.logger.warning(f"Form widget missing form_fields attribute, added empty dict")
+            
+            if not hasattr(form_widget, 'class_uri'):
+                form_widget.class_uri = class_uri
             
             # Set up dependencies if available
             if self.dependency_manager:
@@ -74,10 +98,14 @@ class OntologyFormBuilder:
                     self.logger.info("Dependencies configured successfully")
                 except Exception as e:
                     self.logger.error(f"Failed to setup dependencies: {e}")
+                    # Don't fail the entire form creation for dependency issues
             
             # Set parent if provided
             if parent:
                 form_widget.setParent(parent)
+            
+            # Emit success signal
+            self.form_created.emit(class_uri)
             
             self.logger.info(f"Form built successfully for {class_uri}")
             return form_widget
@@ -86,11 +114,11 @@ class OntologyFormBuilder:
             error_msg = f"Failed to build form for {class_uri}: {e}"
             self.logger.error(error_msg, exc_info=True)
             
-            # Emit error signal
+            # Emit error signal - NOW THIS WORKS!
             self.form_error.emit(class_uri, str(e))
             
-            # Return error form
-            return self._create_error_form(error_msg)
+            # Return error form with expected attributes
+            return self._create_error_form(error_msg, class_uri)
     
     def build_form_with_layout(self, class_uri: str, layout_style: LayoutStyle, 
                                parent: Optional[QWidget] = None) -> QWidget:
@@ -247,9 +275,26 @@ class OntologyFormBuilder:
     # UTILITY METHODS
     # ============================================================================
     
-    def _create_error_form(self, error_message: str) -> QWidget:
-        """Create a form widget showing an error message."""
-        return self.form_manager._create_error_form(error_message)
+    def _create_error_form(self, error_message: str, class_uri: str = "") -> QWidget:
+        """Create a standardized error form widget with expected attributes."""
+        error_widget = QLabel(f"Form Creation Error:\n\n{error_message}")
+        error_widget.setStyleSheet("""
+            color: red; 
+            padding: 20px; 
+            background-color: #2a1a1a; 
+            border: 1px solid red;
+            border-radius: 5px;
+        """)
+        error_widget.setWordWrap(True)
+        error_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Add expected attributes for compatibility
+        error_widget.form_fields = {}
+        error_widget.class_uri = class_uri
+        error_widget.form_style = None
+        error_widget.class_metadata = None
+        
+        return error_widget
     
     def get_available_classes(self) -> List[str]:
         """
@@ -315,3 +360,69 @@ class OntologyFormBuilder:
         except Exception as e:
             self.logger.error(f"Failed to get statistics: {e}")
             return {}
+
+    def refresh_ontology(self):
+        """Refresh ontology and clear caches."""
+        try:
+            self.logger.info("Refreshing ontology and clearing caches")
+            self.form_manager.clear_cache()
+            # Also clear ontology manager caches if available
+            if hasattr(self.ontology_manager, 'classes_cache'):
+                self.ontology_manager.classes_cache.clear()
+            if hasattr(self.ontology_manager, 'properties_cache'):
+                self.ontology_manager.properties_cache.clear()
+        except Exception as e:
+            self.logger.error(f"Failed to refresh ontology: {e}")
+    
+    def get_statistics(self) -> Dict[str, Any]:
+        """Get form builder statistics."""
+        try:
+            stats = {
+                'form_manager_cache': self.form_manager.get_cache_info(),
+                'ontology_manager_ready': self.ontology_manager is not None,
+                'dependency_manager_enabled': self.dependency_manager is not None
+            }
+            
+            # Add ontology manager stats if available
+            if hasattr(self.ontology_manager, 'classes_cache'):
+                stats['ontology_classes_cached'] = len(self.ontology_manager.classes_cache)
+            if hasattr(self.ontology_manager, 'properties_cache'):
+                stats['ontology_properties_cached'] = len(self.ontology_manager.properties_cache)
+            
+            return stats
+        except Exception as e:
+            self.logger.error(f"Failed to get statistics: {e}")
+            return {'error': str(e)}
+    
+    def analyze_form_complexity(self, class_uri: str) -> Dict[str, Any]:
+        """Analyze form complexity."""
+        try:
+            # Get class metadata
+            metadata = self.ontology_manager.get_class_metadata_for_form(class_uri)
+            
+            complexity_analysis = {
+                'class_uri': class_uri,
+                'total_properties': len(metadata.properties),
+                'form_groups': len(metadata.form_groups),
+                'properties_per_group': {
+                    group: len(props) for group, props in metadata.form_groups.items()
+                },
+                'complexity_score': self._calculate_complexity_score(metadata)
+            }
+            
+            return complexity_analysis
+        except Exception as e:
+            self.logger.error(f"Failed to analyze form complexity: {e}")
+            return {'error': str(e), 'class_uri': class_uri}
+    
+    def _calculate_complexity_score(self, metadata) -> str:
+        """Calculate a simple complexity score."""
+        total_props = len(metadata.properties)
+        total_groups = len(metadata.form_groups)
+        
+        if total_props < 10:
+            return "Simple"
+        elif total_props < 25:
+            return "Moderate"
+        else:
+            return "Complex"

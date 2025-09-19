@@ -164,15 +164,57 @@ class SpecimenFormWidget(QWidget):
             self.progress_bar.setVisible(True)
             self.progress_bar.setRange(0, 0)  # Indeterminate
             
+            # Debug: Check ontology manager
+            if not self.ontology_manager:
+                raise RuntimeError("Ontology manager is not initialized")
+            
+            # Debug: Check if we can get class metadata
+            specimen_uri = "https://dynamat.utep.edu/ontology#Specimen"
+            try:
+                class_metadata = self.ontology_manager.get_class_metadata_for_form(specimen_uri)
+                self.logger.info(f"Found {len(class_metadata.properties)} properties for specimen")
+                self.logger.info(f"Form groups: {list(class_metadata.form_groups.keys())}")
+            except Exception as e:
+                self.logger.error(f"Failed to get class metadata: {e}")
+                raise RuntimeError(f"Cannot load specimen metadata: {e}")
+            
             # Create form using the builder
-            self.form_widget = self.form_builder.build_form("Specimen", self.content_frame)
+            self.form_widget = self.form_builder.build_form(specimen_uri, self.content_frame)
+            
+            if not self.form_widget:
+                raise RuntimeError("Form builder returned None")
             
             # Clear existing content and add new form
             self._clear_content_layout()
             self.content_layout.addWidget(self.form_widget)
             
+            # Enhanced debugging: Check form widget attributes
+            expected_attrs = ['form_fields', 'class_uri', 'form_style', 'widgets_created']
+            missing_attrs = [attr for attr in expected_attrs if not hasattr(self.form_widget, attr)]
+            
+            if missing_attrs:
+                self.logger.warning(f"Form widget missing attributes: {missing_attrs}")
+            
+            # Check if form has fields
+            if hasattr(self.form_widget, 'form_fields'):
+                field_count = len(self.form_widget.form_fields)
+                self.logger.info(f"Form created successfully with {field_count} fields")
+                
+                # Log field details for debugging
+                for field_uri, field in self.form_widget.form_fields.items():
+                    self.logger.debug(f"  Field: {field.property_metadata.display_name} (Group: {field.group_name})")
+                
+                self.status_label.setText(f"Specimen form loaded with {field_count} fields")
+            else:
+                self.logger.warning("Form widget has no form_fields attribute")
+                self.status_label.setText("Specimen form loaded (no fields detected)")
+            
             # Store original empty data
-            self.original_data = self.form_builder.get_form_data(self.form_widget)
+            try:
+                self.original_data = self.form_builder.get_form_data(self.form_widget)
+            except Exception as e:
+                self.logger.warning(f"Could not get initial form data: {e}")
+                self.original_data = {}
             
             self.status_label.setText("Form created successfully")
             self.progress_bar.setVisible(False)
@@ -180,7 +222,7 @@ class SpecimenFormWidget(QWidget):
             self.logger.info("Specimen form created successfully")
             
         except Exception as e:
-            self.logger.error(f"Failed to create specimen form: {e}")
+            self.logger.error(f"Failed to create specimen form: {e}", exc_info=True)
             self._show_error_form(f"Failed to create form: {str(e)}")
             self.status_label.setText("Error creating form")
             self.progress_bar.setVisible(False)

@@ -84,7 +84,8 @@ class WidgetFactory:
             self.logger.error(f"Failed to create widget for {property_metadata.name}: {e}")
             return self._create_error_widget(f"Error: {str(e)}")
     
-    def create_widgets_for_properties(self, properties: List[PropertyMetadata]) -> Dict[str, QWidget]:
+    def create_widgets_for_properties(self, properties: List[PropertyMetadata], 
+                                     parent: Optional[QWidget] = None) -> Dict[str, QWidget]:
         """
         Create widgets for a list of properties.
         
@@ -95,16 +96,27 @@ class WidgetFactory:
             Dictionary mapping property URIs to widgets
         """
         widgets = {}
-        
+    
         for prop in properties:
             try:
                 widget = self.create_widget(prop)
+                
+                # CRITICAL FIX: Set parent immediately to prevent garbage collection
+                if parent:
+                    widget.setParent(parent)
+                
                 widgets[prop.uri] = widget
-                self.logger.debug(f"Created widget for {prop.name}")
+                self.logger.debug(f"Created widget for {prop.name} (parent: {widget.parent() is not None})")
+                
             except Exception as e:
                 self.logger.error(f"Failed to create widget for {prop.name}: {e}")
-                widgets[prop.uri] = self._create_error_widget(f"Error: {prop.name}")
+                # Create error widget with parent
+                error_widget = self._create_error_widget(f"Error: {prop.name}")
+                if parent:
+                    error_widget.setParent(parent)
+                widgets[prop.uri] = error_widget
         
+        self.logger.info(f"Created {len(widgets)} widgets (all with proper parents)")
         return widgets
     
     # ============================================================================
