@@ -1,13 +1,32 @@
 """
 DynaMat Platform - GUI Dependencies Module
-Dependency management and calculation engine
+Dependency management, calculation, and generation engines
 """
 
 from .dependency_manager import DependencyManager
 from .calculation_engine import CalculationEngine, CalculationType
+from .generation_engine import GenerationEngine
+from .constraint_manager import (
+    ConstraintManager, 
+    Constraint, 
+    ConstraintType, 
+    TriggerLogic, 
+    Action
+)
 
 __all__ = [
+    # Main dependency manager
     'DependencyManager',
-    'CalculationEngine', 
-    'CalculationType'
+    
+    # Engines
+    'CalculationEngine',
+    'CalculationType',
+    'GenerationEngine',
+    
+    # Constraint system
+    'ConstraintManager',
+    'Constraint',
+    'ConstraintType',
+    'TriggerLogic',
+    'Action'
 ]

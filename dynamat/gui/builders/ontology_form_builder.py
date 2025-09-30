@@ -29,7 +29,7 @@ class OntologyFormBuilder(QObject):
     form_error = pyqtSignal(str, str)  # class_uri, error_message
     form_created = pyqtSignal(str)     # class_uri    
     
-    def __init__(self, ontology_manager, default_layout=LayoutStyle.GROUPED_FORM):
+    def __init__(self, ontology_manager, default_layout=LayoutStyle.GROUPED_FORM, constraint_dir: Optional[Path] = None):
         super().__init__() 
         """
         Initialize the form builder.
@@ -46,8 +46,20 @@ class OntologyFormBuilder(QObject):
         self.form_manager = FormManager(ontology_manager)
         self.layout_manager = LayoutManager()
         
-        # Optional dependency manager 
+        # Initialize constraint-based dependency manager
         self.dependency_manager = None
+        if constraint_dir or self._has_default_constraints():
+            try:
+                # Import here to avoid circular dependencies
+                from ..dependencies.dependency_manager import DependencyManager
+                
+                self.dependency_manager = DependencyManager(
+                    ontology_manager,
+                    constraint_dir
+                )
+                self.logger.info("Constraint-based dependency manager initialized")
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize dependency manager: {e}")
         
         self.logger.info("Ontology form builder initialized")
     
@@ -95,10 +107,10 @@ class OntologyFormBuilder(QObject):
             if self.dependency_manager:
                 try:
                     self.dependency_manager.setup_dependencies(form_widget, class_uri)
-                    self.logger.info("Dependencies configured successfully")
+                    self.logger.info("TTL-based constraints configured successfully")
                 except Exception as e:
-                    self.logger.error(f"Failed to setup dependencies: {e}")
-                    # Don't fail the entire form creation for dependency issues
+                    self.logger.error(f"Failed to setup constraints: {e}")
+                    # Don't fail entire form creation for constraint issues
             
             # Set parent if provided
             if parent:
@@ -135,32 +147,23 @@ class OntologyFormBuilder(QObject):
         """
         return self.build_form(class_uri, parent, layout_style)
     
-    def enable_dependencies(self, config_path: Optional[str] = None):
+    def enable_dependencies(self, constraint_dir: Optional[Path] = None):
         """
-        Enable dependency management for forms.
+        Enable or reinitialize the dependency manager.
         
         Args:
-            config_path: Path to dependency configuration file
+            constraint_dir: Optional constraint directory path
         """
         try:
             from ..dependencies.dependency_manager import DependencyManager
             
-            # Initialize dependency manager
-            if config_path:
-                self.dependency_manager = DependencyManager(self.ontology_manager, config_path)
-            else:
-                # Try default config path
-                default_path = Path(__file__).parent.parent / "dependencies.json"
-                if default_path.exists():
-                    self.dependency_manager = DependencyManager(self.ontology_manager, str(default_path))
-                else:
-                    self.dependency_manager = DependencyManager(self.ontology_manager)
-            
-            self.logger.info("Dependency management enabled")
-            
+            self.dependency_manager = DependencyManager(
+                self.ontology_manager,
+                constraint_dir
+            )
+            self.logger.info("Dependency manager enabled")
         except Exception as e:
             self.logger.error(f"Failed to enable dependencies: {e}")
-            self.dependency_manager = None
     
     def disable_dependencies(self):
         """Disable dependency management."""
@@ -426,3 +429,23 @@ class OntologyFormBuilder(QObject):
             return "Moderate"
         else:
             return "Complex"
+    # ============================================================================
+    # CONSTRAINT MANAGEMENT API
+    # ============================================================================
+    
+    def reload_constraints(self):
+        """Reload constraints from TTL files."""
+        if self.dependency_manager:
+            self.dependency_manager.reload_constraints()
+            self.logger.info("Constraints reloaded")
+    
+    def get_constraint_statistics(self):
+        """Get statistics about loaded constraints."""
+        if self.dependency_manager:
+            return self.dependency_manager.get_statistics()
+        return {}
+
+    def _has_default_constraints(self) -> bool:
+        """Check if default constraint directory exists."""
+        default_dir = Path(__file__).parent.parent.parent / "ontology" / "constraints"
+        return default_dir.exists() and any(default_dir.glob("gui_*_rules.ttl"))

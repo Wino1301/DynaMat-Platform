@@ -1,465 +1,523 @@
 """
-DynaMat Platform - Dependency Manager (Refactored)
-Manages form widget dependencies using calculation engine
+DynaMat Platform - Dependency Manager 
+Manages form widget dependencies using TTL-based constraints
 """
 
-import json
 import logging
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any
 from pathlib import Path
 
-from PyQt6.QtWidgets import (
-    QWidget, QComboBox, QLineEdit, QSpinBox, QDoubleSpinBox, 
-    QCheckBox, QTextEdit, QDateEdit
-)
+from PyQt6.QtWidgets import QWidget, QComboBox, QLineEdit, QSpinBox, QDoubleSpinBox, QCheckBox
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from ...ontology import OntologyManager
+from .constraint_manager import ConstraintManager, Constraint, ConstraintType, Action, TriggerLogic
 from .calculation_engine import CalculationEngine
+from .generation_engine import GenerationEngine
 
 logger = logging.getLogger(__name__)
 
 
 class DependencyManager(QObject):
     """
-    Manages form widget dependencies using a calculation engine.
+    Manages form widget dependencies using TTL-based constraint definitions.
     
-    Uses configuration-driven rules to handle form field interactions,
-    calculations, and dynamic updates.
+    Coordinates constraint evaluation, calculations, and value generation
+    with Qt signal-based dynamic updates.
     """
     
     # Signals
-    dependency_triggered = pyqtSignal(str, dict)  # rule_name, rule_data
-    calculation_performed = pyqtSignal(str, float)  # calculation_name, result
-    error_occurred = pyqtSignal(str, str)  # rule_name, error_message
+    constraint_triggered = pyqtSignal(str, str)  # constraint_uri, action
+    calculation_performed = pyqtSignal(str, float)  # property_uri, result
+    generation_performed = pyqtSignal(str, str)  # property_uri, result
+    error_occurred = pyqtSignal(str, str)  # constraint_uri, error_message
     
-    def __init__(self, ontology_manager: OntologyManager, config_path: Optional[str] = None):
+    def __init__(self, ontology_manager: OntologyManager, 
+                 constraint_dir: Optional[Path] = None):
         """
         Initialize dependency manager.
         
         Args:
             ontology_manager: OntologyManager instance
-            config_path: Path to dependency configuration JSON file
+            constraint_dir: Path to constraint TTL files directory
         """
         super().__init__()
         
         self.ontology_manager = ontology_manager
-        self.config_path = config_path or self._get_default_config_path()
-        self.config = {}
-        self.active_form = None
         self.logger = logging.getLogger(__name__)
         
-        # Initialize calculation engine
+        # Initialize components
+        self.constraint_manager = ConstraintManager(constraint_dir)
         self.calculation_engine = CalculationEngine()
+        self.generation_engine = GenerationEngine(ontology_manager)
         
-        # Load configuration
-        self._load_configuration()
+        # Active form tracking
+        self.active_form = None
+        self.active_class_uri = None
+        self.constraints_by_trigger: Dict[str, List[Constraint]] = {}
         
-        self.logger.info("Dependency manager initialized")
+        self.logger.info("Dependency manager initialized with constraint-based system")
     
-    def _get_default_config_path(self) -> str:
-        """Get default configuration file path"""
-        return str(Path(__file__).parent / "dependencies.json")
-    
-    def _load_configuration(self):
-        """Load dependency configuration from JSON file"""
-        try:
-            if Path(self.config_path).exists():
-                with open(self.config_path, 'r') as f:
-                    self.config = json.load(f)
-                    dependencies_count = len(self.config.get('dependencies', {}))
-                    self.logger.info(f"Loaded configuration with {dependencies_count} dependency groups")
-            else:
-                self.logger.warning(f"Configuration file not found: {self.config_path}")
-                self.config = {"shape_configurations": {}, "dependencies": {}}
-        except Exception as e:
-            self.logger.error(f"Failed to load configuration: {e}")
-            self.config = {"shape_configurations": {}, "dependencies": {}}
+    # ============================================================================
+    # SETUP AND CONFIGURATION
+    # ============================================================================
     
     def setup_dependencies(self, form_widget: QWidget, class_uri: str):
         """
         Set up all dependencies for a form widget.
         
         Args:
-            form_widget: The form widget containing form_fields
-            class_uri: URI of the class the form represents
+            form_widget: Form widget with form_fields attribute
+            class_uri: URI of the class being displayed
         """
-        self.active_form = form_widget
+        try:
+            self.active_form = form_widget
+            self.active_class_uri = class_uri
+            
+            # Load constraints for this class
+            constraints = self.constraint_manager.get_constraints_for_class(class_uri)
+            self.logger.info(f"Setting up {len(constraints)} constraints for {class_uri}")
+            
+            # Organize constraints by trigger
+            self.constraints_by_trigger.clear()
+            for constraint in constraints:
+                for trigger_property in constraint.triggers:
+                    if trigger_property not in self.constraints_by_trigger:
+                        self.constraints_by_trigger[trigger_property] = []
+                    self.constraints_by_trigger[trigger_property].append(constraint)
+            
+            # Connect Qt signals for each trigger property
+            for trigger_property in self.constraints_by_trigger.keys():
+                self._connect_trigger_signal(trigger_property)
+            
+            # Initialize form state (evaluate all constraints once)
+            self._evaluate_all_constraints()
+            
+            self.logger.info(f"Dependencies set up successfully")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to setup dependencies: {e}", exc_info=True)
+            self.error_occurred.emit("setup", str(e))
+    
+    def _connect_trigger_signal(self, trigger_property: str):
+        """
+        Connect appropriate Qt signal for a trigger property.
         
-        if not hasattr(form_widget, 'form_fields'):
-            self.logger.warning("Form widget has no form_fields attribute")
+        Args:
+            trigger_property: URI of the property that triggers constraints
+        """
+        if not hasattr(self.active_form, 'form_fields'):
+            self.logger.warning("Form widget missing form_fields attribute")
             return
         
-        self.logger.info(f"Setting up dependencies for {class_uri}")
+        if trigger_property not in self.active_form.form_fields:
+            self.logger.debug(f"Trigger property not in form: {trigger_property}")
+            return
         
-        # Connect signals for all triggers
-        self._connect_all_triggers()
+        field = self.active_form.form_fields[trigger_property]
+        widget = field.widget
         
-        # Apply initial states
-        self._apply_initial_states()
+        # Connect appropriate signal based on widget type
+        if isinstance(widget, QComboBox):
+            widget.currentTextChanged.connect(
+                lambda: self._on_trigger_changed(trigger_property)
+            )
+        elif isinstance(widget, (QDoubleSpinBox, QSpinBox)):
+            widget.valueChanged.connect(
+                lambda: self._on_trigger_changed(trigger_property)
+            )
+        elif isinstance(widget, QLineEdit):
+            widget.textChanged.connect(
+                lambda: self._on_trigger_changed(trigger_property)
+            )
+        elif isinstance(widget, QCheckBox):
+            widget.toggled.connect(
+                lambda: self._on_trigger_changed(trigger_property)
+            )
         
-        self.logger.info("Dependencies configured successfully")
+        self.logger.debug(f"Connected signal for trigger: {trigger_property}")
     
-    def _connect_all_triggers(self):
-        """Connect signals for all trigger fields in dependency rules"""
-        dependencies = self.config.get('dependencies', {})
-        
-        for group_name, group_config in dependencies.items():
-            self._connect_group_triggers(group_name, group_config)
+    # ============================================================================
+    # CONSTRAINT EVALUATION
+    # ============================================================================
     
-    def _connect_group_triggers(self, group_name: str, group_config: dict):
-        """Connect triggers for a specific dependency group"""
-        # Connect main group trigger
-        trigger_uri = group_config.get('trigger')
-        if trigger_uri and self._has_field(trigger_uri):
-            field = self.active_form.form_fields[trigger_uri]
-            self._connect_widget_signal(field.widget, group_name, group_config)
-            self.logger.debug(f"Connected main trigger for group: {group_name}")
+    def _on_trigger_changed(self, trigger_property: str):
+        """
+        Handle change in a trigger property.
         
-        # Connect individual rule triggers (for calculations)
-        rules = group_config.get('rules', [])
-        for i, rule in enumerate(rules):
-            rule_trigger = rule.get('trigger')
-            if rule_trigger and self._has_field(rule_trigger):
-                field = self.active_form.form_fields[rule_trigger]
-                rule_name = f"{group_name}_rule_{i}"
-                self._connect_widget_signal(field.widget, rule_name, rule)
-                self.logger.debug(f"Connected rule trigger: {rule_name}")
-    
-    def _connect_widget_signal(self, widget: QWidget, rule_name: str, rule_config: dict):
-        """Connect appropriate signal based on widget type"""
+        Args:
+            trigger_property: URI of the property that changed
+        """
         try:
-            # Handle UnitValueWidget
-            if widget.__class__.__name__ == 'UnitValueWidget':
-                widget.valueChanged.connect(
-                    lambda: self._on_trigger_changed(rule_name, rule_config)
-                )
-            # Handle standard Qt widgets
-            elif isinstance(widget, QComboBox):
-                widget.currentTextChanged.connect(
-                    lambda: self._on_trigger_changed(rule_name, rule_config)
-                )
-            elif isinstance(widget, (QLineEdit, QTextEdit)):
-                widget.textChanged.connect(
-                    lambda: self._on_trigger_changed(rule_name, rule_config)
-                )
-            elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
-                widget.valueChanged.connect(
-                    lambda: self._on_trigger_changed(rule_name, rule_config)
-                )
-            elif isinstance(widget, QCheckBox):
-                widget.toggled.connect(
-                    lambda: self._on_trigger_changed(rule_name, rule_config)
-                )
-        except Exception as e:
-            self.logger.error(f"Failed to connect widget signal for {rule_name}: {e}")
-    
-    def _on_trigger_changed(self, rule_name: str, rule_config: dict):
-        """Handle trigger field value change"""
-        try:
-            self.logger.debug(f"Trigger changed for rule: {rule_name}")
+            self.logger.debug(f"Trigger changed: {trigger_property}")
             
-            # Emit signal
-            self.dependency_triggered.emit(rule_name, rule_config)
+            # Get all constraints for this trigger
+            constraints = self.constraints_by_trigger.get(trigger_property, [])
             
-            # Process the rule
-            self._process_rule(rule_name, rule_config)
+            # Sort by priority (lower = higher priority)
+            constraints = sorted(constraints, key=lambda c: c.priority)
             
-        except Exception as e:
-            self.logger.error(f"Error processing trigger for {rule_name}: {e}")
-            self.error_occurred.emit(rule_name, str(e))
-    
-    def _process_rule(self, rule_name: str, rule_config: dict):
-        """Process a dependency rule"""
-        rule_type = rule_config.get('type', 'unknown')
-        
-        if rule_type == 'calculation':
-            self._process_calculation_rule(rule_name, rule_config)
-        elif rule_type == 'visibility':
-            self._process_visibility_rule(rule_name, rule_config)
-        elif rule_type == 'validation':
-            self._process_validation_rule(rule_name, rule_config)
-        elif rule_type == 'sync_dimensions':
-            self._process_sync_dimensions_rule(rule_name, rule_config)
-        else:
-            self.logger.warning(f"Unknown rule type: {rule_type} for {rule_name}")
-    
-    def _process_calculation_rule(self, rule_name: str, rule_config: dict):
-        """Process calculation rule using calculation engine"""
-        try:
-            calculation_name = rule_config.get('calculation')
-            target_field = rule_config.get('target')
-            input_fields = rule_config.get('inputs', [])
-            
-            if not calculation_name or not target_field:
-                self.logger.error(f"Invalid calculation rule {rule_name}: missing calculation or target")
-                return
-            
-            # Get input values
-            inputs = {}
-            for input_config in input_fields:
-                field_uri = input_config.get('field')
-                param_name = input_config.get('parameter')
+            # Evaluate each constraint
+            for constraint in constraints:
+                self._evaluate_constraint(constraint)
                 
-                if field_uri and param_name and self._has_field(field_uri):
-                    value = self._get_field_value(field_uri)
-                    if value is not None:
-                        inputs[param_name] = value
-            
-            # Validate inputs
-            validation_errors = self.calculation_engine.validate_calculation_inputs(
-                calculation_name, **inputs
+        except Exception as e:
+            self.logger.error(f"Error handling trigger change: {e}", exc_info=True)
+            self.error_occurred.emit(trigger_property, str(e))
+    
+    def _evaluate_all_constraints(self):
+        """Evaluate all constraints for initial form state."""
+        try:
+            # Get all constraints sorted by priority
+            all_constraints = self.constraint_manager.get_constraints_for_class(
+                self.active_class_uri
             )
             
-            if validation_errors:
-                self.logger.warning(f"Calculation validation failed for {rule_name}: {validation_errors}")
-                return
-            
-            # Perform calculation
-            result = self.calculation_engine.calculate(calculation_name, **inputs)
-            
-            if result is not None:
-                # Set result in target field
-                self._set_field_value(target_field, result)
-                self.calculation_performed.emit(calculation_name, result)
-                self.logger.debug(f"Calculation {calculation_name} = {result}")
-            else:
-                self.logger.error(f"Calculation failed for {rule_name}")
+            for constraint in all_constraints:
+                self._evaluate_constraint(constraint)
                 
         except Exception as e:
-            self.logger.error(f"Error in calculation rule {rule_name}: {e}")
-            self.error_occurred.emit(rule_name, str(e))
+            self.logger.error(f"Error evaluating all constraints: {e}")
     
-    def _process_visibility_rule(self, rule_name: str, rule_config: dict):
-        """Process visibility rule"""
+    def _evaluate_constraint(self, constraint: Constraint):
+        """
+        Evaluate a single constraint and apply its action.
+        
+        Args:
+            constraint: Constraint to evaluate
+        """
         try:
-            trigger_field = rule_config.get('trigger')
-            target_fields = rule_config.get('targets', [])
-            condition = rule_config.get('condition', {})
-            
-            if not trigger_field or not target_fields:
-                return
-            
-            # Get trigger value
-            trigger_value = self._get_field_value(trigger_field)
+            # Get trigger values
+            trigger_values = self._get_trigger_values(constraint.triggers)
             
             # Evaluate condition
-            show_fields = self._evaluate_condition(trigger_value, condition)
+            condition_met = self._evaluate_condition(
+                trigger_values,
+                constraint.when_values,
+                constraint.trigger_logic
+            )
             
-            # Apply visibility
-            for target_field in target_fields:
-                if self._has_field(target_field):
-                    field = self.active_form.form_fields[target_field]
-                    field.widget.setVisible(show_fields)
-                    # Also hide/show the label if it exists
-                    if hasattr(field.widget.parent(), 'layout'):
-                        layout = field.widget.parent().layout()
-                        if layout:
-                            for i in range(layout.count()):
-                                item = layout.itemAt(i)
-                                if item and item.widget() == field.widget:
-                                    # Find associated label
-                                    if i > 0:
-                                        label_item = layout.itemAt(i - 1)
-                                        if label_item and label_item.widget():
-                                            label_item.widget().setVisible(show_fields)
-                                    break
+            self.logger.debug(f"Constraint {constraint.uri}: condition_met={condition_met}")
+            
+            # Apply action based on constraint type
+            if condition_met:
+                self._apply_action(constraint, trigger_values)
+            else:
+                self._apply_inverse_action(constraint)
+            
+            # Emit signal
+            self.constraint_triggered.emit(constraint.uri, constraint.action.value)
             
         except Exception as e:
-            self.logger.error(f"Error in visibility rule {rule_name}: {e}")
+            self.logger.error(f"Error evaluating constraint {constraint.uri}: {e}")
+            self.error_occurred.emit(constraint.uri, str(e))
     
-    def _process_validation_rule(self, rule_name: str, rule_config: dict):
-        """Process validation rule"""
-        # TODO: Implement validation rules
-        pass
-    
-    def _process_sync_dimensions_rule(self, rule_name: str, rule_config: dict):
-        """Process dimension synchronization rule"""
-        try:
-            trigger_field = rule_config.get('trigger')
-            target_fields = rule_config.get('targets', [])
-            
-            if not trigger_field or not target_fields:
-                return
-            
-            # Get trigger value
-            trigger_value = self._get_field_value(trigger_field)
-            
-            if trigger_value is not None:
-                # Set same value to all target fields
-                for target_field in target_fields:
-                    if self._has_field(target_field) and target_field != trigger_field:
-                        self._set_field_value(target_field, trigger_value)
-            
-        except Exception as e:
-            self.logger.error(f"Error in sync dimensions rule {rule_name}: {e}")
-    
-    def _apply_initial_states(self):
-        """Apply initial states based on current field values"""
-        dependencies = self.config.get('dependencies', {})
+    def _get_trigger_values(self, trigger_properties: List[str]) -> Dict[str, Any]:
+        """
+        Get current values of trigger properties.
         
-        for group_name, group_config in dependencies.items():
+        Args:
+            trigger_properties: List of property URIs
+            
+        Returns:
+            Dictionary mapping property URI to current value
+        """
+        values = {}
+        
+        for prop_uri in trigger_properties:
+            if prop_uri in self.active_form.form_fields:
+                field = self.active_form.form_fields[prop_uri]
+                values[prop_uri] = self._extract_widget_value(field.widget)
+        
+        return values
+    
+    def _evaluate_condition(self, trigger_values: Dict[str, Any], 
+                           when_values: List[str],
+                           trigger_logic: Optional[TriggerLogic]) -> bool:
+        """
+        Evaluate if constraint condition is met.
+        
+        Args:
+            trigger_values: Current trigger property values
+            when_values: Expected values (can be URIs or literals)
+            trigger_logic: Logic gate (ANY, ALL, XOR)
+            
+        Returns:
+            True if condition is met
+        """
+        if not trigger_values:
+            return False
+        
+        # Handle special case: gui:anyValue
+        if when_values and "anyValue" in str(when_values[0]):
+            # Check if any trigger has a non-empty value
+            return any(v and str(v).strip() for v in trigger_values.values())
+        
+        # Match trigger values to when_values
+        matches = []
+        for i, (trigger_prop, trigger_value) in enumerate(trigger_values.items()):
+            # Get corresponding when_value (parallel list)
+            when_value = when_values[i] if i < len(when_values) else None
+            
+            if when_value:
+                # Check if trigger value matches when value
+                # Handle both URI matching and class membership
+                match = self._value_matches(trigger_value, when_value)
+                matches.append(match)
+            else:
+                matches.append(False)
+        
+        # Apply logic gate
+        if not trigger_logic or trigger_logic == TriggerLogic.ALL:
+            return all(matches)
+        elif trigger_logic == TriggerLogic.ANY:
+            return any(matches)
+        elif trigger_logic == TriggerLogic.XOR:
+            return sum(matches) == 1
+        
+        return False
+    
+    def _value_matches(self, value: Any, expected: str) -> bool:
+        """
+        Check if a value matches an expected value.
+        
+        Handles:
+        - Direct URI matching
+        - Class membership checking (e.g., is material a Composite?)
+        - String matching
+        """
+        if not value or not expected:
+            return False
+        
+        value_str = str(value)
+        
+        # Direct match
+        if value_str == expected:
+            return True
+        
+        # Check if expected is a class URI (class membership check)
+        if "#" in expected and "Composite" in expected:  # Heuristic for class URIs
             try:
-                # Process main group rule
-                if group_config.get('trigger'):
-                    self._process_rule(group_name, group_config)
-                
-                # Process individual rules
-                rules = group_config.get('rules', [])
-                for i, rule in enumerate(rules):
-                    rule_name = f"{group_name}_rule_{i}"
-                    self._process_rule(rule_name, rule)
-                    
-            except Exception as e:
-                self.logger.error(f"Failed to apply initial state for {group_name}: {e}")
-    
-    # ============================================================================
-    # UTILITY METHODS
-    # ============================================================================
-    
-    def _has_field(self, field_uri: str) -> bool:
-        """Check if form has a field with given URI"""
-        return (self.active_form and 
-                hasattr(self.active_form, 'form_fields') and 
-                field_uri in self.active_form.form_fields)
-    
-    def _get_field_value(self, field_uri: str) -> Any:
-        """Get value from a form field"""
-        if not self._has_field(field_uri):
-            return None
+                # Check if value is an instance of expected class
+                return self._is_instance_of_class(value_str, expected)
+            except:
+                pass
         
-        try:
-            field = self.active_form.form_fields[field_uri]
-            widget = field.widget
-            
-            # Handle UnitValueWidget
-            if widget.__class__.__name__ == 'UnitValueWidget':
-                return widget.getValue()
-            # Handle standard widgets
-            elif isinstance(widget, QComboBox):
-                data = widget.currentData()
-                text = widget.currentText()
-                return data if data is not None and data != "" else text
-            elif isinstance(widget, QLineEdit):
-                return widget.text()
-            elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
-                return widget.value()
-            elif isinstance(widget, QCheckBox):
-                return widget.isChecked()
-            elif isinstance(widget, QTextEdit):
-                return widget.toPlainText()
-            else:
-                return None
-                
-        except Exception as e:
-            self.logger.error(f"Error getting value for {field_uri}: {e}")
-            return None
+        return False
     
-    def _set_field_value(self, field_uri: str, value: Any) -> bool:
-        """Set value for a form field"""
-        if not self._has_field(field_uri):
-            return False
+    def _is_instance_of_class(self, instance_uri: str, class_uri: str) -> bool:
+        """
+        Check if an instance is a member of a class.
         
+        Args:
+            instance_uri: URI of the instance
+            class_uri: URI of the class
+            
+        Returns:
+            True if instance is of the class
+        """
         try:
-            field = self.active_form.form_fields[field_uri]
-            widget = field.widget
-            
-            # Handle UnitValueWidget
-            if widget.__class__.__name__ == 'UnitValueWidget':
-                widget.setValue(float(value))
-                return True
-            # Handle standard widgets
-            elif isinstance(widget, QLineEdit):
-                widget.setText(str(value))
-                return True
-            elif isinstance(widget, QSpinBox):
-                widget.setValue(int(value))
-                return True
-            elif isinstance(widget, QDoubleSpinBox):
-                widget.setValue(float(value))
-                return True
-            elif isinstance(widget, QCheckBox):
-                widget.setChecked(bool(value))
-                return True
-            elif isinstance(widget, QTextEdit):
-                widget.setPlainText(str(value))
-                return True
-            elif isinstance(widget, QComboBox):
-                # Try to find and set by data first, then by text
-                for i in range(widget.count()):
-                    if widget.itemData(i) == value:
-                        widget.setCurrentIndex(i)
-                        return True
-                # Try by text
-                index = widget.findText(str(value))
-                if index >= 0:
-                    widget.setCurrentIndex(index)
-                    return True
-            
-            return False
-            
+            from rdflib import URIRef
+            query = """
+            ASK {
+                ?instance rdf:type/rdfs:subClassOf* ?class .
+            }
+            """
+            result = self.ontology_manager.graph.query(
+                query,
+                initBindings={
+                    "instance": URIRef(instance_uri),
+                    "class": URIRef(class_uri)
+                }
+            )
+            return bool(result)
         except Exception as e:
-            self.logger.error(f"Error setting value for {field_uri}: {e}")
-            return False
-    
-    def _evaluate_condition(self, value: Any, condition: dict) -> bool:
-        """Evaluate a condition against a value"""
-        try:
-            condition_type = condition.get('type', 'equals')
-            condition_value = condition.get('value')
-            
-            if condition_type == 'equals':
-                return value == condition_value
-            elif condition_type == 'not_equals':
-                return value != condition_value
-            elif condition_type == 'contains':
-                return condition_value in str(value)
-            elif condition_type == 'not_empty':
-                return value is not None and str(value).strip() != ""
-            elif condition_type == 'empty':
-                return value is None or str(value).strip() == ""
-            elif condition_type == 'greater_than':
-                return float(value) > float(condition_value)
-            elif condition_type == 'less_than':
-                return float(value) < float(condition_value)
-            else:
-                self.logger.warning(f"Unknown condition type: {condition_type}")
-                return False
-                
-        except Exception as e:
-            self.logger.error(f"Error evaluating condition: {e}")
+            self.logger.error(f"Class membership check failed: {e}")
             return False
     
     # ============================================================================
-    # PUBLIC METHODS
+    # ACTION APPLICATION
     # ============================================================================
     
-    def reload_configuration(self):
-        """Reload dependency configuration from file"""
-        self._load_configuration()
-        self.logger.info("Configuration reloaded")
+    def _apply_action(self, constraint: Constraint, trigger_values: Dict[str, Any]):
+        """Apply the constraint's action."""
+        if constraint.action == Action.SHOW:
+            self._action_show_fields(constraint.affects)
+        
+        elif constraint.action == Action.HIDE:
+            self._action_hide_fields(constraint.affects)
+        
+        elif constraint.action == Action.REQUIRE:
+            self._action_require_fields(constraint.affects, True)
+        
+        elif constraint.action == Action.OPTIONAL:
+            self._action_require_fields(constraint.affects, False)
+        
+        elif constraint.action == Action.CALCULATE:
+            self._action_calculate(constraint)
+        
+        elif constraint.action == Action.GENERATE:
+            self._action_generate(constraint, trigger_values)
+        
+        elif constraint.action == Action.ENABLE:
+            self._action_enable_fields(constraint.affects, True)
+        
+        elif constraint.action == Action.DISABLE:
+            self._action_enable_fields(constraint.affects, False)
     
-    def get_configuration(self) -> dict:
-        """Get current configuration"""
-        return self.config.copy()
+    def _apply_inverse_action(self, constraint: Constraint):
+        """Apply the inverse of the constraint's action."""
+        if constraint.action == Action.SHOW:
+            self._action_hide_fields(constraint.affects)
+        
+        elif constraint.action == Action.HIDE:
+            self._action_show_fields(constraint.affects)
+        
+        elif constraint.action == Action.REQUIRE:
+            self._action_require_fields(constraint.affects, False)
+        
+        elif constraint.action == Action.OPTIONAL:
+            self._action_require_fields(constraint.affects, True)
     
-    def get_available_calculations(self) -> List[str]:
-        """Get list of available calculations"""
-        return self.calculation_engine.get_available_calculations()
+    def _action_show_fields(self, field_uris: List[str]):
+        """Show fields."""
+        for field_uri in field_uris:
+            self._set_field_visibility(field_uri, True)
     
-    def test_calculation(self, calculation_name: str, **kwargs) -> Optional[float]:
-        """Test a calculation with given parameters"""
-        return self.calculation_engine.calculate(calculation_name, **kwargs)
+    def _action_hide_fields(self, field_uris: List[str]):
+        """Hide fields."""
+        for field_uri in field_uris:
+            self._set_field_visibility(field_uri, False)
+    
+    def _action_require_fields(self, field_uris: List[str], required: bool):
+        """Set fields as required or optional."""
+        for field_uri in field_uris:
+            if field_uri in self.active_form.form_fields:
+                field = self.active_form.form_fields[field_uri]
+                field.required = required
+                # Update visual indicator (e.g., asterisk in label)
+    
+    def _action_enable_fields(self, field_uris: List[str], enabled: bool):
+        """Enable or disable fields."""
+        for field_uri in field_uris:
+            if field_uri in self.active_form.form_fields:
+                field = self.active_form.form_fields[field_uri]
+                field.widget.setEnabled(enabled)
+    
+    def _action_calculate(self, constraint: Constraint):
+        """Perform calculation."""
+        try:
+            # Get input values
+            input_values = {}
+            for input_prop in constraint.calculation_inputs:
+                if input_prop in self.active_form.form_fields:
+                    field = self.active_form.form_fields[input_prop]
+                    value = self._extract_widget_value(field.widget)
+                    input_values[input_prop] = value
+            
+            # Perform calculation
+            result = self.calculation_engine.calculate(
+                constraint.calculation_function,
+                **input_values
+            )
+            
+            # Set result in target field(s)
+            for target_uri in constraint.affects:
+                self._set_widget_value(target_uri, result)
+            
+            self.calculation_performed.emit(constraint.affects[0], result)
+            
+        except Exception as e:
+            self.logger.error(f"Calculation failed: {e}")
+            self.error_occurred.emit(constraint.uri, str(e))
+    
+    def _action_generate(self, constraint: Constraint, trigger_values: Dict[str, Any]):
+        """Generate value from template."""
+        try:
+            # Prepare inputs for generation
+            inputs = {}
+            for input_prop in constraint.generation_inputs:
+                if input_prop in trigger_values:
+                    inputs[input_prop] = trigger_values[input_prop]
+            
+            # Generate value
+            result = self.generation_engine.generate(
+                constraint.generation_template,
+                inputs
+            )
+            
+            # Set result in target field(s)
+            for target_uri in constraint.affects:
+                self._set_widget_value(target_uri, result)
+            
+            self.generation_performed.emit(constraint.affects[0], result)
+            
+        except Exception as e:
+            self.logger.error(f"Generation failed: {e}")
+            self.error_occurred.emit(constraint.uri, str(e))
+    
+    # ============================================================================
+    # WIDGET VALUE HELPERS
+    # ============================================================================
+    
+    def _extract_widget_value(self, widget: QWidget) -> Any:
+        """Extract current value from a widget."""
+        if isinstance(widget, QComboBox):
+            return widget.currentData() or widget.currentText()
+        elif isinstance(widget, QLineEdit):
+            return widget.text()
+        elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+            return widget.value()
+        elif isinstance(widget, QCheckBox):
+            return widget.isChecked()
+        return None
+    
+    def _set_widget_value(self, property_uri: str, value: Any):
+        """Set value in a widget."""
+        if property_uri not in self.active_form.form_fields:
+            return
+        
+        field = self.active_form.form_fields[property_uri]
+        widget = field.widget
+        
+        if isinstance(widget, QLineEdit):
+            widget.setText(str(value))
+        elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+            widget.setValue(float(value))
+        elif isinstance(widget, QCheckBox):
+            widget.setChecked(bool(value))
+        elif isinstance(widget, QComboBox):
+            index = widget.findText(str(value))
+            if index >= 0:
+                widget.setCurrentIndex(index)
+    
+    def _set_field_visibility(self, field_uri: str, visible: bool):
+        """Set visibility of a field and its label."""
+        if field_uri not in self.active_form.form_fields:
+            return
+        
+        field = self.active_form.form_fields[field_uri]
+        field.widget.setVisible(visible)
+        
+        # Also hide/show label if it exists
+        # This depends on your form layout implementation
+    
+    # ============================================================================
+    # PUBLIC API
+    # ============================================================================
+    
+    def reload_constraints(self):
+        """Reload constraints from TTL files."""
+        self.constraint_manager.reload()
+        if self.active_form and self.active_class_uri:
+            self.setup_dependencies(self.active_form, self.active_class_uri)
     
     def get_statistics(self) -> Dict[str, Any]:
-        """Get dependency manager statistics"""
-        dependencies = self.config.get('dependencies', {})
-        total_rules = sum(len(group.get('rules', [])) for group in dependencies.values())
-        
+        """Get dependency manager statistics."""
         return {
-            'config_loaded': bool(self.config),
-            'dependency_groups': len(dependencies),
-            'total_rules': total_rules,
+            **self.constraint_manager.get_statistics(),
+            'active_form': self.active_form is not None,
+            'active_class': self.active_class_uri,
             'available_calculations': len(self.calculation_engine.get_available_calculations()),
-            'active_form': self.active_form is not None
+            'available_generators': len(self.generation_engine.get_available_generators())
         }

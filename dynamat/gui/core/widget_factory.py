@@ -54,20 +54,18 @@ class WidgetFactory:
     def create_widget(self, property_metadata: PropertyMetadata) -> QWidget:
         """
         Create appropriate widget for a property based on its metadata.
-        
-        Args:
-            property_metadata: Property metadata from ontology
-            
-        Returns:
-            Configured widget for the property
         """
         try:
-            widget_type = property_metadata.suggested_widget_type
-            self.logger.debug(f"Creating {widget_type} widget for {property_metadata.name}")
+            # Determine widget type with proper checks
+            widget_type = None
             
-            # Check if property has units (measurement property)
+            # Check for measurement properties first
             if hasattr(property_metadata, 'compatible_units') and property_metadata.compatible_units:
                 widget_type = 'unit_value'
+            
+            # Fallback to suggested widget type
+            else:
+                widget_type = property_metadata.suggested_widget_type
             
             # Get widget creator function
             creator_func = self.widget_creators.get(widget_type, self._create_line_edit_widget)
@@ -174,18 +172,29 @@ class WidgetFactory:
         if prop.description:
             widget.setToolTip(prop.description)
         
+        # Add empty option for non-required fields
+        if not prop.is_required:
+            widget.addItem("(Select...)", "")
+        
         try:
-            # Query for objects of this type from ontology
+            # FIX: Call ontology manager directly instead of missing helper method
             if hasattr(prop, 'range_class') and prop.range_class:
-                objects = self._get_objects_for_class(prop.range_class)
+                # Use the OntologyManager's get_all_individuals method
+                objects = self.ontology_manager.get_all_individuals(
+                    prop.range_class, 
+                    include_subclasses=True  # Important for Material subclasses!
+                )
                 
                 for obj in objects:
-                    display_name = obj.get('name', obj.get('uri', 'Unknown'))
+                    # Objects returned as dicts with 'uri', 'label', 'name'
+                    display_name = obj.get('name') or obj.get('label') or self._extract_local_name(obj.get('uri'))
                     widget.addItem(display_name, obj.get('uri'))
+                
+                self.logger.debug(f"Loaded {widget.count() - 1} items for {prop.name}")
         
         except Exception as e:
-            self.logger.warning(f"Could not load objects for {prop.name}: {e}")
-            widget.addItem("(No data available)", "")
+            self.logger.error(f"Could not load objects for {prop.name} ({prop.range_class}): {e}")
+            widget.addItem("(Error loading data)", "")
         
         return widget
     
@@ -328,3 +337,9 @@ class WidgetFactory:
         except Exception as e:
             self.logger.error(f"Failed to get objects for class {class_uri}: {e}", exc_info=True)
             return []
+    
+    def _extract_local_name(self, uri: str) -> str:
+        """Extract local name from URI."""
+        if not uri:
+            return "Unknown"
+        return uri.split('#')[-1].split('/')[-1].replace('_', ' ')

@@ -99,11 +99,13 @@ class PropertyMetadata:
     @property
     def suggested_widget_type(self) -> str:
         """Suggest best widget type"""
+        # Priority 1: Explicit widget type override
         if self.widget_type:
             return self.widget_type
+            
         if self.valid_values:
-            return "combo"
-        elif self.data_type == "object":
+            return "combo"            
+        elif self.data_type == "object":  # Fallback for object type
             return "object_combo"
         elif self.data_type == "boolean":
             return "checkbox"
@@ -113,10 +115,11 @@ class PropertyMetadata:
             return "spinbox"
         elif self.data_type in ["double", "float"]:
             return "double_spinbox"
-        elif "note" in self.description.lower():
+
+        if self.description and "note" in self.description.lower():
             return "text_area"
-        else:
-            return "line_edit"
+            
+        return "line_edit"
 
 
 @dataclass
