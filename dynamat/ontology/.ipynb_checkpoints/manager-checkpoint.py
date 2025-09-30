@@ -15,6 +15,7 @@ from .query.sparql_executor import SPARQLExecutor
 from .query.domain_queries import DomainQueries
 from .cache.metadata_cache import MetadataCache
 from .schema.gui_schema_builder import GUISchemaBuilder, ClassMetadata
+from .qudt.qudt_manager import QUDTManager
 
 from ..config import config
 
@@ -57,6 +58,7 @@ class OntologyManager:
         self.loader = OntologyLoader(self.ontology_dir)
         self.namespace_manager = NamespaceManager()
         self.cache = MetadataCache()
+        self.qudt_manager = QUDTManager()
         
         # Load ontology and setup components
         self._initialize()
@@ -69,12 +71,23 @@ class OntologyManager:
         graph = self.loader.load_ontology_files()
         
         # Setup namespaces
+        self.namespace_manager = NamespaceManager(graph)
         self.namespace_manager.setup_graph_namespaces(graph)
         
         # Initialize query and schema components
         self.sparql_executor = SPARQLExecutor(graph, self.namespace_manager)
         self.domain_queries = DomainQueries(self.sparql_executor, self.namespace_manager)
-        self.gui_schema_builder = GUISchemaBuilder(self.sparql_executor, self.namespace_manager, self.cache)
+        self.gui_schema_builder = GUISchemaBuilder(
+                                                    self.sparql_executor, 
+                                                    self.namespace_manager, 
+                                                    self.cache,
+                                                    self.qudt_manager  
+                                                )
+                                                
+        # Load QUDT data after initialization
+        logger.info("Loading QUDT units data...")
+        self.qudt_manager.load()
+        logger.info("QUDT units loaded successfully")
     
     # ============================================================================
     # PRIMARY INTERFACE - Used by form_builder.py

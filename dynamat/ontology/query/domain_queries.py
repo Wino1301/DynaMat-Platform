@@ -113,7 +113,72 @@ class DomainQueries:
             hierarchy[parent].append(child)
         
         return hierarchy
-    
+        
+    def get_instances_of_class(self, class_uri: str, include_subclasses: bool = True) -> List[Dict[str, Any]]:
+        """
+        Get all instances of a specific class.
+        
+        Args:
+            class_uri: URI of the class
+            include_subclasses: Whether to include instances of subclasses
+            
+        Returns:
+            List of dictionaries with instance information (uri, name/label)
+        """
+        if include_subclasses:
+            query = """
+            SELECT DISTINCT ?individual ?label ?name WHERE {{
+                ?individual rdf:type ?instanceClass .
+                ?instanceClass rdfs:subClassOf* <{class_uri}> .
+                
+                OPTIONAL {{ ?individual rdfs:label ?label }}
+                OPTIONAL {{ ?individual dyn:hasName ?name }}
+                OPTIONAL {{ ?individual dyn:hasMaterialName ?name }}
+                OPTIONAL {{ ?individual dyn:hasSpecimenId ?name }}
+            }}
+            ORDER BY ?label ?name ?individual
+            """.format(class_uri=class_uri)
+        else:
+            query = """
+            SELECT DISTINCT ?individual ?label ?name WHERE {{
+                ?individual rdf:type <{class_uri}> .
+                
+                OPTIONAL {{ ?individual rdfs:label ?label }}
+                OPTIONAL {{ ?individual dyn:hasName ?name }}
+                OPTIONAL {{ ?individual dyn:hasMaterialName ?name }}
+                OPTIONAL {{ ?individual dyn:hasSpecimenId ?name }}
+            }}
+            ORDER BY ?label ?name ?individual
+            """.format(class_uri=class_uri)
+        
+        try:
+            results = self.sparql.execute_query(query)
+            
+            instances = []
+            for result in results:
+                # Extract display name (prefer name > label > extracted from URI)
+                display_name = None
+                if result.get('name'):
+                    display_name = str(result['name'])
+                elif result.get('label'):
+                    display_name = str(result['label'])
+                else:
+                    # Extract from URI
+                    uri = str(result['individual'])
+                    display_name = uri.split('#')[-1].split('/')[-1].replace('_', ' ')
+                
+                instances.append({
+                    'uri': str(result['individual']),
+                    'name': display_name,
+                    'label': str(result.get('label', ''))
+                })
+            
+            logger.debug(f"Found {len(instances)} instances of {class_uri}")
+            return instances
+            
+        except Exception as e:
+            logger.error(f"Failed to get instances of class {class_uri}: {e}")
+            return []
     # ============================================================================
     # MATERIAL QUERIES
     # ============================================================================

@@ -30,15 +30,6 @@ class UnitValueWidget(QWidget):
                  property_uri: str = None, parent=None):
         super().__init__(parent)
         
-        print(f"!!! UnitValueWidget.__init__ called")
-        print(f"!!!   property_uri: {property_uri}")
-        print(f"!!!   default_unit: {default_unit}")
-        print(f"!!!   available_units: {len(available_units) if available_units else 0}")
-        
-        if available_units:
-            for i, unit in enumerate(available_units):
-                print(f"!!!     Unit {i}: {unit.symbol} ({unit.uri})")
-        
         self.default_unit = default_unit
         self.available_units = available_units or []
         self.property_uri = property_uri
@@ -47,11 +38,8 @@ class UnitValueWidget(QWidget):
         self._populate_units()
         self._connect_signals()
         
-        print(f"!!! UnitValueWidget created - combo box has {self.unit_combobox.count()} items")
-        
     def _setup_ui(self):
         """Setup the widget UI"""
-        print("!!! Setting up UnitValueWidget UI")
         
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -72,51 +60,77 @@ class UnitValueWidget(QWidget):
         self.unit_combobox.setMaximumWidth(120)  # Increased from 80
         self.unit_combobox.setStyleSheet("QComboBox { border: 1px solid gray; padding: 2px; }")  # Make it more visible
         layout.addWidget(self.unit_combobox, 0)
-        
-        print(f"!!! Created unit combobox - initial count: {self.unit_combobox.count()}")
-    
+            
     def _populate_units(self):
         """Populate the unit combobox from available units"""
-        print(f"!!! _populate_units called with {len(self.available_units)} units")
-        
         self.unit_combobox.clear()
         
         if not self.available_units:
-            print("!!! No available units - adding fallback")
+            logger.warning("No available units to populate")
             self.unit_combobox.addItem("unit", "")
             return
         
-        print("!!! Starting to add units to combobox...")
+        logger.info(f"Populating {len(self.available_units)} units")
+        logger.info(f"  Default unit URI: {self.default_unit}")
+        
         default_index = -1
         
         for i, unit_info in enumerate(self.available_units):
             try:
-                print(f"!!! Processing unit {i}: {unit_info}")
-                
                 # Handle UnitInfo objects
                 symbol = unit_info.symbol
                 uri = unit_info.uri
                 
-                print(f"!!!   symbol: {symbol}, uri: {uri}")
-                
+                # Add to combobox
                 self.unit_combobox.addItem(symbol, uri)
-                print(f"!!!   Added item - combobox count now: {self.unit_combobox.count()}")
-                
                 self.unit_combobox.setItemData(i, unit_info.name, Qt.ItemDataRole.ToolTipRole)
                 
-                # Set default
+                # Check if this is the default unit (multiple ways)
+                # 1. Direct URI match
                 if self.default_unit and uri == self.default_unit:
                     default_index = i
-                    print(f"!!!   Found default unit at index {i}")
-                    
+                    logger.debug(f" Found default by URI match at index {i}")
+                # 2. Check is_default flag
+                elif hasattr(unit_info, 'is_default') and unit_info.is_default:
+                    default_index = i
+                    logger.debug(f" Found default by is_default flag at index {i}")
+                # 3. Normalize and compare (handles namespace prefixes)
+                elif self.default_unit:
+                    default_normalized = self._normalize_uri(self.default_unit)
+                    uri_normalized = self._normalize_uri(uri)
+                    if default_normalized == uri_normalized:
+                        default_index = i
+                        logger.debug(f" Found default by normalized match at index {i}")
+                        
             except Exception as e:
-                print(f"!!! ERROR processing unit {i}: {e}")
+                logger.error(f"Error processing unit {i}: {e}", exc_info=True)
         
-        print(f"!!! Final combobox count: {self.unit_combobox.count()}")
-        
+        # Set default unit
         if default_index >= 0:
             self.unit_combobox.setCurrentIndex(default_index)
-            print(f"!!! Set default to index {default_index}")
+            logger.info(f"Set default unit to index {default_index}: {self.unit_combobox.itemText(default_index)}")
+        elif self.unit_combobox.count() > 0:
+            # If no default specified, select the first unit
+            self.unit_combobox.setCurrentIndex(0)
+            logger.info(f"No default unit matched, selected first: {self.unit_combobox.itemText(0)}")
+        
+        logger.info(f"Combobox populated with {self.unit_combobox.count()} items")
+    
+    def _normalize_uri(self, uri: str) -> str:
+        """Normalize URI for comparison."""
+        if not uri:
+            return ""
+        uri = str(uri).strip().strip('"\'')
+        
+        # Handle namespace prefixes
+        if ':' in uri and not uri.startswith('http'):
+            prefix, local = uri.split(':', 1)
+            if prefix == 'unit':
+                uri = f'http://qudt.org/vocab/unit/{local}'
+            elif prefix == 'qkdv':
+                uri = f'http://qudt.org/vocab/quantitykind/{local}'
+        
+        return uri
 
 # Also add debugging to the form builder's _create_unit_value_widget method:
 

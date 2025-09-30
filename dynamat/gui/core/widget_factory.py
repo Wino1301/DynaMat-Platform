@@ -310,12 +310,21 @@ class WidgetFactory:
     def _get_objects_for_class(self, class_uri: str) -> List[Dict[str, Any]]:
         """Get instances of a class from the ontology."""
         try:
+            self.logger.debug(f"Getting objects for class: {class_uri}")
+            
             # Use ontology manager to query for instances
-            # This is a placeholder - implement based on your ontology structure
             if hasattr(self.ontology_manager, 'domain_queries'):
-                return self.ontology_manager.domain_queries.get_instances_of_class(class_uri)
+                instances = self.ontology_manager.domain_queries.get_instances_of_class(class_uri)
+                self.logger.debug(f"  Received {len(instances)} instances")
+                
+                for i, inst in enumerate(instances[:3]):  # Log first 3 for debugging
+                    self.logger.debug(f"    Instance {i}: {inst}")
+                
+                return instances
             else:
+                self.logger.error("OntologyManager has no domain_queries attribute")
                 return []
+                
         except Exception as e:
-            self.logger.error(f"Failed to get objects for class {class_uri}: {e}")
+            self.logger.error(f"Failed to get objects for class {class_uri}: {e}", exc_info=True)
             return []

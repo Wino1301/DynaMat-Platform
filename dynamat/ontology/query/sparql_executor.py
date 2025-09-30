@@ -72,12 +72,10 @@ class SPARQLExecutor:
 
             # DEBUG: Check namespaces before query preparation
             namespaces = self.namespace_manager.get_all_namespaces()
-            print(f"Namespaces passed to prepareQuery: {namespaces}")
             
             # Check for None values
             none_keys = [k for k, v in namespaces.items() if k is None or v is None]
             if none_keys:
-                print(f"ERROR: Found None keys/values in namespaces: {none_keys}")
                 # Filter out None values
                 namespaces = {k: v for k, v in namespaces.items() if k is not None and v is not None}
 

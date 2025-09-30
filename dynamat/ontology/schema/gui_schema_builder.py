@@ -13,6 +13,7 @@ from rdflib import URIRef, Literal
 from ..query.sparql_executor import SPARQLExecutor
 from ..core.namespace_manager import NamespaceManager
 from ..cache.metadata_cache import MetadataCache
+from ..qudt.qudt_manager import QUDTManager
 
 logger = logging.getLogger(__name__)
 
@@ -168,7 +169,7 @@ class GUISchemaBuilder:
     """
     
     def __init__(self, sparql_executor: SPARQLExecutor, namespace_manager: NamespaceManager, 
-                 cache: MetadataCache):
+                 cache: MetadataCache, qudt_manager: QUDTManager):
         """
         Initialize the GUI schema builder.
         
@@ -180,6 +181,7 @@ class GUISchemaBuilder:
         self.sparql = sparql_executor
         self.ns = namespace_manager
         self.cache = cache
+        self.qudt_manager = qudt_manager
         
         logger.info("GUI schema builder initialized")
     
@@ -206,7 +208,7 @@ class GUISchemaBuilder:
         class_info = self._get_basic_class_info(class_uri)
         
         # Get all properties with metadata
-        properties = self._get_class_properties_with_metadata(class_uri)
+        properties = self._get_class_properties_for_class(class_uri)
         
         # Organize properties into form groups
         form_groups = self._organize_properties_into_groups(properties)
@@ -265,51 +267,40 @@ class GUISchemaBuilder:
         
         return info
     
-    def _get_class_properties_with_metadata(self, class_uri: str) -> List[PropertyMetadata]:
+    def _get_class_properties_for_class(self, class_uri: str) -> List[PropertyMetadata]:
         """Get all properties for a class with complete metadata."""
 
         # Make sure class_uri is a proper URI
         if not class_uri.startswith("http"):
             class_uri = f"{self.ns.DYN}{class_uri}"
         
-        # ENHANCED SPARQL QUERY - Now extracts all needed information
+        # SPARQL QUERY - Extracts all class properties
         query = """
         SELECT DISTINCT ?property ?propertyName ?label ?displayName ?description 
-                       ?datatype ?range ?isObjectProperty ?isDatatypeProperty
-                       ?required ?displayOrder ?formGroup ?groupOrder
-                       ?defaultUnit ?minValue ?maxValue ?widgetType
-        WHERE {{
-            {{
-                <{class_uri}> rdfs:subClassOf* ?class .
-                ?class rdfs:subClassOf ?restriction .
-                ?restriction owl:onProperty ?property .
-            }}
-            UNION
+                        ?formGroup ?range ?displayOrder ?groupOrder ?required 
+                        ?defaultUnit ?quantityKind ?minValue ?maxValue ?widgetType WHERE {{
             {{
                 ?property rdfs:domain <{class_uri}> .
             }}
+            UNION
+            {{
+                ?property rdfs:domain ?parentClass .
+                <{class_uri}> rdfs:subClassOf* ?parentClass .
+            }}
             
-            # Extract property name from URI
-            BIND(STRAFTER(STR(?property), "#") AS ?propertyName)
-            
-            # Basic property information
             OPTIONAL {{ ?property rdfs:label ?label . }}
-            OPTIONAL {{ ?property dyn:hasDisplayName ?displayName . }}
             OPTIONAL {{ ?property rdfs:comment ?description . }}
             OPTIONAL {{ ?property rdfs:range ?range . }}
-            
-            # Property type detection
-            OPTIONAL {{ ?property rdf:type owl:ObjectProperty . BIND(true AS ?isObjectProperty) }}
-            OPTIONAL {{ ?property rdf:type owl:DatatypeProperty . BIND(true AS ?isDatatypeProperty) }}
-            
-            # Form organization
+            OPTIONAL {{ ?property dyn:hasDisplayName ?displayName . }}
             OPTIONAL {{ ?property dyn:hasFormGroup ?formGroup . }}
+            
             OPTIONAL {{ ?property dyn:hasGroupOrder ?groupOrder . }}
             OPTIONAL {{ ?property dyn:hasDisplayOrder ?displayOrder . }}
             OPTIONAL {{ ?property dyn:isRequired ?required . }}
             
-            # Measurement properties
+            # Measurement properties - BOTH unit AND quantity kind
             OPTIONAL {{ ?property dyn:hasDefaultUnit ?defaultUnit . }}
+            OPTIONAL {{ ?property qudt:hasQuantityKind ?quantityKind . }}
             OPTIONAL {{ ?property dyn:hasMinValue ?minValue . }}
             OPTIONAL {{ ?property dyn:hasMaxValue ?maxValue . }}
             
@@ -348,6 +339,7 @@ class GUISchemaBuilder:
                 is_required=bool(result.get('required', False)),
                 valid_values=self._get_valid_values_for_property(result['property']),
                 default_unit=result.get('defaultUnit'),
+                quantity_kind=result.get('quantityKind'),
                 range_class=result.get('range'),
                 domain_class=class_uri,
                 description=result.get('description', ''),
@@ -360,7 +352,10 @@ class GUISchemaBuilder:
             # Set measurement property flag and units
             if data_type in ['double', 'float', 'integer'] and prop_metadata.default_unit:
                 prop_metadata.is_measurement_property = True
-                prop_metadata.compatible_units = self._get_compatible_units(prop_metadata.default_unit)
+                prop_metadata.compatible_units = self._get_compatible_units(
+                    prop_metadata.quantity_kind, 
+                    prop_metadata.default_unit
+                )
             
             properties.append(prop_metadata)
         
@@ -455,19 +450,84 @@ class GUISchemaBuilder:
         except:
             return False
     
-    def _get_compatible_units(self, default_unit_uri: str) -> List[UnitInfo]:
-        """Get compatible units for a measurement property."""
-        # This is a simplified implementation
-        # In a full implementation, you'd query QUDT for compatible units
-        return [
-            UnitInfo(
-                symbol="mm",
-                uri=str(self.ns.UNIT.MilliM),
-                name="Millimeter", 
-                quantity_kind=str(self.ns.QKDV.Length),
-                is_default=True
-            )
-        ]
+    def _get_compatible_units(self, quantity_kind_uri: str, default_unit_uri: str = None) -> List[UnitInfo]:
+        """
+        Get compatible units for a quantity kind from QUDT.
+        
+        Args:
+            quantity_kind_uri: URI of the quantity kind (e.g., qkdv:Length)
+            default_unit_uri: URI of the default unit to mark as default
+            
+        Returns:
+            List of UnitInfo objects for compatible units
+        """
+        if not quantity_kind_uri:
+            logger.warning("No quantity kind URI provided for unit lookup")
+            return []
+        
+        # Check if QUDT manager is available
+        if not self.qudt_manager:
+            logger.error("QUDT manager not available, cannot retrieve units")
+            return []
+        
+        # Normalize URIs for comparison
+        def normalize_uri(uri):
+            """Normalize URI for comparison."""
+            if not uri:
+                return None
+            uri = str(uri).strip()
+            # Remove quotes if present
+            uri = uri.strip('"\'')
+            # Ensure http:// prefix
+            if not uri.startswith('http://') and not uri.startswith('https://'):
+                # Handle namespace prefixes like "unit:MilliM2"
+                if ':' in uri:
+                    prefix, local = uri.split(':', 1)
+                    if prefix == 'unit':
+                        uri = f'http://qudt.org/vocab/unit/{local}'
+                    elif prefix == 'qkdv':
+                        uri = f'http://qudt.org/vocab/quantitykind/{local}'
+            return uri
+        
+        normalized_default = normalize_uri(default_unit_uri)
+        normalized_qk = normalize_uri(quantity_kind_uri)
+        
+        logger.info(f"Looking for units with quantity kind: {normalized_qk}")
+        logger.info(f"  Default unit (normalized): {normalized_default}")
+        
+        # Get units from QUDT manager
+        try:
+            qudt_units = self.qudt_manager.get_units_for_quantity_kind(normalized_qk)
+            
+            if not qudt_units:
+                logger.warning(f"No QUDT units found for quantity kind {normalized_qk}")
+                available_qks = list(self.qudt_manager.units_by_quantity_kind.keys())
+                logger.info(f"Available quantity kinds ({len(available_qks)}): {available_qks[:10]}...")
+                return []
+            
+            # Convert to UnitInfo objects
+            units = []
+            for qudt_unit in qudt_units:
+                normalized_unit_uri = normalize_uri(qudt_unit.uri)
+                is_default = (normalized_unit_uri == normalized_default)
+                
+                units.append(UnitInfo(
+                    symbol=qudt_unit.symbol,
+                    uri=qudt_unit.uri,
+                    name=qudt_unit.label,
+                    quantity_kind=normalized_qk,
+                    is_default=is_default
+                ))
+                
+                if is_default:
+                    logger.info(f"✓ Marked '{qudt_unit.symbol}' as default unit")
+            
+            logger.info(f"Found {len(units)} units for quantity kind {normalized_qk}")
+            return units
+            
+        except Exception as e:
+            logger.error(f"Failed to get units for {normalized_qk}: {e}", exc_info=True)
+            return []
     
     def _organize_properties_into_groups(self, properties: List[PropertyMetadata]) -> Dict[str, List[PropertyMetadata]]:
         """Organize properties into form groups."""
