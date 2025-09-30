@@ -70,8 +70,8 @@ class UnitValueWidget(QWidget):
             self.unit_combobox.addItem("unit", "")
             return
         
-        logger.info(f"Populating {len(self.available_units)} units")
-        logger.info(f"  Default unit URI: {self.default_unit}")
+        logger.debug(f"Populating {len(self.available_units)} units")
+        logger.debug(f"  Default unit URI: {self.default_unit}")
         
         default_index = -1
         
@@ -108,13 +108,13 @@ class UnitValueWidget(QWidget):
         # Set default unit
         if default_index >= 0:
             self.unit_combobox.setCurrentIndex(default_index)
-            logger.info(f"Set default unit to index {default_index}: {self.unit_combobox.itemText(default_index)}")
+            logger.debug(f"Set default unit to index {default_index}: {self.unit_combobox.itemText(default_index)}")
         elif self.unit_combobox.count() > 0:
             # If no default specified, select the first unit
             self.unit_combobox.setCurrentIndex(0)
-            logger.info(f"No default unit matched, selected first: {self.unit_combobox.itemText(0)}")
+            logger.debug(f"No default unit matched, selected first: {self.unit_combobox.itemText(0)}")
         
-        logger.info(f"Combobox populated with {self.unit_combobox.count()} items")
+        logger.debug(f"Combobox populated with {self.unit_combobox.count()} items")
     
     def _normalize_uri(self, uri: str) -> str:
         """Normalize URI for comparison."""

@@ -492,8 +492,8 @@ class GUISchemaBuilder:
         normalized_default = normalize_uri(default_unit_uri)
         normalized_qk = normalize_uri(quantity_kind_uri)
         
-        logger.info(f"Looking for units with quantity kind: {normalized_qk}")
-        logger.info(f"  Default unit (normalized): {normalized_default}")
+        logger.debug(f"Looking for units with quantity kind: {normalized_qk}")
+        logger.debug(f"Default unit (normalized): {normalized_default}")
         
         # Get units from QUDT manager
         try:
@@ -502,7 +502,7 @@ class GUISchemaBuilder:
             if not qudt_units:
                 logger.warning(f"No QUDT units found for quantity kind {normalized_qk}")
                 available_qks = list(self.qudt_manager.units_by_quantity_kind.keys())
-                logger.info(f"Available quantity kinds ({len(available_qks)}): {available_qks[:10]}...")
+                logger.debug(f"Available quantity kinds ({len(available_qks)}): {available_qks[:10]}...")
                 return []
             
             # Convert to UnitInfo objects
@@ -520,9 +520,9 @@ class GUISchemaBuilder:
                 ))
                 
                 if is_default:
-                    logger.info(f"✓ Marked '{qudt_unit.symbol}' as default unit")
+                    logger.debug(f"Marked '{str(qudt_unit.symbol)}' as default unit")
             
-            logger.info(f"Found {len(units)} units for quantity kind {normalized_qk}")
+            logger.debug(f"Found {len(units)} units for quantity kind {normalized_qk}")
             return units
             
         except Exception as e:

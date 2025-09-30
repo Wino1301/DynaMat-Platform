@@ -50,7 +50,7 @@ class MainWindow(QMainWindow):
             print(f"OntologyManager creation failed: {e}")
             self.ontology_manager = None
         
-        self.current_activity = "specimen"
+        self.current_activity = None
         self.activity_widgets = {}
         self.content_widget = None
         
@@ -68,7 +68,6 @@ class MainWindow(QMainWindow):
         self._connect_signals()
         
         # Initialize with specimen activity (create immediately)
-        self._initialize_specimen_activity()
         self._switch_activity("specimen")
         
         logger.info("Main window initialized")

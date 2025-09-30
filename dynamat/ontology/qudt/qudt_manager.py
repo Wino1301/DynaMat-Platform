@@ -159,7 +159,7 @@ class QUDTManager:
             logger.error(f"Failed to load from cache: {e}")
             return False
     
-    def _is_cache_fresh(self, max_age_days: int = 0) -> bool:
+    def _is_cache_fresh(self, max_age_days: int = 7) -> bool:
         """Check if cache is fresh enough to use."""
         if not self.metadata_file.exists():
             return False
