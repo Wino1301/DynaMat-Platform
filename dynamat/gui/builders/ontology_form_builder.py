@@ -147,23 +147,28 @@ class OntologyFormBuilder(QObject):
         """
         return self.build_form(class_uri, parent, layout_style)
     
-    def enable_dependencies(self, constraint_dir: Optional[Path] = None):
+    def enable_dependencies(self, config_path: Optional[str] = None):
         """
-        Enable or reinitialize the dependency manager.
+        Enable dependency management for forms.
         
         Args:
-            constraint_dir: Optional constraint directory path
+            config_path: Path to dependency configuration file
         """
         try:
+            from pathlib import Path  # ✅ ADD THIS
             from ..dependencies.dependency_manager import DependencyManager
             
-            self.dependency_manager = DependencyManager(
-                self.ontology_manager,
-                constraint_dir
-            )
-            self.logger.info("Dependency manager enabled")
+            # Initialize dependency manager
+            if config_path:
+                # ✅ Convert string to Path object
+                config_path_obj = Path(config_path) if isinstance(config_path, str) else config_path
+                self.dependency_manager = DependencyManager(self.ontology_manager, config_path_obj)
+            
+            self.logger.info("Dependency management enabled")
+            
         except Exception as e:
             self.logger.error(f"Failed to enable dependencies: {e}")
+            self.dependency_manager = None
     
     def disable_dependencies(self):
         """Disable dependency management."""

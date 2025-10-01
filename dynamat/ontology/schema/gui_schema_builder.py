@@ -99,14 +99,24 @@ class PropertyMetadata:
     @property
     def suggested_widget_type(self) -> str:
         """Suggest best widget type"""
-        # Priority 1: Explicit widget type override
+        # 1. Explicit widget_type always wins
         if self.widget_type:
             return self.widget_type
-            
+        
+        # 2. For object properties, check if we have valid_values (enumeration-like)
+        if self.data_type == "object":
+            if self.valid_values and len(self.valid_values) > 0:
+                # Has enumeration values - use regular combo
+                return "combo"
+            else:
+                # No enumeration - query for instances
+                return "object_combo"
+        
+        # 3. Then check for valid_values on data properties
         if self.valid_values:
-            return "combo"            
-        elif self.data_type == "object":  # Fallback for object type
-            return "object_combo"
+            return "combo"
+        
+        # 4. Rest of the checks...
         elif self.data_type == "boolean":
             return "checkbox"
         elif self.data_type == "date":
@@ -115,11 +125,10 @@ class PropertyMetadata:
             return "spinbox"
         elif self.data_type in ["double", "float"]:
             return "double_spinbox"
-
-        if self.description and "note" in self.description.lower():
+        elif "note" in self.description.lower():
             return "text_area"
-            
-        return "line_edit"
+        else:
+            return "line_edit"
 
 
 @dataclass
@@ -281,7 +290,7 @@ class GUISchemaBuilder:
         query = """
         SELECT DISTINCT ?property ?propertyName ?label ?displayName ?description 
                         ?formGroup ?range ?displayOrder ?groupOrder ?required 
-                        ?defaultUnit ?quantityKind ?minValue ?maxValue ?widgetType WHERE {{
+                        ?defaultUnit ?quantityKind ?minValue ?maxValue ?widgetType WHERE {{ 
             {{
                 ?property rdfs:domain <{class_uri}> .
             }}
@@ -301,7 +310,7 @@ class GUISchemaBuilder:
             OPTIONAL {{ ?property dyn:hasDisplayOrder ?displayOrder . }}
             OPTIONAL {{ ?property dyn:isRequired ?required . }}
             
-            # Measurement properties - BOTH unit AND quantity kind
+            # Measurement properties
             OPTIONAL {{ ?property dyn:hasDefaultUnit ?defaultUnit . }}
             OPTIONAL {{ ?property qudt:hasQuantityKind ?quantityKind . }}
             OPTIONAL {{ ?property dyn:hasMinValue ?minValue . }}
@@ -309,11 +318,21 @@ class GUISchemaBuilder:
             
             # Widget hints
             OPTIONAL {{ ?property dyn:hasWidgetType ?widgetType . }}
+            
         }}
         ORDER BY ?groupOrder ?displayOrder ?propertyName
         """.format(class_uri=class_uri)
         
         results = self.sparql.execute_query(query)
+
+        # After the query results
+        for result in results:
+            prop_name = result.get('propertyName', '')
+            if 'Lattice' in prop_name:  # Debug specific properties
+                self.logger.debug(f"Property {prop_name}:")
+                self.logger.debug(f"  range: {result.get('range')}")
+                self.logger.debug(f"  defaultUnit: {result.get('defaultUnit')}")
+                self.logger.debug(f"  quantityKind: {result.get('quantityKind')}")
         
         properties = []
         for result in results:
@@ -387,22 +406,22 @@ class GUISchemaBuilder:
         spaced = re.sub('([a-z0-9])([A-Z])', r'\1 \2', name)
         
         return spaced.title()
-    
+        
     def _determine_data_type_from_results(self, result: Dict[str, Any]) -> str:
         """Determine property data type from SPARQL results."""
+         
+        # Measurement properties have defaultUnit or quantityKind
+        if result.get('defaultUnit') or result.get('quantityKind'):
+            return 'double'
         
-        # Check if it's an object property
-        if result.get('isObjectProperty'):
-            return 'object'
-        
-        # Check if it's a datatype property with specific range
+        # THEN: Check if we have range information
         if result.get('range'):
-            range_uri = result['range']
+            range_uri = str(result['range'])
             
-            # XSD data types
-            if 'XMLSchema#string' in range_uri:
+            # XSD data types (from W3C XML Schema)
+            if 'XMLSchema#string' in range_uri or 'string' in range_uri.lower():
                 return 'string'
-            elif 'XMLSchema#integer' in range_uri:
+            elif 'XMLSchema#integer' in range_uri or 'integer' in range_uri.lower():
                 return 'integer'
             elif 'XMLSchema#double' in range_uri or 'XMLSchema#float' in range_uri:
                 return 'double'
@@ -412,8 +431,11 @@ class GUISchemaBuilder:
                 return 'date'
             elif 'XMLSchema#anyURI' in range_uri:
                 return 'uri'
+            # If range is NOT an XSD type, it's an object property
+            elif 'XMLSchema' not in range_uri:
+                return 'object'
         
-        # Default fallback
+        # Fallback: assume string for data properties without range
         return 'string'
 
     def _get_valid_values_for_property(self, property_uri: str) -> List[str]:

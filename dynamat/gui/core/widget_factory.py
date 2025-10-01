@@ -60,10 +60,11 @@ class WidgetFactory:
             widget_type = None
             
             # Check for measurement properties first
+            if property_metadata.data_type == "object" and widget_type == "combo":
+                widget_type = "object_combo"
             if hasattr(property_metadata, 'compatible_units') and property_metadata.compatible_units:
                 widget_type = 'unit_value'
-            
-            # Fallback to suggested widget type
+                self.logger.warning(f"Corrected widget type for object property: {property_metadata.name}") 
             else:
                 widget_type = property_metadata.suggested_widget_type
             
@@ -177,23 +178,26 @@ class WidgetFactory:
             widget.addItem("(Select...)", "")
         
         try:
-            # FIX: Call ontology manager directly instead of missing helper method
+            # Query for objects of this type from ontology
             if hasattr(prop, 'range_class') and prop.range_class:
-                # Use the OntologyManager's get_all_individuals method
-                objects = self.ontology_manager.get_all_individuals(
+                # ✅ FIX: get_all_individuals returns LIST OF URI STRINGS, not dicts
+                uri_list = self.ontology_manager.get_all_individuals(
                     prop.range_class, 
-                    include_subclasses=True  # Important for Material subclasses!
+                    include_subclasses=True
                 )
                 
-                for obj in objects:
-                    # Objects returned as dicts with 'uri', 'label', 'name'
-                    display_name = obj.get('name') or obj.get('label') or self._extract_local_name(obj.get('uri'))
-                    widget.addItem(display_name, obj.get('uri'))
+                self.logger.debug(f"Retrieved {len(uri_list)} URIs for {prop.range_class}")
+                
+                for uri in uri_list:
+                    # ✅ uri is a STRING, not a dict
+                    # Extract display name from URI
+                    display_name = uri.split('#')[-1].split('/')[-1].replace('_', ' ')
+                    widget.addItem(display_name, uri)
                 
                 self.logger.debug(f"Loaded {widget.count() - 1} items for {prop.name}")
         
         except Exception as e:
-            self.logger.error(f"Could not load objects for {prop.name} ({prop.range_class}): {e}")
+            self.logger.error(f"Could not load objects for {prop.name} ({prop.range_class}): {e}", exc_info=True)
             widget.addItem("(Error loading data)", "")
         
         return widget
@@ -315,23 +319,44 @@ class WidgetFactory:
         if prop.is_required:
             current_style = widget.styleSheet()
             widget.setStyleSheet(f"{current_style}; border-left: 3px solid orange;")
-    
+        
     def _get_objects_for_class(self, class_uri: str) -> List[Dict[str, Any]]:
         """Get instances of a class from the ontology."""
         try:
             self.logger.debug(f"Getting objects for class: {class_uri}")
             
-            # Use ontology manager to query for instances
+            # Use domain_queries for ALL classes (including Material)
             if hasattr(self.ontology_manager, 'domain_queries'):
-                instances = self.ontology_manager.domain_queries.get_instances_of_class(class_uri)
+                instances = self.ontology_manager.domain_queries.get_instances_of_class(
+                    class_uri, 
+                    include_subclasses=True
+                )
                 self.logger.debug(f"  Received {len(instances)} instances")
                 
-                for i, inst in enumerate(instances[:3]):  # Log first 3 for debugging
+                for i, inst in enumerate(instances[:3]):
                     self.logger.debug(f"    Instance {i}: {inst}")
                 
                 return instances
+            
+            # FALLBACK: Use legacy get_all_individuals (returns list of URI strings)
+            elif hasattr(self.ontology_manager, 'get_all_individuals'):
+                self.logger.debug("  Using legacy get_all_individuals")
+                uri_list = self.ontology_manager.get_all_individuals(class_uri, include_subclasses=True)
+                
+                # Convert URI strings to dict format
+                instances = []
+                for uri in uri_list:
+                    display_name = uri.split('#')[-1].replace('_', ' ')
+                    instances.append({
+                        'uri': uri,
+                        'name': display_name,
+                        'label': ''
+                    })
+                
+                self.logger.debug(f"  Converted {len(instances)} URIs to instances")
+                return instances
             else:
-                self.logger.error("OntologyManager has no domain_queries attribute")
+                self.logger.error("OntologyManager has no domain_queries or get_all_individuals")
                 return []
                 
         except Exception as e:

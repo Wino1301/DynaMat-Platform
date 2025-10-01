@@ -100,7 +100,24 @@ class OntologyManager:
         This is the main method called by form_builder.py.
         """
         return self.gui_schema_builder.get_class_metadata_for_form(class_uri)
-    
+
+    def get_all_individuals(self, class_uri: Optional[str] = None, include_subclasses: bool = True) -> List[str]:
+        """
+        Get all individuals of a class (backwards compatibility method).
+        
+        Args:
+            class_uri: URI of the class, or None for all individuals
+            include_subclasses: Whether to include instances of subclasses (default True)
+            
+        Returns:
+            List of individual URIs (not dicts, just URIs for legacy compatibility)
+        """
+        if class_uri:
+            instances = self.domain_queries.get_instances_of_class(class_uri, include_subclasses=include_subclasses)
+            return [inst['uri'] for inst in instances]
+        else:
+            return self.domain_queries.get_all_individuals()
+            
     # ============================================================================
     # NAMESPACE ACCESS - Used by form_builder.py and other components
     # ============================================================================

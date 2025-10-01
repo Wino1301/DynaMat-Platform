@@ -38,9 +38,6 @@ from . import builders
 from . import dependencies
 from . import widgets
 
-# Backward compatibility aliases
-# For existing code that imports OntologyFormBuilder from the old location
-FormBuilder = OntologyFormBuilder
 
 __all__ = [
     # Main application
@@ -73,10 +70,7 @@ __all__ = [
     'core',
     'builders', 
     'dependencies',
-    'widgets',
-    
-    # Backward compatibility
-    'FormBuilder'
+    'widgets',   
 ]
 
 # Version information
