@@ -1,10 +1,12 @@
+# Replace dynamat/gui/widgets/unit_value_widget.py
+
 """
 DynaMat Platform - Unit-Value Widget
-Custom widget for entering dimensional values with units
+Custom widget for entering dimensional values with units from QUDT ontology
 """
 
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 
 from PyQt6.QtWidgets import (
     QWidget, QHBoxLayout, QDoubleSpinBox, QComboBox, QLabel
@@ -14,29 +16,31 @@ from PyQt6.QtCore import Qt, pyqtSignal
 logger = logging.getLogger(__name__)
 
 
+# Add debug output to your UnitValueWidget class
+
 class UnitValueWidget(QWidget):
-    """
-    Custom widget for entering dimensional values with units.
-    
-    Combines a QDoubleSpinBox for the value with a QComboBox for the unit.
-    """
-    
-    # Signals
+    """Enhanced UnitValueWidget with debugging"""
+
+    # Signals 
     valueChanged = pyqtSignal(float)
     unitChanged = pyqtSignal(str)
     dataChanged = pyqtSignal()
     
-    def __init__(self, default_unit: str = None, available_units: List[str] = None, parent=None):
+    def __init__(self, default_unit: str = None, available_units: List = None,
+                 property_uri: str = None, parent=None):
         super().__init__(parent)
         
         self.default_unit = default_unit
         self.available_units = available_units or []
+        self.property_uri = property_uri
         
         self._setup_ui()
+        self._populate_units()
         self._connect_signals()
-    
+        
     def _setup_ui(self):
         """Setup the widget UI"""
+        
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
@@ -48,83 +52,88 @@ class UnitValueWidget(QWidget):
         self.value_spinbox.setDecimals(6)
         self.value_spinbox.setSingleStep(0.1)
         self.value_spinbox.setMinimumWidth(100)
-        layout.addWidget(self.value_spinbox, 1)  # Give more space to the value
+        layout.addWidget(self.value_spinbox, 1)
         
-        # Unit combobox
+        # Unit combobox - MAKE IT WIDER AND MORE VISIBLE
         self.unit_combobox = QComboBox()
-        self.unit_combobox.setMinimumWidth(60)
-        self.unit_combobox.setMaximumWidth(80)
-        layout.addWidget(self.unit_combobox, 0)  # Fixed size for unit
-        
-        # Populate units
-        self._populate_units()
-    
+        self.unit_combobox.setMinimumWidth(100)  # Increased from 60
+        self.unit_combobox.setMaximumWidth(120)  # Increased from 80
+        self.unit_combobox.setStyleSheet("QComboBox { border: 1px solid gray; padding: 2px; }")  # Make it more visible
+        layout.addWidget(self.unit_combobox, 0)
+            
     def _populate_units(self):
-        """Populate the unit combobox"""
+        """Populate the unit combobox from available units"""
         self.unit_combobox.clear()
         
-        if self.available_units:
-            # Use provided units
-            for unit in self.available_units:
-                unit_symbol = self._extract_unit_symbol(unit)
-                self.unit_combobox.addItem(unit_symbol, unit)
-        else:
-            # Default units based on default unit
-            default_symbol = self._extract_unit_symbol(self.default_unit) if self.default_unit else "mm"
-            
-            # Add common units based on the default unit type
-            if "length" in default_symbol.lower() or "mm" in default_symbol.lower() or "m" in default_symbol:
-                self.unit_combobox.addItem("mm", "unit:MilliM")
-                self.unit_combobox.addItem("cm", "unit:CentiM")  
-                self.unit_combobox.addItem("m", "unit:M")
-                self.unit_combobox.addItem("in", "unit:IN")
-            elif "mass" in default_symbol.lower() or "g" in default_symbol:
-                self.unit_combobox.addItem("g", "unit:GM")
-                self.unit_combobox.addItem("kg", "unit:KiloGM")
-                self.unit_combobox.addItem("mg", "unit:MilliGM")
-            elif "area" in default_symbol.lower() or "²" in default_symbol:
-                self.unit_combobox.addItem("mm²", "unit:MilliM2")
-                self.unit_combobox.addItem("cm²", "unit:CentiM2")
-                self.unit_combobox.addItem("m²", "unit:M2")
-                self.unit_combobox.addItem("in²", "unit:IN2")
-            else:
-                # Generic unit
-                self.unit_combobox.addItem(default_symbol, self.default_unit or "")
+        if not self.available_units:
+            logger.warning("No available units to populate")
+            self.unit_combobox.addItem("unit", "")
+            return
         
-        # Set default unit if specified
-        if self.default_unit:
-            default_symbol = self._extract_unit_symbol(self.default_unit)
-            for i in range(self.unit_combobox.count()):
-                if self.unit_combobox.itemText(i) == default_symbol:
-                    self.unit_combobox.setCurrentIndex(i)
-                    break
+        logger.debug(f"Populating {len(self.available_units)} units")
+        logger.debug(f"  Default unit URI: {self.default_unit}")
+        
+        default_index = -1
+        
+        for i, unit_info in enumerate(self.available_units):
+            try:
+                # Handle UnitInfo objects
+                symbol = unit_info.symbol
+                uri = unit_info.uri
+                
+                # Add to combobox
+                self.unit_combobox.addItem(symbol, uri)
+                self.unit_combobox.setItemData(i, unit_info.name, Qt.ItemDataRole.ToolTipRole)
+                
+                # Check if this is the default unit (multiple ways)
+                # 1. Direct URI match
+                if self.default_unit and uri == self.default_unit:
+                    default_index = i
+                    logger.debug(f" Found default by URI match at index {i}")
+                # 2. Check is_default flag
+                elif hasattr(unit_info, 'is_default') and unit_info.is_default:
+                    default_index = i
+                    logger.debug(f" Found default by is_default flag at index {i}")
+                # 3. Normalize and compare (handles namespace prefixes)
+                elif self.default_unit:
+                    default_normalized = self._normalize_uri(self.default_unit)
+                    uri_normalized = self._normalize_uri(uri)
+                    if default_normalized == uri_normalized:
+                        default_index = i
+                        logger.debug(f" Found default by normalized match at index {i}")
+                        
+            except Exception as e:
+                logger.error(f"Error processing unit {i}: {e}", exc_info=True)
+        
+        # Set default unit
+        if default_index >= 0:
+            self.unit_combobox.setCurrentIndex(default_index)
+            logger.debug(f"Set default unit to index {default_index}: {self.unit_combobox.itemText(default_index)}")
+        elif self.unit_combobox.count() > 0:
+            # If no default specified, select the first unit
+            self.unit_combobox.setCurrentIndex(0)
+            logger.debug(f"No default unit matched, selected first: {self.unit_combobox.itemText(0)}")
+        
+        logger.debug(f"Combobox populated with {self.unit_combobox.count()} items")
     
-    def _extract_unit_symbol(self, unit_uri: str) -> str:
-        """Extract unit symbol from QUDT URI or unit string"""
-        if not unit_uri:
-            return "unit"
+    def _normalize_uri(self, uri: str) -> str:
+        """Normalize URI for comparison."""
+        if not uri:
+            return ""
+        uri = str(uri).strip().strip('"\'')
         
-        # Handle QUDT URIs
-        if "unit:" in unit_uri:
-            unit_part = unit_uri.split("unit:")[-1]
-            
-            # Common unit mappings
-            unit_mappings = {
-                "MilliM": "mm", "MilliM2": "mm²", "MilliM3": "mm³",
-                "CentiM": "cm", "CentiM2": "cm²", "CentiM3": "cm³",
-                "M": "m", "M2": "m²", "M3": "m³",
-                "IN": "in", "IN2": "in²", "IN3": "in³",
-                "GM": "g", "KiloGM": "kg", "MilliGM": "mg",
-                "PA": "Pa", "KiloPA": "kPa", "MegaPA": "MPa", "GigaPA": "GPa",
-                "SEC": "s", "MIN": "min", "HR": "hr",
-                "DEG_C": "°C", "DEG_F": "°F", "K": "K"
-            }
-            
-            return unit_mappings.get(unit_part, unit_part.lower())
+        # Handle namespace prefixes
+        if ':' in uri and not uri.startswith('http'):
+            prefix, local = uri.split(':', 1)
+            if prefix == 'unit':
+                uri = f'http://qudt.org/vocab/unit/{local}'
+            elif prefix == 'qkdv':
+                uri = f'http://qudt.org/vocab/quantitykind/{local}'
         
-        # Handle direct unit symbols
-        return unit_uri
-    
+        return uri
+
+# Also add debugging to the form builder's _create_unit_value_widget method:
+
     def _connect_signals(self):
         """Connect internal signals"""
         self.value_spinbox.valueChanged.connect(self.valueChanged.emit)

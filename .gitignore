@@ -81,3 +81,5 @@ docs/_missing_integrations/
 !tests/fixtures/*.csv
 *.log
 /dynamat/ontology/.ipynb_checkpoints
+/dynamat/ontology/qudt/cache
+/dynamat/ontology/.ipynb_checkpoints

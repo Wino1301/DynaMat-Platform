@@ -56,7 +56,7 @@ def validate_ontology():
     
     try:
         manager = OntologyManager()
-        print(f"✓ Ontology loaded successfully with {len(manager.graph)} triples")
+        print(f"Ontology loaded successfully with {len(manager.graph)} triples")
         
         # Basic validation checks
         specimen_uri = "https://dynamat.utep.edu/ontology#Specimen"
@@ -67,7 +67,7 @@ def validate_ontology():
         form_groups = manager.get_form_groups_for_class(specimen_uri)
         print(f"✓ Form groups found: {', '.join(form_groups)}")
         
-        print("\n✓ Ontology validation passed!")
+        print("\n Ontology validation passed!")
         return True
         
     except Exception as e:
@@ -106,7 +106,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    python main.py                    # Launch GUI application
+    python main.py                   # Launch GUI application
     python main.py --debug           # Launch with debug logging
     python main.py --validate        # Validate ontology only
     python main.py --info            # Show system information

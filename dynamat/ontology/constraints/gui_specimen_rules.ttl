@@ -1,0 +1,47 @@
+@prefix gui: <https://dynamat.utep.edu/gui/constraints#> .
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+#################################################################
+# SPECIMEN FORM CONSTRAINTS
+#################################################################
+
+#================================================================
+# Specimen ID Generation
+#================================================================
+
+gui:specimen_c001 a gui:GenerationConstraint ;
+    rdfs:label "Generate Specimen ID from Material" ;
+    rdfs:comment "Auto-generates specimen ID in format DYNML-{materialCode}-{sequence} when material is selected" ;
+    dc:created "2025-01-15"^^xsd:date ;
+    gui:forClass dyn:Specimen ;
+    gui:triggers dyn:hasMaterial ;
+    gui:triggerLogic gui:ALL ;
+    gui:whenValue gui:anyValue ;
+    gui:affects dyn:hasSpecimenID ;
+    gui:action gui:generate ;
+    gui:generationTemplate "DYNML-{materialCode}-{sequence}" ;
+    gui:generationInputs (dyn:hasMaterial) ;
+    gui:priority 1 .
+
+#================================================================
+# Composite Material Fields Visibility
+#================================================================
+
+gui:specimen_c002 a gui:VisibilityConstraint ;
+    rdfs:label "Show composite fields for composite materials" ;
+    rdfs:comment "Displays matrix/reinforcement fields when selected material is of type Composite. Uses class membership check." ;
+    dc:created "2025-01-15"^^xsd:date ;
+    gui:forClass dyn:Specimen ;
+    gui:triggers dyn:hasMaterial ;
+    gui:triggerLogic gui:ALL ;
+    gui:whenValue dyn:Composite ;
+    gui:affects dyn:hasMatrixMaterial, 
+                dyn:hasReinforcementMaterial, 
+                dyn:hasMatrixVolumeFraction, 
+                dyn:hasReinforcementVolumeFraction, 
+                dyn:hasPhaseDistributionID ;
+    gui:action gui:show ;
+    gui:priority 2 .

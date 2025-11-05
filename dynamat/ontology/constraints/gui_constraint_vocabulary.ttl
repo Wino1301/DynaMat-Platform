@@ -1,0 +1,186 @@
+@prefix gui: <https://dynamat.utep.edu/gui/constraints#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+#################################################################
+# GUI CONSTRAINT VOCABULARY
+# Defines the language for expressing UI form constraints
+#################################################################
+
+#================================================================
+# Core Constraint Classes
+#================================================================
+
+gui:Constraint a owl:Class ;
+    rdfs:label "UI Constraint" ;
+    rdfs:comment "Base class for UI behavior constraints" .
+
+gui:VisibilityConstraint a owl:Class ;
+    rdfs:subClassOf gui:Constraint ;
+    rdfs:label "Visibility Constraint" ;
+    rdfs:comment "Controls field visibility based on trigger conditions" .
+
+gui:RequirementConstraint a owl:Class ;
+    rdfs:subClassOf gui:Constraint ;
+    rdfs:label "Requirement Constraint" ;
+    rdfs:comment "Controls when fields become required" .
+
+gui:CalculationConstraint a owl:Class ;
+    rdfs:subClassOf gui:Constraint ;
+    rdfs:label "Calculation Constraint" ;
+    rdfs:comment "Automatic field value calculation" .
+
+gui:GenerationConstraint a owl:Class ;
+    rdfs:subClassOf gui:Constraint ;
+    rdfs:label "Generation Constraint" ;
+    rdfs:comment "Template-based value generation (e.g., IDs)" .
+
+gui:MutualExclusionConstraint a owl:Class ;
+    rdfs:subClassOf gui:Constraint ;
+    rdfs:label "Mutual Exclusion Constraint" ;
+    rdfs:comment "Properties that cannot coexist" .
+
+#================================================================
+# Constraint Properties
+#================================================================
+
+gui:forClass a owl:ObjectProperty ;
+    rdfs:domain gui:Constraint ;
+    rdfs:range owl:Class ;
+    rdfs:label "for class" ;
+    rdfs:comment "The class this constraint applies to" .
+
+gui:triggers a rdf:Property ;
+    rdfs:domain gui:Constraint ;
+    rdfs:label "triggers" ;
+    rdfs:comment "Property(ies) that trigger this constraint" .
+
+gui:triggerLogic a owl:ObjectProperty ;
+    rdfs:domain gui:Constraint ;
+    rdfs:range gui:TriggerLogic ;
+    rdfs:label "trigger logic" ;
+    rdfs:comment "Logic gate for multiple triggers" .
+
+gui:whenValue a rdf:Property ;
+    rdfs:domain gui:Constraint ;
+    rdfs:label "when value" ;
+    rdfs:comment "Value(s) that activate the constraint" .
+
+gui:affects a rdf:Property ;
+    rdfs:domain gui:Constraint ;
+    rdfs:label "affects" ;
+    rdfs:comment "Property(ies) affected by this constraint" .
+
+gui:action a owl:ObjectProperty ;
+    rdfs:domain gui:Constraint ;
+    rdfs:range gui:Action ;
+    rdfs:label "action" ;
+    rdfs:comment "Action to perform when activated" .
+
+gui:priority a owl:DatatypeProperty ;
+    rdfs:domain gui:Constraint ;
+    rdfs:range xsd:integer ;
+    rdfs:label "priority" ;
+    rdfs:comment "Evaluation priority (lower = higher priority)" .
+
+#================================================================
+# Generation-specific Properties
+#================================================================
+
+gui:generationTemplate a owl:DatatypeProperty ;
+    rdfs:domain gui:GenerationConstraint ;
+    rdfs:range xsd:string ;
+    rdfs:label "generation template" ;
+    rdfs:comment "Template string for value generation" .
+
+gui:generationInputs a rdf:Property ;
+    rdfs:domain gui:GenerationConstraint ;
+    rdfs:label "generation inputs" ;
+    rdfs:comment "Properties used as template inputs" .
+
+#================================================================
+# Calculation-specific Properties
+#================================================================
+
+gui:calculationFunction a owl:DatatypeProperty ;
+    rdfs:domain gui:CalculationConstraint ;
+    rdfs:range xsd:string ;
+    rdfs:label "calculation function" ;
+    rdfs:comment "Name of calculation function to invoke" .
+
+gui:calculationInputs a rdf:Property ;
+    rdfs:domain gui:CalculationConstraint ;
+    rdfs:label "calculation inputs" ;
+    rdfs:comment "Properties used as calculation inputs" .
+
+#================================================================
+# Trigger Logic Gates
+#================================================================
+
+gui:TriggerLogic a owl:Class ;
+    rdfs:label "Trigger Logic Gate" .
+
+gui:ANY a gui:TriggerLogic ;
+    rdfs:label "ANY (OR)" ;
+    rdfs:comment "Activate if ANY trigger condition is met" .
+
+gui:ALL a gui:TriggerLogic ;
+    rdfs:label "ALL (AND)" ;
+    rdfs:comment "Activate only when ALL trigger conditions are met" .
+
+gui:XOR a gui:TriggerLogic ;
+    rdfs:label "XOR (Exclusive OR)" ;
+    rdfs:comment "Activate when exactly ONE trigger is met" .
+
+#================================================================
+# Actions
+#================================================================
+
+gui:Action a owl:Class ;
+    rdfs:label "Constraint Action" .
+
+gui:show a gui:Action ;
+    rdfs:label "show" ;
+    rdfs:comment "Make field visible" .
+
+gui:hide a gui:Action ;
+    rdfs:label "hide" ;
+    rdfs:comment "Make field hidden" .
+
+gui:require a gui:Action ;
+    rdfs:label "require" ;
+    rdfs:comment "Make field required" .
+
+gui:optional a gui:Action ;
+    rdfs:label "optional" ;
+    rdfs:comment "Make field optional" .
+
+gui:calculate a gui:Action ;
+    rdfs:label "calculate" ;
+    rdfs:comment "Calculate field value" .
+
+gui:generate a gui:Action ;
+    rdfs:label "generate" ;
+    rdfs:comment "Generate value from template" .
+
+gui:enable a gui:Action ;
+    rdfs:label "enable" ;
+    rdfs:comment "Enable field for editing" .
+
+gui:disable a gui:Action ;
+    rdfs:label "disable" ;
+    rdfs:comment "Disable field from editing" .
+
+#================================================================
+# Special Values
+#================================================================
+
+gui:anyValue a owl:NamedIndividual ;
+    rdfs:label "Any Value" ;
+    rdfs:comment "Matches any non-empty value" .
+
+gui:noValue a owl:NamedIndividual ;
+    rdfs:label "No Value" ;
+    rdfs:comment "Matches when property is empty" .

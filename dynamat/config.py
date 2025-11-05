@@ -12,6 +12,7 @@ class Config:
     DATA_DIR = BASE_DIR / "data"
     ONTOLOGY_DIR = BASE_DIR / "dynamat" / "ontology"
     TEMPLATE_DIR = ONTOLOGY_DIR / "templates"
+    QUDT_CACHE_DIR = ONTOLOGY_DIR / "qudt" / "cache"
     
     # Ensure directories exist
     DATA_DIR.mkdir(exist_ok=True)
@@ -38,6 +39,15 @@ class Config:
             if not key.startswith('_') and not callable(getattr(cls, key))
         }
 
+    # Ensure directories exist
+    @classmethod
+    def ensure_directories(cls):
+        """Create necessary directories if they don't exist."""
+        cls.DATA_DIR.mkdir(parents=True, exist_ok=True)
+        cls.TEMPLATE_DIR.mkdir(parents=True, exist_ok=True)
+        cls.QUDT_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 # Create global config instance
 config = Config()
+# Create directories on import
+Config.ensure_directories()
