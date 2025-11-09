@@ -56,32 +56,77 @@ class WidgetFactory:
         Create appropriate widget for a property based on its metadata.
         """
         try:
-            # Determine widget type with proper checks
-            widget_type = None
-            
-            # Check for measurement properties first
-            if property_metadata.data_type == "object" and widget_type == "combo":
-                widget_type = "object_combo"
-            if hasattr(property_metadata, 'compatible_units') and property_metadata.compatible_units:
-                widget_type = 'unit_value'
-                self.logger.warning(f"Corrected widget type for object property: {property_metadata.name}") 
-            else:
-                widget_type = property_metadata.suggested_widget_type
-            
+            # Determine widget type using systematic approach
+            widget_type = self._determine_widget_type(property_metadata)
+
+            self.logger.debug(
+                f"Creating widget for {property_metadata.name}: "
+                f"type={widget_type}, data_type={property_metadata.data_type}"
+            )
+
             # Get widget creator function
             creator_func = self.widget_creators.get(widget_type, self._create_line_edit_widget)
-            
+
             # Create widget
             widget = creator_func(property_metadata)
-            
+
             # Apply common styling and constraints
             self._apply_common_properties(widget, property_metadata)
-            
+
             return widget
-            
+
         except Exception as e:
             self.logger.error(f"Failed to create widget for {property_metadata.name}: {e}")
             return self._create_error_widget(f"Error: {str(e)}")
+
+    def _determine_widget_type(self, prop: PropertyMetadata) -> str:
+        """
+        Determine the appropriate widget type for a property.
+
+        Priority order:
+        1. Measurement properties (has compatible_units) -> unit_value
+        2. Object properties (data_type=object, references to individuals) -> object_combo
+        3. Suggested widget type from metadata
+        4. Fallback based on data_type
+
+        Args:
+            prop: Property metadata
+
+        Returns:
+            Widget type string
+        """
+        # Priority 1: Measurement properties with units (e.g., length, mass, temperature)
+        if hasattr(prop, 'compatible_units') and prop.compatible_units:
+            self.logger.debug(f"{prop.name}: Measurement property -> unit_value widget")
+            return 'unit_value'
+
+        # Priority 2: Object properties (references to ontology individuals)
+        if prop.data_type == "object":
+            # Check if it has a range_class (specific object type like Material, SpecimenRole)
+            if hasattr(prop, 'range_class') and prop.range_class:
+                self.logger.debug(f"{prop.name}: Object property (range: {prop.range_class}) -> object_combo widget")
+                return 'object_combo'
+            else:
+                self.logger.debug(f"{prop.name}: Object property (no range) -> combo widget")
+                return 'combo'
+
+        # Priority 3: Use suggested widget type from metadata
+        if prop.suggested_widget_type:
+            self.logger.debug(f"{prop.name}: Using suggested type -> {prop.suggested_widget_type}")
+            return prop.suggested_widget_type
+
+        # Priority 4: Fallback mapping based on data_type
+        type_mapping = {
+            'string': 'line_edit',
+            'integer': 'spinbox',
+            'double': 'double_spinbox',
+            'boolean': 'checkbox',
+            'date': 'date'
+        }
+
+        fallback_type = type_mapping.get(prop.data_type, 'line_edit')
+        self.logger.debug(f"{prop.name}: Fallback based on data_type={prop.data_type} -> {fallback_type}")
+        return fallback_type
     
     def create_widgets_for_properties(self, properties: List[PropertyMetadata], 
                                      parent: Optional[QWidget] = None) -> Dict[str, QWidget]:
@@ -169,37 +214,42 @@ class WidgetFactory:
         """Create a combo box for ontology objects."""
         widget = QComboBox()
         widget.setEditable(False)
-        
+
         if prop.description:
             widget.setToolTip(prop.description)
-        
+
         # Add empty option for non-required fields
         if not prop.is_required:
             widget.addItem("(Select...)", "")
-        
+
         try:
             # Query for objects of this type from ontology
             if hasattr(prop, 'range_class') and prop.range_class:
-                # ✅ FIX: get_all_individuals returns LIST OF URI STRINGS, not dicts
-                uri_list = self.ontology_manager.get_all_individuals(
-                    prop.range_class, 
+                self.logger.info(f"Creating object combo for {prop.name}, range_class={prop.range_class}")
+
+                # Get all individuals - should return URIs with names
+                result = self.ontology_manager.domain_queries.get_instances_of_class(
+                    prop.range_class,
                     include_subclasses=True
                 )
-                
-                self.logger.debug(f"Retrieved {len(uri_list)} URIs for {prop.range_class}")
-                
-                for uri in uri_list:
-                    # ✅ uri is a STRING, not a dict
-                    # Extract display name from URI
-                    display_name = uri.split('#')[-1].split('/')[-1].replace('_', ' ')
+
+                self.logger.info(f"Retrieved {len(result)} instances for {prop.range_class}")
+
+                for instance in result:
+                    # instance is a dict with 'uri' and 'name'
+                    uri = instance['uri']
+                    display_name = instance['name']
+
+                    # Store URI in data, display name in text
                     widget.addItem(display_name, uri)
-                
-                self.logger.debug(f"Loaded {widget.count() - 1} items for {prop.name}")
-        
+                    self.logger.info(f"  Added: '{display_name}' -> '{uri}'")
+
+                self.logger.info(f"Loaded {widget.count() - 1} items for {prop.name}")
+
         except Exception as e:
             self.logger.error(f"Could not load objects for {prop.name} ({prop.range_class}): {e}", exc_info=True)
             widget.addItem("(Error loading data)", "")
-        
+
         return widget
     
     def _create_spinbox_widget(self, prop: PropertyMetadata) -> QSpinBox:

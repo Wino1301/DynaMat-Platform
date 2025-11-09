@@ -144,23 +144,41 @@ class DependencyManager(QObject):
     def _on_trigger_changed(self, trigger_property: str):
         """
         Handle change in a trigger property.
-        
+
         Args:
             trigger_property: URI of the property that changed
         """
         try:
-            self.logger.debug(f"Trigger changed: {trigger_property}")
-            
+            # Get current value for debugging
+            if trigger_property in self.active_form.form_fields:
+                field = self.active_form.form_fields[trigger_property]
+                widget = field.widget
+                current_value = self._extract_widget_value(widget)
+
+                # Check if value is URI for combo boxes
+                if isinstance(widget, QComboBox):
+                    data = widget.currentData()
+                    text = widget.currentText()
+                    self.logger.info(
+                        f"Trigger changed: {trigger_property} = '{current_value}' "
+                        f"(currentData={data}, currentText={text})"
+                    )
+                else:
+                    self.logger.info(f"Trigger changed: {trigger_property} = '{current_value}'")
+            else:
+                self.logger.debug(f"Trigger changed: {trigger_property}")
+
             # Get all constraints for this trigger
             constraints = self.constraints_by_trigger.get(trigger_property, [])
-            
+            self.logger.debug(f"Found {len(constraints)} constraints for this trigger")
+
             # Sort by priority (lower = higher priority)
             constraints = sorted(constraints, key=lambda c: c.priority)
-            
+
             # Evaluate each constraint
             for constraint in constraints:
                 self._evaluate_constraint(constraint)
-                
+
         except Exception as e:
             self.logger.error(f"Error handling trigger change: {e}", exc_info=True)
             self.error_occurred.emit(trigger_property, str(e))
@@ -182,34 +200,44 @@ class DependencyManager(QObject):
     def _evaluate_constraint(self, constraint: Constraint):
         """
         Evaluate a single constraint and apply its action.
-        
+
         Args:
             constraint: Constraint to evaluate
         """
         try:
             # Get trigger values
             trigger_values = self._get_trigger_values(constraint.triggers)
-            
+
+            self.logger.debug(
+                f"Evaluating constraint '{constraint.label}' (priority {constraint.priority})"
+            )
+            self.logger.debug(f"  Trigger values: {trigger_values}")
+            self.logger.debug(f"  Expected when_values: {constraint.when_values}")
+            self.logger.debug(f"  Trigger logic: {constraint.trigger_logic}")
+
             # Evaluate condition
             condition_met = self._evaluate_condition(
                 trigger_values,
                 constraint.when_values,
                 constraint.trigger_logic
             )
-            
-            self.logger.debug(f"Constraint {constraint.uri}: condition_met={condition_met}")
-            
+
+            self.logger.debug(
+                f"  Condition met: {condition_met} -> Action: "
+                f"{'APPLY' if condition_met else 'INVERSE'} {constraint.action.value}"
+            )
+
             # Apply action based on constraint type
             if condition_met:
                 self._apply_action(constraint, trigger_values)
             else:
                 self._apply_inverse_action(constraint)
-            
+
             # Emit signal
             self.constraint_triggered.emit(constraint.uri, constraint.action.value)
-            
+
         except Exception as e:
-            self.logger.error(f"Error evaluating constraint {constraint.uri}: {e}")
+            self.logger.error(f"Error evaluating constraint {constraint.uri}: {e}", exc_info=True)
             self.error_occurred.emit(constraint.uri, str(e))
     
     def _get_trigger_values(self, trigger_properties: List[str]) -> Dict[str, Any]:
@@ -231,78 +259,156 @@ class DependencyManager(QObject):
         
         return values
     
-    def _evaluate_condition(self, trigger_values: Dict[str, Any], 
+    def _evaluate_condition(self, trigger_values: Dict[str, Any],
                            when_values: List[str],
                            trigger_logic: Optional[TriggerLogic]) -> bool:
         """
         Evaluate if constraint condition is met.
-        
+
+        Handles multiple patterns:
+        1. Single trigger, multiple when_values: Check if trigger matches ANY/ALL when_values
+        2. Multiple triggers, parallel when_values: Check each trigger against its when_value
+        3. Multiple triggers, single when_value: Check if ANY/ALL triggers match the when_value
+        4. Cascade triggers: Handled by priority system
+
         Args:
             trigger_values: Current trigger property values
             when_values: Expected values (can be URIs or literals)
             trigger_logic: Logic gate (ANY, ALL, XOR)
-            
+
         Returns:
             True if condition is met
         """
         if not trigger_values:
             return False
-        
+
         # Handle special case: gui:anyValue
         if when_values and "anyValue" in str(when_values[0]):
             # Check if any trigger has a non-empty value
             return any(v and str(v).strip() for v in trigger_values.values())
-        
-        # Match trigger values to when_values
-        matches = []
-        for i, (trigger_prop, trigger_value) in enumerate(trigger_values.items()):
-            # Get corresponding when_value (parallel list)
-            when_value = when_values[i] if i < len(when_values) else None
-            
-            if when_value:
-                # Check if trigger value matches when value
-                # Handle both URI matching and class membership
+
+        num_triggers = len(trigger_values)
+        num_when_values = len(when_values)
+
+        # Pattern 1: Single trigger with multiple when_values
+        # Example: hasSpecimenRole triggers, check if value is CharacterizationSpecimen OR ReferenceSpecimen OR CalibrationSpecimen
+        if num_triggers == 1 and num_when_values > 1:
+            trigger_value = list(trigger_values.values())[0]
+            matches = [self._value_matches(trigger_value, when_val) for when_val in when_values]
+
+            # Apply logic gate
+            if not trigger_logic or trigger_logic == TriggerLogic.ANY:
+                return any(matches)  # Match if value equals ANY of the when_values
+            elif trigger_logic == TriggerLogic.ALL:
+                return all(matches)  # Match if value equals ALL (rarely used)
+            elif trigger_logic == TriggerLogic.XOR:
+                return sum(matches) == 1  # Match exactly one
+
+        # Pattern 2: Multiple triggers with single when_value
+        # Example: Multiple properties should all equal the same value
+        elif num_triggers > 1 and num_when_values == 1:
+            when_value = when_values[0]
+            matches = [self._value_matches(val, when_value) for val in trigger_values.values()]
+
+            # Apply logic gate
+            if not trigger_logic or trigger_logic == TriggerLogic.ALL:
+                return all(matches)  # All triggers must match
+            elif trigger_logic == TriggerLogic.ANY:
+                return any(matches)  # At least one trigger matches
+            elif trigger_logic == TriggerLogic.XOR:
+                return sum(matches) == 1  # Exactly one trigger matches
+
+        # Pattern 3: Parallel matching - equal number of triggers and when_values
+        # Example: trigger[0] matches when_value[0], trigger[1] matches when_value[1]
+        elif num_triggers == num_when_values:
+            matches = []
+            for i, (trigger_prop, trigger_value) in enumerate(trigger_values.items()):
+                when_value = when_values[i]
                 match = self._value_matches(trigger_value, when_value)
                 matches.append(match)
-            else:
-                matches.append(False)
-        
-        # Apply logic gate
-        if not trigger_logic or trigger_logic == TriggerLogic.ALL:
-            return all(matches)
-        elif trigger_logic == TriggerLogic.ANY:
-            return any(matches)
-        elif trigger_logic == TriggerLogic.XOR:
-            return sum(matches) == 1
-        
+
+            # Apply logic gate
+            if not trigger_logic or trigger_logic == TriggerLogic.ALL:
+                return all(matches)
+            elif trigger_logic == TriggerLogic.ANY:
+                return any(matches)
+            elif trigger_logic == TriggerLogic.XOR:
+                return sum(matches) == 1
+
+        # Pattern 4: Mismatched counts - fall back to best effort
+        # Check if any trigger value matches any when_value
+        else:
+            self.logger.warning(
+                f"Mismatched trigger/when_value counts: {num_triggers} triggers, "
+                f"{num_when_values} when_values. Using fallback matching."
+            )
+            matches = []
+            for trigger_value in trigger_values.values():
+                for when_value in when_values:
+                    if self._value_matches(trigger_value, when_value):
+                        matches.append(True)
+                        break
+                else:
+                    matches.append(False)
+
+            # Apply logic gate
+            if not trigger_logic or trigger_logic == TriggerLogic.ALL:
+                return all(matches)
+            elif trigger_logic == TriggerLogic.ANY:
+                return any(matches)
+            elif trigger_logic == TriggerLogic.XOR:
+                return sum(matches) == 1
+
         return False
     
     def _value_matches(self, value: Any, expected: str) -> bool:
         """
         Check if a value matches an expected value.
-        
+
         Handles:
-        - Direct URI matching
+        - Direct URI matching (exact match)
+        - Partial URI matching (fragment/local name match)
         - Class membership checking (e.g., is material a Composite?)
-        - String matching
+        - String matching (case-insensitive)
         """
         if not value or not expected:
             return False
-        
-        value_str = str(value)
-        
-        # Direct match
-        if value_str == expected:
+
+        value_str = str(value).strip()
+        expected_str = str(expected).strip()
+
+        # Direct match (exact)
+        if value_str == expected_str:
+            self.logger.debug(f"    Match (exact): '{value_str}' == '{expected_str}'")
             return True
-        
-        # Check if expected is a class URI (class membership check)
-        if "#" in expected and "Composite" in expected:  # Heuristic for class URIs
+
+        # Extract local name from URIs for comparison
+        # Example: "https://dynamat.utep.edu/ontology#CharacterizationSpecimen" -> "CharacterizationSpecimen"
+        value_local = value_str.split('#')[-1].split('/')[-1]
+        expected_local = expected_str.split('#')[-1].split('/')[-1]
+
+        # Match on local names
+        if value_local == expected_local:
+            self.logger.debug(f"    Match (local): '{value_local}' == '{expected_local}'")
+            return True
+
+        # Case-insensitive string match
+        if value_str.lower() == expected_str.lower():
+            self.logger.debug(f"    Match (case-insensitive): '{value_str}' == '{expected_str}'")
+            return True
+
+        # Check if expected is a class URI (attempt class membership check)
+        # Only do this if both value and expected look like URIs (contain # or /)
+        if ('#' in expected_str or '/' in expected_str) and ('#' in value_str or '/' in value_str):
             try:
                 # Check if value is an instance of expected class
-                return self._is_instance_of_class(value_str, expected)
-            except:
-                pass
-        
+                if self._is_instance_of_class(value_str, expected_str):
+                    self.logger.debug(f"    Match (class membership): '{value_str}' is instance of '{expected_str}'")
+                    return True
+            except Exception as e:
+                self.logger.debug(f"    Class membership check skipped: {e}")
+
+        self.logger.debug(f"    No match: '{value_str}' != '{expected_str}' (locals: '{value_local}' vs '{expected_local}')")
         return False
     
     def _is_instance_of_class(self, instance_uri: str, class_uri: str) -> bool:
@@ -461,9 +567,24 @@ class DependencyManager(QObject):
     # ============================================================================
     
     def _extract_widget_value(self, widget: QWidget) -> Any:
-        """Extract current value from a widget."""
+        """
+        Extract current value from a widget.
+
+        For QComboBox: Returns URI from currentData() if available, otherwise currentText()
+        For other widgets: Returns their native value
+        """
         if isinstance(widget, QComboBox):
-            return widget.currentData() or widget.currentText()
+            # QComboBox should store URI in currentData()
+            data = widget.currentData()
+            if data:
+                # Check if it's a URI
+                data_str = str(data)
+                if '#' in data_str or '/' in data_str:
+                    return data_str
+                # If not a URI, might be stored differently
+                return data
+            # Fallback to text if no data stored
+            return widget.currentText()
         elif isinstance(widget, QLineEdit):
             return widget.text()
         elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):

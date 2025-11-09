@@ -134,94 +134,94 @@ class ConstraintManager:
     
     def _parse_constraints(self):
         """Parse constraints from the RDF graph."""
-        # Query for all constraints
-        query = """
-        SELECT ?constraint ?label ?comment ?type ?forClass ?triggers ?triggerLogic 
-               ?whenValue ?affects ?action ?priority
-               ?genTemplate ?genInputs ?calcFunc ?calcInputs
+        # First, get all constraint URIs
+        constraint_query = """
+        SELECT DISTINCT ?constraint ?type
         WHERE {
             ?constraint a ?type .
             ?type rdfs:subClassOf* gui:Constraint .
-            
-            OPTIONAL { ?constraint rdfs:label ?label }
-            OPTIONAL { ?constraint rdfs:comment ?comment }
-            OPTIONAL { ?constraint gui:forClass ?forClass }
-            OPTIONAL { ?constraint gui:triggers ?triggers }
-            OPTIONAL { ?constraint gui:triggerLogic ?triggerLogic }
-            OPTIONAL { ?constraint gui:whenValue ?whenValue }
-            OPTIONAL { ?constraint gui:affects ?affects }
-            OPTIONAL { ?constraint gui:action ?action }
-            OPTIONAL { ?constraint gui:priority ?priority }
-            
-            # Generation-specific
-            OPTIONAL { ?constraint gui:generationTemplate ?genTemplate }
-            OPTIONAL { ?constraint gui:generationInputs ?genInputs }
-            
-            # Calculation-specific
-            OPTIONAL { ?constraint gui:calculationFunction ?calcFunc }
-            OPTIONAL { ?constraint gui:calculationInputs ?calcInputs }
         }
         """
-        
-        results = self.graph.query(query)
-        
-        for row in results:
+
+        constraint_results = self.graph.query(constraint_query)
+
+        # Process each constraint individually to collect all its properties
+        for row in constraint_results:
             try:
-                constraint = self._create_constraint_from_row(row)
+                constraint_uri = str(row.constraint)
+                constraint = self._parse_single_constraint(constraint_uri)
+
                 if constraint:
                     # Cache by URI
                     self.constraints_by_uri[constraint.uri] = constraint
-                    
+
                     # Cache by class
                     if constraint.for_class not in self.constraints_by_class:
                         self.constraints_by_class[constraint.for_class] = []
                     self.constraints_by_class[constraint.for_class].append(constraint)
-                    
+
             except Exception as e:
-                self.logger.error(f"Failed to parse constraint: {e}")
-    
-    def _create_constraint_from_row(self, row) -> Optional[Constraint]:
-        """Create a Constraint object from a SPARQL query row."""
+                self.logger.error(f"Failed to parse constraint {row.constraint}: {e}", exc_info=True)
+
+    def _parse_single_constraint(self, constraint_uri: str) -> Optional[Constraint]:
+        """
+        Parse a single constraint by URI, collecting all property values.
+
+        Args:
+            constraint_uri: URI of the constraint to parse
+
+        Returns:
+            Constraint object or None
+        """
+        from rdflib import URIRef
+
+        constraint_ref = URIRef(constraint_uri)
+
         try:
-            # Extract basic info
-            uri = str(row.constraint)
-            label = str(row.label) if row.label else ""
-            comment = str(row.comment) if row.comment else ""
-            
-            # Determine constraint type
-            type_uri = str(row.type)
-            type_name = type_uri.split("#")[-1]
-            constraint_type = ConstraintType(type_name)
-            
-            # Extract class
-            for_class = str(row.forClass) if row.forClass else ""
-            
-            # Extract triggers (can be multiple)
-            triggers = self._extract_list(row.triggers) if row.triggers else []
-            
-            # Extract trigger logic
+            # Get constraint type
+            type_uri = self.graph.value(constraint_ref, RDF.type)
+            if not type_uri:
+                return None
+
+            type_name = str(type_uri).split("#")[-1]
+            try:
+                constraint_type = ConstraintType(type_name)
+            except ValueError:
+                self.logger.debug(f"Skipping non-constraint type: {type_name}")
+                return None
+
+            # Get single-value properties
+            label = str(self.graph.value(constraint_ref, RDFS.label) or "")
+            comment = str(self.graph.value(constraint_ref, RDFS.comment) or "")
+            for_class = str(self.graph.value(constraint_ref, self.GUI.forClass) or "")
+            trigger_logic_uri = self.graph.value(constraint_ref, self.GUI.triggerLogic)
+            action_uri = self.graph.value(constraint_ref, self.GUI.action)
+            priority_val = self.graph.value(constraint_ref, self.GUI.priority)
+
+            # Parse trigger logic
             trigger_logic = None
-            if row.triggerLogic:
-                logic_name = str(row.triggerLogic).split("#")[-1]
+            if trigger_logic_uri:
+                logic_name = str(trigger_logic_uri).split("#")[-1]
                 trigger_logic = TriggerLogic(logic_name)
-            
-            # Extract when values (can be multiple)
-            when_values = self._extract_list(row.whenValue) if row.whenValue else []
-            
-            # Extract affects (can be multiple)
-            affects = self._extract_list(row.affects) if row.affects else []
-            
-            # Extract action
-            action_uri = str(row.action) if row.action else ""
-            action_name = action_uri.split("#")[-1]
+
+            # Parse action
+            if not action_uri:
+                self.logger.warning(f"Constraint {constraint_uri} has no action")
+                return None
+            action_name = str(action_uri).split("#")[-1]
             action = Action(action_name)
-            
-            # Extract priority
-            priority = int(row.priority) if row.priority else 999
-            
+
+            # Parse priority
+            priority = int(priority_val) if priority_val else 999
+
+            # Get multi-value properties (these can have multiple values)
+            triggers = self._get_all_values(constraint_ref, self.GUI.triggers)
+            when_values = self._get_all_values(constraint_ref, self.GUI.whenValue)
+            affects = self._get_all_values(constraint_ref, self.GUI.affects)
+
             # Create constraint
             constraint = Constraint(
-                uri=uri,
+                uri=constraint_uri,
                 label=label,
                 comment=comment,
                 constraint_type=constraint_type,
@@ -233,38 +233,44 @@ class ConstraintManager:
                 action=action,
                 priority=priority
             )
-            
+
             # Add type-specific attributes
             if constraint_type == ConstraintType.GENERATION:
-                constraint.generation_template = str(row.genTemplate) if row.genTemplate else None
-                constraint.generation_inputs = self._extract_list(row.genInputs) if row.genInputs else []
-            
+                gen_template = self.graph.value(constraint_ref, self.GUI.generationTemplate)
+                constraint.generation_template = str(gen_template) if gen_template else None
+                constraint.generation_inputs = self._get_all_values(constraint_ref, self.GUI.generationInputs)
+
             elif constraint_type == ConstraintType.CALCULATION:
-                constraint.calculation_function = str(row.calcFunc) if row.calcFunc else None
-                constraint.calculation_inputs = self._extract_list(row.calcInputs) if row.calcInputs else []
-            
+                calc_func = self.graph.value(constraint_ref, self.GUI.calculationFunction)
+                constraint.calculation_function = str(calc_func) if calc_func else None
+                constraint.calculation_inputs = self._get_all_values(constraint_ref, self.GUI.calculationInputs)
+
+            self.logger.debug(
+                f"Parsed constraint {constraint.label}: "
+                f"triggers={len(triggers)}, whenValues={len(when_values)}, affects={len(affects)}"
+            )
+
             return constraint
-            
+
         except Exception as e:
-            self.logger.error(f"Error creating constraint from row: {e}")
+            self.logger.error(f"Error parsing constraint {constraint_uri}: {e}", exc_info=True)
             return None
-    
-    def _extract_list(self, value: Any) -> List[str]:
-        """Extract a list of URIs from an RDF value."""
-        # Handle single values
-        if isinstance(value, (URIRef, Literal)):
-            return [str(value)]
-        
-        # Handle RDF lists
-        if isinstance(value, list):
-            return [str(v) for v in value]
-        
-        # Try to parse as RDF collection
-        try:
-            items = list(self.graph.items(value))
-            return [str(item) for item in items]
-        except:
-            return [str(value)]
+
+    def _get_all_values(self, subject: URIRef, predicate: URIRef) -> List[str]:
+        """
+        Get all values for a property (handles multiple property values).
+
+        Args:
+            subject: Subject URI
+            predicate: Predicate URI
+
+        Returns:
+            List of all values as strings
+        """
+        values = []
+        for obj in self.graph.objects(subject, predicate):
+            values.append(str(obj))
+        return values
     
     # ============================================================================
     # PUBLIC API

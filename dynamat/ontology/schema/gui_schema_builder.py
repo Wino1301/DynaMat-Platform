@@ -209,11 +209,15 @@ class GUISchemaBuilder:
         Returns:
             ClassMetadata object with all form building information
         """
-        # Check cache first
-        cached = self.cache.get_cached_class_metadata(class_uri)
-        if cached:
-            return cached
-        
+        from ...config import Config
+
+        # Check cache first (controlled by global config)
+        if Config.USE_SCHEMA_CACHE:
+            cached = self.cache.get_cached_class_metadata(class_uri)
+            if cached:
+                logger.debug(f"Returning cached class metadata for {class_uri}")
+                return cached
+
         logger.info(f"Building class metadata for form: {class_uri}")
         
         # Get basic class info
@@ -236,10 +240,11 @@ class GUISchemaBuilder:
             form_groups=form_groups,
             is_abstract=class_info.get('is_abstract', False)
         )
-        
-        # Cache the result
-        self.cache.cache_class_metadata(class_uri, metadata)
-        
+
+        # Cache the result (controlled by global config)
+        if Config.USE_SCHEMA_CACHE:
+            self.cache.cache_class_metadata(class_uri, metadata)
+
         logger.info(f"Generated metadata for {metadata.name} with {len(properties)} properties in {len(form_groups)} groups")
         return metadata
     

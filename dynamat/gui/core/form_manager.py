@@ -111,9 +111,11 @@ class FormManager:
                 self.logger.error(f"Ontology error for {class_uri}: {str(e)}")
                 return self._create_error_form(f"Ontology error: {str(e)}")
                 
-            # Check cache if requested
+            # Check cache if requested (controlled by global config)
+            from ...config import Config
+
             cache_key = f"{class_uri}_{style.value}"
-            if use_cache and cache_key in self._form_cache:
+            if use_cache and Config.USE_FORM_CACHE and cache_key in self._form_cache:
                 self.logger.debug(f"Returning cached form for {class_uri}")
                 cached_form = self._form_cache[cache_key]
                 return self._clone_form(cached_form, parent)
@@ -157,8 +159,8 @@ class FormManager:
             form_widget.groups_created = len(metadata.form_groups)
             form_widget.creation_timestamp = datetime.now()
                       
-            # Cache the form
-            if use_cache:
+            # Cache the form (controlled by global config)
+            if use_cache and Config.USE_FORM_CACHE:
                 self._form_cache[cache_key] = form_widget
 
             # FINAL VERIFICATION
@@ -285,13 +287,16 @@ class FormManager:
     # ============================================================================
     
     def _get_class_metadata(self, class_uri: str) -> Optional[ClassMetadata]:
-        """Get class metadata with caching."""
-        if class_uri in self._metadata_cache:
+        """Get class metadata with caching (controlled by global config)."""
+        from ...config import Config
+
+        if Config.USE_METADATA_CACHE and class_uri in self._metadata_cache:
             return self._metadata_cache[class_uri]
-        
+
         try:
             metadata = self.ontology_manager.get_class_metadata_for_form(class_uri)
-            self._metadata_cache[class_uri] = metadata
+            if Config.USE_METADATA_CACHE:
+                self._metadata_cache[class_uri] = metadata
             return metadata
         except Exception as e:
             self.logger.error(f"Error getting metadata for {class_uri}: {e}")

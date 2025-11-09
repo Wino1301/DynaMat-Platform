@@ -38,10 +38,34 @@ gui:specimen_c002 a gui:VisibilityConstraint ;
     gui:triggers dyn:hasMaterial ;
     gui:triggerLogic gui:ALL ;
     gui:whenValue dyn:Composite ;
-    gui:affects dyn:hasMatrixMaterial, 
-                dyn:hasReinforcementMaterial, 
-                dyn:hasMatrixVolumeFraction, 
-                dyn:hasReinforcementVolumeFraction, 
+    gui:affects dyn:hasMatrixMaterial,
+                dyn:hasReinforcementMaterial,
+                dyn:hasMatrixVolumeFraction,
+                dyn:hasReinforcementVolumeFraction,
                 dyn:hasPhaseDistributionID ;
     gui:action gui:show ;
     gui:priority 2 .
+
+#================================================================
+# Post-Test Dimensions Visibility
+#================================================================
+
+gui:specimen_c003 a gui:VisibilityConstraint ;
+    rdfs:label "Hide post-test dimensions for non-testing specimen roles" ;
+    rdfs:comment "Hides post-test dimension fields when specimen role is Characterization, Reference, or Calibration (specimens not subjected to destructive testing)." ;
+    dc:created "2025-01-15"^^xsd:date ;
+    gui:forClass dyn:Specimen ;
+    gui:triggers dyn:hasSpecimenRole ;
+    gui:triggerLogic gui:ANY ;
+    gui:whenValue dyn:CharacterizationSpecimen,
+                  dyn:ReferenceSpecimen,
+                  dyn:CalibrationSpecimen ;
+    gui:affects dyn:hasFinalLength,
+                dyn:hasFinalDiameter,
+                dyn:hasFinalCrossSection,
+                dyn:hasFinalThickness,
+                dyn:hasFinalHeight,
+                dyn:hasFinalWidth,
+                dyn:hasFinalMass ;
+    gui:action gui:hide ;
+    gui:priority 3 .
