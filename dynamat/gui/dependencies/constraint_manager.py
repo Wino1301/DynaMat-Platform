@@ -258,7 +258,7 @@ class ConstraintManager:
 
     def _get_all_values(self, subject: URIRef, predicate: URIRef) -> List[str]:
         """
-        Get all values for a property (handles multiple property values).
+        Get all values for a property (handles multiple property values and RDF lists).
 
         Args:
             subject: Subject URI
@@ -267,9 +267,25 @@ class ConstraintManager:
         Returns:
             List of all values as strings
         """
+        from rdflib import RDF
+        from rdflib.collection import Collection
+
         values = []
         for obj in self.graph.objects(subject, predicate):
-            values.append(str(obj))
+            # Check if this is an RDF list (collection)
+            if (obj, RDF.first, None) in self.graph:
+                # This is an RDF list, parse it as a collection
+                try:
+                    collection = Collection(self.graph, obj)
+                    for item in collection:
+                        values.append(str(item))
+                    self.logger.debug(f"Parsed RDF list with {len(values)} items")
+                except Exception as e:
+                    self.logger.error(f"Failed to parse RDF list: {e}")
+                    values.append(str(obj))
+            else:
+                # Regular value
+                values.append(str(obj))
         return values
     
     # ============================================================================

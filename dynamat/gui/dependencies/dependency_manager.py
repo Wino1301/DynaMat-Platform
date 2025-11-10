@@ -541,23 +541,72 @@ class DependencyManager(QObject):
         """Generate value from template."""
         try:
             # Prepare inputs for generation
+            # Map property URIs to simplified template variable names
             inputs = {}
             for input_prop in constraint.generation_inputs:
+                self.logger.debug(f"Processing generation input: {input_prop}")
                 if input_prop in trigger_values:
-                    inputs[input_prop] = trigger_values[input_prop]
-            
+                    # Extract the local name from the URI to use as template variable
+                    # e.g., "https://dynamat.utep.edu/ontology#hasMaterial" -> "hasMaterial"
+                    var_name = input_prop.split('#')[-1].split('/')[-1]
+                    self.logger.debug(f"  Extracted var_name: {var_name}")
+
+                    # Special handling for material property - map to "materialCode"
+                    # The generation engine will extract the material code from the URI
+                    if var_name == "hasMaterial":
+                        var_name = "materialCode"
+                        self.logger.debug(f"  Mapped to: {var_name}")
+
+                    inputs[var_name] = trigger_values[input_prop]
+                    self.logger.debug(f"  Set inputs['{var_name}'] = '{trigger_values[input_prop]}'")
+                else:
+                    self.logger.debug(f"  Input property not found in trigger_values")
+
+            self.logger.debug(f"Final inputs dictionary before extraction: {inputs}")
+
+            # Extract material code from URI if present
+            if "materialCode" in inputs:
+                material_uri = inputs["materialCode"]
+                self.logger.debug(f"materialCode found in inputs: '{material_uri}' (type: {type(material_uri).__name__})")
+                if isinstance(material_uri, str) and ("#" in material_uri or "/" in material_uri):
+                    # This is a URI, extract the actual code from ontology
+                    self.logger.debug(f"Calling _extract_material_code with URI: '{material_uri}'")
+                    material_code = self.generation_engine._extract_material_code(material_uri)
+                    self.logger.debug(f"Extracted material code '{material_code}' from URI '{material_uri}'")
+                    # IMPORTANT: Update the inputs with the extracted code, not the URI
+                    inputs["materialCode"] = material_code
+                else:
+                    # Already a simple material code string
+                    material_code = inputs["materialCode"]
+                    self.logger.debug(f"materialCode is already a simple string: '{material_code}'")
+            else:
+                material_code = None
+                self.logger.debug("materialCode NOT found in inputs")
+
+            # Check if template requires sequence number and add it automatically
+            if "{sequence}" in constraint.generation_template:
+                if material_code and material_code != "UNKNOWN":
+                    # Get next sequence number for this material
+                    sequence = self.generation_engine._get_next_specimen_sequence(material_code)
+                    inputs["sequence"] = sequence
+                    self.logger.debug(f"Generated sequence number {sequence} for material code '{material_code}'")
+                else:
+                    # Default to sequence 1 if material code unavailable
+                    inputs["sequence"] = 1
+                    self.logger.warning(f"Material code extraction failed (got '{material_code}'), using sequence 1")
+
             # Generate value
             result = self.generation_engine.generate(
                 constraint.generation_template,
                 inputs
             )
-            
+
             # Set result in target field(s)
             for target_uri in constraint.affects:
                 self._set_widget_value(target_uri, result)
-            
+
             self.generation_performed.emit(constraint.affects[0], result)
-            
+
         except Exception as e:
             self.logger.error(f"Generation failed: {e}")
             self.error_occurred.emit(constraint.uri, str(e))
@@ -597,11 +646,15 @@ class DependencyManager(QObject):
         """Set value in a widget."""
         if property_uri not in self.active_form.form_fields:
             return
-        
+
         field = self.active_form.form_fields[property_uri]
         widget = field.widget
-        
-        if isinstance(widget, QLineEdit):
+
+        from PyQt6.QtWidgets import QLabel
+
+        if isinstance(widget, QLabel):
+            widget.setText(str(value))
+        elif isinstance(widget, QLineEdit):
             widget.setText(str(value))
         elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
             widget.setValue(float(value))

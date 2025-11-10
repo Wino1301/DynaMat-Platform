@@ -68,6 +68,13 @@ dyn:hasValidValues rdf:type owl:AnnotationProperty ;
                    rdfs:label "Valid Values"@en .
 
 
+###  https://dynamat.utep.edu/ontology#isReadOnly
+dyn:isReadOnly rdf:type owl:AnnotationProperty ;
+               rdfs:comment "Indicates if a property should be read-only in GUI forms"@en ;
+               rdfs:label "Read Only"@en ;
+               rdfs:range xsd:boolean .
+
+
 #################################################################
 #    Datatypes
 #################################################################
@@ -252,7 +259,8 @@ dyn:hasSpecimenID rdf:type owl:DatatypeProperty ;
                   dyn:hasDisplayName "Specimen ID" ;
                   dyn:hasGroupOrder 1 ;
                   dyn:hasDisplayOrder 1 ;
-                  dyn:hasFormGroup "Identification" .
+                  dyn:hasFormGroup "Identification" ;
+                  dyn:isReadOnly true .
 
 
 ###  https://dynamat.utep.edu/ontology#hasTestCondition

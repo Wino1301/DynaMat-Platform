@@ -40,6 +40,7 @@ class WidgetFactory:
         
         # Widget type mapping
         self.widget_creators = {
+            'label': self._create_label_widget,
             'line_edit': self._create_line_edit_widget,
             'text_area': self._create_text_area_widget,
             'combo': self._create_combo_widget,
@@ -61,7 +62,8 @@ class WidgetFactory:
 
             self.logger.debug(
                 f"Creating widget for {property_metadata.name}: "
-                f"type={widget_type}, data_type={property_metadata.data_type}"
+                f"type={widget_type}, data_type={property_metadata.data_type}, "
+                f"is_read_only={property_metadata.is_read_only}"
             )
 
             # Get widget creator function
@@ -84,10 +86,11 @@ class WidgetFactory:
         Determine the appropriate widget type for a property.
 
         Priority order:
-        1. Measurement properties (has compatible_units) -> unit_value
-        2. Object properties (data_type=object, references to individuals) -> object_combo
-        3. Suggested widget type from metadata
-        4. Fallback based on data_type
+        1. Read-only string properties -> label
+        2. Measurement properties (has compatible_units) -> unit_value
+        3. Object properties (data_type=object, references to individuals) -> object_combo
+        4. Suggested widget type from metadata
+        5. Fallback based on data_type
 
         Args:
             prop: Property metadata
@@ -95,12 +98,17 @@ class WidgetFactory:
         Returns:
             Widget type string
         """
-        # Priority 1: Measurement properties with units (e.g., length, mass, temperature)
+        # Priority 1: Read-only string properties should use labels
+        if prop.is_read_only and prop.data_type == 'string':
+            self.logger.debug(f"{prop.name}: Read-only string property -> label widget")
+            return 'label'
+
+        # Priority 2: Measurement properties with units (e.g., length, mass, temperature)
         if hasattr(prop, 'compatible_units') and prop.compatible_units:
             self.logger.debug(f"{prop.name}: Measurement property -> unit_value widget")
             return 'unit_value'
 
-        # Priority 2: Object properties (references to ontology individuals)
+        # Priority 3: Object properties (references to ontology individuals)
         if prop.data_type == "object":
             # Check if it has a range_class (specific object type like Material, SpecimenRole)
             if hasattr(prop, 'range_class') and prop.range_class:
@@ -110,12 +118,12 @@ class WidgetFactory:
                 self.logger.debug(f"{prop.name}: Object property (no range) -> combo widget")
                 return 'combo'
 
-        # Priority 3: Use suggested widget type from metadata
+        # Priority 4: Use suggested widget type from metadata
         if prop.suggested_widget_type:
             self.logger.debug(f"{prop.name}: Using suggested type -> {prop.suggested_widget_type}")
             return prop.suggested_widget_type
 
-        # Priority 4: Fallback mapping based on data_type
+        # Priority 5: Fallback mapping based on data_type
         type_mapping = {
             'string': 'line_edit',
             'integer': 'spinbox',
@@ -167,19 +175,34 @@ class WidgetFactory:
     # WIDGET CREATION METHODS
     # ============================================================================
     
+    def _create_label_widget(self, prop: PropertyMetadata) -> QLabel:
+        """Create a label widget for read-only display."""
+        widget = QLabel()
+        widget.setText("")  # Empty initially, will be filled by dependency manager
+
+        # Style to match QLineEdit appearance
+        widget.setFrameShape(QFrame.Shape.StyledPanel)
+        widget.setFrameShadow(QFrame.Shadow.Sunken)
+        widget.setMinimumHeight(24)  # Match typical line edit height
+
+        if prop.description:
+            widget.setToolTip(prop.description)
+
+        return widget
+
     def _create_line_edit_widget(self, prop: PropertyMetadata) -> QLineEdit:
         """Create a line edit widget."""
         widget = QLineEdit()
-        
+
         if prop.description:
             widget.setToolTip(prop.description)
-        
+
         if hasattr(prop, 'max_length') and prop.max_length:
             widget.setMaxLength(prop.max_length)
-        
+
         if hasattr(prop, 'placeholder') and prop.placeholder:
             widget.setPlaceholderText(prop.placeholder)
-        
+
         return widget
     
     def _create_text_area_widget(self, prop: PropertyMetadata) -> QTextEdit:
@@ -364,11 +387,32 @@ class WidgetFactory:
         """Apply common properties to all widgets."""
         # Set minimum width for consistency
         widget.setMinimumWidth(120)
-        
+
         # Mark required fields visually
         if prop.is_required:
             current_style = widget.styleSheet()
             widget.setStyleSheet(f"{current_style}; border-left: 3px solid orange;")
+
+        # Apply read-only mode if specified
+        if prop.is_read_only:
+            self.logger.info(f"Applying read-only mode to {prop.name} (widget type: {type(widget).__name__})")
+
+            # Different widgets have different methods for read-only
+            if isinstance(widget, QLabel):
+                # QLabel is naturally read-only, no action needed
+                self.logger.info(f"QLabel {prop.name} is naturally read-only")
+            elif hasattr(widget, 'setReadOnly'):
+                # Best option: proper read-only mode (allows programmatic updates)
+                widget.setReadOnly(True)
+                self.logger.info(f"Set {prop.name} to read-only using setReadOnly()")
+            elif isinstance(widget, QComboBox):
+                # QComboBox doesn't have setReadOnly, but we can make it non-editable
+                # and prevent user interaction while still allowing programmatic updates
+                widget.setEditable(False)
+                widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+                self.logger.info(f"Set QComboBox {prop.name} to non-interactive mode")
+            else:
+                self.logger.warning(f"Widget {type(widget).__name__} doesn't support read-only mode directly")
         
     def _get_objects_for_class(self, class_uri: str) -> List[Dict[str, Any]]:
         """Get instances of a class from the ontology."""

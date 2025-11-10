@@ -14,7 +14,7 @@
 
 gui:specimen_c001 a gui:GenerationConstraint ;
     rdfs:label "Generate Specimen ID from Material" ;
-    rdfs:comment "Auto-generates specimen ID in format DYNML-{materialCode}-{sequence} when material is selected" ;
+    rdfs:comment "Auto-generates specimen ID in format DYNML-{materialCode}-{sequence} when material is selected. The materialCode is extracted from the selected material individual." ;
     dc:created "2025-01-15"^^xsd:date ;
     gui:forClass dyn:Specimen ;
     gui:triggers dyn:hasMaterial ;

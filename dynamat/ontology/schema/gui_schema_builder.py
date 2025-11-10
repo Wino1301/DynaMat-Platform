@@ -60,7 +60,8 @@ class PropertyMetadata:
     max_value: Optional[float] = None
     max_length: Optional[int] = None
     pattern: Optional[str] = None
-    group_order: Optional[int] = None  
+    group_order: Optional[int] = None
+    is_read_only: bool = False
 
     # Unit-related fields
     quantity_kind: Optional[str] = None
@@ -293,8 +294,8 @@ class GUISchemaBuilder:
         
         # SPARQL QUERY - Extracts all class properties
         query = """
-        SELECT DISTINCT ?property ?propertyName ?label ?displayName ?description 
-                        ?formGroup ?range ?displayOrder ?groupOrder ?required 
+        SELECT DISTINCT ?property ?propertyName ?label ?displayName ?description
+                        ?formGroup ?range ?displayOrder ?groupOrder ?required ?isReadOnly
                         ?defaultUnit ?quantityKind ?minValue ?maxValue ?widgetType WHERE {{ 
             {{
                 ?property rdfs:domain <{class_uri}> .
@@ -314,13 +315,14 @@ class GUISchemaBuilder:
             OPTIONAL {{ ?property dyn:hasGroupOrder ?groupOrder . }}
             OPTIONAL {{ ?property dyn:hasDisplayOrder ?displayOrder . }}
             OPTIONAL {{ ?property dyn:isRequired ?required . }}
-            
+            OPTIONAL {{ ?property dyn:isReadOnly ?isReadOnly . }}
+
             # Measurement properties
             OPTIONAL {{ ?property dyn:hasDefaultUnit ?defaultUnit . }}
             OPTIONAL {{ ?property qudt:hasQuantityKind ?quantityKind . }}
             OPTIONAL {{ ?property dyn:hasMinValue ?minValue . }}
             OPTIONAL {{ ?property dyn:hasMaxValue ?maxValue . }}
-            
+
             # Widget hints
             OPTIONAL {{ ?property dyn:hasWidgetType ?widgetType . }}
             
@@ -364,6 +366,7 @@ class GUISchemaBuilder:
                 data_type=data_type,
                 is_functional=self._is_functional_property(result['property']),
                 is_required=bool(result.get('required', False)),
+                is_read_only=bool(result.get('isReadOnly', False)),
                 valid_values=self._get_valid_values_for_property(result['property']),
                 default_unit=result.get('defaultUnit'),
                 quantity_kind=result.get('quantityKind'),
