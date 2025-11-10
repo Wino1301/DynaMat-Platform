@@ -10,37 +10,12 @@
 #################################################################
 
 #================================================================
-# Core Constraint Classes
+# Core Constraint Class
 #================================================================
 
 gui:Constraint a owl:Class ;
     rdfs:label "UI Constraint" ;
-    rdfs:comment "Base class for UI behavior constraints" .
-
-gui:VisibilityConstraint a owl:Class ;
-    rdfs:subClassOf gui:Constraint ;
-    rdfs:label "Visibility Constraint" ;
-    rdfs:comment "Controls field visibility based on trigger conditions" .
-
-gui:RequirementConstraint a owl:Class ;
-    rdfs:subClassOf gui:Constraint ;
-    rdfs:label "Requirement Constraint" ;
-    rdfs:comment "Controls when fields become required" .
-
-gui:CalculationConstraint a owl:Class ;
-    rdfs:subClassOf gui:Constraint ;
-    rdfs:label "Calculation Constraint" ;
-    rdfs:comment "Automatic field value calculation" .
-
-gui:GenerationConstraint a owl:Class ;
-    rdfs:subClassOf gui:Constraint ;
-    rdfs:label "Generation Constraint" ;
-    rdfs:comment "Template-based value generation (e.g., IDs)" .
-
-gui:MutualExclusionConstraint a owl:Class ;
-    rdfs:subClassOf gui:Constraint ;
-    rdfs:label "Mutual Exclusion Constraint" ;
-    rdfs:comment "Properties that cannot coexist" .
+    rdfs:comment "Unified UI behavior constraint that can perform multiple operations: visibility (show/hide), calculations, and value generation. All operations within a constraint execute atomically when triggered." .
 
 #================================================================
 # Constraint Properties
@@ -68,16 +43,16 @@ gui:whenValue a rdf:Property ;
     rdfs:label "when value" ;
     rdfs:comment "Value(s) that activate the constraint" .
 
-gui:affects a rdf:Property ;
+# Visibility operation properties
+gui:showFields a rdf:Property ;
     rdfs:domain gui:Constraint ;
-    rdfs:label "affects" ;
-    rdfs:comment "Property(ies) affected by this constraint" .
+    rdfs:label "show fields" ;
+    rdfs:comment "Property(ies) to make visible when constraint is triggered" .
 
-gui:action a owl:ObjectProperty ;
+gui:hideFields a rdf:Property ;
     rdfs:domain gui:Constraint ;
-    rdfs:range gui:Action ;
-    rdfs:label "action" ;
-    rdfs:comment "Action to perform when activated" .
+    rdfs:label "hide fields" ;
+    rdfs:comment "Property(ies) to hide when constraint is triggered" .
 
 gui:priority a owl:DatatypeProperty ;
     rdfs:domain gui:Constraint ;
@@ -86,32 +61,42 @@ gui:priority a owl:DatatypeProperty ;
     rdfs:comment "Evaluation priority (lower = higher priority)" .
 
 #================================================================
-# Generation-specific Properties
+# Generation Operation Properties
 #================================================================
 
 gui:generationTemplate a owl:DatatypeProperty ;
-    rdfs:domain gui:GenerationConstraint ;
+    rdfs:domain gui:Constraint ;
     rdfs:range xsd:string ;
     rdfs:label "generation template" ;
-    rdfs:comment "Template string for value generation" .
+    rdfs:comment "Template string for value generation (e.g., 'SPN-{materialCode}-{sequence}')" .
+
+gui:generationTarget a owl:ObjectProperty ;
+    rdfs:domain gui:Constraint ;
+    rdfs:label "generation target" ;
+    rdfs:comment "Property where generated value will be stored" .
 
 gui:generationInputs a rdf:Property ;
-    rdfs:domain gui:GenerationConstraint ;
+    rdfs:domain gui:Constraint ;
     rdfs:label "generation inputs" ;
     rdfs:comment "Properties used as template inputs" .
 
 #================================================================
-# Calculation-specific Properties
+# Calculation Operation Properties
 #================================================================
 
 gui:calculationFunction a owl:DatatypeProperty ;
-    rdfs:domain gui:CalculationConstraint ;
+    rdfs:domain gui:Constraint ;
     rdfs:range xsd:string ;
     rdfs:label "calculation function" ;
-    rdfs:comment "Name of calculation function to invoke" .
+    rdfs:comment "Name of calculation function to invoke (e.g., 'circular_area_from_diameter')" .
+
+gui:calculationTarget a owl:ObjectProperty ;
+    rdfs:domain gui:Constraint ;
+    rdfs:label "calculation target" ;
+    rdfs:comment "Property where calculated result will be stored" .
 
 gui:calculationInputs a rdf:Property ;
-    rdfs:domain gui:CalculationConstraint ;
+    rdfs:domain gui:Constraint ;
     rdfs:label "calculation inputs" ;
     rdfs:comment "Properties used as calculation inputs" .
 
@@ -133,45 +118,6 @@ gui:ALL a gui:TriggerLogic ;
 gui:XOR a gui:TriggerLogic ;
     rdfs:label "XOR (Exclusive OR)" ;
     rdfs:comment "Activate when exactly ONE trigger is met" .
-
-#================================================================
-# Actions
-#================================================================
-
-gui:Action a owl:Class ;
-    rdfs:label "Constraint Action" .
-
-gui:show a gui:Action ;
-    rdfs:label "show" ;
-    rdfs:comment "Make field visible" .
-
-gui:hide a gui:Action ;
-    rdfs:label "hide" ;
-    rdfs:comment "Make field hidden" .
-
-gui:require a gui:Action ;
-    rdfs:label "require" ;
-    rdfs:comment "Make field required" .
-
-gui:optional a gui:Action ;
-    rdfs:label "optional" ;
-    rdfs:comment "Make field optional" .
-
-gui:calculate a gui:Action ;
-    rdfs:label "calculate" ;
-    rdfs:comment "Calculate field value" .
-
-gui:generate a gui:Action ;
-    rdfs:label "generate" ;
-    rdfs:comment "Generate value from template" .
-
-gui:enable a gui:Action ;
-    rdfs:label "enable" ;
-    rdfs:comment "Enable field for editing" .
-
-gui:disable a gui:Action ;
-    rdfs:label "disable" ;
-    rdfs:comment "Disable field from editing" .
 
 #================================================================
 # Special Values

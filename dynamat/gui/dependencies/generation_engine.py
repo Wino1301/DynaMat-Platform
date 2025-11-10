@@ -145,17 +145,27 @@ class GenerationEngine:
         
         return processed
     
-    def _extract_material_code(self, material_uri: str) -> str:
+    def _extract_material_code(self, **kwargs) -> str:
         """
         Extract material code from a material URI.
 
-        Args:
-            material_uri: Full URI of the material
+        Accepts material URI from any property that contains 'Material' in the key.
 
         Returns:
             Material code string
         """
         try:
+            # Extract material URI from kwargs (could be any property URI)
+            material_uri = None
+            for key, value in kwargs.items():
+                if 'Material' in key or 'material' in key:
+                    material_uri = value
+                    break
+
+            if material_uri is None:
+                self.logger.error("No material URI provided in inputs")
+                return "UNKNOWN"
+
             self.logger.debug(f"Attempting to extract material code from URI: '{material_uri}'")
 
             # Query ontology for material code

@@ -393,16 +393,14 @@ dep_manager.setup_dependencies(form_widget, "dyn:Specimen")
 # when form field values change
 ```
 
-**Constraint Types:**
+**Unified Constraint Model:**
 
-```python
-class ConstraintType(Enum):
-    VISIBILITY = "visibility"          # Show/hide fields
-    REQUIREMENT = "requirement"        # Required/optional
-    CALCULATION = "calculation"        # Calculate derived values
-    GENERATION = "generation"          # Generate IDs, codes
-    MUTUAL_EXCLUSION = "mutual_exclusion"  # Either/or fields
-```
+Constraints use a single `gui:Constraint` type that can perform multiple operations:
+- **Visibility**: Show/hide fields
+- **Calculation**: Compute derived values
+- **Generation**: Generate IDs, codes, timestamps
+
+All operations within a constraint execute atomically when triggered.
 
 **Trigger Logic:**
 
@@ -413,31 +411,48 @@ class TriggerLogic(Enum):
     XOR = "xor"    # If exactly one trigger condition is met
 ```
 
-**Actions:**
+**Example TTL Constraints:**
 
-```python
-class Action(Enum):
-    SHOW = "show"
-    HIDE = "hide"
-    REQUIRE = "require"
-    OPTIONAL = "optional"
-    CALCULATE = "calculate"
-    GENERATE = "generate"
-    ENABLE = "enable"
-    DISABLE = "disable"
-```
-
-**Example TTL Constraint:**
-
+**Visibility Only:**
 ```turtle
-# If material is Composite, show fiber-related fields
-gui:ShowFiberFieldsWhenComposite a gui:VisibilityConstraint ;
+# Show composite fields when material is Composite
+gui:specimen_c002 a gui:Constraint ;
     gui:forClass dyn:Specimen ;
     gui:triggers dyn:hasMaterial ;
-    gui:whenValue dyn:CompositeMaterial ;
-    gui:affects (dyn:hasFiberType dyn:hasFiberVolumeFraction dyn:hasFiberOrientation) ;
-    gui:action gui:show ;
-    gui:priority 100 .
+    gui:whenValue dyn:Composite ;
+    gui:showFields (dyn:hasMatrixMaterial
+                    dyn:hasReinforcementMaterial
+                    dyn:hasMatrixVolumeFraction) ;
+    gui:priority 2 .
+```
+
+**Visibility + Calculation:**
+```turtle
+# For cylindrical specimens: show/hide dimensions AND calculate cross-section
+gui:specimen_c005 a gui:Constraint ;
+    gui:forClass dyn:Specimen ;
+    gui:triggers (dyn:hasShape dyn:hasOriginalDiameter) ;
+    gui:triggerLogic gui:ALL ;
+    gui:whenValue (dyn:CylindricalShape gui:anyValue) ;
+    gui:showFields (dyn:hasOriginalDiameter dyn:hasOriginalHeight) ;
+    gui:hideFields (dyn:hasOriginalLength dyn:hasOriginalWidth) ;
+    gui:calculationFunction "circular_area_from_diameter" ;
+    gui:calculationTarget dyn:hasOriginalCrossSection ;
+    gui:calculationInputs (dyn:hasOriginalDiameter) ;
+    gui:priority 5 .
+```
+
+**Generation:**
+```turtle
+# Generate specimen ID from material
+gui:specimen_c001 a gui:Constraint ;
+    gui:forClass dyn:Specimen ;
+    gui:triggers dyn:hasMaterial ;
+    gui:whenValue gui:anyValue ;
+    gui:generationTarget dyn:hasSpecimenID ;
+    gui:generationTemplate "SPN-{materialCode}-{sequence}" ;
+    gui:generationInputs (dyn:hasMaterial) ;
+    gui:priority 1 .
 ```
 
 **Constraint Evaluation Flow:**
@@ -453,9 +468,12 @@ Find all constraints triggered by this property
        ↓
 Evaluate each constraint's whenValue condition
        ↓
-If condition met, apply action to affected fields
+If condition met, execute all operations:
+  1. Visibility operations (show/hide fields)
+  2. Calculation operation (compute derived value)
+  3. Generation operation (generate ID/code)
        ↓
-UI updates automatically (show/hide, enable/disable, etc.)
+UI updates automatically with all changes
 ```
 
 ---
@@ -857,7 +875,7 @@ widget.setData(value=10.0, unit='unit:MilliM')
 
 ## Dependency System
 
-The v2.0 dependency system uses TTL files to define form behavior, making it declarative and ontology-driven.
+The dependency system uses TTL files to define form behavior, making it declarative and ontology-driven.
 
 ### Constraint Definition
 
@@ -865,35 +883,41 @@ Create TTL file in `dynamat/ontology/constraints/`:
 
 ```turtle
 # gui_specimen_rules.ttl
-@prefix gui: <https://dynamat.utep.edu/gui#> .
+@prefix gui: <https://dynamat.utep.edu/gui/constraints#> .
 @prefix dyn: <https://dynamat.utep.edu/ontology#> .
 
-# Show fiber fields when material is composite
-gui:ShowFiberFieldsWhenComposite a gui:VisibilityConstraint ;
+# Show composite fields when material is Composite
+gui:specimen_c002 a gui:Constraint ;
     gui:forClass dyn:Specimen ;
     gui:triggers dyn:hasMaterial ;
-    gui:whenValue dyn:CompositeMaterial ;
-    gui:affects (dyn:hasFiberType dyn:hasFiberVolumeFraction dyn:hasFiberOrientation) ;
-    gui:action gui:show ;
-    gui:priority 100 .
+    gui:whenValue dyn:Composite ;
+    gui:showFields (dyn:hasMatrixMaterial
+                    dyn:hasReinforcementMaterial
+                    dyn:hasMatrixVolumeFraction) ;
+    gui:priority 2 .
 
-# Calculate cross-section from diameter
-gui:CalculateCrossSection a gui:CalculationConstraint ;
+# Cylindrical specimen: visibility + cross-section calculation
+gui:specimen_c005 a gui:Constraint ;
     gui:forClass dyn:Specimen ;
-    gui:triggers dyn:hasOriginalDiameter ;
-    gui:affects dyn:hasOriginalCrossSection ;
-    gui:action gui:calculate ;
-    gui:calculationType "circular_area_from_diameter" ;
-    gui:priority 50 .
+    gui:triggers (dyn:hasShape dyn:hasOriginalDiameter) ;
+    gui:triggerLogic gui:ALL ;
+    gui:whenValue (dyn:CylindricalShape gui:anyValue) ;
+    gui:showFields (dyn:hasOriginalDiameter dyn:hasOriginalHeight) ;
+    gui:hideFields (dyn:hasOriginalLength dyn:hasOriginalWidth) ;
+    gui:calculationFunction "circular_area_from_diameter" ;
+    gui:calculationTarget dyn:hasOriginalCrossSection ;
+    gui:calculationInputs (dyn:hasOriginalDiameter) ;
+    gui:priority 5 .
 
-# Generate specimen ID
-gui:GenerateSpecimenID a gui:GenerationConstraint ;
+# Generate specimen ID from material
+gui:specimen_c001 a gui:Constraint ;
     gui:forClass dyn:Specimen ;
-    gui:triggers (dyn:hasMaterial dyn:hasSequenceNumber) ;
-    gui:affects dyn:hasSpecimenID ;
-    gui:action gui:generate ;
-    gui:template "DYNML-{materialCode}-{sequence}" ;
-    gui:priority 200 .
+    gui:triggers dyn:hasMaterial ;
+    gui:whenValue gui:anyValue ;
+    gui:generationTarget dyn:hasSpecimenID ;
+    gui:generationTemplate "SPN-{materialCode}-{sequence}" ;
+    gui:generationInputs (dyn:hasMaterial) ;
+    gui:priority 1 .
 ```
 
 ### Constraint Application
@@ -911,59 +935,69 @@ dep_manager = DependencyManager(
 dep_manager.setup_dependencies(form_widget, "dyn:Specimen")
 
 # Now constraints are active:
-# - Select "Composite" material → fiber fields show
-# - Enter diameter → cross-section calculates
-# - Change material/sequence → ID regenerates
+# - Select "Composite" material → composite fields show
+# - Select "Cylindrical" shape + enter diameter → cross-section calculates
+# - Select material → specimen ID generates
 ```
 
-### Constraint Types Explained
+### Constraint Operations
 
-**1. Visibility Constraints** - Show/hide fields
+**1. Visibility Operations** - Show/hide fields
+
+Use `gui:showFields` and `gui:hideFields` to control field visibility:
 
 ```turtle
-gui:ShowLubricationTypeWhenUsed a gui:VisibilityConstraint ;
-    gui:triggers dyn:hasLubricationUsed ;
-    gui:whenValue true ;
-    gui:affects dyn:hasLubricationType ;
-    gui:action gui:show .
+gui:specimen_c002 a gui:Constraint ;
+    gui:triggers dyn:hasMaterial ;
+    gui:whenValue dyn:Composite ;
+    gui:showFields (dyn:hasMatrixMaterial dyn:hasReinforcementMaterial) ;
+    gui:priority 2 .
 ```
 
-**2. Requirement Constraints** - Make fields required/optional
+**2. Calculation Operations** - Auto-calculate values
+
+Use `gui:calculationFunction`, `gui:calculationTarget`, and `gui:calculationInputs`:
 
 ```turtle
-gui:RequireOperatorNameWhenHuman a gui:RequirementConstraint ;
-    gui:triggers dyn:hasOperatorType ;
-    gui:whenValue "Human" ;
-    gui:affects dyn:hasOperatorName ;
-    gui:action gui:require .
+gui:specimen_c007 a gui:Constraint ;
+    gui:triggers (dyn:hasShape dyn:hasOriginalLength) ;
+    gui:whenValue (dyn:CubicShape gui:anyValue) ;
+    gui:calculationFunction "square_area" ;
+    gui:calculationTarget dyn:hasOriginalCrossSection ;
+    gui:calculationInputs (dyn:hasOriginalLength) ;
+    gui:priority 7 .
 ```
 
-**3. Calculation Constraints** - Auto-calculate values
+**3. Generation Operations** - Generate IDs/codes
+
+Use `gui:generationTemplate`, `gui:generationTarget`, and `gui:generationInputs`:
 
 ```turtle
-gui:CalculateMassFromDensity a gui:CalculationConstraint ;
-    gui:triggers (dyn:hasDensity dyn:hasVolume) ;
-    gui:affects dyn:hasMass ;
-    gui:calculationType "mass_from_density" ;
-    gui:action gui:calculate .
+gui:specimen_c001 a gui:Constraint ;
+    gui:triggers dyn:hasMaterial ;
+    gui:whenValue gui:anyValue ;
+    gui:generationTarget dyn:hasSpecimenID ;
+    gui:generationTemplate "SPN-{materialCode}-{sequence}" ;
+    gui:generationInputs (dyn:hasMaterial) ;
+    gui:priority 1 .
 ```
 
-**4. Generation Constraints** - Generate IDs/codes
+**4. Combined Operations** - Multiple operations in one constraint
+
+Combine visibility, calculation, and generation operations:
 
 ```turtle
-gui:GenerateBatchID a gui:GenerationConstraint ;
-    gui:triggers (dyn:hasMaterialCode dyn:hasYear dyn:hasMonth) ;
-    gui:affects dyn:hasBatchID ;
-    gui:template "BATCH-{materialCode}-{year}-{month}" ;
-    gui:action gui:generate .
-```
-
-**5. Mutual Exclusion** - Either/or fields
-
-```turtle
-gui:DiameterOrWidthHeight a gui:MutualExclusionConstraint ;
-    gui:affects (dyn:hasDiameter dyn:hasWidth dyn:hasHeight) ;
-    gui:action gui:mutual_exclude .
+gui:specimen_c005 a gui:Constraint ;
+    gui:triggers (dyn:hasShape dyn:hasOriginalDiameter) ;
+    gui:whenValue (dyn:CylindricalShape gui:anyValue) ;
+    # Visibility
+    gui:showFields (dyn:hasOriginalDiameter dyn:hasOriginalHeight) ;
+    gui:hideFields (dyn:hasOriginalLength dyn:hasOriginalWidth) ;
+    # Calculation
+    gui:calculationFunction "circular_area_from_diameter" ;
+    gui:calculationTarget dyn:hasOriginalCrossSection ;
+    gui:calculationInputs (dyn:hasOriginalDiameter) ;
+    gui:priority 5 .
 ```
 
 ---
@@ -987,6 +1021,8 @@ from dynamat.gui import (
     DependencyManager,
     CalculationEngine,
     GenerationEngine,
+    ConstraintManager,
+    Constraint,
 
     # Widgets
     UnitValueWidget,
@@ -994,9 +1030,7 @@ from dynamat.gui import (
     # Enums
     FormStyle,
     LayoutStyle,
-    ConstraintType,
     TriggerLogic,
-    Action,
 
     # Data classes
     FormField,

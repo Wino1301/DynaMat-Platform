@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import QWidget, QComboBox, QLineEdit, QSpinBox, QDoubleSpin
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from ...ontology import OntologyManager
-from .constraint_manager import ConstraintManager, Constraint, ConstraintType, Action, TriggerLogic
+from .constraint_manager import ConstraintManager, Constraint, TriggerLogic
 from .calculation_engine import CalculationEngine
 from .generation_engine import GenerationEngine
 
@@ -27,7 +27,7 @@ class DependencyManager(QObject):
     """
     
     # Signals
-    constraint_triggered = pyqtSignal(str, str)  # constraint_uri, action
+    constraint_triggered = pyqtSignal(str, list)  # constraint_uri, operations_performed
     calculation_performed = pyqtSignal(str, float)  # property_uri, result
     generation_performed = pyqtSignal(str, str)  # property_uri, result
     error_occurred = pyqtSignal(str, str)  # constraint_uri, error_message
@@ -102,27 +102,37 @@ class DependencyManager(QObject):
     def _connect_trigger_signal(self, trigger_property: str):
         """
         Connect appropriate Qt signal for a trigger property.
-        
+
         Args:
             trigger_property: URI of the property that triggers constraints
         """
         if not hasattr(self.active_form, 'form_fields'):
             self.logger.warning("Form widget missing form_fields attribute")
             return
-        
+
         if trigger_property not in self.active_form.form_fields:
             self.logger.debug(f"Trigger property not in form: {trigger_property}")
             return
-        
+
         field = self.active_form.form_fields[trigger_property]
         widget = field.widget
-        
+
+        # Import UnitValueWidget here to avoid circular imports
+        try:
+            from ..widgets.base.unit_value_widget import UnitValueWidget
+        except ImportError:
+            UnitValueWidget = None
+
         # Connect appropriate signal based on widget type
         if isinstance(widget, QComboBox):
             widget.currentTextChanged.connect(
                 lambda: self._on_trigger_changed(trigger_property)
             )
         elif isinstance(widget, (QDoubleSpinBox, QSpinBox)):
+            widget.valueChanged.connect(
+                lambda: self._on_trigger_changed(trigger_property)
+            )
+        elif UnitValueWidget and isinstance(widget, UnitValueWidget):
             widget.valueChanged.connect(
                 lambda: self._on_trigger_changed(trigger_property)
             )
@@ -134,8 +144,8 @@ class DependencyManager(QObject):
             widget.toggled.connect(
                 lambda: self._on_trigger_changed(trigger_property)
             )
-        
-        self.logger.debug(f"Connected signal for trigger: {trigger_property}")
+
+        self.logger.debug(f"Connected signal for trigger: {trigger_property} (widget type: {type(widget).__name__})")
     
     # ============================================================================
     # CONSTRAINT EVALUATION
@@ -199,7 +209,7 @@ class DependencyManager(QObject):
     
     def _evaluate_constraint(self, constraint: Constraint):
         """
-        Evaluate a single constraint and apply its action.
+        Evaluate a single constraint and apply its operations.
 
         Args:
             constraint: Constraint to evaluate
@@ -208,9 +218,19 @@ class DependencyManager(QObject):
             # Get trigger values
             trigger_values = self._get_trigger_values(constraint.triggers)
 
+            # Determine what operations this constraint has
+            ops = []
+            if constraint.has_visibility_ops():
+                ops.append("visibility")
+            if constraint.has_calculation_op():
+                ops.append("calculation")
+            if constraint.has_generation_op():
+                ops.append("generation")
+
             self.logger.debug(
                 f"Evaluating constraint '{constraint.label}' (priority {constraint.priority})"
             )
+            self.logger.debug(f"  Operations: {ops}")
             self.logger.debug(f"  Trigger values: {trigger_values}")
             self.logger.debug(f"  Expected when_values: {constraint.when_values}")
             self.logger.debug(f"  Trigger logic: {constraint.trigger_logic}")
@@ -222,19 +242,17 @@ class DependencyManager(QObject):
                 constraint.trigger_logic
             )
 
-            self.logger.debug(
-                f"  Condition met: {condition_met} -> Action: "
-                f"{'APPLY' if condition_met else 'INVERSE'} {constraint.action.value}"
-            )
+            self.logger.debug(f"  Condition met: {condition_met}")
 
-            # Apply action based on constraint type
+            # Apply operations
+            operations_performed = []
             if condition_met:
-                self._apply_action(constraint, trigger_values)
+                operations_performed = self._apply_operations(constraint, trigger_values)
             else:
-                self._apply_inverse_action(constraint)
+                operations_performed = self._apply_inverse_operations(constraint)
 
             # Emit signal
-            self.constraint_triggered.emit(constraint.uri, constraint.action.value)
+            self.constraint_triggered.emit(constraint.uri, operations_performed)
 
         except Exception as e:
             self.logger.error(f"Error evaluating constraint {constraint.uri}: {e}", exc_info=True)
@@ -366,16 +384,25 @@ class DependencyManager(QObject):
         Check if a value matches an expected value.
 
         Handles:
+        - gui:anyValue - matches any non-None/non-empty value
         - Direct URI matching (exact match)
         - Partial URI matching (fragment/local name match)
         - Class membership checking (e.g., is material a Composite?)
         - String matching (case-insensitive)
         """
+        # Handle special case: gui:anyValue
+        expected_str = str(expected).strip() if expected else ""
+        if "anyValue" in expected_str:
+            # For anyValue, check if value is not None and not empty
+            has_value = value is not None and str(value).strip() != ""
+            self.logger.debug(f"    Match (anyValue): value={'present' if has_value else 'absent'}")
+            return has_value
+
+        # Regular matching requires both value and expected to be non-empty
         if not value or not expected:
             return False
 
         value_str = str(value).strip()
-        expected_str = str(expected).strip()
 
         # Direct match (exact)
         if value_str == expected_str:
@@ -442,48 +469,71 @@ class DependencyManager(QObject):
             return False
     
     # ============================================================================
-    # ACTION APPLICATION
+    # OPERATION APPLICATION
     # ============================================================================
-    
-    def _apply_action(self, constraint: Constraint, trigger_values: Dict[str, Any]):
-        """Apply the constraint's action."""
-        if constraint.action == Action.SHOW:
-            self._action_show_fields(constraint.affects)
-        
-        elif constraint.action == Action.HIDE:
-            self._action_hide_fields(constraint.affects)
-        
-        elif constraint.action == Action.REQUIRE:
-            self._action_require_fields(constraint.affects, True)
-        
-        elif constraint.action == Action.OPTIONAL:
-            self._action_require_fields(constraint.affects, False)
-        
-        elif constraint.action == Action.CALCULATE:
+
+    def _apply_operations(self, constraint: Constraint, trigger_values: Dict[str, Any]) -> List[str]:
+        """
+        Apply all operations defined in the constraint.
+
+        Operations are executed in order:
+        1. Visibility (show/hide fields)
+        2. Calculations (compute derived values)
+        3. Generation (generate IDs/codes)
+
+        Args:
+            constraint: Constraint to apply
+            trigger_values: Current trigger values
+
+        Returns:
+            List of operation names that were performed
+        """
+        operations_performed = []
+
+        # 1. Visibility operations
+        if constraint.has_visibility_ops():
+            if constraint.show_fields:
+                self._action_show_fields(constraint.show_fields)
+            if constraint.hide_fields:
+                self._action_hide_fields(constraint.hide_fields)
+            operations_performed.append("visibility")
+
+        # 2. Calculation operation
+        if constraint.has_calculation_op():
             self._action_calculate(constraint)
-        
-        elif constraint.action == Action.GENERATE:
+            operations_performed.append("calculation")
+
+        # 3. Generation operation
+        if constraint.has_generation_op():
             self._action_generate(constraint, trigger_values)
-        
-        elif constraint.action == Action.ENABLE:
-            self._action_enable_fields(constraint.affects, True)
-        
-        elif constraint.action == Action.DISABLE:
-            self._action_enable_fields(constraint.affects, False)
-    
-    def _apply_inverse_action(self, constraint: Constraint):
-        """Apply the inverse of the constraint's action."""
-        if constraint.action == Action.SHOW:
-            self._action_hide_fields(constraint.affects)
-        
-        elif constraint.action == Action.HIDE:
-            self._action_show_fields(constraint.affects)
-        
-        elif constraint.action == Action.REQUIRE:
-            self._action_require_fields(constraint.affects, False)
-        
-        elif constraint.action == Action.OPTIONAL:
-            self._action_require_fields(constraint.affects, True)
+            operations_performed.append("generation")
+
+        return operations_performed
+
+    def _apply_inverse_operations(self, constraint: Constraint) -> List[str]:
+        """
+        Apply inverse operations when condition is not met.
+
+        Only visibility operations have meaningful inverses.
+        Calculations and generations are not inversed (they're skipped).
+
+        Args:
+            constraint: Constraint to apply inverse
+
+        Returns:
+            List of operation names that were inversed
+        """
+        operations_performed = []
+
+        # Only invert visibility operations
+        if constraint.has_visibility_ops():
+            if constraint.show_fields:
+                self._action_hide_fields(constraint.show_fields)
+            if constraint.hide_fields:
+                self._action_show_fields(constraint.hide_fields)
+            operations_performed.append("visibility_inverse")
+
+        return operations_performed
     
     def _action_show_fields(self, field_uris: List[str]):
         """Show fields."""
@@ -511,101 +561,80 @@ class DependencyManager(QObject):
                 field.widget.setEnabled(enabled)
     
     def _action_calculate(self, constraint: Constraint):
-        """Perform calculation."""
+        """Perform calculation operation."""
         try:
-            # Get input values
+            # Get input values (pass property URIs directly)
             input_values = {}
             for input_prop in constraint.calculation_inputs:
                 if input_prop in self.active_form.form_fields:
                     field = self.active_form.form_fields[input_prop]
                     value = self._extract_widget_value(field.widget)
                     input_values[input_prop] = value
-            
+                    self.logger.debug(f"Calculation input: {input_prop} = {value}")
+
             # Perform calculation
             result = self.calculation_engine.calculate(
                 constraint.calculation_function,
                 **input_values
             )
-            
-            # Set result in target field(s)
-            for target_uri in constraint.affects:
-                self._set_widget_value(target_uri, result)
-            
-            self.calculation_performed.emit(constraint.affects[0], result)
-            
+
+            if result is not None:
+                # Set result in target field
+                self._set_widget_value(constraint.calculation_target, result)
+                self.logger.info(
+                    f"Calculation result: {constraint.calculation_function} = {result} "
+                    f"-> {constraint.calculation_target}"
+                )
+                self.calculation_performed.emit(constraint.calculation_target, result)
+
         except Exception as e:
-            self.logger.error(f"Calculation failed: {e}")
+            self.logger.error(f"Calculation failed: {e}", exc_info=True)
             self.error_occurred.emit(constraint.uri, str(e))
     
     def _action_generate(self, constraint: Constraint, trigger_values: Dict[str, Any]):
-        """Generate value from template."""
+        """Generate value from template operation."""
         try:
-            # Prepare inputs for generation
-            # Map property URIs to simplified template variable names
+            # Prepare inputs for generation (pass property URIs directly)
             inputs = {}
             for input_prop in constraint.generation_inputs:
-                self.logger.debug(f"Processing generation input: {input_prop}")
                 if input_prop in trigger_values:
-                    # Extract the local name from the URI to use as template variable
-                    # e.g., "https://dynamat.utep.edu/ontology#hasMaterial" -> "hasMaterial"
-                    var_name = input_prop.split('#')[-1].split('/')[-1]
-                    self.logger.debug(f"  Extracted var_name: {var_name}")
+                    inputs[input_prop] = trigger_values[input_prop]
+                    self.logger.debug(f"Generation input: {input_prop} = {trigger_values[input_prop]}")
 
-                    # Special handling for material property - map to "materialCode"
-                    # The generation engine will extract the material code from the URI
-                    if var_name == "hasMaterial":
-                        var_name = "materialCode"
-                        self.logger.debug(f"  Mapped to: {var_name}")
+            # Extract material code using the generation engine
+            # The engine will search for any key containing 'Material'
+            material_code = self.generation_engine._extract_material_code(**inputs)
+            self.logger.debug(f"Extracted material code: '{material_code}'")
 
-                    inputs[var_name] = trigger_values[input_prop]
-                    self.logger.debug(f"  Set inputs['{var_name}'] = '{trigger_values[input_prop]}'")
-                else:
-                    self.logger.debug(f"  Input property not found in trigger_values")
-
-            self.logger.debug(f"Final inputs dictionary before extraction: {inputs}")
-
-            # Extract material code from URI if present
-            if "materialCode" in inputs:
-                material_uri = inputs["materialCode"]
-                self.logger.debug(f"materialCode found in inputs: '{material_uri}' (type: {type(material_uri).__name__})")
-                if isinstance(material_uri, str) and ("#" in material_uri or "/" in material_uri):
-                    # This is a URI, extract the actual code from ontology
-                    self.logger.debug(f"Calling _extract_material_code with URI: '{material_uri}'")
-                    material_code = self.generation_engine._extract_material_code(material_uri)
-                    self.logger.debug(f"Extracted material code '{material_code}' from URI '{material_uri}'")
-                    # IMPORTANT: Update the inputs with the extracted code, not the URI
-                    inputs["materialCode"] = material_code
-                else:
-                    # Already a simple material code string
-                    material_code = inputs["materialCode"]
-                    self.logger.debug(f"materialCode is already a simple string: '{material_code}'")
-            else:
-                material_code = None
-                self.logger.debug("materialCode NOT found in inputs")
+            # Prepare template inputs with simple names
+            template_inputs = {"materialCode": material_code}
 
             # Check if template requires sequence number and add it automatically
             if "{sequence}" in constraint.generation_template:
                 if material_code and material_code != "UNKNOWN":
                     # Get next sequence number for this material
                     sequence = self.generation_engine._get_next_specimen_sequence(material_code)
-                    inputs["sequence"] = sequence
                     self.logger.debug(f"Generated sequence number {sequence} for material code '{material_code}'")
                 else:
                     # Default to sequence 1 if material code unavailable
-                    inputs["sequence"] = 1
+                    sequence = 1
                     self.logger.warning(f"Material code extraction failed (got '{material_code}'), using sequence 1")
+
+                # Add sequence to template inputs
+                template_inputs["sequence"] = sequence
 
             # Generate value
             result = self.generation_engine.generate(
                 constraint.generation_template,
-                inputs
+                template_inputs
             )
 
-            # Set result in target field(s)
-            for target_uri in constraint.affects:
-                self._set_widget_value(target_uri, result)
-
-            self.generation_performed.emit(constraint.affects[0], result)
+            # Set result in target field
+            self._set_widget_value(constraint.generation_target, result)
+            self.logger.info(
+                f"Generation result: '{result}' -> {constraint.generation_target}"
+            )
+            self.generation_performed.emit(constraint.generation_target, result)
 
         except Exception as e:
             self.logger.error(f"Generation failed: {e}")
@@ -622,6 +651,12 @@ class DependencyManager(QObject):
         For QComboBox: Returns URI from currentData() if available, otherwise currentText()
         For other widgets: Returns their native value
         """
+        # Import UnitValueWidget here to avoid circular imports
+        try:
+            from ..widgets.base.unit_value_widget import UnitValueWidget
+        except ImportError:
+            UnitValueWidget = None
+
         if isinstance(widget, QComboBox):
             # QComboBox should store URI in currentData()
             data = widget.currentData()
@@ -638,6 +673,8 @@ class DependencyManager(QObject):
             return widget.text()
         elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
             return widget.value()
+        elif UnitValueWidget and isinstance(widget, UnitValueWidget):
+            return widget.getValue()
         elif isinstance(widget, QCheckBox):
             return widget.isChecked()
         return None
@@ -652,11 +689,19 @@ class DependencyManager(QObject):
 
         from PyQt6.QtWidgets import QLabel
 
+        # Import UnitValueWidget here to avoid circular imports
+        try:
+            from ..widgets.base.unit_value_widget import UnitValueWidget
+        except ImportError:
+            UnitValueWidget = None
+
         if isinstance(widget, QLabel):
             widget.setText(str(value))
         elif isinstance(widget, QLineEdit):
             widget.setText(str(value))
         elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+            widget.setValue(float(value))
+        elif UnitValueWidget and isinstance(widget, UnitValueWidget):
             widget.setValue(float(value))
         elif isinstance(widget, QCheckBox):
             widget.setChecked(bool(value))

@@ -206,6 +206,18 @@ dyn:hasOriginalMass rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     dyn:hasDefaultUnit "unit:GM" ;
     rdfs:comment "Initial mass of specimen before testing"@en .
 
+dyn:hasOriginalGaugeLength rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Original Gauge Length"@en ;
+    dyn:hasDisplayName "Original Gauge Length (mm)" ;
+    dyn:hasFormGroup "GeometryDimensions" ;
+    dyn:hasGroupOrder 4 ;
+    dyn:hasDisplayOrder 9 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Initial gauge length for dogbone/tensile specimens (region of interest for measurement)"@en .
+
 #################################################################
 #    5. Post Test Dimensions Properties
 #################################################################
@@ -293,6 +305,18 @@ dyn:hasFinalMass rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     dyn:hasDisplayOrder 7 ;
     dyn:hasDefaultUnit "unit:GM" ;
     rdfs:comment "Final mass of specimen after testing"@en .
+
+dyn:hasFinalGaugeLength rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Final Gauge Length"@en ;
+    dyn:hasDisplayName "Final Gauge Length (mm)" ;
+    dyn:hasFormGroup "PostTestDimensions" ;
+    dyn:hasGroupOrder 5 ;
+    dyn:hasDisplayOrder 8 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Final gauge length for dogbone/tensile specimens after testing"@en .
 
 #################################################################
 #    6. Characterization Tracking Properties

@@ -15,15 +15,6 @@ from rdflib.namespace import RDF, RDFS
 logger = logging.getLogger(__name__)
 
 
-class ConstraintType(Enum):
-    """Types of constraints supported."""
-    VISIBILITY = "VisibilityConstraint"
-    REQUIREMENT = "RequirementConstraint"
-    CALCULATION = "CalculationConstraint"
-    GENERATION = "GenerationConstraint"
-    MUTUAL_EXCLUSION = "MutualExclusionConstraint"
-
-
 class TriggerLogic(Enum):
     """Logic gates for multiple triggers."""
     ANY = "ANY"
@@ -31,38 +22,52 @@ class TriggerLogic(Enum):
     XOR = "XOR"
 
 
-class Action(Enum):
-    """Actions that constraints can perform."""
-    SHOW = "show"
-    HIDE = "hide"
-    REQUIRE = "require"
-    OPTIONAL = "optional"
-    CALCULATE = "calculate"
-    GENERATE = "generate"
-    ENABLE = "enable"
-    DISABLE = "disable"
-
-
 @dataclass
 class Constraint:
-    """Represents a single UI constraint."""
+    """
+    Represents a unified UI constraint with multiple possible operations.
+
+    A constraint can perform multiple operations:
+    - Visibility: show/hide fields
+    - Calculation: compute derived values
+    - Generation: generate IDs/codes from templates
+
+    All operations within a constraint execute atomically when triggered.
+    """
     uri: str
     label: str
     comment: str
-    constraint_type: ConstraintType
     for_class: str
     triggers: List[str]
     trigger_logic: Optional[TriggerLogic]
     when_values: List[str]
-    affects: List[str]
-    action: Action
     priority: int
-    
-    # Type-specific attributes
-    generation_template: Optional[str] = None
-    generation_inputs: Optional[List[str]] = None
+
+    # Visibility operations
+    show_fields: Optional[List[str]] = None
+    hide_fields: Optional[List[str]] = None
+
+    # Calculation operation
     calculation_function: Optional[str] = None
+    calculation_target: Optional[str] = None
     calculation_inputs: Optional[List[str]] = None
+
+    # Generation operation
+    generation_template: Optional[str] = None
+    generation_target: Optional[str] = None
+    generation_inputs: Optional[List[str]] = None
+
+    def has_visibility_ops(self) -> bool:
+        """Check if constraint has visibility operations."""
+        return bool(self.show_fields or self.hide_fields)
+
+    def has_calculation_op(self) -> bool:
+        """Check if constraint has calculation operation."""
+        return bool(self.calculation_function and self.calculation_target)
+
+    def has_generation_op(self) -> bool:
+        """Check if constraint has generation operation."""
+        return bool(self.generation_template and self.generation_target)
 
 
 class ConstraintManager:
@@ -134,12 +139,11 @@ class ConstraintManager:
     
     def _parse_constraints(self):
         """Parse constraints from the RDF graph."""
-        # First, get all constraint URIs
+        # Get all instances of gui:Constraint (unified type)
         constraint_query = """
-        SELECT DISTINCT ?constraint ?type
+        SELECT DISTINCT ?constraint
         WHERE {
-            ?constraint a ?type .
-            ?type rdfs:subClassOf* gui:Constraint .
+            ?constraint a gui:Constraint .
         }
         """
 
@@ -165,7 +169,7 @@ class ConstraintManager:
 
     def _parse_single_constraint(self, constraint_uri: str) -> Optional[Constraint]:
         """
-        Parse a single constraint by URI, collecting all property values.
+        Parse a single constraint by URI, collecting all operation properties.
 
         Args:
             constraint_uri: URI of the constraint to parse
@@ -178,24 +182,15 @@ class ConstraintManager:
         constraint_ref = URIRef(constraint_uri)
 
         try:
-            # Get constraint type
-            type_uri = self.graph.value(constraint_ref, RDF.type)
-            if not type_uri:
+            # Verify this is a Constraint instance
+            if (constraint_ref, RDF.type, self.GUI.Constraint) not in self.graph:
                 return None
 
-            type_name = str(type_uri).split("#")[-1]
-            try:
-                constraint_type = ConstraintType(type_name)
-            except ValueError:
-                self.logger.debug(f"Skipping non-constraint type: {type_name}")
-                return None
-
-            # Get single-value properties
+            # Get core properties
             label = str(self.graph.value(constraint_ref, RDFS.label) or "")
             comment = str(self.graph.value(constraint_ref, RDFS.comment) or "")
             for_class = str(self.graph.value(constraint_ref, self.GUI.forClass) or "")
             trigger_logic_uri = self.graph.value(constraint_ref, self.GUI.triggerLogic)
-            action_uri = self.graph.value(constraint_ref, self.GUI.action)
             priority_val = self.graph.value(constraint_ref, self.GUI.priority)
 
             # Parse trigger logic
@@ -204,50 +199,65 @@ class ConstraintManager:
                 logic_name = str(trigger_logic_uri).split("#")[-1]
                 trigger_logic = TriggerLogic(logic_name)
 
-            # Parse action
-            if not action_uri:
-                self.logger.warning(f"Constraint {constraint_uri} has no action")
-                return None
-            action_name = str(action_uri).split("#")[-1]
-            action = Action(action_name)
-
             # Parse priority
             priority = int(priority_val) if priority_val else 999
 
-            # Get multi-value properties (these can have multiple values)
+            # Get trigger properties
             triggers = self._get_all_values(constraint_ref, self.GUI.triggers)
             when_values = self._get_all_values(constraint_ref, self.GUI.whenValue)
-            affects = self._get_all_values(constraint_ref, self.GUI.affects)
 
-            # Create constraint
+            # Parse visibility operations
+            show_fields = self._get_all_values(constraint_ref, self.GUI.showFields)
+            hide_fields = self._get_all_values(constraint_ref, self.GUI.hideFields)
+
+            # Parse calculation operation
+            calc_func_uri = self.graph.value(constraint_ref, self.GUI.calculationFunction)
+            calc_target_uri = self.graph.value(constraint_ref, self.GUI.calculationTarget)
+            calc_inputs = self._get_all_values(constraint_ref, self.GUI.calculationInputs)
+
+            calculation_function = str(calc_func_uri) if calc_func_uri else None
+            calculation_target = str(calc_target_uri) if calc_target_uri else None
+
+            # Parse generation operation
+            gen_template_uri = self.graph.value(constraint_ref, self.GUI.generationTemplate)
+            gen_target_uri = self.graph.value(constraint_ref, self.GUI.generationTarget)
+            gen_inputs = self._get_all_values(constraint_ref, self.GUI.generationInputs)
+
+            generation_template = str(gen_template_uri) if gen_template_uri else None
+            generation_target = str(gen_target_uri) if gen_target_uri else None
+
+            # Create unified constraint
             constraint = Constraint(
                 uri=constraint_uri,
                 label=label,
                 comment=comment,
-                constraint_type=constraint_type,
                 for_class=for_class,
                 triggers=triggers,
                 trigger_logic=trigger_logic,
                 when_values=when_values,
-                affects=affects,
-                action=action,
-                priority=priority
+                priority=priority,
+                show_fields=show_fields if show_fields else None,
+                hide_fields=hide_fields if hide_fields else None,
+                calculation_function=calculation_function,
+                calculation_target=calculation_target,
+                calculation_inputs=calc_inputs if calc_inputs else None,
+                generation_template=generation_template,
+                generation_target=generation_target,
+                generation_inputs=gen_inputs if gen_inputs else None
             )
 
-            # Add type-specific attributes
-            if constraint_type == ConstraintType.GENERATION:
-                gen_template = self.graph.value(constraint_ref, self.GUI.generationTemplate)
-                constraint.generation_template = str(gen_template) if gen_template else None
-                constraint.generation_inputs = self._get_all_values(constraint_ref, self.GUI.generationInputs)
-
-            elif constraint_type == ConstraintType.CALCULATION:
-                calc_func = self.graph.value(constraint_ref, self.GUI.calculationFunction)
-                constraint.calculation_function = str(calc_func) if calc_func else None
-                constraint.calculation_inputs = self._get_all_values(constraint_ref, self.GUI.calculationInputs)
+            # Log what operations this constraint has
+            ops = []
+            if constraint.has_visibility_ops():
+                ops.append("visibility")
+            if constraint.has_calculation_op():
+                ops.append("calculation")
+            if constraint.has_generation_op():
+                ops.append("generation")
 
             self.logger.debug(
                 f"Parsed constraint {constraint.label}: "
-                f"triggers={len(triggers)}, whenValues={len(when_values)}, affects={len(affects)}"
+                f"triggers={len(triggers)}, operations=[{', '.join(ops)}]"
             )
 
             return constraint
@@ -332,14 +342,19 @@ class ConstraintManager:
         return [c for c in all_constraints if trigger_property in c.triggers]
     
     def get_generation_constraints(self, class_uri: str) -> List[Constraint]:
-        """Get all generation constraints for a class."""
+        """Get all constraints with generation operations for a class."""
         all_constraints = self.get_constraints_for_class(class_uri)
-        return [c for c in all_constraints if c.constraint_type == ConstraintType.GENERATION]
-    
+        return [c for c in all_constraints if c.has_generation_op()]
+
     def get_calculation_constraints(self, class_uri: str) -> List[Constraint]:
-        """Get all calculation constraints for a class."""
+        """Get all constraints with calculation operations for a class."""
         all_constraints = self.get_constraints_for_class(class_uri)
-        return [c for c in all_constraints if c.constraint_type == ConstraintType.CALCULATION]
+        return [c for c in all_constraints if c.has_calculation_op()]
+
+    def get_visibility_constraints(self, class_uri: str) -> List[Constraint]:
+        """Get all constraints with visibility operations for a class."""
+        all_constraints = self.get_constraints_for_class(class_uri)
+        return [c for c in all_constraints if c.has_visibility_ops()]
     
     def reload(self):
         """Reload all constraints from files."""
@@ -353,14 +368,30 @@ class ConstraintManager:
     
     def get_statistics(self) -> Dict[str, Any]:
         """Get statistics about loaded constraints."""
-        type_counts = {}
+        operation_counts = {
+            'visibility': 0,
+            'calculation': 0,
+            'generation': 0,
+            'multi_operation': 0
+        }
+
         for constraint in self.constraints_by_uri.values():
-            type_name = constraint.constraint_type.value
-            type_counts[type_name] = type_counts.get(type_name, 0) + 1
-        
+            ops_count = 0
+            if constraint.has_visibility_ops():
+                operation_counts['visibility'] += 1
+                ops_count += 1
+            if constraint.has_calculation_op():
+                operation_counts['calculation'] += 1
+                ops_count += 1
+            if constraint.has_generation_op():
+                operation_counts['generation'] += 1
+                ops_count += 1
+            if ops_count > 1:
+                operation_counts['multi_operation'] += 1
+
         return {
             'total_constraints': len(self.constraints_by_uri),
             'classes_with_constraints': len(self.constraints_by_class),
-            'constraints_by_type': type_counts,
+            'operations': operation_counts,
             'constraint_directory': str(self.constraint_dir)
         }
