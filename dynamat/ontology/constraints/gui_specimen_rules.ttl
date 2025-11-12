@@ -103,7 +103,7 @@ gui:specimen_c004 a gui:Constraint ;
 
 gui:specimen_c005 a gui:Constraint ;
     rdfs:label "Cylindrical specimen: original dimensions and cross-section" ;
-    rdfs:comment "For cylindrical specimens, show diameter and height, hide other dimensions, and calculate cross-section from diameter. Formula: A = π(d/2)²" ;
+    rdfs:comment "For cylindrical specimens, show diameter and height, hide other dimensions, and calculate cross-section from diameter. Formula: A = pi * (d/2)^2" ;
     dc:created "2025-01-15"^^xsd:date ;
     gui:forClass dyn:Specimen ;
     gui:triggers (dyn:hasShape dyn:hasOriginalDiameter) ;

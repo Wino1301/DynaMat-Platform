@@ -235,7 +235,7 @@ class CalculationEngine:
         # Extract side/length value from kwargs (could be any property URI)
         side = None
         for key, value in kwargs.items():
-            if 'Length' in key or 'length' in key or 'Side' in key or 'side' in key:
+            if 'Length' in key or 'length' in key:
                 side = value
                 break
 

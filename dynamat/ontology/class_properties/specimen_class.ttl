@@ -122,18 +122,6 @@ dyn:hasShape rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     dyn:hasDisplayOrder 1 ;
     rdfs:comment "Geometric shape of the specimen"@en .
 
-dyn:hasOriginalThickness rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Length ;
-    rdfs:label "Original Thickness"@en ;
-    dyn:hasDisplayName "Original Thickness (mm)" ;
-    dyn:hasFormGroup "GeometryDimensions" ;
-    dyn:hasGroupOrder 4 ;
-    dyn:hasDisplayOrder 2 ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
-    rdfs:comment "Initial thickness of specimen before testing"@en .
-
 dyn:hasOriginalLength rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
     rdfs:range xsd:double ;
@@ -142,21 +130,21 @@ dyn:hasOriginalLength rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     dyn:hasDisplayName "Original Length (mm)" ;
     dyn:hasFormGroup "GeometryDimensions" ;
     dyn:hasGroupOrder 4 ;
-    dyn:hasDisplayOrder 3 ;
+    dyn:hasDisplayOrder 2 ;
     dyn:hasDefaultUnit "unit:MilliM" ;
     rdfs:comment "Initial length of specimen before testing"@en .
 
-dyn:hasOriginalDiameter rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+dyn:hasOriginalGaugeLength rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
     rdfs:range xsd:double ;
     qudt:hasQuantityKind qkdv:Length ;
-    rdfs:label "Original Diameter"@en ;
-    dyn:hasDisplayName "Original Diameter (mm)" ;
+    rdfs:label "Original Gauge Length"@en ;
+    dyn:hasDisplayName "Original Gauge Length (mm)" ;
     dyn:hasFormGroup "GeometryDimensions" ;
     dyn:hasGroupOrder 4 ;
-    dyn:hasDisplayOrder 4 ;
+    dyn:hasDisplayOrder 3 ;
     dyn:hasDefaultUnit "unit:MilliM" ;
-    rdfs:comment "Initial diameter for cylindrical specimens"@en .
+    rdfs:comment "Initial gauge length for dogbone/tensile specimens (region of interest for measurement)"@en .
 
 dyn:hasOriginalWidth rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
@@ -166,7 +154,7 @@ dyn:hasOriginalWidth rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     dyn:hasDisplayName "Original Width (mm)" ;
     dyn:hasFormGroup "GeometryDimensions" ;
     dyn:hasGroupOrder 4 ;
-    dyn:hasDisplayOrder 5 ;
+    dyn:hasDisplayOrder 4 ;
     dyn:hasDefaultUnit "unit:MilliM" ;
     rdfs:comment "Initial width for rectangular specimens"@en .
 
@@ -178,9 +166,33 @@ dyn:hasOriginalHeight rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     dyn:hasDisplayName "Original Height (mm)" ;
     dyn:hasFormGroup "GeometryDimensions" ;
     dyn:hasGroupOrder 4 ;
-    dyn:hasDisplayOrder 6 ;
+    dyn:hasDisplayOrder 5 ;
     dyn:hasDefaultUnit "unit:MilliM" ;
     rdfs:comment "Initial height for rectangular specimens"@en .
+
+dyn:hasOriginalThickness rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Original Thickness"@en ;
+    dyn:hasDisplayName "Original Thickness (mm)" ;
+    dyn:hasFormGroup "GeometryDimensions" ;
+    dyn:hasGroupOrder 4 ;
+    dyn:hasDisplayOrder 6 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Initial thickness of specimen before testing"@en .
+
+dyn:hasOriginalDiameter rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Original Diameter"@en ;
+    dyn:hasDisplayName "Original Diameter (mm)" ;
+    dyn:hasFormGroup "GeometryDimensions" ;
+    dyn:hasGroupOrder 4 ;
+    dyn:hasDisplayOrder 7 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Initial diameter for cylindrical specimens"@en .
 
 dyn:hasOriginalCrossSection rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
@@ -190,7 +202,7 @@ dyn:hasOriginalCrossSection rdf:type owl:DatatypeProperty, owl:FunctionalPropert
     dyn:hasDisplayName "Original Cross Section (mm²)" ;
     dyn:hasFormGroup "GeometryDimensions" ;
     dyn:hasGroupOrder 4 ;
-    dyn:hasDisplayOrder 7 ;
+    dyn:hasDisplayOrder 8 ;
     dyn:hasDefaultUnit "unit:MilliM2" ;
     rdfs:comment "Initial cross-sectional area of specimen"@en .
 
@@ -202,21 +214,9 @@ dyn:hasOriginalMass rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     dyn:hasDisplayName "Original Mass (g)" ;
     dyn:hasFormGroup "GeometryDimensions" ;
     dyn:hasGroupOrder 4 ;
-    dyn:hasDisplayOrder 8 ;
+    dyn:hasDisplayOrder 9 ;
     dyn:hasDefaultUnit "unit:GM" ;
     rdfs:comment "Initial mass of specimen before testing"@en .
-
-dyn:hasOriginalGaugeLength rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Length ;
-    rdfs:label "Original Gauge Length"@en ;
-    dyn:hasDisplayName "Original Gauge Length (mm)" ;
-    dyn:hasFormGroup "GeometryDimensions" ;
-    dyn:hasGroupOrder 4 ;
-    dyn:hasDisplayOrder 9 ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
-    rdfs:comment "Initial gauge length for dogbone/tensile specimens (region of interest for measurement)"@en .
 
 #################################################################
 #    5. Post Test Dimensions Properties
@@ -234,6 +234,54 @@ dyn:hasFinalLength rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     dyn:hasDefaultUnit "unit:MilliM" ;
     rdfs:comment "Final length of specimen after testing"@en .
 
+dyn:hasFinalGaugeLength rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Final Gauge Length"@en ;
+    dyn:hasDisplayName "Final Gauge Length (mm)" ;
+    dyn:hasFormGroup "PostTestDimensions" ;
+    dyn:hasGroupOrder 5 ;
+    dyn:hasDisplayOrder 2 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Final gauge length for dogbone/tensile specimens after testing"@en .
+
+dyn:hasFinalWidth rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Final Width"@en ;
+    dyn:hasDisplayName "Final Width (mm)" ;
+    dyn:hasFormGroup "PostTestDimensions" ;
+    dyn:hasGroupOrder 5 ;
+    dyn:hasDisplayOrder 3 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Final width for rectangular specimens after testing"@en .
+
+dyn:hasFinalHeight rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Final Height"@en ;
+    dyn:hasDisplayName "Final Height (mm)" ;
+    dyn:hasFormGroup "PostTestDimensions" ;
+    dyn:hasGroupOrder 5 ;
+    dyn:hasDisplayOrder 4 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Final height for rectangular specimens after testing"@en .
+
+dyn:hasFinalThickness rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Length ;
+    rdfs:label "Final Thickness"@en ;
+    dyn:hasDisplayName "Final Thickness (mm)" ;
+    dyn:hasFormGroup "PostTestDimensions" ;
+    dyn:hasGroupOrder 5 ;
+    dyn:hasDisplayOrder 5 ;
+    dyn:hasDefaultUnit "unit:MilliM" ;
+    rdfs:comment "Final thickness of specimen after testing"@en .
+
 dyn:hasFinalDiameter rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
     rdfs:range xsd:double ;
@@ -242,7 +290,7 @@ dyn:hasFinalDiameter rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     dyn:hasDisplayName "Final Diameter (mm)" ;
     dyn:hasFormGroup "PostTestDimensions" ;
     dyn:hasGroupOrder 5 ;
-    dyn:hasDisplayOrder 2 ;
+    dyn:hasDisplayOrder 6 ;
     dyn:hasDefaultUnit "unit:MilliM" ;
     rdfs:comment "Final diameter for cylindrical specimens after testing"@en .
 
@@ -254,45 +302,9 @@ dyn:hasFinalCrossSection rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     dyn:hasDisplayName "Final Cross Section (mm²)" ;
     dyn:hasFormGroup "PostTestDimensions" ;
     dyn:hasGroupOrder 5 ;
-    dyn:hasDisplayOrder 3 ;
+    dyn:hasDisplayOrder 7 ;
     dyn:hasDefaultUnit "unit:MilliM2" ;
     rdfs:comment "Final cross-sectional area after testing"@en .
-
-dyn:hasFinalThickness rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Length ;
-    rdfs:label "Final Thickness"@en ;
-    dyn:hasDisplayName "Final Thickness (mm)" ;
-    dyn:hasFormGroup "PostTestDimensions" ;
-    dyn:hasGroupOrder 5 ;
-    dyn:hasDisplayOrder 4 ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
-    rdfs:comment "Final thickness of specimen after testing"@en .
-
-dyn:hasFinalHeight rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Length ;
-    rdfs:label "Final Height"@en ;
-    dyn:hasDisplayName "Final Height (mm)" ;
-    dyn:hasFormGroup "PostTestDimensions" ;
-    dyn:hasGroupOrder 5 ;
-    dyn:hasDisplayOrder 5 ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
-    rdfs:comment "Final height for rectangular specimens after testing"@en .
-
-dyn:hasFinalWidth rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Length ;
-    rdfs:label "Final Width"@en ;
-    dyn:hasDisplayName "Final Width (mm)" ;
-    dyn:hasFormGroup "PostTestDimensions" ;
-    dyn:hasGroupOrder 5 ;
-    dyn:hasDisplayOrder 6 ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
-    rdfs:comment "Final width for rectangular specimens after testing"@en .
 
 dyn:hasFinalMass rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
@@ -302,21 +314,9 @@ dyn:hasFinalMass rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     dyn:hasDisplayName "Final Mass (g)" ;
     dyn:hasFormGroup "PostTestDimensions" ;
     dyn:hasGroupOrder 5 ;
-    dyn:hasDisplayOrder 7 ;
+    dyn:hasDisplayOrder 8 ;
     dyn:hasDefaultUnit "unit:GM" ;
     rdfs:comment "Final mass of specimen after testing"@en .
-
-dyn:hasFinalGaugeLength rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Length ;
-    rdfs:label "Final Gauge Length"@en ;
-    dyn:hasDisplayName "Final Gauge Length (mm)" ;
-    dyn:hasFormGroup "PostTestDimensions" ;
-    dyn:hasGroupOrder 5 ;
-    dyn:hasDisplayOrder 8 ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
-    rdfs:comment "Final gauge length for dogbone/tensile specimens after testing"@en .
 
 #################################################################
 #    6. Characterization Tracking Properties

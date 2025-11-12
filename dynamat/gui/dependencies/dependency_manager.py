@@ -249,7 +249,11 @@ class DependencyManager(QObject):
             if condition_met:
                 operations_performed = self._apply_operations(constraint, trigger_values)
             else:
-                operations_performed = self._apply_inverse_operations(constraint)
+                # Only apply inverse for constraints that manage one visibility direction
+                # Constraints with both showFields AND hideFields are "complete" and don't need inversion
+                # (e.g., shape constraints that explicitly define which fields to show AND hide)
+                if self._should_apply_inverse(constraint):
+                    operations_performed = self._apply_inverse_operations(constraint)
 
             # Emit signal
             self.constraint_triggered.emit(constraint.uri, operations_performed)
@@ -510,6 +514,33 @@ class DependencyManager(QObject):
 
         return operations_performed
 
+    def _should_apply_inverse(self, constraint: Constraint) -> bool:
+        """
+        Determine if inverse operations should be applied for this constraint.
+
+        Inverse operations are only applied for constraints that manage visibility
+        in ONE direction (either showFields OR hideFields, but not both).
+
+        Constraints with both showFields AND hideFields are "complete" constraints
+        that explicitly define the entire visibility state, so they don't need inversion.
+        This prevents conflicts in mutually exclusive constraints (e.g., shape selection).
+
+        Args:
+            constraint: Constraint to check
+
+        Returns:
+            True if inverse operations should be applied
+        """
+        if not constraint.has_visibility_ops():
+            return False
+
+        # Check if constraint has both show and hide operations
+        has_show = constraint.show_fields is not None and len(constraint.show_fields) > 0
+        has_hide = constraint.hide_fields is not None and len(constraint.hide_fields) > 0
+
+        # Only apply inverse if constraint has EITHER show OR hide, but not both
+        return has_show != has_hide  # XOR: True if only one is True
+
     def _apply_inverse_operations(self, constraint: Constraint) -> List[str]:
         """
         Apply inverse operations when condition is not met.
@@ -714,12 +745,15 @@ class DependencyManager(QObject):
         """Set visibility of a field and its label."""
         if field_uri not in self.active_form.form_fields:
             return
-        
+
         field = self.active_form.form_fields[field_uri]
+
+        # Hide/show the widget
         field.widget.setVisible(visible)
-        
-        # Also hide/show label if it exists
-        # This depends on your form layout implementation
+
+        # Hide/show the label if it exists
+        if field.label_widget is not None:
+            field.label_widget.setVisible(visible)
     
     # ============================================================================
     # PUBLIC API

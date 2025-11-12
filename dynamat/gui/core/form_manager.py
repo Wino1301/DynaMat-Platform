@@ -41,6 +41,7 @@ class FormField:
     group_name: str
     required: bool = False
     label: Optional[str] = None
+    label_widget: Optional[QWidget] = None  # Reference to the QLabel widget for visibility control
 
 class FormManager:
     """
@@ -150,9 +151,8 @@ class FormManager:
             form_widget.class_metadata = metadata
             form_widget.form_style = style
 
-            # Create form_fields dictionary for compatibility
-            form_fields = self._create_form_fields_dict(metadata, widgets)
-            form_widget.form_fields = form_fields
+            # Note: form_fields is already set by LayoutManager with proper label_widget references
+            # Don't overwrite it here
 
             # Additional attributes for debugging
             form_widget.widgets_created = len(widgets)
@@ -450,45 +450,6 @@ class FormManager:
         self.logger.info(f"Fallback form created with {len(widgets)} widgets")
         return form_widget   
 
-    def _create_form_fields_dict(self, metadata: ClassMetadata, widgets: Dict[str, QWidget]) -> Dict[str, FormField]:
-        """
-        Create the form_fields dictionary that maps property URIs to FormField objects.
-        
-        This method was referenced in the fixes but was missing from the original implementation.
-        It creates the expected form_fields structure that other parts of the system depend on.
-        
-        Args:
-            metadata: Class metadata containing property information
-            widgets: Dictionary mapping property URIs to their widgets
-            
-        Returns:
-            Dictionary mapping property URIs to FormField objects
-        """
-        form_fields = {}
-        
-        try:
-            for prop in metadata.properties:
-                if prop.uri in widgets:
-                    widget = widgets[prop.uri]
-                    
-                    # Create FormField object
-                    form_field = FormField(
-                        widget=widget,
-                        property_uri=prop.uri,
-                        property_metadata=prop,
-                        group_name=prop.form_group or "General",
-                        required=getattr(prop, 'required', False),
-                        label=prop.display_name or prop.name
-                    )
-                    
-                    form_fields[prop.uri] = form_field
-                    
-            self.logger.debug(f"Created form_fields dictionary with {len(form_fields)} entries")
-            return form_fields
-            
-        except Exception as e:
-            self.logger.error(f"Error creating form_fields dictionary: {e}")
-            return {}
     # ============================================================================
     # CACHE MANAGEMENT
     # ============================================================================

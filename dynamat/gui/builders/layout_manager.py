@@ -243,16 +243,16 @@ class LayoutManager:
                 # Create label
                 label_text = self._create_field_label(prop)
                 label = QLabel(label_text)
-                
+
                 # Apply required styling
                 if getattr(prop, 'is_required', False):
                     widget.setStyleSheet(
                         widget.styleSheet() + self.required_field_style
                     )
-                
+
                 # Add to form layout
                 form_layout.addRow(label, widget)
-                
+
                 # Create form field
                 form_field = FormField(
                     widget=widget,
@@ -260,7 +260,8 @@ class LayoutManager:
                     property_metadata=prop,
                     group_name=group_name,
                     required=getattr(prop, 'is_required', False),
-                    label=label_text
+                    label=label_text,
+                    label_widget=label  # Store reference to QLabel for visibility control
                 )
                 
                 form_fields[prop.uri] = form_field
