@@ -44,11 +44,23 @@ gui:specimen_c002 a gui:Constraint ;
                     dyn:hasPhaseDistributionID) ;
     gui:priority 2 .
 
+gui:specimen_c003 a gui:Constraint ;
+  rdfs:label "Exclude composite materials from matrix/reinforcement fields" ;
+  rdfs:comment "Prevents selecting composite materials as matrix or reinforcement materials." ;
+  dc:created "2025-01-15"^^xsd:date ;
+  gui:forClass dyn:Specimen ;
+  gui:triggers dyn:hasMaterial ;
+  gui:triggerLogic gui:ALL ;
+  gui:whenValue dyn:Composite ;
+  gui:excludeClass dyn:Composite ;
+  gui:applyToFields (dyn:hasMatrixMaterial dyn:hasReinforcementMaterial) ;
+  gui:priority 3.
+
 #================================================================
 # Post-Test Dimensions Visibility
 #================================================================
 
-gui:specimen_c003 a gui:Constraint ;
+gui:specimen_c004 a gui:Constraint ;
     rdfs:label "Hide post-test dimensions for non-testing specimen roles" ;
     rdfs:comment "Hides post-test dimension fields when specimen role is Characterization, Reference, or Calibration (specimens not subjected to destructive testing)." ;
     dc:created "2025-01-15"^^xsd:date ;
@@ -66,13 +78,13 @@ gui:specimen_c003 a gui:Constraint ;
                     dyn:hasFinalWidth
                     dyn:hasFinalMass
                     dyn:hasFinalGaugeLength) ;
-    gui:priority 3 .
+    gui:priority 4 .
 
 #================================================================
 # Lattice Structure Parameters Visibility
 #================================================================
 
-gui:specimen_c004 a gui:Constraint ;
+gui:specimen_c005 a gui:Constraint ;
     rdfs:label "Show structure parameters for lattice structures" ;
     rdfs:comment "Displays structure parameter fields only when structure type is Lattice. Hides these fields for all other structure types (Monolithic, Foam, Graded, etc.)." ;
     dc:created "2025-01-15"^^xsd:date ;
@@ -95,13 +107,13 @@ gui:specimen_c004 a gui:Constraint ;
                     dyn:hasLatticeNy
                     dyn:hasLatticeNz
                     dyn:hasLatticeRingThickness) ;
-    gui:priority 4 .
+    gui:priority 5 .
 
 #================================================================
 # Cylindrical Shape: Visibility + Cross Section Calculation
 #================================================================
 
-gui:specimen_c005 a gui:Constraint ;
+gui:specimen_c006 a gui:Constraint ;
     rdfs:label "Cylindrical specimen: original dimensions and cross-section" ;
     rdfs:comment "For cylindrical specimens, show diameter and height, hide other dimensions, and calculate cross-section from diameter. Formula: A = pi * (d/2)^2" ;
     dc:created "2025-01-15"^^xsd:date ;
@@ -117,9 +129,9 @@ gui:specimen_c005 a gui:Constraint ;
     gui:calculationFunction "circular_area_from_diameter" ;
     gui:calculationTarget dyn:hasOriginalCrossSection ;
     gui:calculationInputs (dyn:hasOriginalDiameter) ;
-    gui:priority 5 .
+    gui:priority 6 .
 
-gui:specimen_c006 a gui:Constraint ;
+gui:specimen_c007 a gui:Constraint ;
     rdfs:label "Cylindrical specimen: post-test dimensions and cross-section" ;
     rdfs:comment "For cylindrical specimens, show final diameter and height, hide other dimensions, and calculate cross-section from diameter. Formula: A = π(d/2)²" ;
     dc:created "2025-01-15"^^xsd:date ;
@@ -135,13 +147,13 @@ gui:specimen_c006 a gui:Constraint ;
     gui:calculationFunction "circular_area_from_diameter" ;
     gui:calculationTarget dyn:hasFinalCrossSection ;
     gui:calculationInputs (dyn:hasFinalDiameter) ;
-    gui:priority 6 .
+    gui:priority 7 .
 
 #================================================================
 # Cubic Shape: Visibility + Cross Section Calculation
 #================================================================
 
-gui:specimen_c007 a gui:Constraint ;
+gui:specimen_c008 a gui:Constraint ;
     rdfs:label "Cubic specimen: original dimensions and cross-section" ;
     rdfs:comment "For cubic specimens, show length (as cube side), hide other dimensions, and calculate cross-section from length. Formula: A = length²" ;
     dc:created "2025-01-15"^^xsd:date ;
@@ -158,9 +170,9 @@ gui:specimen_c007 a gui:Constraint ;
     gui:calculationFunction "square_area" ;
     gui:calculationTarget dyn:hasOriginalCrossSection ;
     gui:calculationInputs (dyn:hasOriginalLength) ;
-    gui:priority 7 .
+    gui:priority 8 .
 
-gui:specimen_c008 a gui:Constraint ;
+gui:specimen_c009 a gui:Constraint ;
     rdfs:label "Cubic specimen: post-test dimensions and cross-section" ;
     rdfs:comment "For cubic specimens, show final length, hide other dimensions, and calculate cross-section from length. Formula: A = length²" ;
     dc:created "2025-01-15"^^xsd:date ;
@@ -177,13 +189,13 @@ gui:specimen_c008 a gui:Constraint ;
     gui:calculationFunction "square_area" ;
     gui:calculationTarget dyn:hasFinalCrossSection ;
     gui:calculationInputs (dyn:hasFinalLength) ;
-    gui:priority 8 .
+    gui:priority 9 .
 
 #================================================================
 # Dogbone Shape: Visibility + Cross Section Calculation
 #================================================================
 
-gui:specimen_c009 a gui:Constraint ;
+gui:specimen_c010 a gui:Constraint ;
     rdfs:label "Dogbone specimen: original dimensions and cross-section" ;
     rdfs:comment "For dogbone specimens, show length, gauge length, width, and thickness, hide other dimensions, and calculate cross-section from width × thickness. Formula: A = width × thickness" ;
     dc:created "2025-01-15"^^xsd:date ;
@@ -199,9 +211,9 @@ gui:specimen_c009 a gui:Constraint ;
     gui:calculationFunction "rectangular_area" ;
     gui:calculationTarget dyn:hasOriginalCrossSection ;
     gui:calculationInputs (dyn:hasOriginalWidth dyn:hasOriginalThickness) ;
-    gui:priority 9 .
+    gui:priority 10 .
 
-gui:specimen_c010 a gui:Constraint ;
+gui:specimen_c011 a gui:Constraint ;
     rdfs:label "Dogbone specimen: post-test dimensions and cross-section" ;
     rdfs:comment "For dogbone specimens, show final length, gauge length, width, and thickness, hide other dimensions, and calculate cross-section from width × thickness. Formula: A = width × thickness" ;
     dc:created "2025-01-15"^^xsd:date ;
@@ -217,4 +229,4 @@ gui:specimen_c010 a gui:Constraint ;
     gui:calculationFunction "rectangular_area" ;
     gui:calculationTarget dyn:hasFinalCrossSection ;
     gui:calculationInputs (dyn:hasFinalWidth dyn:hasFinalThickness) ;
-    gui:priority 10 .
+    gui:priority 11 .

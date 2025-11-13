@@ -57,6 +57,12 @@ class Constraint:
     generation_target: Optional[str] = None
     generation_inputs: Optional[List[str]] = None
 
+    # Filtering operations
+    apply_to_fields: Optional[List[str]] = None
+    exclude_classes: Optional[List[str]] = None
+    filter_by_classes: Optional[List[str]] = None
+
+
     def has_visibility_ops(self) -> bool:
         """Check if constraint has visibility operations."""
         return bool(self.show_fields or self.hide_fields)
@@ -69,6 +75,9 @@ class Constraint:
         """Check if constraint has generation operation."""
         return bool(self.generation_template and self.generation_target)
 
+    def has_filter_op(self) -> bool:
+        """Check if constraint has filtering operations."""
+        return bool(self.filter_by_classes or self.exclude_classes)
 
 class ConstraintManager:
     """
@@ -226,6 +235,11 @@ class ConstraintManager:
             generation_template = str(gen_template_uri) if gen_template_uri else None
             generation_target = str(gen_target_uri) if gen_target_uri else None
 
+            # Parse filtering operations
+            apply_to_fields = self._get_all_values(constraint_ref, self.GUI.applyToFields)
+            exclude_classes = self._get_all_values(constraint_ref, self.GUI.excludeClass)
+            filter_by_classes = self._get_all_values(constraint_ref, self.GUI.filterByClass)
+
             # Create unified constraint
             constraint = Constraint(
                 uri=constraint_uri,
@@ -243,7 +257,10 @@ class ConstraintManager:
                 calculation_inputs=calc_inputs if calc_inputs else None,
                 generation_template=generation_template,
                 generation_target=generation_target,
-                generation_inputs=gen_inputs if gen_inputs else None
+                generation_inputs=gen_inputs if gen_inputs else None,
+                apply_to_fields=apply_to_fields if apply_to_fields else None,
+                exclude_classes=exclude_classes if exclude_classes else None,
+                filter_by_classes=filter_by_classes if filter_by_classes else None
             )
 
             # Log what operations this constraint has
@@ -254,6 +271,8 @@ class ConstraintManager:
                 ops.append("calculation")
             if constraint.has_generation_op():
                 ops.append("generation")
+            if constraint.has_filter_op():
+                ops.append("filtering")
 
             self.logger.debug(
                 f"Parsed constraint {constraint.label}: "

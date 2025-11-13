@@ -289,7 +289,7 @@ class DependencyManager(QObject):
 
         Handles multiple patterns:
         1. Single trigger, multiple when_values: Check if trigger matches ANY/ALL when_values
-        2. Multiple triggers, parallel when_values: Check each trigger against its when_value
+        2. Multiple triggers, parallel when_values: Check each trigger against it's when_value
         3. Multiple triggers, single when_value: Check if ANY/ALL triggers match the when_value
         4. Cascade triggers: Handled by priority system
 
@@ -512,6 +512,11 @@ class DependencyManager(QObject):
             self._action_generate(constraint, trigger_values)
             operations_performed.append("generation")
 
+        # 4. Filtering operation
+        if constraint.has_filter_op():
+            self._action_filter(constraint, trigger_values)
+            operations_performed.append("filtering")
+
         return operations_performed
 
     def _should_apply_inverse(self, constraint: Constraint) -> bool:
@@ -670,14 +675,70 @@ class DependencyManager(QObject):
         except Exception as e:
             self.logger.error(f"Generation failed: {e}")
             self.error_occurred.emit(constraint.uri, str(e))
-    
+
+    def _action_filter(self, constraint: Constraint, trigger_values: Dict[str, Any]):
+        """
+          Apply filtering operations to ObjectProperty dropdown widgets.
+
+          This filters the available choices in dropdown widgets based on class membership.
+          Only affects fields specified in apply_to_fields.
+
+          Args:
+              constraint: Constraint with filter operations
+              trigger_values: Current trigger values (not currently used but kept for consistency)
+          """
+
+        try:
+            # Determine which fields the filtering applies to
+            target_fields = constraint.apply_to_fields if constraint.apply_to_fields is not None else []
+
+            if not target_fields:
+                self.logger.warning(f"Filter constraint {constraint.label} has no target fields")
+
+            self.logger.info(f"Applying filters to {len(target_fields)} fields")
+
+            # Apply filters to each target field
+            for field_uri in target_fields:
+                widget_info = self.active_form.form_fields.get(field_uri)
+
+                if not widget_info:
+                    self.logger.warning(f"Field {field_uri} not found in form")
+                    continue
+
+                widget = widget_info.widget
+
+                # Only apply to QComboBox widgets (ObjectProperty dropdowns)
+                if not isinstance(widget, QComboBox):
+                    self.logger.debug(f"Skipping {field_uri} - not a combo box")
+                    continue
+
+                # Get the property metadata to find the range class
+                prop_metadata =  widget_info.property_metadata
+                if not prop_metadata or not hasattr(prop_metadata, 'range_class'):
+                    self.logger.warning(f"Cannot filter {field_uri} - no range class info")
+                    continue
+
+                # Apply the filter by repopulating the combo box
+                self._repopulate_combo_with_filter(
+                    widget=widget,
+                    range_class=prop_metadata.range_class,
+                    exclude_classes=constraint.exclude_classes,
+                    filter_by_classes=constraint.filter_by_classes,
+                    is_required=prop_metadata.is_required
+                )
+
+                self.logger.info(f"Applied filter to {field_uri}")
+
+        except Exception as e:
+            self.logger.error(f"Filter operation failed: {e}", exc_info=True)
+            self.error_occurred.emit(constraint.uri, str(e))
+
     # ============================================================================
     # WIDGET VALUE HELPERS
     # ============================================================================
     
     def _extract_widget_value(self, widget: QWidget) -> Any:
-        """
-        Extract current value from a widget.
+        """Extract current value from a widget.
 
         For QComboBox: Returns URI from currentData() if available, otherwise currentText()
         For other widgets: Returns their native value
@@ -754,6 +815,85 @@ class DependencyManager(QObject):
         # Hide/show the label if it exists
         if field.label_widget is not None:
             field.label_widget.setVisible(visible)
+
+    def _repopulate_combo_with_filter(self, widget: QComboBox, range_class: str,
+                                          exclude_classes: Optional[List[str]] = None,
+                                          filter_by_classes: Optional[List[str]] = None,
+                                          is_required: bool = False):
+        """
+        Repopulate a combo box with filtered choices.
+
+        Args:
+            widget: QComboBox to repopulate
+            range_class: The range class for the property
+            exclude_classes: List of class URIs to exclude individuals from
+            filter_by_classes: List of class URIs to only include individuals from
+            is_required: Whether the field is required (affects empty option)
+        """
+        # Store current selection
+        current_value = widget.currentData()
+
+        # Clear and repopulate
+        widget.clear()
+
+        # Add empty option for non-required fields
+        if not is_required:
+            widget.addItem("(Select...)", "")
+
+        try:
+            # Get all individuals of the range class
+            result = self.ontology_manager.domain_queries.get_instances_of_class(
+                range_class,
+                include_subclasses=True
+            )
+
+            # Filter the results
+            filtered_result = []
+            for instance in result:
+                instance_uri = instance['uri']
+
+                # Apply exclude filter
+                if exclude_classes:
+                    should_exclude = False
+                    for exclude_class in exclude_classes:
+                        if self._is_instance_of_class(instance_uri, exclude_class):
+                            should_exclude = True
+                            self.logger.debug(f"Excluding {instance_uri} (instance of {exclude_class})")
+                            break
+                    if should_exclude:
+                        continue
+
+                # Apply positive filter
+                if filter_by_classes:
+                    should_include = False
+                    for filter_class in filter_by_classes:
+                        if self._is_instance_of_class(instance_uri, filter_class):
+                            should_include = True
+                            break
+                    if not should_include:
+                        self.logger.debug(f"Filtering out {instance_uri} (not instance of filter classes)")
+                        continue
+
+                # Passed all filters
+                filtered_result.append(instance)
+
+            # Add filtered items to combo box
+            for instance in filtered_result:
+                uri = instance['uri']
+                display_name = instance['name']
+                widget.addItem(display_name, uri)
+
+            # Restore selection if it's still in the list
+            if current_value:
+                index = widget.findData(current_value)
+                if index >= 0:
+                    widget.setCurrentIndex(index)
+
+            self.logger.info(f"Filtered combo box: {len(result)} -> {len(filtered_result)} items")
+
+        except Exception as e:
+            self.logger.error(f"Failed to repopulate combo with filter: {e}", exc_info=True)
+            widget.addItem("(Error loading data)", "")
     
     # ============================================================================
     # PUBLIC API

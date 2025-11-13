@@ -61,6 +61,27 @@ gui:priority a owl:DatatypeProperty ;
     rdfs:comment "Evaluation priority (lower = higher priority)" .
 
 #================================================================
+# Filtering Properties for ObjectProperty Widgets
+#================================================================
+
+gui:applyToFields a rdf:Property ;
+  rdfs:domain gui:Constraint ;
+  rdfs:label "apply to fields" ;
+  rdfs:comment "List of specific fields where filtering should be applied. If not specified, filtering applies to all relevant fields." .
+
+gui:excludeClass a owl:ObjectProperty ;
+  rdfs:domain gui:Constraint ;
+  rdfs:range owl:Class ;
+  rdfs:label "exclude class" ;
+  rdfs:comment "For ObjectProperty widgets, exclude individuals that are instances of the specified class(es)" .
+
+gui:filterByClass a owl:ObjectProperty ;
+  rdfs:domain gui:Constraint ;
+  rdfs:range owl:Class ;
+  rdfs:label "filter by class" ;
+  rdfs:comment "For ObjectProperty widgets, only include individuals that are instances of the specified class(es)" .
+
+#================================================================
 # Generation Operation Properties
 #================================================================
 
