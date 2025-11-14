@@ -386,15 +386,46 @@ class ConstraintManager:
         self.logger.info("Constraints reloaded")
     
     def get_statistics(self) -> Dict[str, Any]:
-        """Get statistics about loaded constraints."""
+        """
+        Get comprehensive constraint manager statistics for testing and debugging.
+
+        Returns:
+            Dictionary following unified statistics structure:
+            - configuration: Static setup (directory, counts)
+            - execution: Runtime operations (future: lookups)
+            - content: Domain-specific constraint characteristics
+        """
         operation_counts = {
             'visibility': 0,
             'calculation': 0,
             'generation': 0,
+            'filtering': 0,
             'multi_operation': 0
         }
 
+        # Priority buckets
+        priority_dist = {
+            'low (1-100)': 0,
+            'medium (101-500)': 0,
+            'high (501+)': 0
+        }
+
+        # Trigger complexity
+        trigger_complexity = {
+            'single_trigger': 0,
+            'multi_trigger': 0
+        }
+
+        # Trigger logic usage
+        trigger_logic_usage = {
+            'ANY': 0,
+            'ALL': 0,
+            'XOR': 0,
+            'None': 0
+        }
+
         for constraint in self.constraints_by_uri.values():
+            # Count operations
             ops_count = 0
             if constraint.has_visibility_ops():
                 operation_counts['visibility'] += 1
@@ -405,12 +436,60 @@ class ConstraintManager:
             if constraint.has_generation_op():
                 operation_counts['generation'] += 1
                 ops_count += 1
+            if constraint.has_filter_op():
+                operation_counts['filtering'] += 1
+                ops_count += 1
             if ops_count > 1:
                 operation_counts['multi_operation'] += 1
 
+            # Priority distribution
+            if constraint.priority <= 100:
+                priority_dist['low (1-100)'] += 1
+            elif constraint.priority <= 500:
+                priority_dist['medium (101-500)'] += 1
+            else:
+                priority_dist['high (501+)'] += 1
+
+            # Trigger complexity
+            if len(constraint.triggers) == 1:
+                trigger_complexity['single_trigger'] += 1
+            else:
+                trigger_complexity['multi_trigger'] += 1
+
+            # Trigger logic usage
+            if constraint.trigger_logic == TriggerLogic.ANY:
+                trigger_logic_usage['ANY'] += 1
+            elif constraint.trigger_logic == TriggerLogic.ALL:
+                trigger_logic_usage['ALL'] += 1
+            elif constraint.trigger_logic == TriggerLogic.XOR:
+                trigger_logic_usage['XOR'] += 1
+            else:
+                trigger_logic_usage['None'] += 1
+
+        # Calculate average triggers per constraint
+        total_triggers = sum(len(c.triggers) for c in self.constraints_by_uri.values())
+        avg_triggers = total_triggers / len(self.constraints_by_uri) if self.constraints_by_uri else 0
+
+        # Return unified structure
         return {
-            'total_constraints': len(self.constraints_by_uri),
-            'classes_with_constraints': len(self.constraints_by_class),
-            'operations': operation_counts,
-            'constraint_directory': str(self.constraint_dir)
+            'configuration': {
+                'constraint_directory': str(self.constraint_dir),
+                'total_constraints': len(self.constraints_by_uri),
+                'classes_with_constraints': len(self.constraints_by_class)
+            },
+            'execution': {
+                'total_lookups': 0  # Future: track constraint lookups
+            },
+            'health': {
+                # Future: add constraint validation errors, load failures, etc.
+            },
+            'content': {
+                'operations': operation_counts,
+                'priority_distribution': priority_dist,
+                'trigger_complexity': {
+                    **trigger_complexity,
+                    'average_triggers_per_constraint': round(avg_triggers, 2)
+                },
+                'trigger_logic_usage': trigger_logic_usage
+            }
         }

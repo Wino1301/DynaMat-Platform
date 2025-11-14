@@ -3,14 +3,15 @@ DynaMat Platform - Widget Validation Tool
 Validates widget creation and configuration against ontology definitions.
 
 Usage:
-    python tools/validate_widget.py dyn:hasOriginalDiameter
-    python tools/validate_widget.py dyn:hasMaterial --class dyn:Specimen
-    python tools/validate_widget.py dyn:hasMatrixMaterial --verbose
-    python tools/validate_widget.py dyn:hasOriginalLength --show-constraints
+    python tools/validate_widget.py dyn:hasOriginalDiameter --class dyn:Specimen
+    python tools/validate_widget.py dyn:hasMaterial --class dyn:Specimen --verbose
+    python tools/validate_widget.py dyn:hasMatrixMaterial --class dyn:Specimen --show-constraints
+    python tools/validate_widget.py dyn:hasOriginalDiameter --class dyn:Specimen --json
 """
 
 import sys
 import argparse
+import json
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 
@@ -194,7 +195,8 @@ def validate_widget_for_property(
     property_uri: str,
     class_uri: Optional[str] = None,
     verbose: bool = False,
-    show_constraints: bool = False
+    show_constraints: bool = False,
+    json_output: bool = False
 ) -> bool:
     """
     Validate widget creation for a specific property.
@@ -204,6 +206,7 @@ def validate_widget_for_property(
         class_uri: Optional class URI (will auto-detect if not provided)
         verbose: Show detailed output
         show_constraints: Show constraint details
+        json_output: Output in JSON format instead of text
 
     Returns:
         True if validation passed
@@ -211,29 +214,30 @@ def validate_widget_for_property(
     full_property_uri = expand_uri(property_uri)
     full_class_uri = expand_uri(class_uri) if class_uri else None
 
-    print_section(f"Widget Validation - {property_uri}")
+    if not json_output:
+        print_section(f"Widget Validation - {property_uri}")
 
     try:
         # Initialize managers
         ontology_manager = OntologyManager()
         constraint_manager = ConstraintManager()
 
-        # Find the class if not provided
+        # Require class to be provided (auto-detection not implemented)
         if not full_class_uri:
-            print("\nSearching for property domain...")
-            # Query ontology for domain
-            result = ontology_manager.domain_queries.get_property_domain(full_property_uri)
-            if result:
-                full_class_uri = result
-                print_info("Auto-detected class", class_uri or full_class_uri)
+            if not json_output:
+                print_result(False, "Class URI is required. Use --class to specify the class.")
+                print("Example: python tools/validate_widget.py dyn:hasOriginalDiameter --class dyn:Specimen")
             else:
-                print_result(False, "Could not determine property domain")
-                return False
-        else:
+                error_data = {"error": "Class URI is required"}
+                print(json.dumps(error_data, indent=2))
+            return False
+
+        if not json_output:
             print_info("Target class", class_uri or full_class_uri)
 
         # Get property metadata
-        print("\nLoading property metadata...")
+        if not json_output:
+            print("\nLoading property metadata...")
         class_metadata = ontology_manager.get_class_metadata_for_form(full_class_uri)
 
         # Find the property in class metadata
@@ -244,56 +248,61 @@ def validate_widget_for_property(
                 break
 
         if not property_metadata:
-            print_result(False, f"Property {property_uri} not found in class metadata")
+            if not json_output:
+                print_result(False, f"Property {property_uri} not found in class metadata")
+            else:
+                error_data = {"error": f"Property {property_uri} not found in class metadata"}
+                print(json.dumps(error_data, indent=2))
             return False
 
-        print_result(True, f"Property metadata loaded")
+        if not json_output:
+            print_result(True, f"Property metadata loaded")
 
-        # Display property information
-        print_subsection("Property Metadata")
-        print_info("URI", property_metadata.uri)
-        print_info("Name", property_metadata.name)
-        print_info("Display Name", property_metadata.display_name)
-        print_info("Data Type", property_metadata.data_type)
-        print_info("Form Group", property_metadata.form_group)
-        print_info("Display Order", property_metadata.display_order)
-        print_info("Is Required", property_metadata.is_required)
-        print_info("Is Functional", property_metadata.is_functional)
-        print_info("Is Read-only", property_metadata.is_read_only)
+            # Display property information
+            print_subsection("Property Metadata")
+            print_info("URI", property_metadata.uri)
+            print_info("Name", property_metadata.name)
+            print_info("Display Name", property_metadata.display_name)
+            print_info("Data Type", property_metadata.data_type)
+            print_info("Form Group", property_metadata.form_group)
+            print_info("Display Order", property_metadata.display_order)
+            print_info("Is Required", property_metadata.is_required)
+            print_info("Is Functional", property_metadata.is_functional)
+            print_info("Is Read-only", property_metadata.is_read_only)
 
-        if verbose:
-            print_info("Description", property_metadata.description)
-            if property_metadata.range_class:
-                print_info("Range Class", property_metadata.range_class)
-            if property_metadata.valid_values:
-                print_info("Valid Values", property_metadata.valid_values)
+            if verbose:
+                print_info("Description", property_metadata.description)
+                if property_metadata.range_class:
+                    print_info("Range Class", property_metadata.range_class)
+                if property_metadata.valid_values:
+                    print_info("Valid Values", property_metadata.valid_values)
 
-        # Display measurement information if applicable
-        if property_metadata.is_measurement_property:
-            print_subsection("Measurement Configuration")
-            print_info("Quantity Kind", property_metadata.quantity_kind)
-            print_info("Default Unit", property_metadata.default_unit)
-            if verbose and property_metadata.compatible_units:
-                print(f"  Compatible Units ({len(property_metadata.compatible_units)}):")
-                for unit_info in property_metadata.compatible_units[:5]:  # Show first 5
-                    print(f"    - {unit_info.name} ({unit_info.symbol})")
-                if len(property_metadata.compatible_units) > 5:
-                    print(f"    ... and {len(property_metadata.compatible_units) - 5} more")
+            # Display measurement information if applicable
+            if property_metadata.is_measurement_property:
+                print_subsection("Measurement Configuration")
+                print_info("Quantity Kind", property_metadata.quantity_kind)
+                print_info("Default Unit", property_metadata.default_unit)
+                if verbose and property_metadata.compatible_units:
+                    print(f"  Compatible Units ({len(property_metadata.compatible_units)}):")
+                    for unit_info in property_metadata.compatible_units[:5]:  # Show first 5
+                        print(f"    - {unit_info.name} ({unit_info.symbol})")
+                    if len(property_metadata.compatible_units) > 5:
+                        print(f"    ... and {len(property_metadata.compatible_units) - 5} more")
 
-        # Display constraints from property metadata
-        if property_metadata.min_value is not None or property_metadata.max_value is not None:
-            print_subsection("Property Constraints")
-            if property_metadata.min_value is not None:
-                print_info("Min Value", property_metadata.min_value)
-            if property_metadata.max_value is not None:
-                print_info("Max Value", property_metadata.max_value)
-            if property_metadata.max_length:
-                print_info("Max Length", property_metadata.max_length)
-            if property_metadata.pattern:
-                print_info("Pattern", property_metadata.pattern)
+            # Display constraints from property metadata
+            if property_metadata.min_value is not None or property_metadata.max_value is not None:
+                print_subsection("Property Constraints")
+                if property_metadata.min_value is not None:
+                    print_info("Min Value", property_metadata.min_value)
+                if property_metadata.max_value is not None:
+                    print_info("Max Value", property_metadata.max_value)
+                if property_metadata.max_length:
+                    print_info("Max Length", property_metadata.max_length)
+                if property_metadata.pattern:
+                    print_info("Pattern", property_metadata.pattern)
 
-        # Create widget using WidgetFactory
-        print_subsection("Widget Creation")
+            # Create widget using WidgetFactory
+            print_subsection("Widget Creation")
 
         # Need QApplication for widget creation
         app = QApplication.instance()
@@ -304,17 +313,23 @@ def validate_widget_for_property(
 
         # Determine expected widget type
         expected_widget_type = widget_factory._determine_widget_type(property_metadata)
-        print_info("Expected Widget Type", expected_widget_type)
+        if not json_output:
+            print_info("Expected Widget Type", expected_widget_type)
 
         # Create the widget
         widget = widget_factory.create_widget(property_metadata)
 
         if widget is None:
-            print_result(False, "Widget creation returned None")
+            if not json_output:
+                print_result(False, "Widget creation returned None")
+            else:
+                error_data = {"error": "Widget creation returned None"}
+                print(json.dumps(error_data, indent=2))
             return False
 
         actual_widget_class = type(widget).__name__
-        print_result(True, f"Widget created: {actual_widget_class}")
+        if not json_output:
+            print_result(True, f"Widget created: {actual_widget_class}")
 
         # Validate widget type matches expectation
         widget_type_map = {
@@ -336,13 +351,14 @@ def validate_widget_for_property(
         else:
             widget_matches = isinstance(widget, expected_class) if expected_class else False
 
-        if widget_matches:
-            print_result(True, f"Widget type matches expectation")
-        else:
-            print_result(False, f"Widget type mismatch: expected {expected_class}, got {actual_widget_class}")
+        if not json_output:
+            if widget_matches:
+                print_result(True, f"Widget type matches expectation")
+            else:
+                print_result(False, f"Widget type mismatch: expected {expected_class}, got {actual_widget_class}")
 
         # Special handling for UnitValueWidget
-        if actual_widget_class == 'UnitValueWidget':
+        if actual_widget_class == 'UnitValueWidget' and not json_output:
             print_subsection("UnitValueWidget Detailed Validation")
 
             unit_widget_passed, unit_widget_details = validate_unit_value_widget(
@@ -383,37 +399,39 @@ def validate_widget_for_property(
                 print_result(True, "UnitValueWidget validation passed")
 
         # Check initial value
-        print_subsection("Initial Value Validation")
-        initial_value = get_widget_initial_value(widget, expected_widget_type)
-        print_info("Initial Value", initial_value)
-
         value_passed, value_message = validate_initial_value(widget, expected_widget_type, property_metadata)
-        print_result(value_passed, value_message)
 
-        # Check widget properties
-        print_subsection("Widget Properties")
-        print_info("Enabled", widget.isEnabled())
-        print_info("Visible", widget.isVisible())
-        print_info("Minimum Width", widget.minimumWidth())
+        if not json_output:
+            print_subsection("Initial Value Validation")
+            initial_value = get_widget_initial_value(widget, expected_widget_type)
+            print_info("Initial Value", initial_value)
+            print_result(value_passed, value_message)
 
-        if property_metadata.is_read_only:
-            print_info("Read-only Mode", "Expected: True")
-            # Check if widget is properly disabled or styled for read-only
-            # QLabel widgets are always enabled, so skip this check for labels
-            if isinstance(widget, QLabel):
-                print_result(True, "Label widget for read-only display")
-            elif not widget.isEnabled():
-                print_result(True, "Widget is disabled for read-only")
-            else:
-                print_result(False, "Read-only widget should be disabled")
+            # Check widget properties
+            print_subsection("Widget Properties")
+            print_info("Enabled", widget.isEnabled())
+            print_info("Visible", widget.isVisible())
+            print_info("Minimum Width", widget.minimumWidth())
 
-        # Load constraints that affect this property
-        print_subsection("Constraint Analysis")
+            if property_metadata.is_read_only:
+                print_info("Read-only Mode", "Expected: True")
+                # Check if widget is properly disabled or styled for read-only
+                # QLabel widgets are always enabled, so skip this check for labels
+                if isinstance(widget, QLabel):
+                    print_result(True, "Label widget for read-only display")
+                elif not widget.isEnabled():
+                    print_result(True, "Widget is disabled for read-only")
+                else:
+                    print_result(False, "Read-only widget should be disabled")
+
+            # Load constraints that affect this property
+            print_subsection("Constraint Analysis")
         all_constraints = constraint_manager.get_constraints_for_class(full_class_uri)
 
         # Find constraints that trigger on this property
         triggered_by_this = [c for c in all_constraints if full_property_uri in c.triggers]
-        print_info("Constraints triggered by this field", len(triggered_by_this))
+        if not json_output:
+            print_info("Constraints triggered by this field", len(triggered_by_this))
 
         # Find constraints that show/hide this property
         visibility_constraints = [c for c in all_constraints if c.has_visibility_ops()]
@@ -424,17 +442,13 @@ def validate_widget_for_property(
             if c.hide_fields and full_property_uri in c.hide_fields:
                 affects_visibility.append((c, 'hide'))
 
-        print_info("Constraints affecting visibility", len(affects_visibility))
-
         # Find constraints that calculate this property
         calculation_constraints = [c for c in all_constraints
                                    if c.has_calculation_op() and c.calculation_target == full_property_uri]
-        print_info("Constraints that calculate this field", len(calculation_constraints))
 
         # Find constraints that generate this property
         generation_constraints = [c for c in all_constraints
                                  if c.has_generation_op() and c.generation_target == full_property_uri]
-        print_info("Constraints that generate this field", len(generation_constraints))
 
         # Find constraints where this property is an input
         used_as_input = []
@@ -444,15 +458,19 @@ def validate_widget_for_property(
             if c.generation_inputs and full_property_uri in c.generation_inputs:
                 used_as_input.append((c, 'generation'))
 
-        print_info("Constraints using this as input", len(used_as_input))
-
         # Find filtering constraints that apply to this field
         filter_constraints = [c for c in all_constraints
                              if c.has_filter_op() and c.apply_to_fields and full_property_uri in c.apply_to_fields]
-        print_info("Filter constraints applying to this field", len(filter_constraints))
+
+        if not json_output:
+            print_info("Constraints affecting visibility", len(affects_visibility))
+            print_info("Constraints that calculate this field", len(calculation_constraints))
+            print_info("Constraints that generate this field", len(generation_constraints))
+            print_info("Constraints using this as input", len(used_as_input))
+            print_info("Filter constraints applying to this field", len(filter_constraints))
 
         # Detailed constraint output
-        if show_constraints or verbose:
+        if (show_constraints or verbose) and not json_output:
             if triggered_by_this:
                 print("\n  Constraints triggered by this field:")
                 for c in triggered_by_this:
@@ -510,6 +528,49 @@ def validate_widget_for_property(
                         if c.filter_by_classes:
                             print(f"      Filters by: {c.filter_by_classes}")
 
+        # Collect JSON output if requested
+        if json_output:
+            json_data = {
+                "property_uri": full_property_uri,
+                "class_uri": full_class_uri,
+                "property_metadata": {
+                    "name": property_metadata.name,
+                    "display_name": property_metadata.display_name,
+                    "data_type": property_metadata.data_type,
+                    "form_group": property_metadata.form_group,
+                    "display_order": property_metadata.display_order,
+                    "is_required": property_metadata.is_required,
+                    "is_functional": property_metadata.is_functional,
+                    "is_read_only": property_metadata.is_read_only,
+                    "is_measurement_property": property_metadata.is_measurement_property
+                },
+                "widget": {
+                    "expected_type": expected_widget_type,
+                    "actual_type": actual_widget_class,
+                    "type_matches": widget_matches
+                },
+                "constraints": {
+                    "triggered_by_this": len(triggered_by_this),
+                    "affects_visibility": len(affects_visibility),
+                    "calculates_this": len(calculation_constraints),
+                    "generates_this": len(generation_constraints),
+                    "uses_as_input": len(used_as_input),
+                    "filter_constraints": len(filter_constraints)
+                },
+                "validation": {
+                    "passed": widget_matches and value_passed
+                }
+            }
+
+            # Add measurement info if applicable
+            if property_metadata.is_measurement_property:
+                json_data["property_metadata"]["quantity_kind"] = property_metadata.quantity_kind
+                json_data["property_metadata"]["default_unit"] = property_metadata.default_unit
+                json_data["property_metadata"]["compatible_units_count"] = len(property_metadata.compatible_units) if property_metadata.compatible_units else 0
+
+            print(json.dumps(json_data, indent=2))
+            return widget_matches and value_passed
+
         print_subsection("Validation Summary")
         checks_passed = widget_matches and value_passed
 
@@ -521,6 +582,11 @@ def validate_widget_for_property(
         return checks_passed
 
     except Exception as e:
+        if json_output:
+            error_data = {"error": str(e)}
+            print(json.dumps(error_data, indent=2))
+            return False
+
         print_result(False, f"Validation failed with error: {e}")
         if verbose:
             import traceback
@@ -550,7 +616,8 @@ Examples:
     parser.add_argument(
         '--class', '-c',
         dest='class_uri',
-        help='Class URI (e.g., dyn:Specimen) - will auto-detect if not provided'
+        required=True,
+        help='Class URI (e.g., dyn:Specimen) [REQUIRED]'
     )
 
     parser.add_argument(
@@ -565,6 +632,12 @@ Examples:
         help='Show detailed constraint information'
     )
 
+    parser.add_argument(
+        '--json',
+        action='store_true',
+        help='Output property metadata and validation results in JSON format'
+    )
+
     args = parser.parse_args()
 
     # Run validation
@@ -572,20 +645,22 @@ Examples:
         property_uri=args.property_uri,
         class_uri=args.class_uri,
         verbose=args.verbose,
-        show_constraints=args.show_constraints
+        show_constraints=args.show_constraints,
+        json_output=args.json
     )
 
     # Exit with appropriate code
-    if passed:
-        print("\n" + "=" * 70)
-        print("VALIDATION PASSED")
-        print("=" * 70)
-        sys.exit(0)
-    else:
-        print("\n" + "=" * 70)
-        print("VALIDATION FAILED")
-        print("=" * 70)
-        sys.exit(1)
+    if not args.json:
+        if passed:
+            print("\n" + "=" * 70)
+            print("VALIDATION PASSED")
+            print("=" * 70)
+        else:
+            print("\n" + "=" * 70)
+            print("VALIDATION FAILED")
+            print("=" * 70)
+
+    sys.exit(0 if passed else 1)
 
 
 if __name__ == "__main__":

@@ -45,7 +45,12 @@ class OntologyFormBuilder(QObject):
         # Initialize specialized components
         self.form_manager = FormManager(ontology_manager)
         self.layout_manager = LayoutManager()
-        
+
+        # Statistics tracking (always-on)
+        self._forms_created_count = {}  # class_uri -> count
+        self._form_errors = {}  # class_uri -> error_count
+        self._layout_usage = {}  # layout_style -> count
+
         # Initialize constraint-based dependency manager
         self.dependency_manager = None
         if constraint_dir or self._has_default_constraints():
@@ -116,19 +121,28 @@ class OntologyFormBuilder(QObject):
             if parent:
                 form_widget.setParent(parent)
             
+            # Track successful form creation
+            self._forms_created_count[class_uri] = self._forms_created_count.get(class_uri, 0) + 1
+            if layout_style:
+                style_name = layout_style.value if hasattr(layout_style, 'value') else str(layout_style)
+                self._layout_usage[style_name] = self._layout_usage.get(style_name, 0) + 1
+
             # Emit success signal
             self.form_created.emit(class_uri)
-            
+
             self.logger.info(f"Form built successfully for {class_uri}")
             return form_widget
-            
+
         except Exception as e:
             error_msg = f"Failed to build form for {class_uri}: {e}"
             self.logger.error(error_msg, exc_info=True)
-            
+
+            # Track error
+            self._form_errors[class_uri] = self._form_errors.get(class_uri, 0) + 1
+
             # Emit error signal - NOW THIS WORKS!
             self.form_error.emit(class_uri, str(e))
-            
+
             # Return error form with expected attributes
             return self._create_error_form(error_msg, class_uri)
     
@@ -350,25 +364,6 @@ class OntologyFormBuilder(QObject):
         except Exception as e:
             self.logger.error(f"Failed to refresh ontology: {e}")
     
-    def get_statistics(self) -> Dict[str, Any]:
-        """
-        Get statistics about the form builder.
-        
-        Returns:
-            Dictionary with statistics
-        """
-        try:
-            ontology_stats = self.ontology_manager.get_statistics()
-            return {
-                'ontology_stats': ontology_stats,
-                'default_layout': self.default_layout.value,
-                'dependencies_enabled': self.dependency_manager is not None,
-                'available_layouts': [style.value for style in LayoutStyle]
-            }
-        except Exception as e:
-            self.logger.error(f"Failed to get statistics: {e}")
-            return {}
-
     def refresh_ontology(self):
         """Refresh ontology and clear caches."""
         try:
@@ -381,25 +376,81 @@ class OntologyFormBuilder(QObject):
                 self.ontology_manager.properties_cache.clear()
         except Exception as e:
             self.logger.error(f"Failed to refresh ontology: {e}")
-    
+
     def get_statistics(self) -> Dict[str, Any]:
-        """Get form builder statistics."""
+        """
+        Get comprehensive form builder statistics for testing and debugging.
+
+        Returns:
+            Dictionary with statistics categories:
+            - configuration: Component setup state
+            - execution: Form creation statistics
+            - health: Component health indicators
+            - component_stats: Statistics from sub-components
+        """
         try:
-            stats = {
-                'form_manager_cache': self.form_manager.get_cache_info(),
-                'ontology_manager_ready': self.ontology_manager is not None,
-                'dependency_manager_enabled': self.dependency_manager is not None
+            # Get stats from sub-components
+            ontology_stats = self.ontology_manager.get_statistics() if self.ontology_manager else {}
+            form_manager_cache = self.form_manager.get_cache_info() if hasattr(self.form_manager, 'get_cache_info') else {}
+            dependency_stats = self.dependency_manager.get_statistics() if self.dependency_manager else {}
+
+            return {
+                # Configuration
+                'configuration': {
+                    'default_layout': self.default_layout.value if hasattr(self.default_layout, 'value') else str(self.default_layout),
+                    'available_layouts': [style.value for style in LayoutStyle],
+                    'dependencies_enabled': self.dependency_manager is not None
+                },
+
+                # Execution stats (from tracking)
+                'execution': {
+                    'forms_created': dict(self._forms_created_count),
+                    'total_forms_created': sum(self._forms_created_count.values()),
+                    'form_errors': dict(self._form_errors),
+                    'total_errors': sum(self._form_errors.values()),
+                    'layout_usage': dict(self._layout_usage)
+                },
+
+                # Health indicators
+                'health': {
+                    'components_initialized': {
+                        'ontology_manager': self.ontology_manager is not None,
+                        'form_manager': self.form_manager is not None,
+                        'layout_manager': self.layout_manager is not None,
+                        'dependency_manager': self.dependency_manager is not None
+                    }
+                },
+
+                # Component stats
+                'component_stats': {
+                    'ontology_stats': ontology_stats,
+                    'form_manager_cache': form_manager_cache,
+                    'dependency_stats': dependency_stats
+                }
             }
-            
-            # Add ontology manager stats if available
-            if hasattr(self.ontology_manager, 'classes_cache'):
-                stats['ontology_classes_cached'] = len(self.ontology_manager.classes_cache)
-            if hasattr(self.ontology_manager, 'properties_cache'):
-                stats['ontology_properties_cached'] = len(self.ontology_manager.properties_cache)
-            
-            return stats
         except Exception as e:
             self.logger.error(f"Failed to get statistics: {e}")
+            return {'error': str(e)}
+
+    def get_form_statistics(self) -> Dict[str, Any]:
+        """
+        Get statistics about forms created.
+
+        Returns:
+            Summary of form creation metrics
+        """
+        try:
+            return {
+                'forms_by_class': dict(self._forms_created_count),
+                'errors_by_class': dict(self._form_errors),
+                'success_rate_by_class': {
+                    class_uri: (created / (created + self._form_errors.get(class_uri, 0)))
+                    for class_uri, created in self._forms_created_count.items()
+                    if created > 0
+                }
+            }
+        except Exception as e:
+            self.logger.error(f"Failed to get form statistics: {e}")
             return {'error': str(e)}
     
     def analyze_form_complexity(self, class_uri: str) -> Dict[str, Any]:

@@ -103,7 +103,7 @@ class PropertyMetadata:
         # 1. Explicit widget_type always wins
         if self.widget_type:
             return self.widget_type
-        
+
         # 2. For object properties, check if we have valid_values (enumeration-like)
         if self.data_type == "object":
             if self.valid_values and len(self.valid_values) > 0:
@@ -112,11 +112,11 @@ class PropertyMetadata:
             else:
                 # No enumeration - query for instances
                 return "object_combo"
-        
+
         # 3. Then check for valid_values on data properties
         if self.valid_values:
             return "combo"
-        
+
         # 4. Rest of the checks...
         elif self.data_type == "boolean":
             return "checkbox"
@@ -181,21 +181,33 @@ class GUISchemaBuilder:
     - Process QUDT units for measurement properties
     """
     
-    def __init__(self, sparql_executor: SPARQLExecutor, namespace_manager: NamespaceManager, 
+    def __init__(self, sparql_executor: SPARQLExecutor, namespace_manager: NamespaceManager,
                  cache: MetadataCache, qudt_manager: QUDTManager):
         """
         Initialize the GUI schema builder.
-        
+
         Args:
             sparql_executor: SPARQL query executor
             namespace_manager: Namespace manager
             cache: Metadata cache
+            qudt_manager: QUDT unit manager
         """
         self.sparql = sparql_executor
         self.ns = namespace_manager
         self.cache = cache
         self.qudt_manager = qudt_manager
-        
+
+        # Statistics tracking (always-on)
+        self._metadata_build_counts = {}  # class_uri -> count
+        self._property_extraction_counts = {}  # class_uri -> property_count
+        self._unit_lookup_stats = {
+            'success': 0,
+            'failed': 0,
+            'no_quantity_kind': 0
+        }
+        self._form_group_stats = {}  # class_uri -> group_count
+        self._widget_type_inferences = {}  # data_type -> {widget_type -> count}
+
         logger.info("GUI schema builder initialized")
     
     def get_class_metadata_for_form(self, class_uri: str) -> ClassMetadata:
@@ -217,19 +229,23 @@ class GUISchemaBuilder:
             cached = self.cache.get_cached_class_metadata(class_uri)
             if cached:
                 logger.debug(f"Returning cached class metadata for {class_uri}")
+                # Track statistics even for cached results
+                self._metadata_build_counts[class_uri] = self._metadata_build_counts.get(class_uri, 0) + 1
+                self._property_extraction_counts[class_uri] = len(cached.properties)
+                self._form_group_stats[class_uri] = len(cached.form_groups)
                 return cached
 
         logger.info(f"Building class metadata for form: {class_uri}")
-        
+
         # Get basic class info
         class_info = self._get_basic_class_info(class_uri)
-        
+
         # Get all properties with metadata
         properties = self._get_class_properties_for_class(class_uri)
-        
+
         # Organize properties into form groups
         form_groups = self._organize_properties_into_groups(properties)
-        
+
         # Create class metadata
         metadata = ClassMetadata(
             uri=class_uri,
@@ -247,6 +263,12 @@ class GUISchemaBuilder:
             self.cache.cache_class_metadata(class_uri, metadata)
 
         logger.info(f"Generated metadata for {metadata.name} with {len(properties)} properties in {len(form_groups)} groups")
+
+        # Track statistics
+        self._metadata_build_counts[class_uri] = self._metadata_build_counts.get(class_uri, 0) + 1
+        self._property_extraction_counts[class_uri] = len(properties)
+        self._form_group_stats[class_uri] = len(form_groups)
+
         return metadata
     
     def _get_basic_class_info(self, class_uri: str) -> Dict[str, Any]:
@@ -383,10 +405,16 @@ class GUISchemaBuilder:
             if data_type in ['double', 'float', 'integer'] and prop_metadata.default_unit:
                 prop_metadata.is_measurement_property = True
                 prop_metadata.compatible_units = self._get_compatible_units(
-                    prop_metadata.quantity_kind, 
+                    prop_metadata.quantity_kind,
                     prop_metadata.default_unit
                 )
-            
+
+            # Track widget type inference for statistics
+            widget_type = prop_metadata.suggested_widget_type
+            if data_type not in self._widget_type_inferences:
+                self._widget_type_inferences[data_type] = {}
+            self._widget_type_inferences[data_type][widget_type] = self._widget_type_inferences[data_type].get(widget_type, 0) + 1
+
             properties.append(prop_metadata)
         
         return properties
@@ -486,16 +514,17 @@ class GUISchemaBuilder:
     def _get_compatible_units(self, quantity_kind_uri: str, default_unit_uri: str = None) -> List[UnitInfo]:
         """
         Get compatible units for a quantity kind from QUDT.
-        
+
         Args:
             quantity_kind_uri: URI of the quantity kind (e.g., qkdv:Length)
             default_unit_uri: URI of the default unit to mark as default
-            
+
         Returns:
             List of UnitInfo objects for compatible units
         """
         if not quantity_kind_uri:
             logger.warning("No quantity kind URI provided for unit lookup")
+            self._unit_lookup_stats['no_quantity_kind'] += 1
             return []
         
         # Check if QUDT manager is available
@@ -556,10 +585,14 @@ class GUISchemaBuilder:
                     logger.debug(f"Marked '{str(qudt_unit.symbol)}' as default unit")
             
             logger.debug(f"Found {len(units)} units for quantity kind {normalized_qk}")
+            # Track successful lookup
+            self._unit_lookup_stats['success'] += 1
             return units
-            
+
         except Exception as e:
             logger.error(f"Failed to get units for {normalized_qk}: {e}", exc_info=True)
+            # Track failed lookup
+            self._unit_lookup_stats['failed'] += 1
             return []
     
     def _organize_properties_into_groups(self, properties: List[PropertyMetadata]) -> Dict[str, List[PropertyMetadata]]:
@@ -589,3 +622,85 @@ class GUISchemaBuilder:
         # This method provides measurement-specific information
         # Implementation would extract measurement properties and their units
         return {}
+
+    # ============================================================================
+    # STATISTICS METHODS
+    # ============================================================================
+
+    def get_statistics(self) -> Dict[str, Any]:
+        """
+        Get comprehensive GUI schema builder statistics for testing and debugging.
+
+        Returns:
+            Dictionary with statistics categories:
+            - configuration: Component setup state
+            - execution: Schema building statistics
+            - health: Component health indicators
+            - content: Schema content statistics
+        """
+        from ...config import Config
+
+        return {
+            'configuration': {
+                'caching_enabled': Config.USE_SCHEMA_CACHE,
+                'sparql_executor_ready': self.sparql is not None,
+                'namespace_manager_ready': self.ns is not None,
+                'cache_ready': self.cache is not None,
+                'qudt_manager_ready': self.qudt_manager is not None
+            },
+            'execution': {
+                'metadata_builds': {
+                    'by_class': dict(self._metadata_build_counts),
+                    'total_builds': sum(self._metadata_build_counts.values()),
+                    'unique_classes': len(self._metadata_build_counts)
+                },
+                'property_extraction': {
+                    'by_class': dict(self._property_extraction_counts),
+                    'average_properties_per_class': (
+                        sum(self._property_extraction_counts.values()) / len(self._property_extraction_counts)
+                        if self._property_extraction_counts else 0
+                    )
+                },
+                'form_groups': {
+                    'by_class': dict(self._form_group_stats),
+                    'average_groups_per_class': (
+                        sum(self._form_group_stats.values()) / len(self._form_group_stats)
+                        if self._form_group_stats else 0
+                    )
+                }
+            },
+            'health': {
+                'unit_lookups': dict(self._unit_lookup_stats),
+                'unit_lookup_success_rate': (
+                    self._unit_lookup_stats['success'] /
+                    (self._unit_lookup_stats['success'] + self._unit_lookup_stats['failed'])
+                    if (self._unit_lookup_stats['success'] + self._unit_lookup_stats['failed']) > 0
+                    else 0.0
+                )
+            },
+            'content': {
+                'widget_type_inferences': {
+                    data_type: dict(widget_types)
+                    for data_type, widget_types in self._widget_type_inferences.items()
+                }
+            }
+        }
+
+    def get_class_metadata_summary(self) -> Dict[str, Any]:
+        """
+        Get summary of all class metadata built.
+
+        Returns:
+            Summary dictionary with processed classes and key metrics
+        """
+        return {
+            'classes_processed': list(self._metadata_build_counts.keys()),
+            'total_properties_extracted': sum(self._property_extraction_counts.values()),
+            'total_form_groups': sum(self._form_group_stats.values()),
+            'unit_lookup_success_rate': (
+                self._unit_lookup_stats['success'] /
+                (self._unit_lookup_stats['success'] + self._unit_lookup_stats['failed'])
+                if (self._unit_lookup_stats['success'] + self._unit_lookup_stats['failed']) > 0
+                else 0.0
+            )
+        }

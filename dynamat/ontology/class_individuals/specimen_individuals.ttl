@@ -49,11 +49,6 @@ dyn:CylindricalShape rdf:type owl:NamedIndividual, dyn:Shape ;
     dyn:hasName "Cylindrical"@en ;
     dyn:hasDescription "Right circular cylinder geometry for compression/tension testing"@en .
 
-dyn:RectangularShape rdf:type owl:NamedIndividual, dyn:Shape ;
-    rdfs:label "Rectangular Shape"@en ;
-    dyn:hasName "Rectangular"@en ;
-    dyn:hasDescription "Rectangular prismatic geometry for compression testing"@en .
-
 dyn:DogboneShape rdf:type owl:NamedIndividual, dyn:Shape ;
     rdfs:label "Dogbone Shape"@en ;
     dyn:hasName "Dogbone"@en ;
@@ -64,11 +59,6 @@ dyn:CubicShape rdf:type owl:NamedIndividual, dyn:Shape ;
     dyn:hasName "Cubic"@en ;
     dyn:hasDescription "Cubic geometry for lattice structure testing"@en .
 
-dyn:HourglassShape rdf:type owl:NamedIndividual, dyn:Shape ;
-    rdfs:label "Hourglass Shape"@en ;
-    dyn:hasName "Hourglass"@en ;
-    dyn:hasDescription "Hourglass geometry for high strain rate testing"@en .
-
 #################################################################
 #    Structure Types
 #################################################################
@@ -78,69 +68,49 @@ dyn:MonolithicMaterial rdf:type owl:NamedIndividual, dyn:Structure ;
     dyn:hasName "Monolithic"@en ;
     dyn:hasDescription "Homogeneous monolithic material structure without internal features"@en .
 
-dyn:FiberReinforcedStructure rdf:type owl:NamedIndividual, dyn:Structure ;
-    rdfs:label "Fiber Reinforced Structure"@en ;
-    dyn:hasName "Fiber Reinforced"@en ;
-    dyn:hasDescription "Continuous fiber reinforced composite structure"@en .
-
 dyn:LatticeStructure rdf:type owl:NamedIndividual, dyn:Structure ;
     rdfs:label "Lattice Structure"@en ;
     dyn:hasName "Lattice"@en ;
     dyn:hasDescription "Periodic lattice or cellular structure with designed porosity"@en .
 
-dyn:FoamStructure rdf:type owl:NamedIndividual, dyn:Structure ;
-    rdfs:label "Foam Structure"@en ;
-    dyn:hasName "Foam"@en ;
-    dyn:hasDescription "Foam structure with random porosity distribution"@en .
-
-dyn:LayeredStructure rdf:type owl:NamedIndividual, dyn:Structure ;
-    rdfs:label "Layered Structure"@en ;
-    dyn:hasName "Layered"@en ;
-    dyn:hasDescription "Multi-layer structure with different material layers"@en .
-
-dyn:GradedStructure rdf:type owl:NamedIndividual, dyn:Structure ;
-    rdfs:label "Graded Structure"@en ;
-    dyn:hasName "Graded"@en ;
-    dyn:hasDescription "Functionally graded structure with varying properties"@en .
-
 #################################################################
 #    Processing Steps
 #################################################################
-
-dyn:Machining rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
-    rdfs:label "Machining"@en ;
-    dyn:hasName "CNC Machining"@en ;
-    dyn:hasDescription "Computer-controlled machining to final dimensions"@en .
-
-dyn:HeatTreatment rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
-    rdfs:label "Heat Treatment"@en ;
-    dyn:hasName "Heat Treatment"@en ;
-    dyn:hasDescription "Thermal processing to achieve desired material properties"@en .
 
 dyn:AdditiveManufacturing rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
     rdfs:label "Additive Manufacturing"@en ;
     dyn:hasName "3D Printing/AM"@en ;
     dyn:hasDescription "Layer-by-layer additive manufacturing process"@en .
 
-dyn:SurfaceFinishing rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
-    rdfs:label "Surface Finishing"@en ;
-    dyn:hasName "Surface Finishing"@en ;
-    dyn:hasDescription "Final surface treatment (polishing, grinding, etc.)"@en .
-
 dyn:Annealing rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
     rdfs:label "Annealing"@en ;
     dyn:hasName "Stress Relief Annealing"@en ;
     dyn:hasDescription "Heat treatment to relieve internal stresses"@en .
 
+dyn:Casting rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
+    rdfs:label "Casting"@en ;
+    dyn:hasName "Casting Process"@en ;
+    dyn:hasDescription "Process of creating an object by pouring a liquid material into a mold"@en .
+
+dyn:HeatTreatment rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
+    rdfs:label "Heat Treatment"@en ;
+    dyn:hasName "Heat Treatment"@en ;
+    dyn:hasDescription "Thermal processing to achieve desired material properties"@en .
+
+dyn:Machining rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
+    rdfs:label "Machining"@en ;
+    dyn:hasName "CNC Machining"@en ;
+    dyn:hasDescription "Computer-controlled machining to final dimensions"@en .
+
+dyn:SurfaceFinishing rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
+    rdfs:label "Surface Finishing"@en ;
+    dyn:hasName "Surface Finishing"@en ;
+    dyn:hasDescription "Final surface treatment (polishing, grinding, etc.)"@en .
+
 dyn:Quenching rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
     rdfs:label "Quenching"@en ;
     dyn:hasName "Rapid Cooling/Quenching"@en ;
     dyn:hasDescription "Rapid cooling process for phase transformation"@en .
-
-dyn:WaterjetCutting rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
-    rdfs:label "Waterjet Cutting"@en ;
-    dyn:hasName "Waterjet Cutting"@en ;
-    dyn:hasDescription "High-pressure waterjet cutting to rough dimensions"@en .
 
 #################################################################
 #    Specimen Batches (Keep these - they're useful supporting individuals)

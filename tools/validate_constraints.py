@@ -7,10 +7,12 @@ Usage:
     python tools/validate_constraints.py --class-uri dyn:Specimen           # Test class
     python tools/validate_constraints.py --constraint-uri gui:specimen_c003 # Test constraint
     python tools/validate_constraints.py --verbose                          # Detailed output
+    python tools/validate_constraints.py --json                             # JSON output
 """
 
 import sys
 import argparse
+import json
 from pathlib import Path
 
 # Add project root to Python path
@@ -76,18 +78,23 @@ def test_all_constraints(verbose: bool = False) -> bool:
         cm = ConstraintManager()
         stats = cm.get_statistics()
 
-        total = stats['total_constraints']
-        classes = stats['classes_with_constraints']
+        # Access via new unified structure
+        config = stats.get('configuration', {})
+        content = stats.get('content', {})
+
+        total = config.get('total_constraints', 0)
+        classes = config.get('classes_with_constraints', 0)
 
         print_result(total > 0, f"Total constraints loaded: {total}")
         print_result(classes > 0, f"Classes with constraints: {classes}")
 
         print("\nOperation breakdown:")
-        for op_type, count in stats['operations'].items():
+        operations = content.get('operations', {})
+        for op_type, count in operations.items():
             print(f"  - {op_type}: {count}")
 
         if verbose:
-            print(f"\nConstraint directory: {stats['constraint_directory']}")
+            print(f"\nConstraint directory: {config.get('constraint_directory', 'N/A')}")
 
         return total > 0
 
@@ -316,7 +323,25 @@ Examples:
         help='Show detailed output for debugging'
     )
 
+    parser.add_argument(
+        '--json',
+        action='store_true',
+        help='Output constraint statistics in JSON format'
+    )
+
     args = parser.parse_args()
+
+    # Handle JSON output mode
+    if args.json:
+        try:
+            cm = ConstraintManager()
+            stats = cm.get_statistics()
+            print(json.dumps(stats, indent=2))
+            sys.exit(0)
+        except Exception as e:
+            error_output = {"error": str(e)}
+            print(json.dumps(error_output, indent=2))
+            sys.exit(1)
 
     # Track results
     results = []

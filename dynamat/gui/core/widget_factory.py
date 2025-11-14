@@ -31,13 +31,13 @@ class WidgetFactory:
     def __init__(self, ontology_manager: OntologyManager):
         """
         Initialize the widget factory.
-        
+
         Args:
             ontology_manager: The ontology manager instance
         """
         self.ontology_manager = ontology_manager
         self.logger = logging.getLogger(__name__)
-        
+
         # Widget type mapping
         self.widget_creators = {
             'label': self._create_label_widget,
@@ -50,6 +50,16 @@ class WidgetFactory:
             'checkbox': self._create_checkbox_widget,
             'date': self._create_date_widget,
             'unit_value': self._create_unit_value_widget
+        }
+
+        # Statistics tracking (always-on)
+        self._widget_creation_counts = {}  # widget_type -> count
+        self._widget_type_determinations = {}  # decision_path -> count
+        self._creation_errors = []  # List of (property_name, error_message)
+        self._combo_population_stats = {
+            'success': 0,
+            'failed': 0,
+            'empty': 0
         }
     
     def create_widget(self, property_metadata: PropertyMetadata) -> QWidget:
@@ -75,10 +85,15 @@ class WidgetFactory:
             # Apply common styling and constraints
             self._apply_common_properties(widget, property_metadata)
 
+            # Track successful creation
+            self._widget_creation_counts[widget_type] = self._widget_creation_counts.get(widget_type, 0) + 1
+
             return widget
 
         except Exception as e:
             self.logger.error(f"Failed to create widget for {property_metadata.name}: {e}")
+            # Track error
+            self._creation_errors.append((property_metadata.name, str(e)))
             return self._create_error_widget(f"Error: {str(e)}")
 
     def _determine_widget_type(self, prop: PropertyMetadata) -> str:
@@ -101,11 +116,15 @@ class WidgetFactory:
         # Priority 1: Read-only string properties should use labels
         if prop.is_read_only and prop.data_type == 'string':
             self.logger.debug(f"{prop.name}: Read-only string property -> label widget")
+            decision_path = "read_only_string->label"
+            self._widget_type_determinations[decision_path] = self._widget_type_determinations.get(decision_path, 0) + 1
             return 'label'
 
         # Priority 2: Measurement properties with units (e.g., length, mass, temperature)
         if hasattr(prop, 'compatible_units') and prop.compatible_units:
             self.logger.debug(f"{prop.name}: Measurement property -> unit_value widget")
+            decision_path = "has_compatible_units->unit_value"
+            self._widget_type_determinations[decision_path] = self._widget_type_determinations.get(decision_path, 0) + 1
             return 'unit_value'
 
         # Priority 3: Object properties (references to ontology individuals)
@@ -113,14 +132,20 @@ class WidgetFactory:
             # Check if it has a range_class (specific object type like Material, SpecimenRole)
             if hasattr(prop, 'range_class') and prop.range_class:
                 self.logger.debug(f"{prop.name}: Object property (range: {prop.range_class}) -> object_combo widget")
+                decision_path = "object_property->object_combo"
+                self._widget_type_determinations[decision_path] = self._widget_type_determinations.get(decision_path, 0) + 1
                 return 'object_combo'
             else:
                 self.logger.debug(f"{prop.name}: Object property (no range) -> combo widget")
+                decision_path = "object_no_range->combo"
+                self._widget_type_determinations[decision_path] = self._widget_type_determinations.get(decision_path, 0) + 1
                 return 'combo'
 
         # Priority 4: Use suggested widget type from metadata
         if prop.suggested_widget_type:
             self.logger.debug(f"{prop.name}: Using suggested type -> {prop.suggested_widget_type}")
+            decision_path = f"suggested->{prop.suggested_widget_type}"
+            self._widget_type_determinations[decision_path] = self._widget_type_determinations.get(decision_path, 0) + 1
             return prop.suggested_widget_type
 
         # Priority 5: Fallback mapping based on data_type
@@ -134,6 +159,8 @@ class WidgetFactory:
 
         fallback_type = type_mapping.get(prop.data_type, 'line_edit')
         self.logger.debug(f"{prop.name}: Fallback based on data_type={prop.data_type} -> {fallback_type}")
+        decision_path = f"fallback_{prop.data_type}->{fallback_type}"
+        self._widget_type_determinations[decision_path] = self._widget_type_determinations.get(decision_path, 0) + 1
         return fallback_type
     
     def create_widgets_for_properties(self, properties: List[PropertyMetadata], 
@@ -269,9 +296,17 @@ class WidgetFactory:
 
                 self.logger.info(f"Loaded {widget.count() - 1} items for {prop.name}")
 
+                # Track combo population success
+                if len(result) > 0:
+                    self._combo_population_stats['success'] += 1
+                else:
+                    self._combo_population_stats['empty'] += 1
+
         except Exception as e:
             self.logger.error(f"Could not load objects for {prop.name} ({prop.range_class}): {e}", exc_info=True)
             widget.addItem("(Error loading data)", "")
+            # Track combo population failure
+            self._combo_population_stats['failed'] += 1
 
         return widget
     
@@ -462,3 +497,57 @@ class WidgetFactory:
         if not uri:
             return "Unknown"
         return uri.split('#')[-1].split('/')[-1].replace('_', ' ')
+
+    # ============================================================================
+    # STATISTICS METHODS
+    # ============================================================================
+
+    def get_statistics(self) -> Dict[str, Any]:
+        """
+        Get comprehensive widget factory statistics for testing and debugging.
+
+        Returns:
+            Dictionary with statistics categories:
+            - configuration: Component setup state
+            - execution: Widget creation statistics
+            - health: Component health indicators
+            - errors: Error tracking
+        """
+        return {
+            'configuration': {
+                'available_widget_types': list(self.widget_creators.keys()),
+                'ontology_manager_connected': self.ontology_manager is not None
+            },
+            'execution': {
+                'widgets_created': dict(self._widget_creation_counts),
+                'total_widgets': sum(self._widget_creation_counts.values()),
+                'widget_type_determinations': dict(self._widget_type_determinations),
+                'combo_population': self._combo_population_stats.copy()
+            },
+            'health': {
+                'creation_errors': len(self._creation_errors),
+                'combo_success_rate': (
+                    self._combo_population_stats['success'] /
+                    (self._combo_population_stats['success'] +
+                     self._combo_population_stats['failed'] +
+                     self._combo_population_stats['empty'])
+                    if (self._combo_population_stats['success'] +
+                        self._combo_population_stats['failed'] +
+                        self._combo_population_stats['empty']) > 0
+                    else 0.0
+                )
+            },
+            'errors': {
+                'total_errors': len(self._creation_errors),
+                'recent_errors': self._creation_errors[-5:] if self._creation_errors else []
+            }
+        }
+
+    def get_widget_type_coverage(self) -> Dict[str, int]:
+        """
+        Get coverage of widget types actually created.
+
+        Returns:
+            Dictionary mapping widget types to creation counts
+        """
+        return dict(self._widget_creation_counts)

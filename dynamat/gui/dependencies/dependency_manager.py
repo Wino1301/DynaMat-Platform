@@ -55,7 +55,24 @@ class DependencyManager(QObject):
         self.active_form = None
         self.active_class_uri = None
         self.constraints_by_trigger: Dict[str, List[Constraint]] = {}
-        
+
+        # Statistics tracking (always-on)
+        self._constraint_evaluation_counts = {}  # constraint_uri -> count
+        self._operation_execution_counts = {
+            'visibility': 0,
+            'calculation': 0,
+            'generation': 0,
+            'filtering': 0
+        }
+        self._trigger_fire_counts = {}  # trigger_property -> count
+        self._signal_emission_counts = {
+            'constraint_triggered': 0,
+            'calculation_performed': 0,
+            'generation_performed': 0,
+            'error_occurred': 0
+        }
+        self._recent_errors = []  # Last 10 errors: (constraint_uri, error_message)
+
         self.logger.info("Dependency manager initialized with constraint-based system")
     
     # ============================================================================
@@ -159,6 +176,9 @@ class DependencyManager(QObject):
             trigger_property: URI of the property that changed
         """
         try:
+            # Track trigger fire
+            self._trigger_fire_counts[trigger_property] = self._trigger_fire_counts.get(trigger_property, 0) + 1
+
             # Get current value for debugging
             if trigger_property in self.active_form.form_fields:
                 field = self.active_form.form_fields[trigger_property]
@@ -215,6 +235,9 @@ class DependencyManager(QObject):
             constraint: Constraint to evaluate
         """
         try:
+            # Track constraint evaluation
+            self._constraint_evaluation_counts[constraint.uri] = self._constraint_evaluation_counts.get(constraint.uri, 0) + 1
+
             # Get trigger values
             trigger_values = self._get_trigger_values(constraint.triggers)
 
@@ -255,12 +278,18 @@ class DependencyManager(QObject):
                 if self._should_apply_inverse(constraint):
                     operations_performed = self._apply_inverse_operations(constraint)
 
-            # Emit signal
+            # Emit signal and track emission
             self.constraint_triggered.emit(constraint.uri, operations_performed)
+            self._signal_emission_counts['constraint_triggered'] += 1
 
         except Exception as e:
             self.logger.error(f"Error evaluating constraint {constraint.uri}: {e}", exc_info=True)
             self.error_occurred.emit(constraint.uri, str(e))
+            self._signal_emission_counts['error_occurred'] += 1
+            # Track error (keep last 10)
+            self._recent_errors.append((constraint.uri, str(e)))
+            if len(self._recent_errors) > 10:
+                self._recent_errors.pop(0)
     
     def _get_trigger_values(self, trigger_properties: List[str]) -> Dict[str, Any]:
         """
@@ -501,21 +530,25 @@ class DependencyManager(QObject):
             if constraint.hide_fields:
                 self._action_hide_fields(constraint.hide_fields)
             operations_performed.append("visibility")
+            self._operation_execution_counts['visibility'] += 1
 
         # 2. Calculation operation
         if constraint.has_calculation_op():
             self._action_calculate(constraint)
             operations_performed.append("calculation")
+            self._operation_execution_counts['calculation'] += 1
 
         # 3. Generation operation
         if constraint.has_generation_op():
             self._action_generate(constraint, trigger_values)
             operations_performed.append("generation")
+            self._operation_execution_counts['generation'] += 1
 
         # 4. Filtering operation
         if constraint.has_filter_op():
             self._action_filter(constraint, trigger_values)
             operations_performed.append("filtering")
+            self._operation_execution_counts['filtering'] += 1
 
         return operations_performed
 
@@ -622,6 +655,7 @@ class DependencyManager(QObject):
                     f"-> {constraint.calculation_target}"
                 )
                 self.calculation_performed.emit(constraint.calculation_target, result)
+                self._signal_emission_counts['calculation_performed'] += 1
 
         except Exception as e:
             self.logger.error(f"Calculation failed: {e}", exc_info=True)
@@ -671,6 +705,7 @@ class DependencyManager(QObject):
                 f"Generation result: '{result}' -> {constraint.generation_target}"
             )
             self.generation_performed.emit(constraint.generation_target, result)
+            self._signal_emission_counts['generation_performed'] += 1
 
         except Exception as e:
             self.logger.error(f"Generation failed: {e}")
@@ -906,11 +941,67 @@ class DependencyManager(QObject):
             self.setup_dependencies(self.active_form, self.active_class_uri)
     
     def get_statistics(self) -> Dict[str, Any]:
-        """Get dependency manager statistics."""
+        """
+        Get comprehensive dependency manager statistics for testing and debugging.
+
+        Returns:
+            Dictionary following unified statistics structure:
+            - configuration: Static setup (capabilities, manager status)
+            - execution: Runtime operations (evaluations, executions, triggers)
+            - health: Component health (active state, signal emissions)
+            - errors: Error tracking
+            - components: Nested ConstraintManager statistics
+        """
         return {
-            **self.constraint_manager.get_statistics(),
-            'active_form': self.active_form is not None,
-            'active_class': self.active_class_uri,
-            'available_calculations': len(self.calculation_engine.get_available_calculations()),
-            'available_generators': len(self.generation_engine.get_available_generators())
+            'configuration': {
+                'constraint_manager_loaded': self.constraint_manager is not None,
+                'available_calculations': len(self.calculation_engine.get_available_calculations()),
+                'available_generators': len(self.generation_engine.get_available_generators())
+            },
+            'execution': {
+                'total_evaluations': sum(self._constraint_evaluation_counts.values()),
+                'constraint_evaluations': {
+                    'by_constraint': dict(self._constraint_evaluation_counts)
+                },
+                'operation_executions': {
+                    'by_type': dict(self._operation_execution_counts)
+                },
+                'trigger_fires': {
+                    'by_property': dict(self._trigger_fire_counts)
+                },
+                'most_active_trigger': max(self._trigger_fire_counts.items(), key=lambda x: x[1])[0] if self._trigger_fire_counts else None
+            },
+            'health': {
+                'active_state': {
+                    'has_active_form': self.active_form is not None,
+                    'active_class': self.active_class_uri,
+                    'active_triggers': len(self.constraints_by_trigger),
+                    'connected_signals': sum(len(constraints) for constraints in self.constraints_by_trigger.values())
+                },
+                'signal_emissions': dict(self._signal_emission_counts)
+            },
+            'errors': {
+                'total_errors': len(self._recent_errors),
+                'recent_errors': self._recent_errors[-5:]
+            },
+            'components': {
+                'constraint_manager': self.constraint_manager.get_statistics()
+            }
+        }
+
+    def get_constraint_activity(self) -> Dict[str, Any]:
+        """
+        Get detailed constraint activity report.
+
+        Returns:
+            Detailed activity metrics by constraint
+        """
+        return {
+            'evaluations_by_constraint': dict(self._constraint_evaluation_counts),
+            'triggers_by_frequency': sorted(
+                self._trigger_fire_counts.items(),
+                key=lambda x: x[1],
+                reverse=True
+            ),
+            'operations_breakdown': dict(self._operation_execution_counts)
         }

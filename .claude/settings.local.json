@@ -3,7 +3,10 @@
     "allow": [
       "Bash(find:*)",
       "Bash(git add:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(python tools/validate_constraints.py:*)",
+      "Bash(python tools/validate_widget.py:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []

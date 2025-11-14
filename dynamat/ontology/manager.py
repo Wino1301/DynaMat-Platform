@@ -210,17 +210,53 @@ class OntologyManager:
         logger.info("All caches cleared")
     
     def get_statistics(self) -> Dict[str, Any]:
-        """Get manager statistics."""
+        """
+        Get comprehensive ontology manager statistics for testing and debugging.
+
+        Returns:
+            Dictionary following unified statistics structure:
+            - configuration: Directory and query mode
+            - execution: Query and cache operations
+            - health: Component status checks
+            - content: Ontology data content
+            - components: Nested component statistics
+        """
         cache_stats = self.cache.get_cache_stats()
         query_stats = self.sparql_executor.get_cache_stats()
-        
+
         return {
-            'files_loaded': self.loader.get_files_loaded_count(),
-            'total_triples': self.sparql_executor.count_triples(),
-            'classes_cached': cache_stats.classes_cached,
-            'properties_cached': cache_stats.properties_cached,
-            'cache_hit_ratio': self.cache.get_cache_hit_ratio(),
-            'query_cache_size': query_stats.get('cached_queries', 0)
+            'configuration': {
+                'ontology_directory': str(self.ontology_dir),
+                'query_mode': 'memory'  # Future: track query mode if configurable
+            },
+            'execution': {
+                'total_queries': 0,  # Future: track queries if needed
+                'cache_operations': {
+                    'classes_cached': cache_stats.classes_cached,
+                    'properties_cached': cache_stats.properties_cached,
+                    'cache_hit_ratio': self.cache.get_cache_hit_ratio(),
+                    'query_cache_size': query_stats.get('cached_queries', 0)
+                }
+            },
+            'health': {
+                'components': {
+                    'loader_ready': self.loader.is_loaded(),
+                    'qudt_loaded': self.qudt_manager.is_loaded() if hasattr(self.qudt_manager, 'is_loaded') else None,
+                    'graph_initialized': self.graph is not None
+                }
+            },
+            'content': {
+                'ontology_data': {
+                    'total_triples': self.sparql_executor.count_triples(),
+                    'total_classes': len(self.get_all_classes()) if hasattr(self, 'get_all_classes') else 0,
+                    'total_individuals': len(self.domain_queries.get_all_individuals()) if hasattr(self.domain_queries, 'get_all_individuals') else 0,
+                    'namespaces_bound': len(self.namespace_manager.get_all_namespaces()) if hasattr(self.namespace_manager, 'get_all_namespaces') else 0
+                }
+            },
+            'components': {
+                'loader': self.loader.get_statistics(),
+                'schema_builder': self.gui_schema_builder.get_statistics()
+            }
         }
     
     # ============================================================================
