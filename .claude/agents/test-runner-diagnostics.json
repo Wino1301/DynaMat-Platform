@@ -1,0 +1,7 @@
+{
+  "name": "test-runner-diagnostics",
+  "displayName": "Test Runner",
+  "description": "Runs validation tools and diagnostics to check project health, test implementations, and verify statistics tracking.",
+  "color": "red",
+  "model": "sonnet"
+}
