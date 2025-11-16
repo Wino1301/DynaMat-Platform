@@ -8,9 +8,9 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 
 from PyQt6.QtWidgets import (
-    QWidget, QLabel, QLineEdit, QTextEdit, QComboBox, 
-    QSpinBox, QDoubleSpinBox, QDateEdit, QCheckBox, 
-    QHBoxLayout, QFrame
+    QWidget, QLabel, QLineEdit, QTextEdit, QComboBox,
+    QSpinBox, QDoubleSpinBox, QDateEdit, QCheckBox,
+    QHBoxLayout, QFrame, QListWidget, QListWidgetItem, QAbstractItemView
 )
 from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QFont
@@ -45,6 +45,7 @@ class WidgetFactory:
             'text_area': self._create_text_area_widget,
             'combo': self._create_combo_widget,
             'object_combo': self._create_object_combo_widget,
+            'object_multi_select': self._create_multi_select_object_widget,
             'spinbox': self._create_spinbox_widget,
             'double_spinbox': self._create_double_spinbox_widget,
             'checkbox': self._create_checkbox_widget,
@@ -131,10 +132,17 @@ class WidgetFactory:
         if prop.data_type == "object":
             # Check if it has a range_class (specific object type like Material, SpecimenRole)
             if hasattr(prop, 'range_class') and prop.range_class:
-                self.logger.debug(f"{prop.name}: Object property (range: {prop.range_class}) -> object_combo widget")
-                decision_path = "object_property->object_combo"
-                self._widget_type_determinations[decision_path] = self._widget_type_determinations.get(decision_path, 0) + 1
-                return 'object_combo'
+                # Check if property is functional (single-select) or not (multi-select)
+                if hasattr(prop, 'is_functional') and not prop.is_functional:
+                    self.logger.debug(f"{prop.name}: Non-functional object property (range: {prop.range_class}) -> object_multi_select widget")
+                    decision_path = "object_property_non_functional->object_multi_select"
+                    self._widget_type_determinations[decision_path] = self._widget_type_determinations.get(decision_path, 0) + 1
+                    return 'object_multi_select'
+                else:
+                    self.logger.debug(f"{prop.name}: Functional object property (range: {prop.range_class}) -> object_combo widget")
+                    decision_path = "object_property_functional->object_combo"
+                    self._widget_type_determinations[decision_path] = self._widget_type_determinations.get(decision_path, 0) + 1
+                    return 'object_combo'
             else:
                 self.logger.debug(f"{prop.name}: Object property (no range) -> combo widget")
                 decision_path = "object_no_range->combo"
@@ -309,7 +317,58 @@ class WidgetFactory:
             self._combo_population_stats['failed'] += 1
 
         return widget
-    
+
+    def _create_multi_select_object_widget(self, prop: PropertyMetadata) -> QListWidget:
+        """Create a multi-select list widget for non-functional object properties."""
+        widget = QListWidget()
+        widget.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
+        widget.setMaximumHeight(120)  # Limit height to show ~5 items
+
+        if prop.description:
+            widget.setToolTip(prop.description)
+
+        try:
+            # Query for objects of this type from ontology
+            if hasattr(prop, 'range_class') and prop.range_class:
+                self.logger.info(f"Creating multi-select list for {prop.name}, range_class={prop.range_class}")
+
+                # Get all individuals - should return URIs with names
+                result = self.ontology_manager.domain_queries.get_instances_of_class(
+                    prop.range_class,
+                    include_subclasses=True
+                )
+
+                self.logger.info(f"Retrieved {len(result)} instances for {prop.range_class}")
+
+                for instance in result:
+                    # instance is a dict with 'uri' and 'name'
+                    uri = instance['uri']
+                    display_name = instance['name']
+
+                    # Create list item with display name and store URI in data
+                    item = QListWidgetItem(display_name)
+                    item.setData(Qt.ItemDataRole.UserRole, uri)
+                    widget.addItem(item)
+                    self.logger.info(f"  Added: '{display_name}' -> '{uri}'")
+
+                self.logger.info(f"Loaded {widget.count()} items for {prop.name}")
+
+                # Track combo population success
+                if len(result) > 0:
+                    self._combo_population_stats['success'] += 1
+                else:
+                    self._combo_population_stats['empty'] += 1
+
+        except Exception as e:
+            self.logger.error(f"Could not load objects for {prop.name} ({prop.range_class}): {e}", exc_info=True)
+            error_item = QListWidgetItem("(Error loading data)")
+            error_item.setData(Qt.ItemDataRole.UserRole, "")
+            widget.addItem(error_item)
+            # Track combo population failure
+            self._combo_population_stats['failed'] += 1
+
+        return widget
+
     def _create_spinbox_widget(self, prop: PropertyMetadata) -> QSpinBox:
         """Create an integer spin box widget."""
         widget = QSpinBox()
@@ -395,13 +454,17 @@ class WidgetFactory:
                 available_units=compatible_units,
                 property_uri=prop.uri
             )
-            
+
+            # Set tooltip if description available
+            if prop.description:
+                widget.setToolTip(prop.description)
+
             # Set validation constraints if available
             if hasattr(prop, 'min_value') and prop.min_value is not None:
                 widget.setMinimum(prop.min_value)
             if hasattr(prop, 'max_value') and prop.max_value is not None:
                 widget.setMaximum(prop.max_value)
-            
+
             return widget
             
         except Exception as e:

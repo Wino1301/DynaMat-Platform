@@ -24,7 +24,7 @@ from dynamat.gui.dependencies import ConstraintManager
 from dynamat.gui.core import WidgetFactory
 from dynamat.ontology.schema.gui_schema_builder import PropertyMetadata
 
-from PyQt6.QtWidgets import QApplication, QComboBox, QSpinBox, QDoubleSpinBox, QLineEdit, QCheckBox, QLabel, QDateEdit
+from PyQt6.QtWidgets import QApplication, QComboBox, QSpinBox, QDoubleSpinBox, QLineEdit, QCheckBox, QLabel, QDateEdit, QListWidget
 from PyQt6.QtCore import QDate
 
 # Import UnitValueWidget validator
@@ -101,6 +101,11 @@ def get_widget_initial_value(widget, widget_type: str) -> str:
             item_count = widget.count()
             return f"'{current_text}' (data: {current_data}, {item_count} items)"
 
+        elif isinstance(widget, QListWidget):
+            item_count = widget.count()
+            selected_count = len(widget.selectedItems())
+            return f"({selected_count} selected, {item_count} total items)"
+
         elif isinstance(widget, QSpinBox):
             return str(widget.value())
 
@@ -156,6 +161,16 @@ def validate_initial_value(widget, widget_type: str, prop: PropertyMetadata) -> 
                 return True, "Unit combo (validated by UnitValueWidget)"
 
             return True, "Combo initialized correctly"
+
+        elif isinstance(widget, QListWidget):
+            # QListWidget should have no selections initially
+            selected_count = len(widget.selectedItems())
+            if selected_count != 0:
+                return False, f"QListWidget should have no selections initially, got {selected_count}"
+            # Should have items populated from ontology
+            if widget.count() == 0:
+                return False, "QListWidget should have items populated from ontology"
+            return True, f"QListWidget initialized correctly with {widget.count()} items"
 
         elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
             initial = widget.value()
@@ -337,6 +352,7 @@ def validate_widget_for_property(
             'line_edit': QLineEdit,
             'combo': QComboBox,
             'object_combo': QComboBox,
+            'object_multi_select': QListWidget,
             'spinbox': QSpinBox,
             'double_spinbox': QDoubleSpinBox,
             'checkbox': QCheckBox,

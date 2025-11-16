@@ -7,8 +7,8 @@ import logging
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 
-from PyQt6.QtWidgets import QWidget, QComboBox, QLineEdit, QSpinBox, QDoubleSpinBox, QCheckBox
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtWidgets import QWidget, QComboBox, QLineEdit, QSpinBox, QDoubleSpinBox, QCheckBox, QListWidget
+from PyQt6.QtCore import QObject, pyqtSignal, Qt
 
 from ...ontology import OntologyManager
 from .constraint_manager import ConstraintManager, Constraint, TriggerLogic
@@ -62,6 +62,7 @@ class DependencyManager(QObject):
             'visibility': 0,
             'calculation': 0,
             'generation': 0,
+            'population': 0,
             'filtering': 0
         }
         self._trigger_fire_counts = {}  # trigger_property -> count
@@ -161,6 +162,10 @@ class DependencyManager(QObject):
             widget.toggled.connect(
                 lambda: self._on_trigger_changed(trigger_property)
             )
+        elif isinstance(widget, QListWidget):
+            widget.itemSelectionChanged.connect(
+                lambda: self._on_trigger_changed(trigger_property)
+            )
 
         self.logger.debug(f"Connected signal for trigger: {trigger_property} (widget type: {type(widget).__name__})")
     
@@ -249,6 +254,8 @@ class DependencyManager(QObject):
                 ops.append("calculation")
             if constraint.has_generation_op():
                 ops.append("generation")
+            if constraint.has_population_op():
+                ops.append("population")
 
             self.logger.debug(
                 f"Evaluating constraint '{constraint.label}' (priority {constraint.priority})"
@@ -269,14 +276,25 @@ class DependencyManager(QObject):
 
             # Apply operations
             operations_performed = []
+
+            # Population operations always execute (to handle both populate and clear)
+            if constraint.has_population_op():
+                self._action_populate(constraint, trigger_values)
+                operations_performed.append("population")
+                self._operation_execution_counts['population'] += 1
+
             if condition_met:
-                operations_performed = self._apply_operations(constraint, trigger_values)
+                # Apply other operations (visibility, calculation, generation, filtering)
+                # But skip population since we already handled it above
+                other_ops = self._apply_operations(constraint, trigger_values, skip_population=True)
+                operations_performed.extend(other_ops)
             else:
                 # Only apply inverse for constraints that manage one visibility direction
                 # Constraints with both showFields AND hideFields are "complete" and don't need inversion
                 # (e.g., shape constraints that explicitly define which fields to show AND hide)
                 if self._should_apply_inverse(constraint):
-                    operations_performed = self._apply_inverse_operations(constraint)
+                    inverse_ops = self._apply_inverse_operations(constraint)
+                    operations_performed.extend(inverse_ops)
 
             # Emit signal and track emission
             self.constraint_triggered.emit(constraint.uri, operations_performed)
@@ -417,6 +435,7 @@ class DependencyManager(QObject):
         Check if a value matches an expected value.
 
         Handles:
+        - List values (multi-select) - checks if ANY item matches
         - gui:anyValue - matches any non-None/non-empty value
         - Direct URI matching (exact match)
         - Partial URI matching (fragment/local name match)
@@ -427,12 +446,37 @@ class DependencyManager(QObject):
         expected_str = str(expected).strip() if expected else ""
         if "anyValue" in expected_str:
             # For anyValue, check if value is not None and not empty
-            has_value = value is not None and str(value).strip() != ""
+            if isinstance(value, list):
+                has_value = len(value) > 0
+            else:
+                has_value = value is not None and str(value).strip() != ""
             self.logger.debug(f"    Match (anyValue): value={'present' if has_value else 'absent'}")
             return has_value
 
+        # Handle list values (multi-select widgets)
+        # For lists, check if ANY item in the list matches the expected value
+        if isinstance(value, list):
+            if not value:  # Empty list
+                return False
+            for item in value:
+                if self._value_matches_single(item, expected_str):
+                    self.logger.debug(f"    Match (list item): {item} matches {expected_str}")
+                    return True
+            return False
+
         # Regular matching requires both value and expected to be non-empty
         if not value or not expected:
+            return False
+
+        return self._value_matches_single(value, expected_str)
+
+    def _value_matches_single(self, value: Any, expected_str: str) -> bool:
+        """
+        Check if a single value matches an expected value.
+
+        Helper method for _value_matches to handle individual value comparisons.
+        """
+        if not value:
             return False
 
         value_str = str(value).strip()
@@ -505,7 +549,8 @@ class DependencyManager(QObject):
     # OPERATION APPLICATION
     # ============================================================================
 
-    def _apply_operations(self, constraint: Constraint, trigger_values: Dict[str, Any]) -> List[str]:
+    def _apply_operations(self, constraint: Constraint, trigger_values: Dict[str, Any],
+                          skip_population: bool = False) -> List[str]:
         """
         Apply all operations defined in the constraint.
 
@@ -513,10 +558,12 @@ class DependencyManager(QObject):
         1. Visibility (show/hide fields)
         2. Calculations (compute derived values)
         3. Generation (generate IDs/codes)
+        4. Population (populate fields from selected individual)
 
         Args:
             constraint: Constraint to apply
             trigger_values: Current trigger values
+            skip_population: If True, skip population operations (default False)
 
         Returns:
             List of operation names that were performed
@@ -544,7 +591,13 @@ class DependencyManager(QObject):
             operations_performed.append("generation")
             self._operation_execution_counts['generation'] += 1
 
-        # 4. Filtering operation
+        # 4. Population operation (can be skipped if already executed)
+        if constraint.has_population_op() and not skip_population:
+            self._action_populate(constraint, trigger_values)
+            operations_performed.append("population")
+            self._operation_execution_counts['population'] += 1
+
+        # 5. Filtering operation
         if constraint.has_filter_op():
             self._action_filter(constraint, trigger_values)
             operations_performed.append("filtering")
@@ -768,6 +821,98 @@ class DependencyManager(QObject):
             self.logger.error(f"Filter operation failed: {e}", exc_info=True)
             self.error_occurred.emit(constraint.uri, str(e))
 
+    def _action_populate(self, constraint: Constraint, trigger_values: Dict[str, Any]):
+        """
+        Apply population operations - populate fields from a selected individual's properties.
+
+        This operation queries the ontology for the selected individual's properties
+        and populates corresponding form fields, optionally making them read-only.
+
+        Args:
+            constraint: Constraint with population operations
+            trigger_values: Current trigger values (should contain the selected individual URI)
+        """
+        try:
+            if not constraint.populate_fields:
+                return
+
+            # Get the trigger value (selected individual URI)
+            # Assume single trigger for population constraints
+            if not constraint.triggers:
+                self.logger.warning("Population constraint has no triggers")
+                return
+
+            trigger_property = constraint.triggers[0]
+            selected_individual_uri = trigger_values.get(trigger_property)
+
+            if not selected_individual_uri:
+                self.logger.debug("No individual selected for population")
+                # Reset populated fields to defaults and re-enable them when selection is cleared
+                for property_uri, _ in constraint.populate_fields:
+                    if property_uri in self.active_form.form_fields:
+                        self._reset_widget_to_default(property_uri)
+                        # Always re-enable fields when clearing selection
+                        # (make_read_only only applies when a batch IS selected)
+                        self._set_widget_enabled(property_uri, True)
+                return
+
+            self.logger.info(
+                f"Populating {len(constraint.populate_fields)} fields from {selected_individual_uri}"
+            )
+
+            # Query property values from ontology
+            property_uris = [prop_uri for prop_uri, _ in constraint.populate_fields]
+            property_values = self.ontology_manager.get_individual_property_values(
+                selected_individual_uri,
+                property_uris
+            )
+
+            # Populate each field
+            populated_trigger_properties = []
+            for property_uri, display_label in constraint.populate_fields:
+                value = property_values.get(property_uri)
+
+                if value:
+                    self.logger.debug(f"  Setting {property_uri} = {value}")
+                    self._set_widget_value(property_uri, value)
+
+                    # Make read-only if requested
+                    if constraint.make_read_only:
+                        self._set_widget_enabled(property_uri, False)
+
+                    # Track if this is a trigger property for any constraint
+                    if self._is_trigger_property(property_uri):
+                        populated_trigger_properties.append(property_uri)
+                else:
+                    # No value found - reset to default, keep read-only state
+                    self.logger.debug(f"  No value found for {property_uri}, resetting to default")
+                    self._reset_widget_to_default(property_uri)
+                    # Keep disabled if make_read_only is True
+                    if not constraint.make_read_only:
+                        self._set_widget_enabled(property_uri, True)
+
+            # Re-evaluate constraints for any populated trigger properties
+            # This ensures visibility/other constraints respond to programmatically set values
+            for trigger_prop in populated_trigger_properties:
+                self.logger.debug(f"Re-evaluating constraints for populated trigger: {trigger_prop}")
+                self._on_trigger_changed(trigger_prop)
+
+        except Exception as e:
+            self.logger.error(f"Population operation failed: {e}", exc_info=True)
+            self.error_occurred.emit(constraint.uri, str(e))
+
+    def _is_trigger_property(self, property_uri: str) -> bool:
+        """
+        Check if a property is a trigger for any constraint.
+
+        Args:
+            property_uri: URI of the property to check
+
+        Returns:
+            True if property is a trigger for any constraint
+        """
+        return property_uri in self.constraints_by_trigger
+
     # ============================================================================
     # WIDGET VALUE HELPERS
     # ============================================================================
@@ -776,6 +921,7 @@ class DependencyManager(QObject):
         """Extract current value from a widget.
 
         For QComboBox: Returns URI from currentData() if available, otherwise currentText()
+        For QListWidget: Returns list of URIs from selected items
         For other widgets: Returns their native value
         """
         # Import UnitValueWidget here to avoid circular imports
@@ -787,6 +933,9 @@ class DependencyManager(QObject):
         if isinstance(widget, QComboBox):
             # QComboBox should store URI in currentData()
             data = widget.currentData()
+            # Check if data is empty string (e.g., "(Select...)" option)
+            if data == "":
+                return None
             if data:
                 # Check if it's a URI
                 data_str = str(data)
@@ -794,8 +943,16 @@ class DependencyManager(QObject):
                     return data_str
                 # If not a URI, might be stored differently
                 return data
-            # Fallback to text if no data stored
+            # Fallback to text if no data stored (for combos without proper data setup)
             return widget.currentText()
+        elif isinstance(widget, QListWidget):
+            # QListWidget (multi-select) returns list of URIs
+            selected_uris = []
+            for item in widget.selectedItems():
+                uri = item.data(Qt.ItemDataRole.UserRole)
+                if uri:
+                    selected_uris.append(str(uri))
+            return selected_uris if selected_uris else None
         elif isinstance(widget, QLineEdit):
             return widget.text()
         elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
@@ -833,9 +990,39 @@ class DependencyManager(QObject):
         elif isinstance(widget, QCheckBox):
             widget.setChecked(bool(value))
         elif isinstance(widget, QComboBox):
-            index = widget.findText(str(value))
+            # For ObjectProperty combos, value is a URI - search by data
+            value_str = str(value)
+
+            # First try finding by data (URI)
+            index = widget.findData(value_str)
+
+            # If not found by data, try by text as fallback
+            if index < 0:
+                index = widget.findText(value_str)
+
             if index >= 0:
                 widget.setCurrentIndex(index)
+            else:
+                self.logger.warning(f"Could not find combo item for value: {value_str}")
+        elif isinstance(widget, QListWidget):
+            # For multi-select QListWidget, value can be a single URI or list of URIs
+            # Clear current selection
+            widget.clearSelection()
+
+            # Ensure value is a list
+            if value is None:
+                return
+            value_list = value if isinstance(value, list) else [value]
+
+            # Convert all values to strings
+            value_strs = [str(v) for v in value_list]
+
+            # Iterate through list items and select matching ones
+            for i in range(widget.count()):
+                item = widget.item(i)
+                item_uri = item.data(Qt.ItemDataRole.UserRole)
+                if item_uri and str(item_uri) in value_strs:
+                    item.setSelected(True)
     
     def _set_field_visibility(self, field_uri: str, visible: bool):
         """Set visibility of a field and its label."""
@@ -850,6 +1037,60 @@ class DependencyManager(QObject):
         # Hide/show the label if it exists
         if field.label_widget is not None:
             field.label_widget.setVisible(visible)
+
+    def _set_widget_enabled(self, property_uri: str, enabled: bool):
+        """
+        Set enabled/disabled state of a widget.
+
+        Args:
+            property_uri: URI of the property
+            enabled: True to enable, False to disable (make read-only)
+        """
+        if property_uri not in self.active_form.form_fields:
+            return
+
+        field = self.active_form.form_fields[property_uri]
+        widget = field.widget
+
+        # Set enabled state on the widget
+        widget.setEnabled(enabled)
+
+    def _reset_widget_to_default(self, property_uri: str):
+        """
+        Reset a widget to its default value.
+
+        Args:
+            property_uri: URI of the property
+        """
+        if property_uri not in self.active_form.form_fields:
+            return
+
+        field = self.active_form.form_fields[property_uri]
+        widget = field.widget
+
+        # Import UnitValueWidget here to avoid circular imports
+        try:
+            from ..widgets.base.unit_value_widget import UnitValueWidget
+        except ImportError:
+            UnitValueWidget = None
+
+        # Reset to default based on widget type
+        if isinstance(widget, QComboBox):
+            # Reset to first item (usually "(Select...)")
+            widget.setCurrentIndex(0)
+        elif isinstance(widget, QListWidget):
+            # Clear all selections
+            widget.clearSelection()
+        elif isinstance(widget, QLineEdit):
+            widget.clear()
+        elif isinstance(widget, QSpinBox):
+            widget.setValue(0)
+        elif isinstance(widget, QDoubleSpinBox):
+            widget.setValue(0.0)
+        elif UnitValueWidget and isinstance(widget, UnitValueWidget):
+            widget.setValue(0.0)
+        elif isinstance(widget, QCheckBox):
+            widget.setChecked(False)
 
     def _repopulate_combo_with_filter(self, widget: QComboBox, range_class: str,
                                           exclude_classes: Optional[List[str]] = None,

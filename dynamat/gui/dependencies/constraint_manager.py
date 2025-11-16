@@ -57,6 +57,10 @@ class Constraint:
     generation_target: Optional[str] = None
     generation_inputs: Optional[List[str]] = None
 
+    # Population operation
+    populate_fields: Optional[List[tuple]] = None  # List of (source_property, target_property) tuples
+    make_read_only: bool = False
+
     # Filtering operations
     apply_to_fields: Optional[List[str]] = None
     exclude_classes: Optional[List[str]] = None
@@ -74,6 +78,10 @@ class Constraint:
     def has_generation_op(self) -> bool:
         """Check if constraint has generation operation."""
         return bool(self.generation_template and self.generation_target)
+
+    def has_population_op(self) -> bool:
+        """Check if constraint has population operation."""
+        return bool(self.populate_fields)
 
     def has_filter_op(self) -> bool:
         """Check if constraint has filtering operations."""
@@ -235,6 +243,11 @@ class ConstraintManager:
             generation_template = str(gen_template_uri) if gen_template_uri else None
             generation_target = str(gen_target_uri) if gen_target_uri else None
 
+            # Parse population operation
+            populate_fields_raw = self._get_populate_fields(constraint_ref)
+            make_read_only_val = self.graph.value(constraint_ref, self.GUI.makeReadOnly)
+            make_read_only = bool(make_read_only_val) if make_read_only_val else False
+
             # Parse filtering operations
             apply_to_fields = self._get_all_values(constraint_ref, self.GUI.applyToFields)
             exclude_classes = self._get_all_values(constraint_ref, self.GUI.excludeClass)
@@ -258,6 +271,8 @@ class ConstraintManager:
                 generation_template=generation_template,
                 generation_target=generation_target,
                 generation_inputs=gen_inputs if gen_inputs else None,
+                populate_fields=populate_fields_raw if populate_fields_raw else None,
+                make_read_only=make_read_only,
                 apply_to_fields=apply_to_fields if apply_to_fields else None,
                 exclude_classes=exclude_classes if exclude_classes else None,
                 filter_by_classes=filter_by_classes if filter_by_classes else None
@@ -271,6 +286,8 @@ class ConstraintManager:
                 ops.append("calculation")
             if constraint.has_generation_op():
                 ops.append("generation")
+            if constraint.has_population_op():
+                ops.append("population")
             if constraint.has_filter_op():
                 ops.append("filtering")
 
@@ -316,7 +333,56 @@ class ConstraintManager:
                 # Regular value
                 values.append(str(obj))
         return values
-    
+
+    def _get_populate_fields(self, subject: URIRef) -> List[tuple]:
+        """
+        Parse gui:populateFields structure from TTL constraint.
+
+        Expected structure in TTL:
+        gui:populateFields (
+            (dyn:hasMatrixMaterial "Matrix Material")
+            (dyn:hasReinforcementMaterial "Reinforcement Material")
+        ) ;
+
+        Returns:
+            List of (source_property_uri, display_label) tuples
+        """
+        from rdflib import RDF
+        from rdflib.collection import Collection
+
+        populate_fields = []
+
+        # Get the RDF list for populateFields
+        populate_list_obj = self.graph.value(subject, self.GUI.populateFields)
+
+        if not populate_list_obj:
+            return populate_fields
+
+        try:
+            # Parse outer list
+            outer_collection = Collection(self.graph, populate_list_obj)
+
+            for item in outer_collection:
+                # Each item should be an inner list (pair)
+                if (item, RDF.first, None) in self.graph:
+                    inner_collection = Collection(self.graph, item)
+                    inner_items = list(inner_collection)
+
+                    if len(inner_items) >= 2:
+                        # First is property URI, second is display label
+                        property_uri = str(inner_items[0])
+                        display_label = str(inner_items[1])
+                        populate_fields.append((property_uri, display_label))
+                    elif len(inner_items) == 1:
+                        # Only property provided, use it as label too
+                        property_uri = str(inner_items[0])
+                        populate_fields.append((property_uri, property_uri))
+
+        except Exception as e:
+            self.logger.error(f"Failed to parse populateFields: {e}", exc_info=True)
+
+        return populate_fields
+
     # ============================================================================
     # PUBLIC API
     # ============================================================================
@@ -399,6 +465,7 @@ class ConstraintManager:
             'visibility': 0,
             'calculation': 0,
             'generation': 0,
+            'population': 0,
             'filtering': 0,
             'multi_operation': 0
         }
@@ -435,6 +502,9 @@ class ConstraintManager:
                 ops_count += 1
             if constraint.has_generation_op():
                 operation_counts['generation'] += 1
+                ops_count += 1
+            if constraint.has_population_op():
+                operation_counts['population'] += 1
                 ops_count += 1
             if constraint.has_filter_op():
                 operation_counts['filtering'] += 1

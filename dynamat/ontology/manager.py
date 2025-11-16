@@ -185,7 +185,39 @@ class OntologyManager:
     def find_tests(self, **criteria) -> List[Dict[str, Any]]:
         """Find tests based on criteria."""
         return self.domain_queries.find_tests(**criteria)
-    
+
+    def get_individual_property_values(self, individual_uri: str, property_uris: List[str]) -> Dict[str, Any]:
+        """
+        Get property values for a specific individual.
+
+        Args:
+            individual_uri: URI of the individual to query
+            property_uris: List of property URIs to retrieve
+
+        Returns:
+            Dictionary mapping property_uri -> value
+            For object properties, returns the URI of the object
+            For datatype properties, returns the literal value
+        """
+        # Build SPARQL query to get all requested properties
+        property_values = {}
+
+        for prop_uri in property_uris:
+            query = f"""
+            SELECT ?value WHERE {{
+                <{individual_uri}> <{prop_uri}> ?value .
+            }}
+            """
+
+            results = self.sparql_executor.execute_query(query)
+
+            if results:
+                # Take the first value (properties should be functional)
+                value = results[0]['value']
+                property_values[prop_uri] = str(value)
+
+        return property_values
+
     # ============================================================================
     # UTILITY METHODS
     # ============================================================================

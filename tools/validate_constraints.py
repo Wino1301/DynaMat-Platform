@@ -134,7 +134,8 @@ def test_class_constraints(class_uri: str, verbose: bool = False) -> bool:
             'visibility': 0,
             'calculation': 0,
             'generation': 0,
-            'filtering': 0
+            'filtering': 0,
+            'population': 0
         }
 
         for c in constraints:
@@ -146,6 +147,8 @@ def test_class_constraints(class_uri: str, verbose: bool = False) -> bool:
                 ops['generation'] += 1
             if c.has_filter_op():
                 ops['filtering'] += 1
+            if c.has_population_op():
+                ops['population'] += 1
 
         print("\nOperation breakdown:")
         for op_type, count in ops.items():
@@ -245,6 +248,12 @@ def test_specific_constraint(constraint_uri: str, verbose: bool = False) -> bool
             print(f"\n  Exclude classes: {constraint.exclude_classes}")
             print(f"  Filter by classes: {constraint.filter_by_classes}")
             print(f"  Apply to fields: {constraint.apply_to_fields}")
+
+        if constraint.has_population_op():
+            operations.append("population")
+            if verbose:
+                print(f"\n  Populate fields: {constraint.populate_fields}")
+                print(f"  Make read-only: {constraint.make_read_only}")
 
         print(f"\n  Operations: {', '.join(operations)}")
 

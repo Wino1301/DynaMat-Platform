@@ -284,41 +284,25 @@ class LayoutManager:
     
     def _get_ordered_groups(self, form_groups: Dict[str, List[PropertyMetadata]]) -> List[str]:
         """
-        Get groups ordered by their display priority.
-        
+        Get groups ordered by their ontology-defined group_order values.
+
         Args:
             form_groups: Dictionary of group names to properties
-            
+
         Returns:
             List of group names in display order
         """
-        def get_group_priority(group_name: str) -> int:
-            """Determine group display priority."""
-            priority_map = {
-                'identification': 0,
-                'basic': 1,
-                'geometry': 2,
-                'dimensions': 3,
-                'material': 4,
-                'properties': 5,
-                'processing': 6,
-                'testing': 7,
-                'results': 8,
-                'notes': 9,
-                'general': 10
-            }
-            
-            group_lower = group_name.lower()
-            for key, priority in priority_map.items():
-                if key in group_lower:
-                    return priority
-            
-            # Default priority for unknown groups
-            return 5
-        
-        # Sort groups by priority, then alphabetically
-        return sorted(form_groups.keys(), 
-                     key=lambda g: (get_group_priority(g), g.lower()))
+        def get_group_order_value(group_name: str) -> int:
+            """Get the minimum group_order from properties in this group."""
+            properties = form_groups.get(group_name, [])
+            if properties:
+                # Use the minimum group_order from all properties in the group
+                return min(prop.group_order for prop in properties)
+            return 999  # Default for groups without properties
+
+        # Sort groups by their ontology-defined group_order, then alphabetically
+        return sorted(form_groups.keys(),
+                     key=lambda g: (get_group_order_value(g), g.lower()))
     
     def _sort_properties_by_order(self, properties: List[PropertyMetadata]) -> List[PropertyMetadata]:
         """

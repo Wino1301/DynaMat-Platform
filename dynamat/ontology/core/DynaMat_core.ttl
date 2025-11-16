@@ -213,9 +213,7 @@ dyn:hasName rdf:type owl:DatatypeProperty ,
             rdfs:range xsd:string ;
             rdfs:comment "Primary name or identifier"@en ;
             rdfs:label "Name"@en ;
-            dyn:hasDisplayName "Name" ;
-            dyn:hasDisplayOrder 1 ;
-            dyn:hasFormGroup "Identification" .
+            dyn:hasDisplayName "Name" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasORCID
@@ -344,6 +342,19 @@ dyn:Composite rdf:type owl:Class ;
               rdfs:subClassOf dyn:Material ;
               rdfs:comment "Multi-phase composite materials"@en ;
               rdfs:label "Composite Material"@en .
+
+
+###  https://dynamat.utep.edu/ontology#CompositePhaseDescription
+dyn:CompositePhaseDescription rdf:type owl:Class ;
+                              rdfs:comment "Reusable composite phase configuration defining matrix material, reinforcement material, and their volume fractions. Used as template for composite specimens."@en ;
+                              rdfs:label "Composite Phase Description"@en .
+
+
+###  https://dynamat.utep.edu/ontology#SpecimenBatchID
+dyn:SpecimenBatchID rdf:type owl:Class ;
+                    rdfs:subClassOf dyn:Entity ;
+                    rdfs:comment "Batch identifier for specimens from the same processing run. Stores manufacturing metadata (date, method, material) that can be auto-populated for all specimens in the batch."@en ;
+                    rdfs:label "Specimen Batch ID"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#CompressionTest
@@ -665,6 +676,36 @@ dyn:ProcessingStep rdf:type owl:Class ;
                    rdfs:subClassOf dyn:Entity ;
                    rdfs:comment "Individual step in specimen processing or manufacturing"@en ;
                    rdfs:label "Processing Step"@en .
+
+###  https://dynamat.utep.edu/ontology#ManufacturingMethod
+dyn:ManufacturingMethod rdf:type owl:Class ;
+                        rdfs:subClassOf dyn:Entity ;
+                        rdfs:comment "Primary method used to manufacture specimens"@en ;
+                        rdfs:label "Manufacturing Method"@en .
+
+###  https://dynamat.utep.edu/ontology#SurfaceFinish
+dyn:SurfaceFinish rdf:type owl:Class ;
+                  rdfs:subClassOf dyn:Entity ;
+                  rdfs:comment "Surface finish condition of specimens"@en ;
+                  rdfs:label "Surface Finish"@en .
+
+###  https://dynamat.utep.edu/ontology#PolishingCompound
+dyn:PolishingCompound rdf:type owl:Class ;
+                      rdfs:subClassOf dyn:Entity ;
+                      rdfs:comment "Polishing compound or abrasive used for surface finishing"@en ;
+                      rdfs:label "Polishing Compound"@en .
+
+###  https://dynamat.utep.edu/ontology#HeatTreatment
+dyn:HeatTreatment rdf:type owl:Class ;
+                  rdfs:subClassOf dyn:Entity ;
+                  rdfs:comment "Heat treatment process applied to specimens"@en ;
+                  rdfs:label "Heat Treatment"@en .
+
+###  https://dynamat.utep.edu/ontology#BuildOrientation
+dyn:BuildOrientation rdf:type owl:Class ;
+                     rdfs:subClassOf dyn:Entity ;
+                     rdfs:comment "Build orientation for additive manufacturing specimens"@en ;
+                     rdfs:label "Build Orientation"@en .
 
 ###  https://dynamat.utep.edu/ontology#Shape
 dyn:Shape rdf:type owl:Class ;

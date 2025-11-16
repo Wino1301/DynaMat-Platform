@@ -244,7 +244,8 @@ The builder automatically determines widget types from property definitions:
 | `xsd:double` + `qudt:hasQuantityKind` | `unit_value` |
 | `xsd:boolean` | `checkbox` |
 | `xsd:date` | `date` |
-| `owl:ObjectProperty` + individuals | `object_combo` |
+| `owl:ObjectProperty` + `owl:FunctionalProperty` | `object_combo` |
+| `owl:ObjectProperty` (non-functional) | `object_multi_select` |
 
 ---
 
@@ -557,6 +558,7 @@ dyn:hasOriginalLength rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
 
 Predefined instances users can reference:
 
+**Material Individuals:**
 ```turtle
 # material_individuals.ttl
 dyn:Al6061_T6 rdf:type owl:NamedIndividual, dyn:AluminumAlloy ;
@@ -567,6 +569,33 @@ dyn:Al6061_T6 rdf:type owl:NamedIndividual, dyn:AluminumAlloy ;
     dyn:hasYoungsModulus 68.9 ;     # GPa
     dyn:hasPoissonsRatio 0.33 .
 ```
+
+**Batch Individuals (Nested Population Pattern):**
+
+Batch individuals can store manufacturing data that auto-populates specimen forms:
+
+```turtle
+# specimen_individuals.ttl
+dyn:Batch_AL001_CastMachined rdf:type owl:NamedIndividual, dyn:SpecimenBatchID ;
+    rdfs:label "Batch AL001-2024-01 (Cast + Machined)"@en ;
+    dyn:hasName "Aluminum A356 Batch 2024-01 (Cast then Machined)"@en ;
+    dyn:hasBatchID "BATCH-AL001-2024-01"@en ;
+
+    # Core manufacturing data
+    dyn:hasMaterial dyn:A356 ;
+    dyn:hasCreationDate "2024-01-15"^^xsd:date ;
+
+    # Multi-select manufacturing methods
+    dyn:hasManufacturingMethod dyn:Casting, dyn:Machining ;
+
+    # Process-specific parameters
+    dyn:hasMetalTemperature 700.0 ;
+    dyn:hasMoldTemperature 200.0 ;
+    dyn:hasCastCoolingDuration 30.0 ;
+    dyn:hasMachiningTolerance 0.1 .
+```
+
+When a user selects this batch, all manufacturing fields auto-populate and become read-only.
 
 ### SHACL Shapes (`shapes/*.ttl`)
 
@@ -757,10 +786,12 @@ metadata = ClassMetadata(
 
 1. Decide which class it belongs to
 2. Add to appropriate file in `class_properties/`
-3. Include GUI annotations:
+3. Choose single-value or multi-value behavior
+4. Include GUI annotations:
 
+**Single-Value Property (Functional):**
 ```turtle
-dyn:hasSurfaceRoughness rdf:type owl:DatatypeProperty ;
+dyn:hasSurfaceRoughness rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
     rdfs:range xsd:double ;
     qudt:hasQuantityKind qkdv:Length ;
@@ -772,7 +803,25 @@ dyn:hasSurfaceRoughness rdf:type owl:DatatypeProperty ;
     rdfs:label "Surface Roughness"@en .
 ```
 
-4. Update SHACL shapes if validation needed:
+**Multi-Value Property (Non-Functional):**
+
+For properties that should allow multiple selections (e.g., sequential manufacturing processes), omit `owl:FunctionalProperty`:
+
+```turtle
+dyn:hasManufacturingMethod rdf:type owl:ObjectProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range dyn:ManufacturingMethod ;
+    dyn:hasDisplayName "Manufacturing Method" ;
+    dyn:hasFormGroup "Manufacturing" ;
+    dyn:hasGroupOrder 4 ;
+    dyn:hasDisplayOrder 1 ;
+    rdfs:label "Manufacturing Method"@en ;
+    rdfs:comment "Manufacturing method(s) used to create the specimen. Multiple methods can be selected for specimens with sequential processing steps (e.g., casting followed by machining)."@en .
+```
+
+The GUI automatically creates a multi-select widget (QListWidget) for non-functional ObjectProperties.
+
+5. Update SHACL shapes if validation needed:
 
 ```turtle
 sh:property [
@@ -782,7 +831,7 @@ sh:property [
 ] .
 ```
 
-5. Reload ontology: `manager.reload_ontology()`
+6. Reload ontology: `manager.reload_ontology()`
 
 ### Creating Templates
 

@@ -1,0 +1,63 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@prefix qkdv: <http://qudt.org/vocab/quantitykind/> .
+@prefix dc: <http://purl.org/dc/terms/> .
+
+# =============================================================================
+# COMPOSITE PHASE DESCRIPTION CLASS PROPERTIES
+# For DynaMat Platform - Dynamic Materials Testing Ontology
+# Properties for reusable composite phase configuration templates
+# =============================================================================
+
+#################################################################
+#    Composite Phase Configuration Properties
+#################################################################
+
+dyn:hasMatrixMaterial rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:CompositePhaseDescription ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range dyn:Material ;
+    rdfs:label "Matrix Material"@en ;
+    dyn:hasDisplayName "Matrix Material" ;
+    dyn:hasFormGroup "CompositeProperties" ;
+    dyn:hasGroupOrder 3 ;
+    dyn:hasDisplayOrder 2 ;
+    rdfs:comment "Primary matrix material in composite phase configuration"@en .
+
+dyn:hasReinforcementMaterial rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:CompositePhaseDescription ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range dyn:Material ;
+    rdfs:label "Reinforcement Material"@en ;
+    dyn:hasDisplayName "Reinforcement Material" ;
+    dyn:hasFormGroup "CompositeProperties" ;
+    dyn:hasGroupOrder 3 ;
+    dyn:hasDisplayOrder 3 ;
+    rdfs:comment "Reinforcement material in composite phase configuration"@en .
+
+dyn:hasMatrixVolumeFraction rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:CompositePhaseDescription ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    rdfs:label "Matrix Volume Fraction"@en ;
+    dyn:hasDisplayName "Matrix Volume Fraction (decimal)" ;
+    dyn:hasFormGroup "CompositeProperties" ;
+    dyn:hasGroupOrder 3 ;
+    dyn:hasDisplayOrder 4 ;
+    rdfs:comment "Volume fraction of matrix material as decimal (e.g., 0.60 for 60%)"@en .
+
+dyn:hasReinforcementVolumeFraction rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:CompositePhaseDescription ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range xsd:double ;
+    rdfs:label "Reinforcement Volume Fraction"@en ;
+    dyn:hasDisplayName "Reinforcement Volume Fraction (decimal)" ;
+    dyn:hasFormGroup "CompositeProperties" ;
+    dyn:hasGroupOrder 3 ;
+    dyn:hasDisplayOrder 5 ;
+    rdfs:comment "Volume fraction of reinforcement material as decimal (e.g., 0.40 for 40%)"@en .

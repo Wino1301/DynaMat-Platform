@@ -661,7 +661,7 @@ dyn:hasTestTemperature rdf:type owl:DatatypeProperty ;
                        rdf:type owl:FunctionalProperty ;
                        rdfs:domain dyn:MechanicalTest ;
                        rdfs:range xsd:double ;
-                       qudt:hasQuantityKind qkdv:Temperature ;
+                       qudt:hasQuantityKind qkdv:BoilingPoint ;
                        rdfs:comment "Temperature during testing"@en ;
                        rdfs:label "Test Temperature"@en ;
                        dyn:hasDefaultUnit "unit:DEG_C" ;

@@ -73,8 +73,7 @@ class PropertyMetadata:
         self.data_type = self.data_type.lower()
         if not self.display_name:
             self.display_name = self._extract_display_name(self.name)
-        if not self.form_group:
-            self.form_group = "General"
+        # Note: We no longer default to "General" - properties without formGroup are filtered out
         if self.valid_values:
             self.valid_values = [v.strip() for v in self.valid_values if v.strip()]
             
@@ -166,7 +165,7 @@ class ClassMetadata:
     def get_ordered_groups(self) -> List[str]:
         def get_group_order(group_name: str) -> int:
             group_props = self.form_groups.get(group_name, [])
-            return min(prop.display_order for prop in group_props) if group_props else 999
+            return min(prop.group_order for prop in group_props) if group_props else 999
         return sorted(self.form_groups.keys(), key=get_group_order)
 
 
@@ -365,25 +364,30 @@ class GUISchemaBuilder:
         
         properties = []
         for result in results:
+            # Skip properties without formGroup annotation - they shouldn't appear in forms
+            if not result.get('formGroup'):
+                logger.debug(f"Skipping property {result.get('property')} - no formGroup annotation")
+                continue
+
             # Extract property name with fallback
             prop_name = result.get('propertyName', '') or self._extract_name_from_uri(result['property'])
-            
+
             # Extract display name with fallback chain
             display_name = (
-                result.get('displayName') or 
-                result.get('label') or 
+                result.get('displayName') or
+                result.get('label') or
                 self._convert_name_to_display_name(prop_name)
             )
-            
+
             # Determine data type properly
             data_type = self._determine_data_type_from_results(result)
-            
+
             # Create property metadata with all extracted information
             prop_metadata = PropertyMetadata(
                 uri=result['property'],
                 name=prop_name,
                 display_name=display_name,
-                form_group=result.get('formGroup', 'General'),
+                form_group=result.get('formGroup'),  # Now guaranteed to be present due to filter above
                 display_order=int(result.get('displayOrder', 999)),
                 data_type=data_type,
                 is_functional=self._is_functional_property(result['property']),

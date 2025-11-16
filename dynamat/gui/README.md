@@ -110,6 +110,8 @@ dynamat/gui/
 │ Widget Type Registry         │
 │ - line_edit                  │
 │ - combo                      │
+│ - object_combo               │
+│ - object_multi_select        │
 │ - spinbox                    │
 │ - double_spinbox             │
 │ - unit_value ← UnitValueWidget│
@@ -195,7 +197,8 @@ widget = factory.create_widget(property_metadata)
 | `xsd:double` + QUDT | `UnitValueWidget` | `unit_value` |
 | `xsd:boolean` | `QCheckBox` | `checkbox` |
 | `xsd:date` | `QDateEdit` | `date` |
-| `owl:ObjectProperty` | `QComboBox` | `object_combo` |
+| `owl:ObjectProperty` + functional | `QComboBox` | `object_combo` |
+| `owl:ObjectProperty` (non-functional) | `QListWidget` | `object_multi_select` |
 | String with "note" | `QTextEdit` | `text_area` |
 
 **Plugin Architecture:**
@@ -365,6 +368,7 @@ The handler knows how to extract/set values for each widget type:
 # QCheckBox → bool
 # QDateEdit → str (ISO format)
 # QComboBox → str (selected item data)
+# QListWidget → List[str] (list of selected URIs for multi-select)
 # UnitValueWidget → Dict {'value': float, 'unit': str, 'unit_symbol': str}
 ```
 
@@ -399,6 +403,8 @@ Constraints use a single `gui:Constraint` type that can perform multiple operati
 - **Visibility**: Show/hide fields
 - **Calculation**: Compute derived values
 - **Generation**: Generate IDs, codes, timestamps
+- **Population**: Auto-populate fields from selected individual (e.g., batch data)
+- **Filtering**: Filter dropdown options based on conditions
 
 All operations within a constraint execute atomically when triggered.
 
@@ -454,6 +460,31 @@ gui:specimen_c001 a gui:Constraint ;
     gui:generationInputs (dyn:hasMaterial) ;
     gui:priority 1 .
 ```
+
+**Population:**
+```turtle
+# Populate manufacturing details from batch
+gui:specimen_c019 a gui:Constraint ;
+    gui:forClass dyn:Specimen ;
+    gui:triggers dyn:hasSpecimenBatchID ;
+    gui:triggerLogic gui:ALL ;
+    gui:whenValue gui:anyValue ;
+    gui:populateFields (
+        (dyn:hasMaterial "Material")
+        (dyn:hasCreationDate "Creation Date")
+        (dyn:hasManufacturingMethod "Manufacturing Method")
+        (dyn:hasBuildOrientation "Build Orientation")
+        (dyn:hasLayerThickness "Layer Thickness")
+        (dyn:hasMachiningTolerance "Machining Tolerance")
+        (dyn:hasMetalTemperature "Molten Metal Temperature")
+        (dyn:hasMoldTemperature "Mold Temperature")
+        (dyn:hasCastCoolingDuration "Cast Cooling Duration")
+    ) ;
+    gui:makeReadOnly true ;
+    gui:priority 19 .
+```
+
+When the user selects a batch, all specified fields auto-populate with the batch's values and become read-only. When the batch is deselected, fields clear and become editable again.
 
 **Constraint Evaluation Flow:**
 
@@ -982,7 +1013,30 @@ gui:specimen_c001 a gui:Constraint ;
     gui:priority 1 .
 ```
 
-**4. Combined Operations** - Multiple operations in one constraint
+**4. Population Operations** - Auto-populate fields from individuals
+
+Use `gui:populateFields` and `gui:makeReadOnly` to populate multiple fields from a selected individual (e.g., batch data):
+
+```turtle
+gui:specimen_c019 a gui:Constraint ;
+    gui:triggers dyn:hasSpecimenBatchID ;
+    gui:whenValue gui:anyValue ;
+    gui:populateFields (
+        (dyn:hasMaterial "Material")
+        (dyn:hasManufacturingMethod "Manufacturing Method")
+        (dyn:hasMetalTemperature "Molten Metal Temperature")
+    ) ;
+    gui:makeReadOnly true ;
+    gui:priority 19 .
+```
+
+**Key Features:**
+- Populates fields from the selected individual's properties
+- `gui:makeReadOnly true` makes populated fields read-only
+- When selection is cleared, fields reset and become editable
+- Supports multi-value properties (e.g., multiple manufacturing methods)
+
+**5. Combined Operations** - Multiple operations in one constraint
 
 Combine visibility, calculation, and generation operations:
 

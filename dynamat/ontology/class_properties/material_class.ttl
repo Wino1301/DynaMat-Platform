@@ -301,7 +301,7 @@ dyn:hasDensity rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
 dyn:hasMeltingPoint rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Material ;
     rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Temperature ;
+    qudt:hasQuantityKind qkdv:BoilingPoint ;
     rdfs:label "Melting Point"@en ;
     dyn:hasDisplayName "Melting Point (°C)" ;
     dyn:hasFormGroup "ThermalProperties" ;
