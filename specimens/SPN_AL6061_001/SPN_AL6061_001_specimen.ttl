@@ -1,0 +1,21 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+dyn:SPN_AL6061_001 a owl:NamedIndividual,
+        dyn:Specimen ;
+    rdfs:label "SPN-AL6061-001"@en ;
+    dyn:hasCreationDate "2025-11-17T22:01:37.313177"^^xsd:dateTime,
+        "2025-01-15" ;
+    dyn:hasDynamatVersion "2.0.0" ;
+    dyn:hasManufacturingMethod "Machining" ;
+    dyn:hasMaterial dyn:Al6061_T6 ;
+    dyn:hasNotes "Test specimen created via InstanceWriter" ;
+    dyn:hasOriginalDiameter 6.35e+00 ;
+    dyn:hasOriginalLength 1e+01 ;
+    dyn:hasOriginalMass 8.51e-01 ;
+    dyn:hasSpecimenID "SPN-AL6061-001" ;
+    dyn:hasSurfaceFinish "Polished" ;
+    dyn:hasUser dyn:PlaceholderUser .
+
