@@ -83,7 +83,7 @@ Correct:
 
 Issues:
 - qudt:hasQuantityKind qkdv:Mass → should be qkdv:Length (Ra measures height)
-- Missing dyn:hasDefaultUnit → add "unit:MicroM"
+- Missing dyn:hasUnit → add "unit:MicroM"
 - displayOrder conflicts with existing property → check line 78
 
 Fix these and verify against the ontology-semantic-validator checklist.
@@ -204,7 +204,7 @@ Takes 3 minutes to write yourself. Want to proceed?
 Issues found:
 
 Line 12: qkdv:Mass → qkdv:Length (surface roughness is height measurement)
-Line 18: Missing dyn:hasDefaultUnit
+Line 18: Missing dyn:hasUnit
 Line 22: displayOrder 3 conflicts with hasOriginalDiameter
 
 Reference ontology-semantic-validator.md for complete checklist.

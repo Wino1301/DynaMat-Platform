@@ -1,5 +1,6 @@
 @prefix dc: <http://purl.org/dc/terms/> .
 @prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix gui: <https://dynamat.utep.edu/ontology/gui#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
@@ -21,24 +22,24 @@
 qudt:hasQuantityKind rdf:type owl:AnnotationProperty .
 
 
-###  https://dynamat.utep.edu/ontology#hasDefaultUnit
-dyn:hasDefaultUnit rdf:type owl:AnnotationProperty .
+###  https://dynamat.utep.edu/ontology#hasUnit
+dyn:hasUnit rdf:type owl:AnnotationProperty .
 
 
-###  https://dynamat.utep.edu/ontology#hasDisplayName
-dyn:hasDisplayName rdf:type owl:AnnotationProperty .
+###  https://dynamat.utep.edu/ontology/gui#hasDisplayName
+gui:hasDisplayName rdf:type owl:AnnotationProperty .
 
 
-###  https://dynamat.utep.edu/ontology#hasDisplayOrder
-dyn:hasDisplayOrder rdf:type owl:AnnotationProperty .
+###  https://dynamat.utep.edu/ontology/gui#hasDisplayOrder
+gui:hasDisplayOrder rdf:type owl:AnnotationProperty .
 
 
-###  https://dynamat.utep.edu/ontology#hasFormGroup
-dyn:hasFormGroup rdf:type owl:AnnotationProperty .
+###  https://dynamat.utep.edu/ontology/gui#hasFormGroup
+gui:hasFormGroup rdf:type owl:AnnotationProperty .
 
 
-###  https://dynamat.utep.edu/ontology#hasValidValues
-dyn:hasValidValues rdf:type owl:AnnotationProperty .
+###  https://dynamat.utep.edu/ontology/gui#hasValidValues
+gui:hasValidValues rdf:type owl:AnnotationProperty .
 
 
 #################################################################
@@ -51,9 +52,9 @@ dyn:derivedFrom rdf:type owl:ObjectProperty ;
                 rdfs:range dyn:DataSeries ;
                 rdfs:comment "Raw data series used to calculate this processed data"@en ;
                 rdfs:label "Derived From"@en ;
-                dyn:hasDisplayName "Derived From" ;
-                dyn:hasDisplayOrder 2 ;
-                dyn:hasFormGroup "DataProvenance" .
+                gui:hasDisplayName "Derived From" ;
+                gui:hasDisplayOrder 2 ;
+                gui:hasFormGroup "DataProvenance" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasConfigurationTemplate
@@ -98,9 +99,9 @@ dyn:measuredBy rdf:type owl:ObjectProperty ;
                rdfs:range dyn:MeasurementEquipment ;
                rdfs:comment "Which sensor/equipment collected this data"@en ;
                rdfs:label "Measured By"@en ;
-               dyn:hasDisplayName "Measured By" ;
-               dyn:hasDisplayOrder 1 ;
-               dyn:hasFormGroup "DataProvenance" .
+               gui:hasDisplayName "Measured By" ;
+               gui:hasDisplayOrder 1 ;
+               gui:hasFormGroup "DataProvenance" .
 
 
 #################################################################
@@ -114,9 +115,9 @@ dyn:hasColumnIndex rdf:type owl:DatatypeProperty ,
                    rdfs:range xsd:integer ;
                    rdfs:comment "Zero-based column position in CSV"@en ;
                    rdfs:label "Column Index"@en ;
-                   dyn:hasDisplayName "Column Index" ;
-                   dyn:hasDisplayOrder 2 ;
-                   dyn:hasFormGroup "ColumnMetadata" .
+                   gui:hasDisplayName "Column Index" ;
+                   gui:hasDisplayOrder 2 ;
+                   gui:hasFormGroup "ColumnMetadata" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasColumnName
@@ -126,9 +127,9 @@ dyn:hasColumnName rdf:type owl:DatatypeProperty ,
                   rdfs:range xsd:string ;
                   rdfs:comment "Exact CSV column header name"@en ;
                   rdfs:label "Column Name"@en ;
-                  dyn:hasDisplayName "CSV Column Name" ;
-                  dyn:hasDisplayOrder 1 ;
-                  dyn:hasFormGroup "ColumnMetadata" .
+                  gui:hasDisplayName "CSV Column Name" ;
+                  gui:hasDisplayOrder 1 ;
+                  gui:hasFormGroup "ColumnMetadata" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasConfigurationName
@@ -138,9 +139,9 @@ dyn:hasConfigurationName rdf:type owl:DatatypeProperty ,
                          rdfs:range xsd:string ;
                          rdfs:comment "Name of this test configuration"@en ;
                          rdfs:label "Configuration Name"@en ;
-                         dyn:hasDisplayName "Configuration Name" ;
-                         dyn:hasDisplayOrder 1 ;
-                         dyn:hasFormGroup "ConfigurationInfo" .
+                         gui:hasDisplayName "Configuration Name" ;
+                         gui:hasDisplayOrder 1 ;
+                         gui:hasFormGroup "ConfigurationInfo" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasConfigurationTemplate
@@ -156,9 +157,9 @@ dyn:hasConfigurationVersion rdf:type owl:DatatypeProperty ,
                             rdfs:range xsd:string ;
                             rdfs:comment "Version number of this configuration"@en ;
                             rdfs:label "Configuration Version"@en ;
-                            dyn:hasDisplayName "Version" ;
-                            dyn:hasDisplayOrder 2 ;
-                            dyn:hasFormGroup "ConfigurationInfo" .
+                            gui:hasDisplayName "Version" ;
+                            gui:hasDisplayOrder 2 ;
+                            gui:hasFormGroup "ConfigurationInfo" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasDataColumn
@@ -178,9 +179,9 @@ dyn:hasDataPoints rdf:type owl:DatatypeProperty ,
                   rdfs:range xsd:integer ;
                   rdfs:comment "Number of data points in this series"@en ;
                   rdfs:label "Data Points"@en ;
-                  dyn:hasDisplayName "Number of Data Points" ;
-                  dyn:hasDisplayOrder 1 ;
-                  dyn:hasFormGroup "DataCharacteristics" .
+                  gui:hasDisplayName "Number of Data Points" ;
+                  gui:hasDisplayOrder 1 ;
+                  gui:hasFormGroup "DataCharacteristics" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasDataType
@@ -190,10 +191,10 @@ dyn:hasDataType rdf:type owl:DatatypeProperty ,
                 rdfs:range xsd:string ;
                 rdfs:comment "Type of data in this series"@en ;
                 rdfs:label "Data Type"@en ;
-                dyn:hasDisplayName "Data Type" ;
-                dyn:hasDisplayOrder 3 ;
-                dyn:hasFormGroup "DataCharacteristics" ;
-                dyn:hasValidValues "RawSignal,ProcessedData,CalculatedProperty,Timestamp" .
+                gui:hasDisplayName "Data Type" ;
+                gui:hasDisplayOrder 3 ;
+                gui:hasFormGroup "DataCharacteristics" ;
+                gui:hasValidValues "RawSignal,ProcessedData,CalculatedProperty,Timestamp" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasDelimiter
@@ -203,10 +204,10 @@ dyn:hasDelimiter rdf:type owl:DatatypeProperty ,
                  rdfs:range xsd:string ;
                  rdfs:comment "CSV delimiter character (comma, semicolon, tab, pipe)"@en ;
                  rdfs:label "Delimiter"@en ;
-                 dyn:hasDisplayName "CSV Delimiter" ;
-                 dyn:hasDisplayOrder 1 ;
-                 dyn:hasFormGroup "FileFormat" ;
-                 dyn:hasValidValues ",;|	" .
+                 gui:hasDisplayName "CSV Delimiter" ;
+                 gui:hasDisplayOrder 1 ;
+                 gui:hasFormGroup "FileFormat" ;
+                 gui:hasValidValues ",;|	" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasFileEncoding
@@ -216,10 +217,10 @@ dyn:hasFileEncoding rdf:type owl:DatatypeProperty ,
                     rdfs:range xsd:string ;
                     rdfs:comment "Character encoding of the file (e.g., UTF-8)"@en ;
                     rdfs:label "File Encoding"@en ;
-                    dyn:hasDisplayName "File Encoding" ;
-                    dyn:hasDisplayOrder 3 ;
-                    dyn:hasFormGroup "FileMetadata" ;
-                    dyn:hasValidValues "UTF-8,ASCII,ISO-8859-1" .
+                    gui:hasDisplayName "File Encoding" ;
+                    gui:hasDisplayOrder 3 ;
+                    gui:hasFormGroup "FileMetadata" ;
+                    gui:hasValidValues "UTF-8,ASCII,ISO-8859-1" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasFileName
@@ -229,9 +230,9 @@ dyn:hasFileName rdf:type owl:DatatypeProperty ,
                 rdfs:range xsd:string ;
                 rdfs:comment "CSV filename (e.g., raw_data.csv)"@en ;
                 rdfs:label "File Name"@en ;
-                dyn:hasDisplayName "File Name" ;
-                dyn:hasDisplayOrder 1 ;
-                dyn:hasFormGroup "FileMetadata" .
+                gui:hasDisplayName "File Name" ;
+                gui:hasDisplayOrder 1 ;
+                gui:hasFormGroup "FileMetadata" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasFileSize
@@ -241,9 +242,9 @@ dyn:hasFileSize rdf:type owl:DatatypeProperty ,
                 rdfs:range xsd:integer ;
                 rdfs:comment "Size of file in bytes"@en ;
                 rdfs:label "File Size"@en ;
-                dyn:hasDisplayName "File Size (bytes)" ;
-                dyn:hasDisplayOrder 4 ;
-                dyn:hasFormGroup "FileMetadata" .
+                gui:hasDisplayName "File Size (bytes)" ;
+                gui:hasDisplayOrder 4 ;
+                gui:hasFormGroup "FileMetadata" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasFilterApplied
@@ -253,9 +254,9 @@ dyn:hasFilterApplied rdf:type owl:DatatypeProperty ,
                      rdfs:range xsd:boolean ;
                      rdfs:comment "Whether filtering was applied to this data"@en ;
                      rdfs:label "Filter Applied"@en ;
-                     dyn:hasDisplayName "Filter Applied" ;
-                     dyn:hasDisplayOrder 2 ;
-                     dyn:hasFormGroup "ProcessingInfo" .
+                     gui:hasDisplayName "Filter Applied" ;
+                     gui:hasDisplayOrder 2 ;
+                     gui:hasFormGroup "ProcessingInfo" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasFilterFrequency
@@ -266,10 +267,10 @@ dyn:hasFilterFrequency rdf:type owl:DatatypeProperty ,
                        qudt:hasQuantityKind qkdv:Frequency ;
                        rdfs:comment "Cutoff frequency for applied filter"@en ;
                        rdfs:label "Filter Frequency"@en ;
-                       dyn:hasDefaultUnit "unit:HZ" ;
-                       dyn:hasDisplayName "Filter Frequency (Hz)" ;
-                       dyn:hasDisplayOrder 4 ;
-                       dyn:hasFormGroup "ProcessingInfo" .
+                       dyn:hasUnit "unit:HZ" ;
+                       gui:hasDisplayName "Filter Frequency (Hz)" ;
+                       gui:hasDisplayOrder 4 ;
+                       gui:hasFormGroup "ProcessingInfo" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasFilterType
@@ -279,10 +280,10 @@ dyn:hasFilterType rdf:type owl:DatatypeProperty ,
                   rdfs:range xsd:string ;
                   rdfs:comment "Type of filter applied (if any)"@en ;
                   rdfs:label "Filter Type"@en ;
-                  dyn:hasDisplayName "Filter Type" ;
-                  dyn:hasDisplayOrder 3 ;
-                  dyn:hasFormGroup "ProcessingInfo" ;
-                  dyn:hasValidValues "LowPass,HighPass,BandPass,Butterworth,Savitzky-Golay" .
+                  gui:hasDisplayName "Filter Type" ;
+                  gui:hasDisplayOrder 3 ;
+                  gui:hasFormGroup "ProcessingInfo" ;
+                  gui:hasValidValues "LowPass,HighPass,BandPass,Butterworth,Savitzky-Golay" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasHeaderRow
@@ -292,9 +293,9 @@ dyn:hasHeaderRow rdf:type owl:DatatypeProperty ,
                  rdfs:range xsd:boolean ;
                  rdfs:comment "Whether CSV file contains column headers"@en ;
                  rdfs:label "Header Row"@en ;
-                 dyn:hasDisplayName "Has Header Row" ;
-                 dyn:hasDisplayOrder 2 ;
-                 dyn:hasFormGroup "FileFormat" .
+                 gui:hasDisplayName "Has Header Row" ;
+                 gui:hasDisplayOrder 2 ;
+                 gui:hasFormGroup "FileFormat" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasLegendName
@@ -304,9 +305,9 @@ dyn:hasLegendName rdf:type owl:DatatypeProperty ,
                   rdfs:range xsd:string ;
                   rdfs:comment "Human-readable name for plots and displays"@en ;
                   rdfs:label "Legend Name"@en ;
-                  dyn:hasDisplayName "Display Name" ;
-                  dyn:hasDisplayOrder 3 ;
-                  dyn:hasFormGroup "ColumnMetadata" .
+                  gui:hasDisplayName "Display Name" ;
+                  gui:hasDisplayOrder 3 ;
+                  gui:hasFormGroup "ColumnMetadata" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasOptionalColumns
@@ -315,9 +316,9 @@ dyn:hasOptionalColumns rdf:type owl:DatatypeProperty ;
                        rdfs:range xsd:string ;
                        rdfs:comment "CSV column names that may be present"@en ;
                        rdfs:label "Optional Columns"@en ;
-                       dyn:hasDisplayName "Optional Columns" ;
-                       dyn:hasDisplayOrder 2 ;
-                       dyn:hasFormGroup "ColumnMapping" .
+                       gui:hasDisplayName "Optional Columns" ;
+                       gui:hasDisplayOrder 2 ;
+                       gui:hasFormGroup "ColumnMapping" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasProcessedDataFile
@@ -333,9 +334,9 @@ dyn:hasProcessingMethod rdf:type owl:DatatypeProperty ,
                         rdfs:range xsd:string ;
                         rdfs:comment "Algorithm or method used to calculate this data"@en ;
                         rdfs:label "Processing Method"@en ;
-                        dyn:hasDisplayName "Processing Method" ;
-                        dyn:hasDisplayOrder 1 ;
-                        dyn:hasFormGroup "ProcessingInfo" .
+                        gui:hasDisplayName "Processing Method" ;
+                        gui:hasDisplayOrder 1 ;
+                        gui:hasFormGroup "ProcessingInfo" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasRawDataFile
@@ -351,9 +352,9 @@ dyn:hasRelativePath rdf:type owl:DatatypeProperty ,
                     rdfs:range xsd:string ;
                     rdfs:comment "Path relative to specimen folder (e.g., raw/)"@en ;
                     rdfs:label "Relative Path"@en ;
-                    dyn:hasDisplayName "Relative Path" ;
-                    dyn:hasDisplayOrder 2 ;
-                    dyn:hasFormGroup "FileMetadata" .
+                    gui:hasDisplayName "Relative Path" ;
+                    gui:hasDisplayOrder 2 ;
+                    gui:hasFormGroup "FileMetadata" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasRequiredColumns
@@ -362,9 +363,9 @@ dyn:hasRequiredColumns rdf:type owl:DatatypeProperty ;
                        rdfs:range xsd:string ;
                        rdfs:comment "CSV column names that must be present"@en ;
                        rdfs:label "Required Columns"@en ;
-                       dyn:hasDisplayName "Required Columns" ;
-                       dyn:hasDisplayOrder 1 ;
-                       dyn:hasFormGroup "ColumnMapping" .
+                       gui:hasDisplayName "Required Columns" ;
+                       gui:hasDisplayOrder 1 ;
+                       gui:hasFormGroup "ColumnMapping" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasSkipRows
@@ -374,9 +375,9 @@ dyn:hasSkipRows rdf:type owl:DatatypeProperty ,
                 rdfs:range xsd:integer ;
                 rdfs:comment "Number of initial rows to skip when reading"@en ;
                 rdfs:label "Skip Rows"@en ;
-                dyn:hasDisplayName "Rows to Skip" ;
-                dyn:hasDisplayOrder 3 ;
-                dyn:hasFormGroup "FileFormat" .
+                gui:hasDisplayName "Rows to Skip" ;
+                gui:hasDisplayOrder 3 ;
+                gui:hasFormGroup "FileFormat" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasStandardColumnNames
@@ -385,9 +386,9 @@ dyn:hasStandardColumnNames rdf:type owl:DatatypeProperty ;
                            rdfs:range xsd:string ;
                            rdfs:comment "Recommended standard column naming"@en ;
                            rdfs:label "Standard Column Names"@en ;
-                           dyn:hasDisplayName "Standard Columns" ;
-                           dyn:hasDisplayOrder 3 ;
-                           dyn:hasFormGroup "ColumnMapping" .
+                           gui:hasDisplayName "Standard Columns" ;
+                           gui:hasDisplayOrder 3 ;
+                           gui:hasFormGroup "ColumnMapping" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasTestConfiguration
@@ -403,9 +404,9 @@ dyn:hasTukeyFactor rdf:type owl:DatatypeProperty ,
                    rdfs:range xsd:double ;
                    rdfs:comment "Tukey windowing factor used for PINN loss calculation"@en ;
                    rdfs:label "Tukey Factor"@en ;
-                   dyn:hasDisplayName "Tukey Factor" ;
-                   dyn:hasDisplayOrder 5 ;
-                   dyn:hasFormGroup "ProcessingInfo" .
+                   gui:hasDisplayName "Tukey Factor" ;
+                   gui:hasDisplayOrder 5 ;
+                   gui:hasFormGroup "ProcessingInfo" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasTukeyWindowLength
@@ -415,9 +416,9 @@ dyn:hasTukeyWindowLength rdf:type owl:DatatypeProperty ,
                          rdfs:range xsd:integer ;
                          rdfs:comment "Length of Tukey window applied to pulse data"@en ;
                          rdfs:label "Tukey Window Length"@en ;
-                         dyn:hasDisplayName "Tukey Window Length" ;
-                         dyn:hasDisplayOrder 6 ;
-                         dyn:hasFormGroup "ProcessingInfo" .
+                         gui:hasDisplayName "Tukey Window Length" ;
+                         gui:hasDisplayOrder 6 ;
+                         gui:hasFormGroup "ProcessingInfo" .
 
 
 ###  https://dynamat.utep.edu/ontology#isActive
@@ -427,9 +428,9 @@ dyn:isActive rdf:type owl:DatatypeProperty ,
              rdfs:range xsd:boolean ;
              rdfs:comment "Whether this configuration is currently active/enabled"@en ;
              rdfs:label "Is Active"@en ;
-             dyn:hasDisplayName "Active" ;
-             dyn:hasDisplayOrder 4 ;
-             dyn:hasFormGroup "ConfigurationInfo" .
+             gui:hasDisplayName "Active" ;
+             gui:hasDisplayOrder 4 ;
+             gui:hasFormGroup "ConfigurationInfo" .
 
 
 ###  https://dynamat.utep.edu/ontology#isAlignedPulse
@@ -439,9 +440,9 @@ dyn:isAlignedPulse rdf:type owl:DatatypeProperty ,
                    rdfs:range xsd:boolean ;
                    rdfs:comment "Whether pulse data has been time-aligned"@en ;
                    rdfs:label "Aligned Pulse"@en ;
-                   dyn:hasDisplayName "Aligned Pulse" ;
-                   dyn:hasDisplayOrder 8 ;
-                   dyn:hasFormGroup "ProcessingInfo" .
+                   gui:hasDisplayName "Aligned Pulse" ;
+                   gui:hasDisplayOrder 8 ;
+                   gui:hasFormGroup "ProcessingInfo" .
 
 
 ###  https://dynamat.utep.edu/ontology#isCenteredPulse
@@ -451,9 +452,9 @@ dyn:isCenteredPulse rdf:type owl:DatatypeProperty ,
                     rdfs:range xsd:boolean ;
                     rdfs:comment "Whether pulse data has been centered and aligned"@en ;
                     rdfs:label "Centered Pulse"@en ;
-                    dyn:hasDisplayName "Centered Pulse" ;
-                    dyn:hasDisplayOrder 7 ;
-                    dyn:hasFormGroup "ProcessingInfo" .
+                    gui:hasDisplayName "Centered Pulse" ;
+                    gui:hasDisplayOrder 7 ;
+                    gui:hasFormGroup "ProcessingInfo" .
 
 
 ###  https://dynamat.utep.edu/ontology#isReferencePulse
@@ -463,9 +464,9 @@ dyn:isReferencePulse rdf:type owl:DatatypeProperty ,
                      rdfs:range xsd:boolean ;
                      rdfs:comment "High-quality pulse data used as template for window selection"@en ;
                      rdfs:label "Reference Pulse"@en ;
-                     dyn:hasDisplayName "Reference Pulse" ;
-                     dyn:hasDisplayOrder 1 ;
-                     dyn:hasFormGroup "DataQuality" .
+                     gui:hasDisplayName "Reference Pulse" ;
+                     gui:hasDisplayOrder 1 ;
+                     gui:hasFormGroup "DataQuality" .
 
 
 ###  https://dynamat.utep.edu/ontology#isTemplate
@@ -475,9 +476,9 @@ dyn:isTemplate rdf:type owl:DatatypeProperty ,
                rdfs:range xsd:boolean ;
                rdfs:comment "Whether this is a reusable template configuration"@en ;
                rdfs:label "Is Template"@en ;
-               dyn:hasDisplayName "Is Template" ;
-               dyn:hasDisplayOrder 3 ;
-               dyn:hasFormGroup "ConfigurationInfo" .
+               gui:hasDisplayName "Is Template" ;
+               gui:hasDisplayOrder 3 ;
+               gui:hasFormGroup "ConfigurationInfo" .
 
 
 ###  https://dynamat.utep.edu/ontology#isTrainingData
@@ -487,9 +488,9 @@ dyn:isTrainingData rdf:type owl:DatatypeProperty ,
                    rdfs:range xsd:boolean ;
                    rdfs:comment "Whether this data series is used for PINN training"@en ;
                    rdfs:label "Training Data"@en ;
-                   dyn:hasDisplayName "Training Data" ;
-                   dyn:hasDisplayOrder 1 ;
-                   dyn:hasFormGroup "MachineLearning" .
+                   gui:hasDisplayName "Training Data" ;
+                   gui:hasDisplayOrder 1 ;
+                   gui:hasFormGroup "MachineLearning" .
 
 
 #################################################################
@@ -528,44 +529,44 @@ dyn:TukeyProcessedSeries rdf:type owl:Class ;
 
 dyn:hasConfigurationTemplate rdfs:comment "Parent template this configuration extends"@en ;
                              rdfs:label "Configuration Template"@en ;
-                             dyn:hasDisplayName "Based on Template" ;
-                             dyn:hasDisplayOrder 1 ;
-                             dyn:hasFormGroup "Configuration" .
+                             gui:hasDisplayName "Based on Template" ;
+                             gui:hasDisplayOrder 1 ;
+                             gui:hasFormGroup "Configuration" .
 
 
 dyn:hasDataColumn rdfs:comment "Data columns available in this CSV file"@en ;
                   rdfs:label "Data Column"@en ;
-                  dyn:hasDisplayName "Data Column" ;
-                  dyn:hasDisplayOrder 1 ;
-                  dyn:hasFormGroup "DataStructure" .
+                  gui:hasDisplayName "Data Column" ;
+                  gui:hasDisplayOrder 1 ;
+                  gui:hasFormGroup "DataStructure" .
 
 
 dyn:hasDataFile rdfs:comment "Links test to its CSV data files"@en ;
                 rdfs:label "Data File"@en ;
-                dyn:hasDisplayName "Data File" ;
-                dyn:hasDisplayOrder 1 ;
-                dyn:hasFormGroup "DataFiles" .
+                gui:hasDisplayName "Data File" ;
+                gui:hasDisplayOrder 1 ;
+                gui:hasFormGroup "DataFiles" .
 
 
 dyn:hasProcessedDataFile rdfs:comment "Calculated/processed results CSV file"@en ;
                          rdfs:label "Processed Data File"@en ;
-                         dyn:hasDisplayName "Processed Data File" ;
-                         dyn:hasDisplayOrder 2 ;
-                         dyn:hasFormGroup "DataFiles" .
+                         gui:hasDisplayName "Processed Data File" ;
+                         gui:hasDisplayOrder 2 ;
+                         gui:hasFormGroup "DataFiles" .
 
 
 dyn:hasRawDataFile rdfs:comment "Primary raw sensor data CSV file"@en ;
                    rdfs:label "Raw Data File"@en ;
-                   dyn:hasDisplayName "Raw Data File" ;
-                   dyn:hasDisplayOrder 1 ;
-                   dyn:hasFormGroup "DataFiles" .
+                   gui:hasDisplayName "Raw Data File" ;
+                   gui:hasDisplayOrder 1 ;
+                   gui:hasFormGroup "DataFiles" .
 
 
 dyn:hasTestConfiguration rdfs:comment "Configuration template used for this test"@en ;
                          rdfs:label "Test Configuration"@en ;
-                         dyn:hasDisplayName "Test Configuration" ;
-                         dyn:hasDisplayOrder 1 ;
-                         dyn:hasFormGroup "Configuration" .
+                         gui:hasDisplayName "Test Configuration" ;
+                         gui:hasDisplayOrder 1 ;
+                         gui:hasFormGroup "Configuration" .
 
 
 ###  Generated by the OWL API (version 4.5.29.2024-05-13T12:11:03Z) https://github.com/owlcs/owlapi

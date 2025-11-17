@@ -78,11 +78,11 @@ dyn:hasOriginalLength rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     qudt:hasQuantityKind qkdv:Length ;
 
     # GUI annotations (CRITICAL for form generation)
-    dyn:hasDisplayName "Original Length (mm)" ;
-    dyn:hasFormGroup "GeometryDimensions" ;
-    dyn:hasGroupOrder 2 ;
-    dyn:hasDisplayOrder 3 ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
+    gui:hasDisplayName "Original Length (mm)" ;
+    gui:hasFormGroup "GeometryDimensions" ;
+    gui:hasGroupOrder 2 ;
+    gui:hasDisplayOrder 3 ;
+    dyn:hasUnit "unit:MilliM" ;
 
     rdfs:label "Original Length"@en ;
     rdfs:comment "Initial length of specimen before testing"@en .
@@ -95,11 +95,11 @@ dyn:hasOriginalLength rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
 - [ ] Proper rdfs:range (data type or class)
 - [ ] QUDT integration for measurements (qudt:hasQuantityKind)
 - [ ] **GUI Annotations** (essential for GUI generation):
-  - [ ] dyn:hasDisplayName (user-friendly label)
-  - [ ] dyn:hasFormGroup (which section of form)
-  - [ ] dyn:hasGroupOrder (order of sections)
-  - [ ] dyn:hasDisplayOrder (order within section)
-  - [ ] dyn:hasDefaultUnit (for measurement properties)
+  - [ ] gui:hasDisplayName (user-friendly label)
+  - [ ] gui:hasFormGroup (which section of form)
+  - [ ] gui:hasGroupOrder (order of sections)
+  - [ ] gui:hasDisplayOrder (order within section)
+  - [ ] dyn:hasUnit (for measurement properties)
 - [ ] Documentation (rdfs:label and rdfs:comment)
 - [ ] Naming convention (camelCase starting with "has", "is", or similar verb)
 
@@ -154,21 +154,21 @@ The GUI module depends entirely on ontology annotations to generate forms. **Mis
 ### Required GUI Annotations by Widget Type
 
 **For all properties that should appear in forms**:
-- `dyn:hasDisplayName` - Label shown to user (REQUIRED)
-- `dyn:hasFormGroup` - Section of form (REQUIRED)
-- `dyn:hasGroupOrder` - Order of sections (REQUIRED)
-- `dyn:hasDisplayOrder` - Order within section (REQUIRED)
+- `gui:hasDisplayName` - Label shown to user (REQUIRED)
+- `gui:hasFormGroup` - Section of form (REQUIRED)
+- `gui:hasGroupOrder` - Order of sections (REQUIRED)
+- `gui:hasDisplayOrder` - Order within section (REQUIRED)
 
 **For measurement properties (with units)**:
 - `qudt:hasQuantityKind` - Type of measurement (Length, Mass, Temperature, etc.)
-- `dyn:hasDefaultUnit` - Default unit selection (e.g., "unit:MilliM")
+- `dyn:hasUnit` - Unit for the measurement (e.g., "unit:MilliM")
 
 **For constrained string values**:
-- `dyn:hasValidValues` - List of allowed values (creates dropdown)
+- `gui:hasValidValues` - List of allowed values (creates dropdown)
 
 **Optional but recommended**:
-- `dyn:hasTooltip` - Help text shown on hover
-- `dyn:hasPlaceholder` - Placeholder text in input fields
+- `gui:hasTooltip` - Help text shown on hover
+- `gui:hasPlaceholder` - Placeholder text in input fields
 
 ### Widget Type Inference
 
@@ -177,7 +177,7 @@ The GUI automatically chooses widgets based on property definitions:
 | Property Definition | Widget Created |
 |---------------------|----------------|
 | `xsd:string` | Text input (QLineEdit) |
-| `xsd:string` + `dyn:hasValidValues` | Dropdown (QComboBox) |
+| `xsd:string` + `gui:hasValidValues` | Dropdown (QComboBox) |
 | `xsd:integer` | Number input (QSpinBox) |
 | `xsd:double` | Decimal input (QDoubleSpinBox) |
 | `xsd:double` + `qudt:hasQuantityKind` | UnitValueWidget (number + unit dropdown) |
@@ -203,7 +203,7 @@ dyn:SPN_001 dyn:hasOriginalLength 10.0 ;
 # Option B: QUDT integration (preferred for new properties)
 dyn:hasOriginalLength rdf:type owl:DatatypeProperty ;
     qudt:hasQuantityKind qkdv:Length ;
-    dyn:hasDefaultUnit "unit:MilliM" .
+    dyn:hasUnit "unit:MilliM" .
 ```
 
 ### Pattern 2: Individual vs. Literal Values
@@ -263,9 +263,9 @@ When reviewing ontology changes, follow this process:
 - [ ] Units specified in comments where applicable
 
 ### Step 3: GUI Annotation Completeness
-- [ ] All user-facing properties have dyn:hasDisplayName
-- [ ] Form grouping specified (dyn:hasFormGroup)
-- [ ] Display order specified (dyn:hasDisplayOrder)
+- [ ] All user-facing properties have gui:hasDisplayName
+- [ ] Form grouping specified (gui:hasFormGroup)
+- [ ] Display order specified (gui:hasDisplayOrder)
 - [ ] Measurement properties have QUDT annotations
 - [ ] Object properties point to correct classes
 
@@ -293,11 +293,11 @@ When reviewing ontology changes, follow this process:
 
 ### Issue 3: Measurement Properties Without QUDT
 **Problem**: GUI creates simple number input instead of unit-aware widget
-**Solution**: Add qudt:hasQuantityKind and dyn:hasDefaultUnit
+**Solution**: Add qudt:hasQuantityKind and dyn:hasUnit
 
 ### Issue 4: Inconsistent Form Grouping
 **Problem**: Related fields scattered across form
-**Solution**: Use consistent dyn:hasFormGroup values for related properties
+**Solution**: Use consistent gui:hasFormGroup values for related properties
 
 ### Issue 5: Missing Documentation
 **Problem**: Developers and users don't understand property purpose
@@ -324,8 +324,8 @@ When validating ontology changes, structure your response as:
 dyn:hasSurfaceRoughness rdf:type owl:DatatypeProperty ;
     rdfs:domain dyn:Specimen ;
     rdfs:range xsd:double ;
-    dyn:hasDisplayName "Surface Roughness" ;
-    dyn:hasFormGroup "Manufacturing" .
+    gui:hasDisplayName "Surface Roughness" ;
+    gui:hasFormGroup "Manufacturing" .
 ```
 
 **Your response**:
@@ -341,10 +341,10 @@ Adding surface roughness property to Specimen class.
 ❌ Missing documentation (rdfs:label, rdfs:comment)
 
 ### GUI Metadata Check
-✅ Has dyn:hasDisplayName
-✅ Has dyn:hasFormGroup
-❌ Missing dyn:hasGroupOrder
-❌ Missing dyn:hasDisplayOrder
+✅ Has gui:hasDisplayName
+✅ Has gui:hasFormGroup
+❌ Missing gui:hasGroupOrder
+❌ Missing gui:hasDisplayOrder
 ❌ Missing QUDT annotations (this is a measurement!)
 
 ### Pattern Compliance
@@ -361,12 +361,12 @@ dyn:hasSurfaceRoughness rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     qudt:hasQuantityKind qkdv:Length ;  # Surface roughness is a length measurement
 
     # GUI annotations
-    dyn:hasDisplayName "Surface Roughness (Ra)" ;
-    dyn:hasFormGroup "Manufacturing" ;
-    dyn:hasGroupOrder 3 ;  # Manufacturing is typically group 3
-    dyn:hasDisplayOrder 1 ;  # First field in Manufacturing group
-    dyn:hasDefaultUnit "unit:MicroM" ;  # Ra typically measured in micrometers
-    dyn:hasTooltip "Average surface roughness (Ra) measured via profilometry" ;
+    gui:hasDisplayName "Surface Roughness (Ra)" ;
+    gui:hasFormGroup "Manufacturing" ;
+    gui:hasGroupOrder 3 ;  # Manufacturing is typically group 3
+    gui:hasDisplayOrder 1 ;  # First field in Manufacturing group
+    dyn:hasUnit "unit:MicroM" ;  # Ra typically measured in micrometers
+    gui:hasTooltip "Average surface roughness (Ra) measured via profilometry" ;
 
     rdfs:label "Surface Roughness"@en ;
     rdfs:comment "Average roughness (Ra) of the specimen surface, typically measured in micrometers using a contact or optical profilometer."@en .

@@ -115,14 +115,14 @@ Form appears with proper labels, order, and validation
 ### Key GUI Annotations
 
 Properties need these annotations to appear in forms:
-- `dyn:hasDisplayName` - Label shown to user
-- `dyn:hasFormGroup` - Which section of the form
-- `dyn:hasGroupOrder` - Order of sections
-- `dyn:hasDisplayOrder` - Order within section
+- `gui:hasDisplayName` - Label shown to user
+- `gui:hasFormGroup` - Which section of the form
+- `gui:hasGroupOrder` - Order of sections
+- `gui:hasDisplayOrder` - Order within section
 
 For measurements (values with units):
 - `qudt:hasQuantityKind` - Type of measurement (Length, Mass, etc.)
-- `dyn:hasDefaultUnit` - Default unit selection
+- `dyn:hasUnit` - Unit for the measurement
 
 **See `.claude/agents/ontology-semantic-validator.md` for detailed ontology patterns and validation requirements.**
 
@@ -256,7 +256,7 @@ dyn:SPN_001 dyn:hasLength "10.0 mm" .
 # RIGHT - structured and queryable
 dyn:hasOriginalLength rdf:type owl:DatatypeProperty ;
     qudt:hasQuantityKind qkdv:Length ;
-    dyn:hasDefaultUnit "unit:MilliM" .
+    dyn:hasUnit "unit:MilliM" .
 ```
 
 The GUI automatically creates a UnitValueWidget when it sees `qudt:hasQuantityKind`.

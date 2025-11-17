@@ -1,4 +1,5 @@
 @prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix gui: <https://dynamat.utep.edu/ontology/gui#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
@@ -23,18 +24,18 @@ dyn:hasReproductionSimulation rdf:type owl:ObjectProperty ;
     rdfs:domain dyn:MechanicalTest ;
     rdfs:range dyn:Simulation ;
     rdfs:label "Reproduction Simulation"@en ;
-    dyn:hasDisplayName "Reproduction Simulation" ;
-    dyn:hasFormGroup "SimulationInfo" ;
-    dyn:hasDisplayOrder 1 ;
+    gui:hasDisplayName "Reproduction Simulation" ;
+    gui:hasFormGroup "SimulationInfo" ;
+    gui:hasDisplayOrder 1 ;
     rdfs:comment "Simulation that reproduces this experimental test"@en .
 
 dyn:hasValidationSimulation rdf:type owl:ObjectProperty ;
     rdfs:domain dyn:MechanicalTest ;
     rdfs:range dyn:Simulation ;
     rdfs:label "Validation Simulation"@en ;
-    dyn:hasDisplayName "Validation Simulation" ;
-    dyn:hasFormGroup "SimulationInfo" ;
-    dyn:hasDisplayOrder 2 ;
+    gui:hasDisplayName "Validation Simulation" ;
+    gui:hasFormGroup "SimulationInfo" ;
+    gui:hasDisplayOrder 2 ;
     rdfs:comment "Simulation used to validate model against test data"@en .
 
 # NOTE: Virtual simulations are identified by absence of test-linking properties
@@ -45,27 +46,27 @@ dyn:hasSoftwareModel rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Simulation ;
     rdfs:range dyn:SoftwareModel ;
     rdfs:label "Software Model"@en ;
-    dyn:hasDisplayName "Software Model" ;
-    dyn:hasFormGroup "SoftwareInfo" ;
-    dyn:hasDisplayOrder 1 ;
+    gui:hasDisplayName "Software Model" ;
+    gui:hasFormGroup "SoftwareInfo" ;
+    gui:hasDisplayOrder 1 ;
     rdfs:comment "Software package used for simulation"@en .
 
 dyn:hasMaterialModel rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Simulation ;
     rdfs:range dyn:MaterialModel ;
     rdfs:label "Material Model"@en ;
-    dyn:hasDisplayName "Material Model" ;
-    dyn:hasFormGroup "MaterialModel" ;
-    dyn:hasDisplayOrder 1 ;
+    gui:hasDisplayName "Material Model" ;
+    gui:hasFormGroup "MaterialModel" ;
+    gui:hasDisplayOrder 1 ;
     rdfs:comment "Constitutive model used for material behavior"@en .
 
 dyn:hasFEMesh rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Simulation ;
     rdfs:range dyn:FEMesh ;
     rdfs:label "FE Mesh"@en ;
-    dyn:hasDisplayName "FE Mesh" ;
-    dyn:hasFormGroup "MeshInfo" ;
-    dyn:hasDisplayOrder 1 ;
+    gui:hasDisplayName "FE Mesh" ;
+    gui:hasFormGroup "MeshInfo" ;
+    gui:hasDisplayOrder 1 ;
     rdfs:comment "Finite element mesh used for simulation"@en .
 
 # Specimen relationships
@@ -73,27 +74,27 @@ dyn:simulatesSpecimen rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Simulation ;
     rdfs:range dyn:Specimen ;
     rdfs:label "Simulates Specimen"@en ;
-    dyn:hasDisplayName "Simulates Specimen" ;
-    dyn:hasFormGroup "SpecimenInfo" ;
-    dyn:hasDisplayOrder 1 ;
+    gui:hasDisplayName "Simulates Specimen" ;
+    gui:hasFormGroup "SpecimenInfo" ;
+    gui:hasDisplayOrder 1 ;
     rdfs:comment "Physical specimen being simulated"@en .
 
 dyn:reproducesTest rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Simulation ;
     rdfs:range dyn:MechanicalTest ;
     rdfs:label "Reproduces Test"@en ;
-    dyn:hasDisplayName "Reproduces Test" ;
-    dyn:hasFormGroup "SpecimenInfo" ;
-    dyn:hasDisplayOrder 2 ;
+    gui:hasDisplayName "Reproduces Test" ;
+    gui:hasFormGroup "SpecimenInfo" ;
+    gui:hasDisplayOrder 2 ;
     rdfs:comment "Experimental test that simulation reproduces"@en .
 
 dyn:validatesAgainst rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Simulation ;
     rdfs:range dyn:MechanicalTest ;
     rdfs:label "Validates Against"@en ;
-    dyn:hasDisplayName "Validates Against Test" ;
-    dyn:hasFormGroup "Validation" ;
-    dyn:hasDisplayOrder 1 ;
+    gui:hasDisplayName "Validates Against Test" ;
+    gui:hasFormGroup "Validation" ;
+    gui:hasDisplayOrder 1 ;
     rdfs:comment "Experimental test used for validation"@en .
 
 # File relationships (using information object properties)
@@ -101,18 +102,18 @@ dyn:hasKeywordFile rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Simulation ;
     rdfs:range dyn:DataFile ;
     rdfs:label "Keyword File"@en ;
-    dyn:hasDisplayName "Keyword File" ;
-    dyn:hasFormGroup "SimulationFiles" ;
-    dyn:hasDisplayOrder 1 ;
+    gui:hasDisplayName "Keyword File" ;
+    gui:hasFormGroup "SimulationFiles" ;
+    gui:hasDisplayOrder 1 ;
     rdfs:comment "Input file (e.g., LS-DYNA keyword file)"@en .
 
 dyn:hasMeshFile rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:FEMesh ;
     rdfs:range dyn:DataFile ;
     rdfs:label "Mesh File"@en ;
-    dyn:hasDisplayName "Mesh File" ;
-    dyn:hasFormGroup "MeshFiles" ;
-    dyn:hasDisplayOrder 1 ;
+    gui:hasDisplayName "Mesh File" ;
+    gui:hasFormGroup "MeshFiles" ;
+    gui:hasDisplayOrder 1 ;
     rdfs:comment "Mesh geometry file (e.g., .k, .inp)"@en .
 
 # NOTE: Results files use general hasDataFile property from information_object_class
@@ -122,18 +123,18 @@ dyn:hasModelParameter rdf:type owl:ObjectProperty ;
     rdfs:domain dyn:MaterialModel ;
     rdfs:range dyn:PropertyValue ;
     rdfs:label "Model Parameter"@en ;
-    dyn:hasDisplayName "Model Parameter" ;
-    dyn:hasFormGroup "ModelParameters" ;
-    dyn:hasDisplayOrder 1 ;
+    gui:hasDisplayName "Model Parameter" ;
+    gui:hasFormGroup "ModelParameters" ;
+    gui:hasDisplayOrder 1 ;
     rdfs:comment "Parameter values for this material model"@en .
 
 dyn:requiresProperty rdf:type owl:ObjectProperty ;
     rdfs:domain dyn:MaterialModel ;
     rdfs:range dyn:PropertyValue ;
     rdfs:label "Requires Property"@en ;
-    dyn:hasDisplayName "Required Property" ;
-    dyn:hasFormGroup "ModelParameters" ;
-    dyn:hasDisplayOrder 2 ;
+    gui:hasDisplayName "Required Property" ;
+    gui:hasFormGroup "ModelParameters" ;
+    gui:hasDisplayOrder 2 ;
     rdfs:comment "Material property required by this model"@en .
 
 # NOTE: Simulation type is determined by specific object properties:
@@ -150,28 +151,28 @@ dyn:hasElementCount rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:FEMesh ;
     rdfs:range xsd:integer ;
     rdfs:label "Element Count"@en ;
-    dyn:hasDisplayName "Number of Elements" ;
-    dyn:hasFormGroup "MeshStatistics" ;
-    dyn:hasDisplayOrder 1 ;
+    gui:hasDisplayName "Number of Elements" ;
+    gui:hasFormGroup "MeshStatistics" ;
+    gui:hasDisplayOrder 1 ;
     rdfs:comment "Total number of finite elements in mesh"@en .
 
 dyn:hasNodeCount rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:FEMesh ;
     rdfs:range xsd:integer ;
     rdfs:label "Node Count"@en ;
-    dyn:hasDisplayName "Number of Nodes" ;
-    dyn:hasFormGroup "MeshStatistics" ;
-    dyn:hasDisplayOrder 2 ;
+    gui:hasDisplayName "Number of Nodes" ;
+    gui:hasFormGroup "MeshStatistics" ;
+    gui:hasDisplayOrder 2 ;
     rdfs:comment "Total number of nodes in mesh"@en .
 
 dyn:hasElementType rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:FEMesh ;
     rdfs:range xsd:string ;
     rdfs:label "Element Type"@en ;
-    dyn:hasDisplayName "Element Type" ;
-    dyn:hasFormGroup "MeshInfo" ;
-    dyn:hasDisplayOrder 2 ;
-    dyn:hasValidValues "Hex8,Tet4,Tet10,Hex20,Shell" ;
+    gui:hasDisplayName "Element Type" ;
+    gui:hasFormGroup "MeshInfo" ;
+    gui:hasDisplayOrder 2 ;
+    gui:hasValidValues "Hex8,Tet4,Tet10,Hex20,Shell" ;
     rdfs:comment "Type of finite elements used"@en .
 
 dyn:hasElementSize rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -179,19 +180,19 @@ dyn:hasElementSize rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:range xsd:double ;
     qudt:hasQuantityKind qkdv:Length ;
     rdfs:label "Element Size"@en ;
-    dyn:hasDisplayName "Element Size (mm)" ;
-    dyn:hasFormGroup "MeshInfo" ;
-    dyn:hasDisplayOrder 3 ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
+    gui:hasDisplayName "Element Size (mm)" ;
+    gui:hasFormGroup "MeshInfo" ;
+    gui:hasDisplayOrder 3 ;
+    dyn:hasUnit "unit:MilliM" ;
     rdfs:comment "Characteristic element size"@en .
 
 dyn:hasMeshQuality rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:FEMesh ;
     rdfs:range xsd:double ;
     rdfs:label "Mesh Quality"@en ;
-    dyn:hasDisplayName "Mesh Quality" ;
-    dyn:hasFormGroup "MeshStatistics" ;
-    dyn:hasDisplayOrder 3 ;
+    gui:hasDisplayName "Mesh Quality" ;
+    gui:hasFormGroup "MeshStatistics" ;
+    gui:hasDisplayOrder 3 ;
     rdfs:comment "Mesh quality metric (0-1, higher is better)"@en .
 
 #################################################################
@@ -204,19 +205,19 @@ dyn:hasRunTime rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:range xsd:double ;
     qudt:hasQuantityKind qkdv:Time ;
     rdfs:label "Runtime"@en ;
-    dyn:hasDisplayName "Runtime (hours)" ;
-    dyn:hasFormGroup "Performance" ;
-    dyn:hasDisplayOrder 1 ;
-    dyn:hasDefaultUnit "unit:HR" ;
+    gui:hasDisplayName "Runtime (hours)" ;
+    gui:hasFormGroup "Performance" ;
+    gui:hasDisplayOrder 1 ;
+    dyn:hasUnit "unit:HR" ;
     rdfs:comment "Computational time for simulation"@en .
 
 dyn:hasProcessorCount rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Simulation ;
     rdfs:range xsd:integer ;
     rdfs:label "Processor Count"@en ;
-    dyn:hasDisplayName "Number of Processors" ;
-    dyn:hasFormGroup "Performance" ;
-    dyn:hasDisplayOrder 2 ;
+    gui:hasDisplayName "Number of Processors" ;
+    gui:hasFormGroup "Performance" ;
+    gui:hasDisplayOrder 2 ;
     rdfs:comment "Number of CPU cores/processors used"@en .
 
 dyn:hasMemoryUsage rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -224,10 +225,10 @@ dyn:hasMemoryUsage rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:range xsd:double ;
     qudt:hasQuantityKind qkdv:Information ;
     rdfs:label "Memory Usage"@en ;
-    dyn:hasDisplayName "Memory Usage (GB)" ;
-    dyn:hasFormGroup "Performance" ;
-    dyn:hasDisplayOrder 3 ;
-    dyn:hasDefaultUnit "unit:GigaBYTE" ;
+    gui:hasDisplayName "Memory Usage (GB)" ;
+    gui:hasFormGroup "Performance" ;
+    gui:hasDisplayOrder 3 ;
+    dyn:hasUnit "unit:GigaBYTE" ;
     rdfs:comment "Peak memory usage during simulation"@en .
 
 # Simulation parameters
@@ -236,10 +237,10 @@ dyn:hasTimeStep rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:range xsd:double ;
     qudt:hasQuantityKind qkdv:Time ;
     rdfs:label "Time Step"@en ;
-    dyn:hasDisplayName "Time Step (μs)" ;
-    dyn:hasFormGroup "SimulationParameters" ;
-    dyn:hasDisplayOrder 1 ;
-    dyn:hasDefaultUnit "unit:MicroSEC" ;
+    gui:hasDisplayName "Time Step (μs)" ;
+    gui:hasFormGroup "SimulationParameters" ;
+    gui:hasDisplayOrder 1 ;
+    dyn:hasUnit "unit:MicroSEC" ;
     rdfs:comment "Simulation time step size"@en .
 
 dyn:hasSimulationDuration rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -247,19 +248,19 @@ dyn:hasSimulationDuration rdf:type owl:DatatypeProperty, owl:FunctionalProperty 
     rdfs:range xsd:double ;
     qudt:hasQuantityKind qkdv:Time ;
     rdfs:label "Simulation Duration"@en ;
-    dyn:hasDisplayName "Simulation Duration (ms)" ;
-    dyn:hasFormGroup "SimulationParameters" ;
-    dyn:hasDisplayOrder 2 ;
-    dyn:hasDefaultUnit "unit:MilliSEC" ;
+    gui:hasDisplayName "Simulation Duration (ms)" ;
+    gui:hasFormGroup "SimulationParameters" ;
+    gui:hasDisplayOrder 2 ;
+    dyn:hasUnit "unit:MilliSEC" ;
     rdfs:comment "Total simulated time duration"@en .
 
 dyn:hasConvergenceCriteria rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Simulation ;
     rdfs:range xsd:string ;
     rdfs:label "Convergence Criteria"@en ;
-    dyn:hasDisplayName "Convergence Criteria" ;
-    dyn:hasFormGroup "SimulationParameters" ;
-    dyn:hasDisplayOrder 3 ;
+    gui:hasDisplayName "Convergence Criteria" ;
+    gui:hasFormGroup "SimulationParameters" ;
+    gui:hasDisplayOrder 3 ;
     rdfs:comment "Convergence criteria for iterative solvers"@en .
 
 #################################################################
@@ -271,18 +272,18 @@ dyn:hasJobName rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Simulation ;
     rdfs:range xsd:string ;
     rdfs:label "Job Name"@en ;
-    dyn:hasDisplayName "Job Name" ;
-    dyn:hasFormGroup "SimulationInfo" ;
-    dyn:hasDisplayOrder 3 ;
+    gui:hasDisplayName "Job Name" ;
+    gui:hasFormGroup "SimulationInfo" ;
+    gui:hasDisplayOrder 3 ;
     rdfs:comment "Name/identifier for simulation job"@en .
 
 dyn:hasSimulationNotes rdf:type owl:DatatypeProperty ;
     rdfs:domain dyn:Simulation ;
     rdfs:range xsd:string ;
     rdfs:label "Simulation Notes"@en ;
-    dyn:hasDisplayName "Simulation Notes" ;
-    dyn:hasFormGroup "SimulationInfo" ;
-    dyn:hasDisplayOrder 4 ;
+    gui:hasDisplayName "Simulation Notes" ;
+    gui:hasFormGroup "SimulationInfo" ;
+    gui:hasDisplayOrder 4 ;
     rdfs:comment "Additional notes about simulation setup or results"@en .
 
 # Status and validation
@@ -290,28 +291,28 @@ dyn:hasSimulationStatus rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Simulation ;
     rdfs:range xsd:string ;
     rdfs:label "Simulation Status"@en ;
-    dyn:hasDisplayName "Status" ;
-    dyn:hasFormGroup "SimulationInfo" ;
-    dyn:hasDisplayOrder 5 ;
-    dyn:hasValidValues "Planned,Running,Completed,Failed,Cancelled" ;
+    gui:hasDisplayName "Status" ;
+    gui:hasFormGroup "SimulationInfo" ;
+    gui:hasDisplayOrder 5 ;
+    gui:hasValidValues "Planned,Running,Completed,Failed,Cancelled" ;
     rdfs:comment "Current status of simulation"@en .
 
 dyn:isValidated rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Simulation ;
     rdfs:range xsd:boolean ;
     rdfs:label "Validated"@en ;
-    dyn:hasDisplayName "Validated Against Experiment" ;
-    dyn:hasFormGroup "Validation" ;
-    dyn:hasDisplayOrder 2 ;
+    gui:hasDisplayName "Validated Against Experiment" ;
+    gui:hasFormGroup "Validation" ;
+    gui:hasDisplayOrder 2 ;
     rdfs:comment "Whether simulation has been validated against experimental data"@en .
 
 dyn:hasValidationAccuracy rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Simulation ;
     rdfs:range xsd:double ;
     rdfs:label "Validation Accuracy"@en ;
-    dyn:hasDisplayName "Validation Accuracy (%)" ;
-    dyn:hasFormGroup "Validation" ;
-    dyn:hasDisplayOrder 3 ;
+    gui:hasDisplayName "Validation Accuracy (%)" ;
+    gui:hasFormGroup "Validation" ;
+    gui:hasDisplayOrder 3 ;
     rdfs:comment "Accuracy of simulation compared to experimental results"@en .
 
 #################################################################
@@ -323,10 +324,10 @@ dyn:hasJC_A rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:range xsd:double ;
     qudt:hasQuantityKind qkdv:Stress ;
     rdfs:label "Johnson-Cook A Parameter"@en ;
-    dyn:hasDisplayName "A - Yield Strength (Pa)" ;
-    dyn:hasFormGroup "JohnsonCookParameters" ;
-    dyn:hasDisplayOrder 1 ;
-    dyn:hasDefaultUnit "unit:PA" ;
+    gui:hasDisplayName "A - Yield Strength (Pa)" ;
+    gui:hasFormGroup "JohnsonCookParameters" ;
+    gui:hasDisplayOrder 1 ;
+    dyn:hasUnit "unit:PA" ;
     rdfs:comment "Johnson-Cook yield strength parameter A (Pa)"@en .
 
 dyn:hasJC_B rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -334,37 +335,37 @@ dyn:hasJC_B rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:range xsd:double ;
     qudt:hasQuantityKind qkdv:Stress ;
     rdfs:label "Johnson-Cook B Parameter"@en ;
-    dyn:hasDisplayName "B - Hardening Modulus (Pa)" ;
-    dyn:hasFormGroup "JohnsonCookParameters" ;
-    dyn:hasDisplayOrder 2 ;
-    dyn:hasDefaultUnit "unit:PA" ;
+    gui:hasDisplayName "B - Hardening Modulus (Pa)" ;
+    gui:hasFormGroup "JohnsonCookParameters" ;
+    gui:hasDisplayOrder 2 ;
+    dyn:hasUnit "unit:PA" ;
     rdfs:comment "Johnson-Cook hardening modulus parameter B (Pa)"@en .
 
 dyn:hasJC_C rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:MaterialModel ;
     rdfs:range xsd:double ;
     rdfs:label "Johnson-Cook C Parameter"@en ;
-    dyn:hasDisplayName "C - Strain Rate Constant" ;
-    dyn:hasFormGroup "JohnsonCookParameters" ;
-    dyn:hasDisplayOrder 3 ;
+    gui:hasDisplayName "C - Strain Rate Constant" ;
+    gui:hasFormGroup "JohnsonCookParameters" ;
+    gui:hasDisplayOrder 3 ;
     rdfs:comment "Johnson-Cook strain rate constant C (dimensionless)"@en .
 
 dyn:hasJC_n rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:MaterialModel ;
     rdfs:range xsd:double ;
     rdfs:label "Johnson-Cook n Parameter"@en ;
-    dyn:hasDisplayName "n - Hardening Exponent" ;
-    dyn:hasFormGroup "JohnsonCookParameters" ;
-    dyn:hasDisplayOrder 4 ;
+    gui:hasDisplayName "n - Hardening Exponent" ;
+    gui:hasFormGroup "JohnsonCookParameters" ;
+    gui:hasDisplayOrder 4 ;
     rdfs:comment "Johnson-Cook hardening exponent n (dimensionless)"@en .
 
 dyn:hasJC_m rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:MaterialModel ;
     rdfs:range xsd:double ;
     rdfs:label "Johnson-Cook m Parameter"@en ;
-    dyn:hasDisplayName "m - Temperature Exponent" ;
-    dyn:hasFormGroup "JohnsonCookParameters" ;
-    dyn:hasDisplayOrder 5 ;
+    gui:hasDisplayName "m - Temperature Exponent" ;
+    gui:hasFormGroup "JohnsonCookParameters" ;
+    gui:hasDisplayOrder 5 ;
     rdfs:comment "Johnson-Cook temperature exponent m (dimensionless)"@en .
 
 #################################################################
@@ -376,10 +377,10 @@ dyn:hasDensity rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:range xsd:double ;
     qudt:hasQuantityKind qkdv:Density ;
     rdfs:label "Density"@en ;
-    dyn:hasDisplayName "Density (kg/m³)" ;
-    dyn:hasFormGroup "BasicProperties" ;
-    dyn:hasDisplayOrder 1 ;
-    dyn:hasDefaultUnit "unit:KG-PER-M3" ;
+    gui:hasDisplayName "Density (kg/m³)" ;
+    gui:hasFormGroup "BasicProperties" ;
+    gui:hasDisplayOrder 1 ;
+    dyn:hasUnit "unit:KG-PER-M3" ;
     rdfs:comment "Material density for simulation (kg/m³)"@en .
 
 dyn:hasElasticModulus rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -387,10 +388,10 @@ dyn:hasElasticModulus rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:range xsd:double ;
     qudt:hasQuantityKind qkdv:ModulusOfElasticity ;
     rdfs:label "Elastic Modulus"@en ;
-    dyn:hasDisplayName "Elastic Modulus (Pa)" ;
-    dyn:hasFormGroup "BasicProperties" ;
-    dyn:hasDisplayOrder 2 ;
-    dyn:hasDefaultUnit "unit:PA" ;
+    gui:hasDisplayName "Elastic Modulus (Pa)" ;
+    gui:hasFormGroup "BasicProperties" ;
+    gui:hasDisplayOrder 2 ;
+    dyn:hasUnit "unit:PA" ;
     rdfs:comment "Young's modulus of elasticity (Pa)"@en .
 
 #################################################################
@@ -401,28 +402,28 @@ dyn:hasElementCount rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:FEMesh ;
     rdfs:range xsd:integer ;
     rdfs:label "Element Count"@en ;
-    dyn:hasDisplayName "Number of Elements" ;
-    dyn:hasFormGroup "MeshDiscretization" ;
-    dyn:hasDisplayOrder 1 ;
+    gui:hasDisplayName "Number of Elements" ;
+    gui:hasFormGroup "MeshDiscretization" ;
+    gui:hasDisplayOrder 1 ;
     rdfs:comment "Total number of finite elements in mesh"@en .
 
 dyn:hasNodeCount rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:FEMesh ;
     rdfs:range xsd:integer ;
     rdfs:label "Node Count"@en ;
-    dyn:hasDisplayName "Number of Nodes" ;
-    dyn:hasFormGroup "MeshDiscretization" ;
-    dyn:hasDisplayOrder 2 ;
+    gui:hasDisplayName "Number of Nodes" ;
+    gui:hasFormGroup "MeshDiscretization" ;
+    gui:hasDisplayOrder 2 ;
     rdfs:comment "Total number of nodes in mesh"@en .
 
 dyn:hasElementType rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:FEMesh ;
     rdfs:range xsd:string ;
     rdfs:label "Element Type"@en ;
-    dyn:hasDisplayName "Element Type" ;
-    dyn:hasFormGroup "MeshDiscretization" ;
-    dyn:hasDisplayOrder 3 ;
-    dyn:hasValidValues "Hex8, Tet4, Tet10, Shell, Beam" ;
+    gui:hasDisplayName "Element Type" ;
+    gui:hasFormGroup "MeshDiscretization" ;
+    gui:hasDisplayOrder 3 ;
+    gui:hasValidValues "Hex8, Tet4, Tet10, Shell, Beam" ;
     rdfs:comment "Type of finite elements (Hex8, Tet4, etc.)"@en .
 
 dyn:hasElementSize rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -430,10 +431,10 @@ dyn:hasElementSize rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:range xsd:double ;
     qudt:hasQuantityKind qkdv:Length ;
     rdfs:label "Element Size"@en ;
-    dyn:hasDisplayName "Element Size (mm)" ;
-    dyn:hasFormGroup "MeshDiscretization" ;
-    dyn:hasDisplayOrder 4 ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
+    gui:hasDisplayName "Element Size (mm)" ;
+    gui:hasFormGroup "MeshDiscretization" ;
+    gui:hasDisplayOrder 4 ;
+    dyn:hasUnit "unit:MilliM" ;
     rdfs:comment "Characteristic element size (mm)"@en .
 
 #################################################################
@@ -444,9 +445,9 @@ dyn:hasMeshQuality rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:FEMesh ;
     rdfs:range xsd:double ;
     rdfs:label "Mesh Quality"@en ;
-    dyn:hasDisplayName "Mesh Quality (0-1)" ;
-    dyn:hasFormGroup "MeshQuality" ;
-    dyn:hasDisplayOrder 1 ;
+    gui:hasDisplayName "Mesh Quality (0-1)" ;
+    gui:hasFormGroup "MeshQuality" ;
+    gui:hasDisplayOrder 1 ;
     rdfs:comment "Overall mesh quality metric (0-1, higher is better)"@en .
 
 #################################################################
@@ -457,19 +458,19 @@ dyn:hasBoundaryCondition rdf:type owl:ObjectProperty ;
     rdfs:domain dyn:Simulation ;
     rdfs:range dyn:BoundaryCondition ;
     rdfs:label "Boundary Condition"@en ;
-    dyn:hasDisplayName "Boundary Conditions" ;
-    dyn:hasFormGroup "BoundaryConditions" ;
-    dyn:hasDisplayOrder 1 ;
+    gui:hasDisplayName "Boundary Conditions" ;
+    gui:hasFormGroup "BoundaryConditions" ;
+    gui:hasDisplayOrder 1 ;
     rdfs:comment "Boundary condition applied in simulation"@en .
 
 dyn:hasConstraintType rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:BoundaryCondition ;
     rdfs:range xsd:string ;
     rdfs:label "Constraint Type"@en ;
-    dyn:hasDisplayName "Constraint Type" ;
-    dyn:hasFormGroup "BoundaryConditionDetails" ;
-    dyn:hasDisplayOrder 1 ;
-    dyn:hasValidValues "Displacement, Velocity, Acceleration, Symmetry, Periodic" ;
+    gui:hasDisplayName "Constraint Type" ;
+    gui:hasFormGroup "BoundaryConditionDetails" ;
+    gui:hasDisplayOrder 1 ;
+    gui:hasValidValues "Displacement, Velocity, Acceleration, Symmetry, Periodic" ;
     rdfs:comment "Type of constraint (Displacement, Velocity, Symmetry, etc.)"@en .
 
 #################################################################
@@ -480,35 +481,35 @@ dyn:hasContactModel rdf:type owl:ObjectProperty ;
     rdfs:domain dyn:Simulation ;
     rdfs:range dyn:ContactModel ;
     rdfs:label "Contact Model"@en ;
-    dyn:hasDisplayName "Contact Models" ;
-    dyn:hasFormGroup "ContactDefinitions" ;
-    dyn:hasDisplayOrder 1 ;
+    gui:hasDisplayName "Contact Models" ;
+    gui:hasFormGroup "ContactDefinitions" ;
+    gui:hasDisplayOrder 1 ;
     rdfs:comment "Contact model used in simulation"@en .
 
 dyn:hasContactType rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:ContactModel ;
     rdfs:range xsd:string ;
     rdfs:label "Contact Type"@en ;
-    dyn:hasDisplayName "Contact Algorithm" ;
-    dyn:hasFormGroup "ContactModelDetails" ;
-    dyn:hasDisplayOrder 1 ;
-    dyn:hasValidValues "Automatic_Single_Surface, Automatic_Surface_to_Surface, Tied, Eroding_Single_Surface" ;
+    gui:hasDisplayName "Contact Algorithm" ;
+    gui:hasFormGroup "ContactModelDetails" ;
+    gui:hasDisplayOrder 1 ;
+    gui:hasValidValues "Automatic_Single_Surface, Automatic_Surface_to_Surface, Tied, Eroding_Single_Surface" ;
     rdfs:comment "Type of contact algorithm"@en .
 
 dyn:hasStaticFriction rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:ContactModel ;
     rdfs:range xsd:double ;
     rdfs:label "Static Friction"@en ;
-    dyn:hasDisplayName "Static Friction Coefficient" ;
-    dyn:hasFormGroup "ContactModelDetails" ;
-    dyn:hasDisplayOrder 2 ;
+    gui:hasDisplayName "Static Friction Coefficient" ;
+    gui:hasFormGroup "ContactModelDetails" ;
+    gui:hasDisplayOrder 2 ;
     rdfs:comment "Static friction coefficient (dimensionless)"@en .
 
 dyn:hasDynamicFriction rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:ContactModel ;
     rdfs:range xsd:double ;
     rdfs:label "Dynamic Friction"@en ;
-    dyn:hasDisplayName "Dynamic Friction Coefficient" ;
-    dyn:hasFormGroup "ContactModelDetails" ;
-    dyn:hasDisplayOrder 3 ;
+    gui:hasDisplayName "Dynamic Friction Coefficient" ;
+    gui:hasFormGroup "ContactModelDetails" ;
+    gui:hasDisplayOrder 3 ;
     rdfs:comment "Dynamic friction coefficient (dimensionless)"@en .

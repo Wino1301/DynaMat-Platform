@@ -330,16 +330,16 @@ class GUISchemaBuilder:
             OPTIONAL {{ ?property rdfs:label ?label . }}
             OPTIONAL {{ ?property rdfs:comment ?description . }}
             OPTIONAL {{ ?property rdfs:range ?range . }}
-            OPTIONAL {{ ?property dyn:hasDisplayName ?displayName . }}
-            OPTIONAL {{ ?property dyn:hasFormGroup ?formGroup . }}
-            
-            OPTIONAL {{ ?property dyn:hasGroupOrder ?groupOrder . }}
-            OPTIONAL {{ ?property dyn:hasDisplayOrder ?displayOrder . }}
+            OPTIONAL {{ ?property gui:hasDisplayName ?displayName . }}
+            OPTIONAL {{ ?property gui:hasFormGroup ?formGroup . }}
+
+            OPTIONAL {{ ?property gui:hasGroupOrder ?groupOrder . }}
+            OPTIONAL {{ ?property gui:hasDisplayOrder ?displayOrder . }}
             OPTIONAL {{ ?property dyn:isRequired ?required . }}
-            OPTIONAL {{ ?property dyn:isReadOnly ?isReadOnly . }}
+            OPTIONAL {{ ?property gui:isReadOnly ?isReadOnly . }}
 
             # Measurement properties
-            OPTIONAL {{ ?property dyn:hasDefaultUnit ?defaultUnit . }}
+            OPTIONAL {{ ?property dyn:hasUnit ?defaultUnit . }}
             OPTIONAL {{ ?property qudt:hasQuantityKind ?quantityKind . }}
             OPTIONAL {{ ?property dyn:hasMinValue ?minValue . }}
             OPTIONAL {{ ?property dyn:hasMaxValue ?maxValue . }}

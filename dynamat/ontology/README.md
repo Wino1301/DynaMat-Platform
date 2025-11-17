@@ -527,9 +527,9 @@ dyn:Specimen rdf:type owl:Class ;
     rdfs:comment "Physical sample prepared for testing"@en .
 
 # GUI annotation properties
-dyn:hasDisplayName rdf:type owl:AnnotationProperty .
-dyn:hasFormGroup rdf:type owl:AnnotationProperty .
-dyn:hasDisplayOrder rdf:type owl:AnnotationProperty .
+gui:hasDisplayName rdf:type owl:AnnotationProperty .
+gui:hasFormGroup rdf:type owl:AnnotationProperty .
+gui:hasDisplayOrder rdf:type owl:AnnotationProperty .
 ```
 
 ### Class Properties (`class_properties/*.ttl`)
@@ -544,11 +544,11 @@ dyn:hasOriginalLength rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     qudt:hasQuantityKind qkdv:Length ;
 
     # GUI annotations
-    dyn:hasDisplayName "Original Length (mm)" ;
-    dyn:hasFormGroup "GeometryDimensions" ;
-    dyn:hasGroupOrder 2 ;
-    dyn:hasDisplayOrder 3 ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
+    gui:hasDisplayName "Original Length (mm)" ;
+    gui:hasFormGroup "GeometryDimensions" ;
+    gui:hasGroupOrder 2 ;
+    gui:hasDisplayOrder 3 ;
+    dyn:hasUnit "unit:MilliM" ;
 
     rdfs:label "Original Length"@en ;
     rdfs:comment "Initial length of specimen before testing"@en .
@@ -795,11 +795,11 @@ dyn:hasSurfaceRoughness rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
     rdfs:range xsd:double ;
     qudt:hasQuantityKind qkdv:Length ;
-    dyn:hasDisplayName "Surface Roughness (Ra)" ;
-    dyn:hasFormGroup "Manufacturing" ;
-    dyn:hasGroupOrder 4 ;
-    dyn:hasDisplayOrder 2 ;
-    dyn:hasDefaultUnit "unit:MicroM" ;
+    gui:hasDisplayName "Surface Roughness (Ra)" ;
+    gui:hasFormGroup "Manufacturing" ;
+    gui:hasGroupOrder 4 ;
+    gui:hasDisplayOrder 2 ;
+    dyn:hasUnit "unit:MicroM" ;
     rdfs:label "Surface Roughness"@en .
 ```
 
@@ -811,10 +811,10 @@ For properties that should allow multiple selections (e.g., sequential manufactu
 dyn:hasManufacturingMethod rdf:type owl:ObjectProperty ;
     rdfs:domain dyn:Specimen ;
     rdfs:range dyn:ManufacturingMethod ;
-    dyn:hasDisplayName "Manufacturing Method" ;
-    dyn:hasFormGroup "Manufacturing" ;
-    dyn:hasGroupOrder 4 ;
-    dyn:hasDisplayOrder 1 ;
+    gui:hasDisplayName "Manufacturing Method" ;
+    gui:hasFormGroup "Manufacturing" ;
+    gui:hasGroupOrder 4 ;
+    gui:hasDisplayOrder 1 ;
     rdfs:label "Manufacturing Method"@en ;
     rdfs:comment "Manufacturing method(s) used to create the specimen. Multiple methods can be selected for specimens with sequential processing steps (e.g., casting followed by machining)."@en .
 ```
