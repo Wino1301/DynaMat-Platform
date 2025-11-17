@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QFileDialog, QMessageBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont, QIcon
+from PyQt6.QtGui import QFont, QIcon, QPixmap
 
 from ...ontology.manager import OntologyManager
 
@@ -54,19 +54,57 @@ class ActionPanelWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(10)
-        
+
+        # DynaMat Logo at the top
+        self._create_logo_section(layout)
+
         # Quick Actions Group
         self._create_quick_actions_group(layout)
-        
+
         # Templates Group
         self._create_templates_group(layout)
-        
+
         # Recent Files Group
         self._create_recent_files_group(layout)
-        
+
         # Stretch to push everything to top
         layout.addStretch()
-    
+
+    def _create_logo_section(self, parent_layout):
+        """Create logo section at the top of the panel"""
+        import os
+
+        # Create logo label
+        logo_label = QLabel()
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Get path to logo image (misc/Dynamat_Icon.png)
+        # Navigate from dynamat/gui/widgets/ up to project root, then to misc/
+        current_file = os.path.abspath(__file__)
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_file))))
+        logo_path = os.path.join(project_root, "misc", "Dynamat_Icon.png")
+
+        # Load and scale the logo
+        if os.path.exists(logo_path):
+            pixmap = QPixmap(logo_path)
+            # Scale to fit sidebar width (around 220px wide, maintaining aspect ratio)
+            scaled_pixmap = pixmap.scaledToWidth(220, Qt.TransformationMode.SmoothTransformation)
+            logo_label.setPixmap(scaled_pixmap)
+            logger.info(f"DynaMat logo loaded from {logo_path}")
+        else:
+            # Fallback if logo not found
+            logo_label.setText("DynaMat Platform")
+            logo_label.setStyleSheet("font-weight: bold; font-size: 14px; padding: 10px;")
+            logger.warning(f"Logo not found at {logo_path}")
+
+        parent_layout.addWidget(logo_label)
+
+        # Add a separator line
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        parent_layout.addWidget(separator)
+
     def _create_quick_actions_group(self, parent_layout):
         """Create quick actions group"""
         group = QGroupBox("Quick Actions")

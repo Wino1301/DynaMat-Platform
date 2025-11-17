@@ -41,6 +41,7 @@ class FormField:
     group_name: str
     required: bool = False
     label: Optional[str] = None
+    label_widget: Optional[QWidget] = None  # Reference to the QLabel widget for visibility control
 
 class FormManager:
     """
@@ -111,9 +112,11 @@ class FormManager:
                 self.logger.error(f"Ontology error for {class_uri}: {str(e)}")
                 return self._create_error_form(f"Ontology error: {str(e)}")
                 
-            # Check cache if requested
+            # Check cache if requested (controlled by global config)
+            from ...config import Config
+
             cache_key = f"{class_uri}_{style.value}"
-            if use_cache and cache_key in self._form_cache:
+            if use_cache and Config.USE_FORM_CACHE and cache_key in self._form_cache:
                 self.logger.debug(f"Returning cached form for {class_uri}")
                 cached_form = self._form_cache[cache_key]
                 return self._clone_form(cached_form, parent)
@@ -148,17 +151,16 @@ class FormManager:
             form_widget.class_metadata = metadata
             form_widget.form_style = style
 
-            # Create form_fields dictionary for compatibility
-            form_fields = self._create_form_fields_dict(metadata, widgets)
-            form_widget.form_fields = form_fields
+            # Note: form_fields is already set by LayoutManager with proper label_widget references
+            # Don't overwrite it here
 
             # Additional attributes for debugging
             form_widget.widgets_created = len(widgets)
             form_widget.groups_created = len(metadata.form_groups)
             form_widget.creation_timestamp = datetime.now()
                       
-            # Cache the form
-            if use_cache:
+            # Cache the form (controlled by global config)
+            if use_cache and Config.USE_FORM_CACHE:
                 self._form_cache[cache_key] = form_widget
 
             # FINAL VERIFICATION
@@ -285,13 +287,16 @@ class FormManager:
     # ============================================================================
     
     def _get_class_metadata(self, class_uri: str) -> Optional[ClassMetadata]:
-        """Get class metadata with caching."""
-        if class_uri in self._metadata_cache:
+        """Get class metadata with caching (controlled by global config)."""
+        from ...config import Config
+
+        if Config.USE_METADATA_CACHE and class_uri in self._metadata_cache:
             return self._metadata_cache[class_uri]
-        
+
         try:
             metadata = self.ontology_manager.get_class_metadata_for_form(class_uri)
-            self._metadata_cache[class_uri] = metadata
+            if Config.USE_METADATA_CACHE:
+                self._metadata_cache[class_uri] = metadata
             return metadata
         except Exception as e:
             self.logger.error(f"Error getting metadata for {class_uri}: {e}")
@@ -445,45 +450,6 @@ class FormManager:
         self.logger.info(f"Fallback form created with {len(widgets)} widgets")
         return form_widget   
 
-    def _create_form_fields_dict(self, metadata: ClassMetadata, widgets: Dict[str, QWidget]) -> Dict[str, FormField]:
-        """
-        Create the form_fields dictionary that maps property URIs to FormField objects.
-        
-        This method was referenced in the fixes but was missing from the original implementation.
-        It creates the expected form_fields structure that other parts of the system depend on.
-        
-        Args:
-            metadata: Class metadata containing property information
-            widgets: Dictionary mapping property URIs to their widgets
-            
-        Returns:
-            Dictionary mapping property URIs to FormField objects
-        """
-        form_fields = {}
-        
-        try:
-            for prop in metadata.properties:
-                if prop.uri in widgets:
-                    widget = widgets[prop.uri]
-                    
-                    # Create FormField object
-                    form_field = FormField(
-                        widget=widget,
-                        property_uri=prop.uri,
-                        property_metadata=prop,
-                        group_name=prop.form_group or "General",
-                        required=getattr(prop, 'required', False),
-                        label=prop.display_name or prop.name
-                    )
-                    
-                    form_fields[prop.uri] = form_field
-                    
-            self.logger.debug(f"Created form_fields dictionary with {len(form_fields)} entries")
-            return form_fields
-            
-        except Exception as e:
-            self.logger.error(f"Error creating form_fields dictionary: {e}")
-            return {}
     # ============================================================================
     # CACHE MANAGEMENT
     # ============================================================================

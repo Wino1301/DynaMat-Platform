@@ -28,7 +28,8 @@ MANIFEST
 .qt_for_python/
 
 # Jupyter Notebook
-.ipynb_checkpoints
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
 
 # Environments
 .env
@@ -80,6 +81,4 @@ docs/_missing_integrations/
 !examples/**/*.csv
 !tests/fixtures/*.csv
 *.log
-/dynamat/ontology/.ipynb_checkpoints
 /dynamat/ontology/qudt/cache
-/dynamat/ontology/.ipynb_checkpoints

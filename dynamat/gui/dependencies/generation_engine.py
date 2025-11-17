@@ -145,37 +145,80 @@ class GenerationEngine:
         
         return processed
     
-    def _extract_material_code(self, material_uri: str) -> str:
+    def _extract_material_code(self, **kwargs) -> str:
         """
         Extract material code from a material URI.
-        
-        Args:
-            material_uri: Full URI of the material
-            
+
+        Accepts material URI from any property that contains 'Material' in the key.
+
         Returns:
             Material code string
         """
         try:
+            # Extract material URI from kwargs (could be any property URI)
+            material_uri = None
+            for key, value in kwargs.items():
+                if 'Material' in key or 'material' in key:
+                    material_uri = value
+                    break
+
+            if material_uri is None:
+                self.logger.error("No material URI provided in inputs")
+                return "UNKNOWN"
+
+            self.logger.debug(f"Attempting to extract material code from URI: '{material_uri}'")
+
             # Query ontology for material code
             query = """
+            PREFIX dyn: <https://dynamat.utep.edu/ontology#>
             SELECT ?code WHERE {
                 ?material dyn:hasMaterialCode ?code .
             }
             """
             from rdflib import URIRef
+
+            material_ref = URIRef(material_uri)
+            self.logger.debug(f"Created URIRef: {material_ref}")
+
+            # First, let's check if the material exists in the graph
+            check_query = """
+            PREFIX dyn: <https://dynamat.utep.edu/ontology#>
+            ASK {
+                ?material a ?type .
+            }
+            """
+            exists = self.ontology_manager.graph.query(
+                check_query,
+                initBindings={"material": material_ref}
+            )
+
+            if exists.askAnswer:
+                self.logger.debug(f"Material {material_uri} exists in graph")
+            else:
+                self.logger.warning(f"Material {material_uri} not found in graph!")
+
+            # Now try to get the material code
             results = self.ontology_manager.graph.query(
                 query,
-                initBindings={"material": URIRef(material_uri)}
+                initBindings={"material": material_ref}
             )
-            
+
+            result_count = 0
             for row in results:
-                return str(row.code)
-            
+                result_count += 1
+                code_value = str(row.code)
+                self.logger.info(f"Successfully extracted material code '{code_value}' for URI '{material_uri}'")
+                return code_value
+
+            self.logger.warning(f"Query returned {result_count} results for material code")
+
             # Fallback: extract local name from URI
-            return material_uri.split("#")[-1].split("/")[-1]
-            
+            fallback = material_uri.split("#")[-1].split("/")[-1]
+            self.logger.warning(f"No material code found in ontology for '{material_uri}', using fallback '{fallback}'")
+            return fallback
+
         except Exception as e:
-            self.logger.error(f"Failed to extract material code: {e}")
+            self.logger.error(f"Failed to extract material code from '{material_uri}': {e}", exc_info=True)
             return "UNKNOWN"
     
     # ============================================================================

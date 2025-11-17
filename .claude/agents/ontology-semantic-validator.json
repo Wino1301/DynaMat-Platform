@@ -1,0 +1,7 @@
+{
+  "name": "ontology-semantic-validator",
+  "displayName": "Ontology Validator",
+  "description": "Validates ontology definitions, checks GUI annotations, and ensures semantic correctness.",
+  "color": "green",
+  "model": "sonnet"
+}

@@ -1,0 +1,7 @@
+{
+  "name": "code-tutor-guide",
+  "displayName": "Code Tutor",
+  "description": "Technical guide for implementing features yourself. Provides direction and structure, not solutions.",
+  "color": "blue",
+  "model": "sonnet"
+}

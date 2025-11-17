@@ -15,15 +15,6 @@ from rdflib.namespace import RDF, RDFS
 logger = logging.getLogger(__name__)
 
 
-class ConstraintType(Enum):
-    """Types of constraints supported."""
-    VISIBILITY = "VisibilityConstraint"
-    REQUIREMENT = "RequirementConstraint"
-    CALCULATION = "CalculationConstraint"
-    GENERATION = "GenerationConstraint"
-    MUTUAL_EXCLUSION = "MutualExclusionConstraint"
-
-
 class TriggerLogic(Enum):
     """Logic gates for multiple triggers."""
     ANY = "ANY"
@@ -31,39 +22,70 @@ class TriggerLogic(Enum):
     XOR = "XOR"
 
 
-class Action(Enum):
-    """Actions that constraints can perform."""
-    SHOW = "show"
-    HIDE = "hide"
-    REQUIRE = "require"
-    OPTIONAL = "optional"
-    CALCULATE = "calculate"
-    GENERATE = "generate"
-    ENABLE = "enable"
-    DISABLE = "disable"
-
-
 @dataclass
 class Constraint:
-    """Represents a single UI constraint."""
+    """
+    Represents a unified UI constraint with multiple possible operations.
+
+    A constraint can perform multiple operations:
+    - Visibility: show/hide fields
+    - Calculation: compute derived values
+    - Generation: generate IDs/codes from templates
+
+    All operations within a constraint execute atomically when triggered.
+    """
     uri: str
     label: str
     comment: str
-    constraint_type: ConstraintType
     for_class: str
     triggers: List[str]
     trigger_logic: Optional[TriggerLogic]
     when_values: List[str]
-    affects: List[str]
-    action: Action
     priority: int
-    
-    # Type-specific attributes
-    generation_template: Optional[str] = None
-    generation_inputs: Optional[List[str]] = None
+
+    # Visibility operations
+    show_fields: Optional[List[str]] = None
+    hide_fields: Optional[List[str]] = None
+
+    # Calculation operation
     calculation_function: Optional[str] = None
+    calculation_target: Optional[str] = None
     calculation_inputs: Optional[List[str]] = None
 
+    # Generation operation
+    generation_template: Optional[str] = None
+    generation_target: Optional[str] = None
+    generation_inputs: Optional[List[str]] = None
+
+    # Population operation
+    populate_fields: Optional[List[tuple]] = None  # List of (source_property, target_property) tuples
+    make_read_only: bool = False
+
+    # Filtering operations
+    apply_to_fields: Optional[List[str]] = None
+    exclude_classes: Optional[List[str]] = None
+    filter_by_classes: Optional[List[str]] = None
+
+
+    def has_visibility_ops(self) -> bool:
+        """Check if constraint has visibility operations."""
+        return bool(self.show_fields or self.hide_fields)
+
+    def has_calculation_op(self) -> bool:
+        """Check if constraint has calculation operation."""
+        return bool(self.calculation_function and self.calculation_target)
+
+    def has_generation_op(self) -> bool:
+        """Check if constraint has generation operation."""
+        return bool(self.generation_template and self.generation_target)
+
+    def has_population_op(self) -> bool:
+        """Check if constraint has population operation."""
+        return bool(self.populate_fields)
+
+    def has_filter_op(self) -> bool:
+        """Check if constraint has filtering operations."""
+        return bool(self.filter_by_classes or self.exclude_classes)
 
 class ConstraintManager:
     """
@@ -134,138 +156,233 @@ class ConstraintManager:
     
     def _parse_constraints(self):
         """Parse constraints from the RDF graph."""
-        # Query for all constraints
-        query = """
-        SELECT ?constraint ?label ?comment ?type ?forClass ?triggers ?triggerLogic 
-               ?whenValue ?affects ?action ?priority
-               ?genTemplate ?genInputs ?calcFunc ?calcInputs
+        # Get all instances of gui:Constraint (unified type)
+        constraint_query = """
+        SELECT DISTINCT ?constraint
         WHERE {
-            ?constraint a ?type .
-            ?type rdfs:subClassOf* gui:Constraint .
-            
-            OPTIONAL { ?constraint rdfs:label ?label }
-            OPTIONAL { ?constraint rdfs:comment ?comment }
-            OPTIONAL { ?constraint gui:forClass ?forClass }
-            OPTIONAL { ?constraint gui:triggers ?triggers }
-            OPTIONAL { ?constraint gui:triggerLogic ?triggerLogic }
-            OPTIONAL { ?constraint gui:whenValue ?whenValue }
-            OPTIONAL { ?constraint gui:affects ?affects }
-            OPTIONAL { ?constraint gui:action ?action }
-            OPTIONAL { ?constraint gui:priority ?priority }
-            
-            # Generation-specific
-            OPTIONAL { ?constraint gui:generationTemplate ?genTemplate }
-            OPTIONAL { ?constraint gui:generationInputs ?genInputs }
-            
-            # Calculation-specific
-            OPTIONAL { ?constraint gui:calculationFunction ?calcFunc }
-            OPTIONAL { ?constraint gui:calculationInputs ?calcInputs }
+            ?constraint a gui:Constraint .
         }
         """
-        
-        results = self.graph.query(query)
-        
-        for row in results:
+
+        constraint_results = self.graph.query(constraint_query)
+
+        # Process each constraint individually to collect all its properties
+        for row in constraint_results:
             try:
-                constraint = self._create_constraint_from_row(row)
+                constraint_uri = str(row.constraint)
+                constraint = self._parse_single_constraint(constraint_uri)
+
                 if constraint:
                     # Cache by URI
                     self.constraints_by_uri[constraint.uri] = constraint
-                    
+
                     # Cache by class
                     if constraint.for_class not in self.constraints_by_class:
                         self.constraints_by_class[constraint.for_class] = []
                     self.constraints_by_class[constraint.for_class].append(constraint)
-                    
+
             except Exception as e:
-                self.logger.error(f"Failed to parse constraint: {e}")
-    
-    def _create_constraint_from_row(self, row) -> Optional[Constraint]:
-        """Create a Constraint object from a SPARQL query row."""
+                self.logger.error(f"Failed to parse constraint {row.constraint}: {e}", exc_info=True)
+
+    def _parse_single_constraint(self, constraint_uri: str) -> Optional[Constraint]:
+        """
+        Parse a single constraint by URI, collecting all operation properties.
+
+        Args:
+            constraint_uri: URI of the constraint to parse
+
+        Returns:
+            Constraint object or None
+        """
+        from rdflib import URIRef
+
+        constraint_ref = URIRef(constraint_uri)
+
         try:
-            # Extract basic info
-            uri = str(row.constraint)
-            label = str(row.label) if row.label else ""
-            comment = str(row.comment) if row.comment else ""
-            
-            # Determine constraint type
-            type_uri = str(row.type)
-            type_name = type_uri.split("#")[-1]
-            constraint_type = ConstraintType(type_name)
-            
-            # Extract class
-            for_class = str(row.forClass) if row.forClass else ""
-            
-            # Extract triggers (can be multiple)
-            triggers = self._extract_list(row.triggers) if row.triggers else []
-            
-            # Extract trigger logic
+            # Verify this is a Constraint instance
+            if (constraint_ref, RDF.type, self.GUI.Constraint) not in self.graph:
+                return None
+
+            # Get core properties
+            label = str(self.graph.value(constraint_ref, RDFS.label) or "")
+            comment = str(self.graph.value(constraint_ref, RDFS.comment) or "")
+            for_class = str(self.graph.value(constraint_ref, self.GUI.forClass) or "")
+            trigger_logic_uri = self.graph.value(constraint_ref, self.GUI.triggerLogic)
+            priority_val = self.graph.value(constraint_ref, self.GUI.priority)
+
+            # Parse trigger logic
             trigger_logic = None
-            if row.triggerLogic:
-                logic_name = str(row.triggerLogic).split("#")[-1]
+            if trigger_logic_uri:
+                logic_name = str(trigger_logic_uri).split("#")[-1]
                 trigger_logic = TriggerLogic(logic_name)
-            
-            # Extract when values (can be multiple)
-            when_values = self._extract_list(row.whenValue) if row.whenValue else []
-            
-            # Extract affects (can be multiple)
-            affects = self._extract_list(row.affects) if row.affects else []
-            
-            # Extract action
-            action_uri = str(row.action) if row.action else ""
-            action_name = action_uri.split("#")[-1]
-            action = Action(action_name)
-            
-            # Extract priority
-            priority = int(row.priority) if row.priority else 999
-            
-            # Create constraint
+
+            # Parse priority
+            priority = int(priority_val) if priority_val else 999
+
+            # Get trigger properties
+            triggers = self._get_all_values(constraint_ref, self.GUI.triggers)
+            when_values = self._get_all_values(constraint_ref, self.GUI.whenValue)
+
+            # Parse visibility operations
+            show_fields = self._get_all_values(constraint_ref, self.GUI.showFields)
+            hide_fields = self._get_all_values(constraint_ref, self.GUI.hideFields)
+
+            # Parse calculation operation
+            calc_func_uri = self.graph.value(constraint_ref, self.GUI.calculationFunction)
+            calc_target_uri = self.graph.value(constraint_ref, self.GUI.calculationTarget)
+            calc_inputs = self._get_all_values(constraint_ref, self.GUI.calculationInputs)
+
+            calculation_function = str(calc_func_uri) if calc_func_uri else None
+            calculation_target = str(calc_target_uri) if calc_target_uri else None
+
+            # Parse generation operation
+            gen_template_uri = self.graph.value(constraint_ref, self.GUI.generationTemplate)
+            gen_target_uri = self.graph.value(constraint_ref, self.GUI.generationTarget)
+            gen_inputs = self._get_all_values(constraint_ref, self.GUI.generationInputs)
+
+            generation_template = str(gen_template_uri) if gen_template_uri else None
+            generation_target = str(gen_target_uri) if gen_target_uri else None
+
+            # Parse population operation
+            populate_fields_raw = self._get_populate_fields(constraint_ref)
+            make_read_only_val = self.graph.value(constraint_ref, self.GUI.makeReadOnly)
+            make_read_only = bool(make_read_only_val) if make_read_only_val else False
+
+            # Parse filtering operations
+            apply_to_fields = self._get_all_values(constraint_ref, self.GUI.applyToFields)
+            exclude_classes = self._get_all_values(constraint_ref, self.GUI.excludeClass)
+            filter_by_classes = self._get_all_values(constraint_ref, self.GUI.filterByClass)
+
+            # Create unified constraint
             constraint = Constraint(
-                uri=uri,
+                uri=constraint_uri,
                 label=label,
                 comment=comment,
-                constraint_type=constraint_type,
                 for_class=for_class,
                 triggers=triggers,
                 trigger_logic=trigger_logic,
                 when_values=when_values,
-                affects=affects,
-                action=action,
-                priority=priority
+                priority=priority,
+                show_fields=show_fields if show_fields else None,
+                hide_fields=hide_fields if hide_fields else None,
+                calculation_function=calculation_function,
+                calculation_target=calculation_target,
+                calculation_inputs=calc_inputs if calc_inputs else None,
+                generation_template=generation_template,
+                generation_target=generation_target,
+                generation_inputs=gen_inputs if gen_inputs else None,
+                populate_fields=populate_fields_raw if populate_fields_raw else None,
+                make_read_only=make_read_only,
+                apply_to_fields=apply_to_fields if apply_to_fields else None,
+                exclude_classes=exclude_classes if exclude_classes else None,
+                filter_by_classes=filter_by_classes if filter_by_classes else None
             )
-            
-            # Add type-specific attributes
-            if constraint_type == ConstraintType.GENERATION:
-                constraint.generation_template = str(row.genTemplate) if row.genTemplate else None
-                constraint.generation_inputs = self._extract_list(row.genInputs) if row.genInputs else []
-            
-            elif constraint_type == ConstraintType.CALCULATION:
-                constraint.calculation_function = str(row.calcFunc) if row.calcFunc else None
-                constraint.calculation_inputs = self._extract_list(row.calcInputs) if row.calcInputs else []
-            
+
+            # Log what operations this constraint has
+            ops = []
+            if constraint.has_visibility_ops():
+                ops.append("visibility")
+            if constraint.has_calculation_op():
+                ops.append("calculation")
+            if constraint.has_generation_op():
+                ops.append("generation")
+            if constraint.has_population_op():
+                ops.append("population")
+            if constraint.has_filter_op():
+                ops.append("filtering")
+
+            self.logger.debug(
+                f"Parsed constraint {constraint.label}: "
+                f"triggers={len(triggers)}, operations=[{', '.join(ops)}]"
+            )
+
             return constraint
-            
+
         except Exception as e:
-            self.logger.error(f"Error creating constraint from row: {e}")
+            self.logger.error(f"Error parsing constraint {constraint_uri}: {e}", exc_info=True)
             return None
-    
-    def _extract_list(self, value: Any) -> List[str]:
-        """Extract a list of URIs from an RDF value."""
-        # Handle single values
-        if isinstance(value, (URIRef, Literal)):
-            return [str(value)]
-        
-        # Handle RDF lists
-        if isinstance(value, list):
-            return [str(v) for v in value]
-        
-        # Try to parse as RDF collection
+
+    def _get_all_values(self, subject: URIRef, predicate: URIRef) -> List[str]:
+        """
+        Get all values for a property (handles multiple property values and RDF lists).
+
+        Args:
+            subject: Subject URI
+            predicate: Predicate URI
+
+        Returns:
+            List of all values as strings
+        """
+        from rdflib import RDF
+        from rdflib.collection import Collection
+
+        values = []
+        for obj in self.graph.objects(subject, predicate):
+            # Check if this is an RDF list (collection)
+            if (obj, RDF.first, None) in self.graph:
+                # This is an RDF list, parse it as a collection
+                try:
+                    collection = Collection(self.graph, obj)
+                    for item in collection:
+                        values.append(str(item))
+                    self.logger.debug(f"Parsed RDF list with {len(values)} items")
+                except Exception as e:
+                    self.logger.error(f"Failed to parse RDF list: {e}")
+                    values.append(str(obj))
+            else:
+                # Regular value
+                values.append(str(obj))
+        return values
+
+    def _get_populate_fields(self, subject: URIRef) -> List[tuple]:
+        """
+        Parse gui:populateFields structure from TTL constraint.
+
+        Expected structure in TTL:
+        gui:populateFields (
+            (dyn:hasMatrixMaterial "Matrix Material")
+            (dyn:hasReinforcementMaterial "Reinforcement Material")
+        ) ;
+
+        Returns:
+            List of (source_property_uri, display_label) tuples
+        """
+        from rdflib import RDF
+        from rdflib.collection import Collection
+
+        populate_fields = []
+
+        # Get the RDF list for populateFields
+        populate_list_obj = self.graph.value(subject, self.GUI.populateFields)
+
+        if not populate_list_obj:
+            return populate_fields
+
         try:
-            items = list(self.graph.items(value))
-            return [str(item) for item in items]
-        except:
-            return [str(value)]
-    
+            # Parse outer list
+            outer_collection = Collection(self.graph, populate_list_obj)
+
+            for item in outer_collection:
+                # Each item should be an inner list (pair)
+                if (item, RDF.first, None) in self.graph:
+                    inner_collection = Collection(self.graph, item)
+                    inner_items = list(inner_collection)
+
+                    if len(inner_items) >= 2:
+                        # First is property URI, second is display label
+                        property_uri = str(inner_items[0])
+                        display_label = str(inner_items[1])
+                        populate_fields.append((property_uri, display_label))
+                    elif len(inner_items) == 1:
+                        # Only property provided, use it as label too
+                        property_uri = str(inner_items[0])
+                        populate_fields.append((property_uri, property_uri))
+
+        except Exception as e:
+            self.logger.error(f"Failed to parse populateFields: {e}", exc_info=True)
+
+        return populate_fields
+
     # ============================================================================
     # PUBLIC API
     # ============================================================================
@@ -310,14 +427,19 @@ class ConstraintManager:
         return [c for c in all_constraints if trigger_property in c.triggers]
     
     def get_generation_constraints(self, class_uri: str) -> List[Constraint]:
-        """Get all generation constraints for a class."""
+        """Get all constraints with generation operations for a class."""
         all_constraints = self.get_constraints_for_class(class_uri)
-        return [c for c in all_constraints if c.constraint_type == ConstraintType.GENERATION]
-    
+        return [c for c in all_constraints if c.has_generation_op()]
+
     def get_calculation_constraints(self, class_uri: str) -> List[Constraint]:
-        """Get all calculation constraints for a class."""
+        """Get all constraints with calculation operations for a class."""
         all_constraints = self.get_constraints_for_class(class_uri)
-        return [c for c in all_constraints if c.constraint_type == ConstraintType.CALCULATION]
+        return [c for c in all_constraints if c.has_calculation_op()]
+
+    def get_visibility_constraints(self, class_uri: str) -> List[Constraint]:
+        """Get all constraints with visibility operations for a class."""
+        all_constraints = self.get_constraints_for_class(class_uri)
+        return [c for c in all_constraints if c.has_visibility_ops()]
     
     def reload(self):
         """Reload all constraints from files."""
@@ -330,15 +452,114 @@ class ConstraintManager:
         self.logger.info("Constraints reloaded")
     
     def get_statistics(self) -> Dict[str, Any]:
-        """Get statistics about loaded constraints."""
-        type_counts = {}
+        """
+        Get comprehensive constraint manager statistics for testing and debugging.
+
+        Returns:
+            Dictionary following unified statistics structure:
+            - configuration: Static setup (directory, counts)
+            - execution: Runtime operations (future: lookups)
+            - content: Domain-specific constraint characteristics
+        """
+        operation_counts = {
+            'visibility': 0,
+            'calculation': 0,
+            'generation': 0,
+            'population': 0,
+            'filtering': 0,
+            'multi_operation': 0
+        }
+
+        # Priority buckets
+        priority_dist = {
+            'low (1-100)': 0,
+            'medium (101-500)': 0,
+            'high (501+)': 0
+        }
+
+        # Trigger complexity
+        trigger_complexity = {
+            'single_trigger': 0,
+            'multi_trigger': 0
+        }
+
+        # Trigger logic usage
+        trigger_logic_usage = {
+            'ANY': 0,
+            'ALL': 0,
+            'XOR': 0,
+            'None': 0
+        }
+
         for constraint in self.constraints_by_uri.values():
-            type_name = constraint.constraint_type.value
-            type_counts[type_name] = type_counts.get(type_name, 0) + 1
-        
+            # Count operations
+            ops_count = 0
+            if constraint.has_visibility_ops():
+                operation_counts['visibility'] += 1
+                ops_count += 1
+            if constraint.has_calculation_op():
+                operation_counts['calculation'] += 1
+                ops_count += 1
+            if constraint.has_generation_op():
+                operation_counts['generation'] += 1
+                ops_count += 1
+            if constraint.has_population_op():
+                operation_counts['population'] += 1
+                ops_count += 1
+            if constraint.has_filter_op():
+                operation_counts['filtering'] += 1
+                ops_count += 1
+            if ops_count > 1:
+                operation_counts['multi_operation'] += 1
+
+            # Priority distribution
+            if constraint.priority <= 100:
+                priority_dist['low (1-100)'] += 1
+            elif constraint.priority <= 500:
+                priority_dist['medium (101-500)'] += 1
+            else:
+                priority_dist['high (501+)'] += 1
+
+            # Trigger complexity
+            if len(constraint.triggers) == 1:
+                trigger_complexity['single_trigger'] += 1
+            else:
+                trigger_complexity['multi_trigger'] += 1
+
+            # Trigger logic usage
+            if constraint.trigger_logic == TriggerLogic.ANY:
+                trigger_logic_usage['ANY'] += 1
+            elif constraint.trigger_logic == TriggerLogic.ALL:
+                trigger_logic_usage['ALL'] += 1
+            elif constraint.trigger_logic == TriggerLogic.XOR:
+                trigger_logic_usage['XOR'] += 1
+            else:
+                trigger_logic_usage['None'] += 1
+
+        # Calculate average triggers per constraint
+        total_triggers = sum(len(c.triggers) for c in self.constraints_by_uri.values())
+        avg_triggers = total_triggers / len(self.constraints_by_uri) if self.constraints_by_uri else 0
+
+        # Return unified structure
         return {
-            'total_constraints': len(self.constraints_by_uri),
-            'classes_with_constraints': len(self.constraints_by_class),
-            'constraints_by_type': type_counts,
-            'constraint_directory': str(self.constraint_dir)
+            'configuration': {
+                'constraint_directory': str(self.constraint_dir),
+                'total_constraints': len(self.constraints_by_uri),
+                'classes_with_constraints': len(self.constraints_by_class)
+            },
+            'execution': {
+                'total_lookups': 0  # Future: track constraint lookups
+            },
+            'health': {
+                # Future: add constraint validation errors, load failures, etc.
+            },
+            'content': {
+                'operations': operation_counts,
+                'priority_distribution': priority_dist,
+                'trigger_complexity': {
+                    **trigger_complexity,
+                    'average_triggers_per_constraint': round(avg_triggers, 2)
+                },
+                'trigger_logic_usage': trigger_logic_usage
+            }
         }

@@ -28,6 +28,7 @@ class NamespaceManager:
         self.graph = graph
         self.namespaces = {}
         self.DYN = None
+        self.GUI = None
         self.QUDT = None
         self.UNIT = None
         self.QKDV = None
@@ -41,7 +42,8 @@ class NamespaceManager:
         """Setup all namespace URIs."""
         # Core DynaMat namespace
         self.DYN = Namespace("https://dynamat.utep.edu/ontology#")
-        
+        self.GUI = Namespace("https://dynamat.utep.edu/ontology/gui#")
+
         # External vocabularies
         self.QUDT = Namespace("http://qudt.org/schema/qudt/")
         self.UNIT = Namespace("http://qudt.org/vocab/unit/")
@@ -52,6 +54,7 @@ class NamespaceManager:
         # Store all namespaces
         self.namespaces = {
             'dyn': self.DYN,
+            'gui': self.GUI,
             'qudt': self.QUDT,
             'unit': self.UNIT,
             'qkdv': self.QKDV,
@@ -72,6 +75,7 @@ class NamespaceManager:
         """
         # Bind custom namespaces
         graph.bind("dyn", self.DYN)
+        graph.bind("gui", self.GUI)
         graph.bind("qudt", self.QUDT)
         graph.bind("unit", self.UNIT)
         graph.bind("qkdv", self.QKDV)

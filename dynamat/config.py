@@ -32,7 +32,12 @@ class Config:
 
     # Version
     VERSION = "2.0.0"
-    
+
+    # Cache settings
+    USE_FORM_CACHE = False  # Enable/disable form widget caching
+    USE_METADATA_CACHE = False  # Enable/disable ontology metadata caching
+    USE_SCHEMA_CACHE = False  # Enable/disable GUI schema caching
+
     @classmethod
     def get_config_dict(cls):
         """Return configuration as dictionary"""
