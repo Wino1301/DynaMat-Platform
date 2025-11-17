@@ -8,11 +8,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 
-try:
-    from PyQt6.QtWidgets import QMessageBox, QInputDialog
-    PYQT_AVAILABLE = True
-except ImportError:
-    PYQT_AVAILABLE = False
+from PyQt6.QtWidgets import QMessageBox, QInputDialog
 
 from rdflib import Graph, URIRef, Literal, Namespace
 from rdflib.namespace import RDF, RDFS, OWL, XSD
