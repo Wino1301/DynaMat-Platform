@@ -29,6 +29,9 @@ class Config:
     # GUI settings
     WINDOW_TITLE = "DynaMat Platform"
     DEFAULT_THEME = "fusion"
+
+    # Version
+    VERSION = "2.0.0"
     
     @classmethod
     def get_config_dict(cls):
