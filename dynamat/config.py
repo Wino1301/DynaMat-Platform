@@ -29,7 +29,12 @@ class Config:
     # GUI settings
     WINDOW_TITLE = "DynaMat Platform"
     DEFAULT_THEME = "fusion"
-    
+
+    # Cache settings
+    USE_FORM_CACHE = False  # Enable/disable form widget caching
+    USE_METADATA_CACHE = False  # Enable/disable ontology metadata caching
+    USE_SCHEMA_CACHE = False  # Enable/disable GUI schema caching
+
     @classmethod
     def get_config_dict(cls):
         """Return configuration as dictionary"""

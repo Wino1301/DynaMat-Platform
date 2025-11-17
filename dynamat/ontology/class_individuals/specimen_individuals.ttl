@@ -49,11 +49,6 @@ dyn:CylindricalShape rdf:type owl:NamedIndividual, dyn:Shape ;
     dyn:hasName "Cylindrical"@en ;
     dyn:hasDescription "Right circular cylinder geometry for compression/tension testing"@en .
 
-dyn:RectangularShape rdf:type owl:NamedIndividual, dyn:Shape ;
-    rdfs:label "Rectangular Shape"@en ;
-    dyn:hasName "Rectangular"@en ;
-    dyn:hasDescription "Rectangular prismatic geometry for compression testing"@en .
-
 dyn:DogboneShape rdf:type owl:NamedIndividual, dyn:Shape ;
     rdfs:label "Dogbone Shape"@en ;
     dyn:hasName "Dogbone"@en ;
@@ -64,11 +59,6 @@ dyn:CubicShape rdf:type owl:NamedIndividual, dyn:Shape ;
     dyn:hasName "Cubic"@en ;
     dyn:hasDescription "Cubic geometry for lattice structure testing"@en .
 
-dyn:HourglassShape rdf:type owl:NamedIndividual, dyn:Shape ;
-    rdfs:label "Hourglass Shape"@en ;
-    dyn:hasName "Hourglass"@en ;
-    dyn:hasDescription "Hourglass geometry for high strain rate testing"@en .
-
 #################################################################
 #    Structure Types
 #################################################################
@@ -78,91 +68,165 @@ dyn:MonolithicMaterial rdf:type owl:NamedIndividual, dyn:Structure ;
     dyn:hasName "Monolithic"@en ;
     dyn:hasDescription "Homogeneous monolithic material structure without internal features"@en .
 
-dyn:FiberReinforcedStructure rdf:type owl:NamedIndividual, dyn:Structure ;
-    rdfs:label "Fiber Reinforced Structure"@en ;
-    dyn:hasName "Fiber Reinforced"@en ;
-    dyn:hasDescription "Continuous fiber reinforced composite structure"@en .
-
 dyn:LatticeStructure rdf:type owl:NamedIndividual, dyn:Structure ;
     rdfs:label "Lattice Structure"@en ;
     dyn:hasName "Lattice"@en ;
     dyn:hasDescription "Periodic lattice or cellular structure with designed porosity"@en .
 
-dyn:FoamStructure rdf:type owl:NamedIndividual, dyn:Structure ;
-    rdfs:label "Foam Structure"@en ;
-    dyn:hasName "Foam"@en ;
-    dyn:hasDescription "Foam structure with random porosity distribution"@en .
-
-dyn:LayeredStructure rdf:type owl:NamedIndividual, dyn:Structure ;
-    rdfs:label "Layered Structure"@en ;
-    dyn:hasName "Layered"@en ;
-    dyn:hasDescription "Multi-layer structure with different material layers"@en .
-
-dyn:GradedStructure rdf:type owl:NamedIndividual, dyn:Structure ;
-    rdfs:label "Graded Structure"@en ;
-    dyn:hasName "Graded"@en ;
-    dyn:hasDescription "Functionally graded structure with varying properties"@en .
-
 #################################################################
-#    Processing Steps
+#    Manufacturing Methods
 #################################################################
 
-dyn:Machining rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
+dyn:3DPrinting rdf:type owl:NamedIndividual, dyn:ManufacturingMethod ;
+    rdfs:label "3D Printing/AM"@en ;
+    dyn:hasName "Additive Manufacturing"@en ;
+    dyn:hasDescription "Layer-by-layer additive manufacturing process"@en .
+
+dyn:Machining rdf:type owl:NamedIndividual, dyn:ManufacturingMethod ;
     rdfs:label "Machining"@en ;
     dyn:hasName "CNC Machining"@en ;
     dyn:hasDescription "Computer-controlled machining to final dimensions"@en .
 
-dyn:HeatTreatment rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
-    rdfs:label "Heat Treatment"@en ;
-    dyn:hasName "Heat Treatment"@en ;
-    dyn:hasDescription "Thermal processing to achieve desired material properties"@en .
-
-dyn:AdditiveManufacturing rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
-    rdfs:label "Additive Manufacturing"@en ;
-    dyn:hasName "3D Printing/AM"@en ;
-    dyn:hasDescription "Layer-by-layer additive manufacturing process"@en .
-
-dyn:SurfaceFinishing rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
-    rdfs:label "Surface Finishing"@en ;
-    dyn:hasName "Surface Finishing"@en ;
-    dyn:hasDescription "Final surface treatment (polishing, grinding, etc.)"@en .
-
-dyn:Annealing rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
-    rdfs:label "Annealing"@en ;
-    dyn:hasName "Stress Relief Annealing"@en ;
-    dyn:hasDescription "Heat treatment to relieve internal stresses"@en .
-
-dyn:Quenching rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
-    rdfs:label "Quenching"@en ;
-    dyn:hasName "Rapid Cooling/Quenching"@en ;
-    dyn:hasDescription "Rapid cooling process for phase transformation"@en .
-
-dyn:WaterjetCutting rdf:type owl:NamedIndividual, dyn:ProcessingStep ;
-    rdfs:label "Waterjet Cutting"@en ;
-    dyn:hasName "Waterjet Cutting"@en ;
-    dyn:hasDescription "High-pressure waterjet cutting to rough dimensions"@en .
+dyn:Casting rdf:type owl:NamedIndividual, dyn:ManufacturingMethod ;
+    rdfs:label "Casting"@en ;
+    dyn:hasName "Casting"@en ;
+    dyn:hasDescription "Process of creating an object by pouring a liquid material into a mold"@en .
 
 #################################################################
-#    Specimen Batches (Keep these - they're useful supporting individuals)
+#    Surface Finishes
 #################################################################
 
-dyn:Batch_AL001_2024_01 rdf:type owl:NamedIndividual, dyn:SpecimenBatch ;
-    rdfs:label "Batch AL001 2024-01"@en ;
-    dyn:hasName "Aluminum 6061-T6 Batch 2024-01"@en ;
+dyn:AsReceivedFinish rdf:type owl:NamedIndividual, dyn:SurfaceFinish ;
+    rdfs:label "As-Received"@en ;
+    dyn:hasName "As-Received"@en ;
+    dyn:hasDescription "Surface finish as received from manufacturing without additional processing"@en .
+
+dyn:LappedFinish rdf:type owl:NamedIndividual, dyn:SurfaceFinish ;
+    rdfs:label "Lapped"@en ;
+    dyn:hasName "Lapped"@en ;
+    dyn:hasDescription "Surface finish achieved through lapping process"@en .
+
+dyn:PolishedFinish rdf:type owl:NamedIndividual, dyn:SurfaceFinish ;
+    rdfs:label "Polished"@en ;
+    dyn:hasName "Polished"@en ;
+    dyn:hasDescription "Surface finish achieved through polishing process"@en .
+
+#################################################################
+#    Polishing Compounds
+#################################################################
+
+dyn:AluminaCompound rdf:type owl:NamedIndividual, dyn:PolishingCompound ;
+    rdfs:label "Alumina"@en ;
+    dyn:hasName "Alumina (Al₂O₃)"@en ;
+    dyn:hasDescription "Aluminum oxide abrasive compound for general polishing and surface preparation"@en .
+
+dyn:DiamondPolycrystallineCompound rdf:type owl:NamedIndividual, dyn:PolishingCompound ;
+    rdfs:label "Diamond Polycrystalline"@en ;
+    dyn:hasName "Diamond Polycrystalline Solution"@en ;
+    dyn:hasDescription "Polycrystalline diamond suspension for fine polishing and mirror finish"@en .
+
+dyn:SilicaCarbide rdf:type owl:NamedIndividual, dyn:PolishingCompound ;
+    rdfs:label "Silicon Carbide"@en ;
+    dyn:hasName "Silicon Carbide (SiC)"@en ;
+    dyn:hasDescription "Silicon carbide abrasive for aggressive material removal and rough polishing"@en .
+
+#################################################################
+#    Heat Treatments
+#################################################################
+
+dyn:AsReceivedHT rdf:type owl:NamedIndividual, dyn:HeatTreatment ;
+    rdfs:label "As-Received"@en ;
+    dyn:hasName "As-Received"@en ;
+    dyn:hasDescription "No heat treatment applied - as received from manufacturing"@en .
+
+dyn:AnnealedHT rdf:type owl:NamedIndividual, dyn:HeatTreatment ;
+    rdfs:label "Annealed"@en ;
+    dyn:hasName "Annealed"@en ;
+    dyn:hasDescription "Heat treatment to relieve internal stresses and soften material"@en .
+
+dyn:FurnaceCooledHT rdf:type owl:NamedIndividual, dyn:HeatTreatment ;
+    rdfs:label "Furnace Cooled"@en ;
+    dyn:hasName "Furnace Cooled"@en ;
+    dyn:hasDescription "Slow cooling within furnace for controlled phase transformation"@en .
+
+dyn:AirCoolHT rdf:type owl:NamedIndividual, dyn:HeatTreatment ;
+    rdfs:label "Air Cool"@en ;
+    dyn:hasName "Air Cool"@en ;
+    dyn:hasDescription "Cooling by exposure to ambient air"@en .
+
+dyn:WaterQuenchHT rdf:type owl:NamedIndividual, dyn:HeatTreatment ;
+    rdfs:label "Water Quench"@en ;
+    dyn:hasName "Water Quench"@en ;
+    dyn:hasDescription "Rapid cooling by immersion in water for maximum hardening"@en .
+
+dyn:OilQuenchHT rdf:type owl:NamedIndividual, dyn:HeatTreatment ;
+    rdfs:label "Oil Quench"@en ;
+    dyn:hasName "Oil Quench"@en ;
+    dyn:hasDescription "Moderate cooling by immersion in oil for controlled hardening"@en .
+
+#################################################################
+#    Build Orientations
+#################################################################
+
+dyn:HorizontalOrientation rdf:type owl:NamedIndividual, dyn:BuildOrientation ;
+    rdfs:label "Horizontal (0°)"@en ;
+    dyn:hasName "Horizontal (0°)"@en ;
+    dyn:hasDescription "Specimen built horizontally on build platform, loading axis parallel to build platform"@en .
+
+dyn:VerticalOrientation rdf:type owl:NamedIndividual, dyn:BuildOrientation ;
+    rdfs:label "Vertical (90°)"@en ;
+    dyn:hasName "Vertical (90°)"@en ;
+    dyn:hasDescription "Specimen built vertically on build platform, loading axis perpendicular to build platform"@en .
+
+dyn:DiagonalOrientation rdf:type owl:NamedIndividual, dyn:BuildOrientation ;
+    rdfs:label "Diagonal (45°)"@en ;
+    dyn:hasName "Diagonal (45°)"@en ;
+    dyn:hasDescription "Specimen built at 45-degree angle to build platform"@en .
+
+dyn:CustomOrientation rdf:type owl:NamedIndividual, dyn:BuildOrientation ;
+    rdfs:label "Custom Orientation"@en ;
+    dyn:hasName "Custom Orientation"@en ;
+    dyn:hasDescription "Custom build orientation - specify angle in processing notes"@en .
+
+#################################################################
+#    Specimen Batches
+#################################################################
+
+# Multi-process batch example (demonstrates multi-select manufacturing methods)
+dyn:Batch_AL001_CastMachined rdf:type owl:NamedIndividual, dyn:SpecimenBatchID ;
+    rdfs:label "Batch AL001-2024-01 (Cast + Machined)"@en ;
+    dyn:hasName "Aluminum A356 Batch 2024-01 (Cast then Machined)"@en ;
     dyn:hasBatchID "BATCH-AL001-2024-01"@en ;
-    dyn:hasDescription "First batch of Al6061-T6 specimens machined in 2024"@en ;
-    dyn:hasMachiningDate "2024-01-15"^^xsd:date ;
-    dyn:hasSupplierLot "MC-AL6061-2024-001"@en ;
-    dyn:hasSpecimenCount 25 .
+    dyn:hasDescription "First batch of A356 specimens cast in January 2024, then machined to final dimensions. Demonstrates sequential manufacturing processes."@en ;
+    dyn:hasMaterial dyn:A356 ;
+    dyn:hasCreationDate "2024-01-15"^^xsd:date ;
+    dyn:hasManufacturingMethod dyn:Casting, dyn:Machining ;
+    dyn:hasMetalTemperature 700.0 ;
+    dyn:hasMoldTemperature 200.0 ;
+    dyn:hasCastCoolingDuration 30.0 ;
+    dyn:hasMachiningTolerance 0.1 .
 
-dyn:Batch_SS001_2024_01 rdf:type owl:NamedIndividual, dyn:SpecimenBatch ;
-    rdfs:label "Batch SS001 2024-01"@en ;
-    dyn:hasName "Stainless Steel 316L Batch 2024-01"@en ;
-    dyn:hasBatchID "BATCH-SS001-2024-01"@en ;
-    dyn:hasDescription "First batch of SS316L specimens machined in 2024"@en ;
-    dyn:hasMachiningDate "2024-02-01"^^xsd:date ;
-    dyn:hasSupplierLot "ATI-316L-2024-001"@en ;
-    dyn:hasSpecimenCount 20 .
+#################################################################
+#    Characterization Groups (Placeholder for testing)
+#################################################################
+
+dyn:CharGroup_Placeholder rdf:type owl:NamedIndividual, dyn:CharacterizationGroup ;
+    rdfs:label "Test Characterization Group"@en ;
+    dyn:hasName "Placeholder Characterization Group"@en ;
+    dyn:hasDescription "Placeholder for testing dropdown - replace with actual groups later"@en .
+
+#################################################################
+#    Composite Phase Descriptions
+#################################################################
+
+dyn:CompositePhase_Al60_A356_40 rdf:type owl:NamedIndividual, dyn:CompositePhaseDescription ;
+    rdfs:label "Al6061 Matrix (60%) - A356 Reinforcement (40%)"@en ;
+    dyn:hasName "Aluminum 6061-T6 Matrix - A356 Reinforcement (60/40)"@en ;
+    dyn:hasDescription "Placeholder composite phase description for testing - 60% Al6061-T6 matrix with 40% A356 reinforcement. Replace with actual composite configurations."@en ;
+    dyn:hasMatrixMaterial dyn:Al6061_T6 ;
+    dyn:hasReinforcementMaterial dyn:A356 ;
+    dyn:hasMatrixVolumeFraction 0.60 ;
+    dyn:hasReinforcementVolumeFraction 0.40 .
 
 #################################################################
 #    EXAMPLE SPECIMEN INSTANCE (COMMENTED FOR REFERENCE)
@@ -175,20 +239,40 @@ dyn:Batch_SS001_2024_01 rdf:type owl:NamedIndividual, dyn:SpecimenBatch ;
 #
 # dyn:SPN_AL001_001 rdf:type owl:NamedIndividual, dyn:Specimen ;
 #     rdfs:label "SPN-AL001-001"@en ;
-#     dyn:hasName "Aluminum 6061-T6 Specimen #001"@en ;
+#     dyn:hasName "Aluminum A356 Specimen #001"@en ;
 #     dyn:hasSpecimenID "SPN-AL001-001"@en ;
 #     dyn:hasMaterialID "AL001"@en ;
-#     dyn:hasSpecimenBatchID "BATCH-AL001-2024-01"@en ;
-#     dyn:hasCharacterizationGroupID "AL001-T6-Group1"@en ;
-#     dyn:isCharacterizationRepresentative true ;
-#     dyn:hasTestingConditionCode "AL001-MONOLITHIC-T6"@en ;
-#     dyn:hasMaterial dyn:Al6061_T6 ;
+#
+#     # Batch selection (optional - populates manufacturing fields if used)
+#     dyn:hasSpecimenBatchID dyn:Batch_AL001_CastMachined ;
+#
+#     # Material and manufacturing (can be set manually or populated from batch)
+#     dyn:hasMaterial dyn:A356 ;
+#     dyn:hasCreationDate "2024-01-15"^^xsd:date ;
+#
+#     # Multi-select manufacturing methods (supports sequential processes)
+#     # Property is non-functional, allowing multiple values
+#     dyn:hasManufacturingMethod dyn:Casting, dyn:Machining ;
+#
+#     # Manufacturing-specific parameters (appear based on selected methods)
+#     # Casting parameters (visible when Casting is selected)
+#     dyn:hasMetalTemperature 700.0 ;       # °C
+#     dyn:hasMoldTemperature 200.0 ;        # °C
+#     dyn:hasCastCoolingDuration 30.0 ;     # minutes
+#
+#     # Machining parameters (visible when Machining is selected)
+#     dyn:hasMachiningTolerance 0.1 ;       # mm
+#
+#     # Geometry and characterization
 #     dyn:hasStructure dyn:MonolithicMaterial ;
 #     dyn:hasShape dyn:CylindricalShape ;
 #     dyn:hasSpecimenRole dyn:TestAndCharacterization ;
-#     dyn:hasSpecimenBatch dyn:Batch_AL001_2024_01 ;
-#     dyn:hasProcessingStep dyn:Machining, dyn:HeatTreatment ;
-#     dyn:hasOriginalLength 10.0 ;
-#     dyn:hasOriginalDiameter 6.35 ;
-#     dyn:hasOriginalMass 0.851 ;
-#     dyn:hasDescription "Cylindrical Al6061-T6 specimen for test and characterization"@en .
+#     dyn:hasOriginalLength 10.0 ;          # mm (default unit)
+#     dyn:hasOriginalDiameter 6.35 ;        # mm
+#     dyn:hasOriginalMass 0.851 ;           # g
+#
+#     # Optional fields
+#     dyn:hasCharacterizationGroupID "AL001-Cast-Machined-Group1"@en ;
+#     dyn:isCharacterizationRepresentative true ;
+#     dyn:hasTestingConditionCode "AL001-CAST-MACHINED"@en ;
+#     dyn:hasDescription "Cylindrical A356 specimen cast then machined to final dimensions"@en .

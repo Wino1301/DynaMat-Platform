@@ -2,6 +2,7 @@
 @prefix dc: <http://purl.org/dc/terms/> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix gui: <https://dynamat.utep.edu/ontology/gui#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
@@ -28,44 +29,51 @@ dc:creator rdf:type owl:AnnotationProperty .
 dc:license rdf:type owl:AnnotationProperty .
 
 
-###  https://dynamat.utep.edu/ontology#hasDefaultUnit
-dyn:hasDefaultUnit rdf:type owl:AnnotationProperty ;
-                   rdfs:comment "Default QUDT unit for measurement properties"@en ;
-                   rdfs:label "Default Unit"@en .
+###  https://dynamat.utep.edu/ontology#hasUnit
+dyn:hasUnit rdf:type owl:AnnotationProperty ;
+                   rdfs:comment "QUDT unit for measurement properties"@en ;
+                   rdfs:label "Unit"@en .
 
 
-###  https://dynamat.utep.edu/ontology#hasDisplayName
-dyn:hasDisplayName rdf:type owl:AnnotationProperty ;
+###  https://dynamat.utep.edu/ontology/gui#hasDisplayName
+gui:hasDisplayName rdf:type owl:AnnotationProperty ;
                    rdfs:comment "Human-readable display name for GUI forms"@en ;
                    rdfs:label "Display Name"@en ;
                    rdfs:range xsd:string .
 
 
-###  https://dynamat.utep.edu/ontology#hasDisplayOrder
-dyn:hasDisplayOrder rdf:type owl:AnnotationProperty ;
+###  https://dynamat.utep.edu/ontology/gui#hasDisplayOrder
+gui:hasDisplayOrder rdf:type owl:AnnotationProperty ;
                     rdfs:comment "Display order in GUI forms (lower numbers first)"@en ;
                     rdfs:label "Display Order"@en ;
                     rdfs:range xsd:integer .
 
 
-###  https://dynamat.utep.edu/ontology#hasFormGroup
-dyn:hasFormGroup rdf:type owl:AnnotationProperty ;
+###  https://dynamat.utep.edu/ontology/gui#hasFormGroup
+gui:hasFormGroup rdf:type owl:AnnotationProperty ;
                  rdfs:comment "Form group for organizing properties in GUI sections"@en ;
                  rdfs:label "Form Group"@en ;
                  rdfs:range xsd:string .
 
-###  https://dynamat.utep.edu/ontology#hasGroupOrder
-dyn:hasGroupOrder rdf:type owl:AnnotationProperty ;
+###  https://dynamat.utep.edu/ontology/gui#hasGroupOrder
+gui:hasGroupOrder rdf:type owl:AnnotationProperty ;
                   rdfs:domain owl:Class ;
                   rdfs:range xsd:integer ;
                   rdfs:comment "Defines the display order for form groups within a class"@en ;
                   rdfs:label "Group Order"@en .
 
 
-###  https://dynamat.utep.edu/ontology#hasValidValues
-dyn:hasValidValues rdf:type owl:AnnotationProperty ;
+###  https://dynamat.utep.edu/ontology/gui#hasValidValues
+gui:hasValidValues rdf:type owl:AnnotationProperty ;
                    rdfs:comment "List of valid values for dropdown selections"@en ;
                    rdfs:label "Valid Values"@en .
+
+
+###  https://dynamat.utep.edu/ontology/gui#isReadOnly
+gui:isReadOnly rdf:type owl:AnnotationProperty ;
+               rdfs:comment "Indicates if a property should be read-only in GUI forms"@en ;
+               rdfs:label "Read Only"@en ;
+               rdfs:range xsd:boolean .
 
 
 #################################################################
@@ -103,9 +111,9 @@ dyn:hasLaboratory rdf:type owl:ObjectProperty ,
                   rdfs:range dyn:Laboratory ;
                   rdfs:comment "Laboratory where the user works"@en ;
                   rdfs:label "Laboratory"@en ;
-                  dyn:hasDisplayName "Laboratory" ;
-                  dyn:hasDisplayOrder 5 ;
-                  dyn:hasFormGroup "UserInfo" .
+                  gui:hasDisplayName "Laboratory" ;
+                  gui:hasDisplayOrder 5 ;
+                  gui:hasFormGroup "UserInfo" .
 
 ###  https://dynamat.utep.edu/ontology#hasMeasurement
 dyn:hasMeasurement rdf:type owl:ObjectProperty ;
@@ -121,9 +129,9 @@ dyn:hasUser rdf:type owl:ObjectProperty ;
             rdfs:range dyn:User ;
             rdfs:comment "Person who performed the activity (multiple users allowed)"@en ;
             rdfs:label "User"@en ;
-            dyn:hasDisplayName "Operator" ;
-            dyn:hasDisplayOrder 2 ;
-            dyn:hasFormGroup "TestSetup" .
+            gui:hasDisplayName "Operator" ;
+            gui:hasDisplayOrder 2 ;
+            gui:hasFormGroup "TestSetup" .
 
 
 ###  https://dynamat.utep.edu/ontology#isPartOf
@@ -142,9 +150,9 @@ dyn:performedOn rdf:type owl:ObjectProperty ,
                 rdfs:range dyn:Specimen ;
                 rdfs:comment "Specimen that the test was performed on"@en ;
                 rdfs:label "Performed On"@en ;
-                dyn:hasDisplayName "Test Specimen" ;
-                dyn:hasDisplayOrder 1 ;
-                dyn:hasFormGroup "TestSetup" .
+                gui:hasDisplayName "Test Specimen" ;
+                gui:hasDisplayOrder 1 ;
+                gui:hasFormGroup "TestSetup" .
 
 
 #################################################################
@@ -158,9 +166,9 @@ dyn:hasAffiliation rdf:type owl:DatatypeProperty ,
                    rdfs:range xsd:string ;
                    rdfs:comment "Institutional affiliation of the user"@en ;
                    rdfs:label "Affiliation"@en ;
-                   dyn:hasDisplayName "Affiliation" ;
-                   dyn:hasDisplayOrder 1 ;
-                   dyn:hasFormGroup "UserInfo" .
+                   gui:hasDisplayName "Affiliation" ;
+                   gui:hasDisplayOrder 1 ;
+                   gui:hasFormGroup "UserInfo" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasDate
@@ -175,10 +183,10 @@ dyn:hasDescription rdf:type owl:DatatypeProperty ;
     rdfs:domain dyn:Specimen ;
     rdfs:range xsd:string ;
     rdfs:label "Description"@en ;
-    dyn:hasDisplayName "Description" ;
-    dyn:hasFormGroup "Identification" ;
-    dyn:hasGroupOrder 1 ;
-    dyn:hasDisplayOrder 4 ;
+    gui:hasDisplayName "Description" ;
+    gui:hasFormGroup "Identification" ;
+    gui:hasGroupOrder 1 ;
+    gui:hasDisplayOrder 4 ;
     rdfs:comment "Additional description or notes about the specimen"@en .
 
 ###  https://dynamat.utep.edu/ontology#hasDimension
@@ -195,9 +203,9 @@ dyn:hasEmail rdf:type owl:DatatypeProperty ,
              rdfs:range xsd:string ;
              rdfs:comment "Email address of the user"@en ;
              rdfs:label "Email"@en ;
-             dyn:hasDisplayName "Email" ;
-             dyn:hasDisplayOrder 2 ;
-             dyn:hasFormGroup "UserInfo" .
+             gui:hasDisplayName "Email" ;
+             gui:hasDisplayOrder 2 ;
+             gui:hasFormGroup "UserInfo" .
 
 ###  https://dynamat.utep.edu/ontology#hasName
 dyn:hasName rdf:type owl:DatatypeProperty ,
@@ -206,9 +214,7 @@ dyn:hasName rdf:type owl:DatatypeProperty ,
             rdfs:range xsd:string ;
             rdfs:comment "Primary name or identifier"@en ;
             rdfs:label "Name"@en ;
-            dyn:hasDisplayName "Name" ;
-            dyn:hasDisplayOrder 1 ;
-            dyn:hasFormGroup "Identification" .
+            gui:hasDisplayName "Name" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasORCID
@@ -218,9 +224,9 @@ dyn:hasORCID rdf:type owl:DatatypeProperty ,
              rdfs:range xsd:string ;
              rdfs:comment "ORCID identifier for the user"@en ;
              rdfs:label "ORCID"@en ;
-             dyn:hasDisplayName "ORCID" ;
-             dyn:hasDisplayOrder 4 ;
-             dyn:hasFormGroup "UserInfo" .
+             gui:hasDisplayName "ORCID" ;
+             gui:hasDisplayOrder 4 ;
+             gui:hasFormGroup "UserInfo" .
 
 ###  https://dynamat.utep.edu/ontology#hasProperty
 dyn:hasProperty rdf:type owl:DatatypeProperty ;
@@ -236,10 +242,10 @@ dyn:hasRole rdf:type owl:DatatypeProperty ,
             rdfs:range xsd:string ;
             rdfs:comment "Role or position of the user"@en ;
             rdfs:label "Role"@en ;
-            dyn:hasDisplayName "Role" ;
-            dyn:hasDisplayOrder 3 ;
-            dyn:hasFormGroup "UserInfo" ;
-            dyn:hasValidValues "Principal Investigator,Postdoc,Graduate Student,Undergraduate Student,Research Scientist,Technician" .
+            gui:hasDisplayName "Role" ;
+            gui:hasDisplayOrder 3 ;
+            gui:hasFormGroup "UserInfo" ;
+            gui:hasValidValues "Principal Investigator,Postdoc,Graduate Student,Undergraduate Student,Research Scientist,Technician" .
 
 ###  https://dynamat.utep.edu/ontology#hasSpecimenID
 dyn:hasSpecimenID rdf:type owl:DatatypeProperty ;
@@ -249,10 +255,11 @@ dyn:hasSpecimenID rdf:type owl:DatatypeProperty ;
                   rdfs:range xsd:string ;
                   rdfs:comment "Unique specimen identifier (format: SPN-MaterialID-Number)"@en ;
                   rdfs:label "Specimen ID"@en ;
-                  dyn:hasDisplayName "Specimen ID" ;
-                  dyn:hasGroupOrder 1 ;
-                  dyn:hasDisplayOrder 1 ;
-                  dyn:hasFormGroup "Identification" .
+                  gui:hasDisplayName "Specimen ID" ;
+                  gui:hasGroupOrder 1 ;
+                  gui:hasDisplayOrder 1 ;
+                  gui:hasFormGroup "Identification" ;
+                  gui:isReadOnly true .
 
 
 ###  https://dynamat.utep.edu/ontology#hasTestCondition
@@ -271,9 +278,9 @@ dyn:hasTestDate rdf:type owl:DatatypeProperty ;
                 rdfs:range xsd:date ;
                 rdfs:comment "Date when the test was performed"@en ;
                 rdfs:label "Test Date"@en ;
-                dyn:hasDisplayName "Test Date" ;
-                dyn:hasDisplayOrder 3 ;
-                dyn:hasFormGroup "TestSetup" .
+                gui:hasDisplayName "Test Date" ;
+                gui:hasDisplayOrder 3 ;
+                gui:hasFormGroup "TestSetup" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasTestID
@@ -284,9 +291,9 @@ dyn:hasTestID rdf:type owl:DatatypeProperty ;
               rdfs:range xsd:string ;
               rdfs:comment "Unique test identifier (format: TEST-YYYY-Number)"@en ;
               rdfs:label "Test ID"@en ;
-              dyn:hasDisplayName "Test ID" ;
-              dyn:hasDisplayOrder 1 ;
-              dyn:hasFormGroup "Identification" .
+              gui:hasDisplayName "Test ID" ;
+              gui:hasDisplayOrder 1 ;
+              gui:hasFormGroup "Identification" .
 
 
 #################################################################
@@ -336,6 +343,19 @@ dyn:Composite rdf:type owl:Class ;
               rdfs:subClassOf dyn:Material ;
               rdfs:comment "Multi-phase composite materials"@en ;
               rdfs:label "Composite Material"@en .
+
+
+###  https://dynamat.utep.edu/ontology#CompositePhaseDescription
+dyn:CompositePhaseDescription rdf:type owl:Class ;
+                              rdfs:comment "Reusable composite phase configuration defining matrix material, reinforcement material, and their volume fractions. Used as template for composite specimens."@en ;
+                              rdfs:label "Composite Phase Description"@en .
+
+
+###  https://dynamat.utep.edu/ontology#SpecimenBatchID
+dyn:SpecimenBatchID rdf:type owl:Class ;
+                    rdfs:subClassOf dyn:Entity ;
+                    rdfs:comment "Batch identifier for specimens from the same processing run. Stores manufacturing metadata (date, method, material) that can be auto-populated for all specimens in the batch."@en ;
+                    rdfs:label "Specimen Batch ID"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#CompressionTest
@@ -657,6 +677,36 @@ dyn:ProcessingStep rdf:type owl:Class ;
                    rdfs:subClassOf dyn:Entity ;
                    rdfs:comment "Individual step in specimen processing or manufacturing"@en ;
                    rdfs:label "Processing Step"@en .
+
+###  https://dynamat.utep.edu/ontology#ManufacturingMethod
+dyn:ManufacturingMethod rdf:type owl:Class ;
+                        rdfs:subClassOf dyn:Entity ;
+                        rdfs:comment "Primary method used to manufacture specimens"@en ;
+                        rdfs:label "Manufacturing Method"@en .
+
+###  https://dynamat.utep.edu/ontology#SurfaceFinish
+dyn:SurfaceFinish rdf:type owl:Class ;
+                  rdfs:subClassOf dyn:Entity ;
+                  rdfs:comment "Surface finish condition of specimens"@en ;
+                  rdfs:label "Surface Finish"@en .
+
+###  https://dynamat.utep.edu/ontology#PolishingCompound
+dyn:PolishingCompound rdf:type owl:Class ;
+                      rdfs:subClassOf dyn:Entity ;
+                      rdfs:comment "Polishing compound or abrasive used for surface finishing"@en ;
+                      rdfs:label "Polishing Compound"@en .
+
+###  https://dynamat.utep.edu/ontology#HeatTreatment
+dyn:HeatTreatment rdf:type owl:Class ;
+                  rdfs:subClassOf dyn:Entity ;
+                  rdfs:comment "Heat treatment process applied to specimens"@en ;
+                  rdfs:label "Heat Treatment"@en .
+
+###  https://dynamat.utep.edu/ontology#BuildOrientation
+dyn:BuildOrientation rdf:type owl:Class ;
+                     rdfs:subClassOf dyn:Entity ;
+                     rdfs:comment "Build orientation for additive manufacturing specimens"@en ;
+                     rdfs:label "Build Orientation"@en .
 
 ###  https://dynamat.utep.edu/ontology#Shape
 dyn:Shape rdf:type owl:Class ;
