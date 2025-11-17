@@ -315,12 +315,12 @@ dyn:isCharacterizationRepresentative rdf:type owl:DatatypeProperty, owl:Function
 #    7. Manufacturing Properties
 #################################################################
 
-dyn:hasCreationDate rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+dyn:hasManufacturedDate rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
     rdfs:domain dyn:SpecimenBatchID ;
     rdfs:range xsd:date ;
-    rdfs:label "Creation Date"@en ;
-    gui:hasDisplayName "Creation Date" ;
+    rdfs:label "Manufactured Date"@en ;
+    gui:hasDisplayName "Manufactured Date" ;
     gui:hasFormGroup "Manufacturing" ;
     gui:hasGroupOrder 7 ;
     gui:hasDisplayOrder 1 ;
