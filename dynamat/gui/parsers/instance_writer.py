@@ -232,7 +232,7 @@ class InstanceWriter:
                                prop_uri: str, value: Any):
         """
         Add a property value to the graph.
-        Handles measurement properties with units.
+        Handles measurement properties with unit conversion.
 
         Args:
             graph: RDF graph
@@ -242,19 +242,19 @@ class InstanceWriter:
         """
         prop_ref = URIRef(prop_uri)
 
-        # Handle measurement properties (dict with 'value' and 'unit')
+        # Handle measurement properties from UnitValueWidget (dict with 'value' and 'unit')
         if isinstance(value, dict) and 'value' in value and 'unit' in value:
-            # Convert the value using unit conversion (placeholder for now)
-            converted_value = self._convert_unit_value(
+            # Convert the value to standard unit using runtime conversion
+            # This is triggered when UnitValueWidget data is processed
+            converted_value = self._convert_unit_to_standard(
                 value['value'],
-                value['unit']
+                value['unit'],
+                prop_uri
             )
 
-            # Add the converted value
+            # Store only the converted value (in standard unit)
+            # The standard unit is defined in the ontology, not stored in the instance
             graph.add((instance_ref, prop_ref, Literal(converted_value, datatype=XSD.double)))
-
-            # Add the unit using dyn:hasUnit
-            graph.add((instance_ref, self.ns_manager.DYN.hasUnit, URIRef(value['unit'])))
 
         # Handle object properties (URIs)
         elif isinstance(value, str) and value.startswith('http'):
@@ -305,23 +305,39 @@ class InstanceWriter:
     # UNIT CONVERSION (PLACEHOLDER)
     # ============================================================================
 
-    def _convert_unit_value(self, value: float, unit_uri: str) -> float:
+    def _convert_unit_to_standard(self, value: float, unit_uri: str,
+                                   property_uri: str) -> float:
         """
-        Convert unit value to standard unit at runtime.
+        Convert measurement value to standard unit at runtime.
+
+        This is triggered when UnitValueWidget data is processed (dict with 'value' and 'unit').
+        The standard unit for each property is defined in the ontology.
 
         Args:
-            value: Numeric value
-            unit_uri: Unit URI
+            value: Numeric value from the widget
+            unit_uri: Unit URI selected in the widget
+            property_uri: Property URI (to determine standard unit from ontology)
 
         Returns:
             Converted value in standard unit
 
         NOTE: This is a placeholder. Full unit conversion will be implemented later.
-        For now, just returns the original value.
+        The actual implementation will:
+        1. Query ontology for property's standard unit (e.g., meters for length)
+        2. Use QUDT conversion factors to convert from input unit to standard unit
+        3. Return the converted value
+
+        For now, just returns the original value unchanged.
         """
-        # TODO: Implement unit conversion logic
-        # This will use QUDT to convert between units
-        logger.debug(f"Unit conversion (placeholder): {value} {unit_uri} -> {value}")
+        # TODO: Implement full unit conversion logic:
+        # 1. Get standard unit from ontology for this property
+        # 2. Get conversion factor from QUDT (unit_uri -> standard_unit)
+        # 3. Apply conversion: converted_value = value * conversion_factor
+        # 4. Return converted value
+
+        logger.debug(f"Unit conversion (placeholder): {value} from {unit_uri} for {property_uri}")
+        logger.debug(f"  -> Returning original value: {value} (conversion not yet implemented)")
+
         return value
 
     # ============================================================================

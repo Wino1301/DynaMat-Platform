@@ -1,13 +1,12 @@
 @prefix dyn: <https://dynamat.utep.edu/ontology#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix unit: <http://qudt.org/vocab/unit/> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 dyn:SPN_AL6061_001 a owl:NamedIndividual,
         dyn:Specimen ;
     rdfs:label "SPN-AL6061-001"@en ;
-    dyn:hasCreationDate "2025-11-17T19:47:36.280347"^^xsd:dateTime,
+    dyn:hasCreationDate "2025-11-17T19:57:01.741926"^^xsd:dateTime,
         "2025-01-15" ;
     dyn:hasDynamatVersion "2.0.0" ;
     dyn:hasManufacturingMethod "Machining" ;
@@ -18,7 +17,5 @@ dyn:SPN_AL6061_001 a owl:NamedIndividual,
     dyn:hasOriginalMass 8.51e-01 ;
     dyn:hasSpecimenID "SPN-AL6061-001" ;
     dyn:hasSurfaceFinish "Polished" ;
-    dyn:hasUnit unit:GRAM,
-        unit:MilliM ;
     dyn:hasUser dyn:PlaceholderUser .
 
