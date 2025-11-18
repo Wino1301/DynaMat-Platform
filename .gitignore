@@ -82,3 +82,4 @@ docs/_missing_integrations/
 !tests/fixtures/*.csv
 *.log
 /dynamat/ontology/qudt/cache
+.claude/settings.local.json
