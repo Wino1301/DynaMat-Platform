@@ -29,18 +29,10 @@ from .query_builder import (
     SpecimenSearchCriteria
 )
 
-from .temp_handler import TempInstanceHandler
 from .template_manager import TemplateManager, TemplateMetadata
 from .validator import SHACLValidator, ValidationReport, ValidationResult, ValidationSeverity
 
 # Factory functions for refactored components
-def create_temp_handler(ontology_manager: 'OntologyManager') -> TempInstanceHandler:
-    """Create a TempInstanceHandler with proper dependencies."""
-    return TempInstanceHandler(
-        ontology_manager.sparql_executor,
-        ontology_manager.namespace_manager
-    )
-
 def create_template_manager(ontology_manager: 'OntologyManager', template_dir=None) -> TemplateManager:
     """Create a TemplateManager with proper dependencies."""
     return TemplateManager(
@@ -86,7 +78,6 @@ __all__ = [
     'DynaMatQueryBuilder',
     'TestSearchCriteria',
     'SpecimenSearchCriteria',
-    'TempInstanceHandler',
     'TemplateManager',
     'TemplateMetadata',
     'SHACLValidator',
@@ -95,7 +86,6 @@ __all__ = [
     'ValidationSeverity',
     
     # Factory functions
-    'create_temp_handler',
     'create_template_manager',
     'create_validator',
     'create_query_builder'

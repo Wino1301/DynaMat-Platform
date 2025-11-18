@@ -45,8 +45,10 @@ dyn:hasMatrixVolumeFraction rdf:type owl:DatatypeProperty, owl:FunctionalPropert
     rdfs:domain dyn:CompositePhaseDescription ;
     rdfs:domain dyn:Specimen ;
     rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:VolumeRatio ;
+    dyn:hasUnit "unit:UNITLESS" ;
     rdfs:label "Matrix Volume Fraction"@en ;
-    gui:hasDisplayName "Matrix Volume Fraction (decimal)" ;
+    gui:hasDisplayName "Matrix Volume Fraction" ;
     gui:hasFormGroup "CompositeProperties" ;
     gui:hasGroupOrder 3 ;
     gui:hasDisplayOrder 4 ;
@@ -56,8 +58,10 @@ dyn:hasReinforcementVolumeFraction rdf:type owl:DatatypeProperty, owl:Functional
     rdfs:domain dyn:CompositePhaseDescription ;
     rdfs:domain dyn:Specimen ;
     rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:VolumeRatio ;
+    dyn:hasUnit "unit:UNITLESS" ;
     rdfs:label "Reinforcement Volume Fraction"@en ;
-    gui:hasDisplayName "Reinforcement Volume Fraction (decimal)" ;
+    gui:hasDisplayName "Reinforcement Volume Fraction" ;
     gui:hasFormGroup "CompositeProperties" ;
     gui:hasGroupOrder 3 ;
     gui:hasDisplayOrder 5 ;

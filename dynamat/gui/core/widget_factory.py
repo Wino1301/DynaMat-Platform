@@ -452,7 +452,8 @@ class WidgetFactory:
             widget = UnitValueWidget(
                 default_unit=default_unit,
                 available_units=compatible_units,
-                property_uri=prop.uri
+                property_uri=prop.uri,
+                reference_unit_uri=default_unit  # Pass dyn:hasUnit as reference for conversion
             )
 
             # Set tooltip if description available

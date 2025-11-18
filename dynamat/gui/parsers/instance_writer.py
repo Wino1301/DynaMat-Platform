@@ -1,574 +1,382 @@
 """
 DynaMat Platform - Instance Writer
-Converts form data to TTL instance files for any ontology class
+Converts GUI form data to TTL files with automatic unit conversion
+
+This is the SINGLE point where unit conversion happens during save operations.
+Converts values from user-selected units to ontology-defined storage units (dyn:hasUnit).
 """
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, Any, Union, Optional, Tuple
 from datetime import datetime
 
-from PyQt6.QtWidgets import QMessageBox, QInputDialog
-
-from rdflib import Graph, URIRef, Literal, Namespace
+from rdflib import Graph, URIRef, Literal, Namespace, BNode
 from rdflib.namespace import RDF, RDFS, OWL, XSD
 
-from ...ontology.core.namespace_manager import NamespaceManager
-from ...config import config
+from ..core.form_validator import SHACLValidator, ValidationResult
 
 logger = logging.getLogger(__name__)
 
 
 class InstanceWriter:
     """
-    Converts form data to TTL instance files.
-    Handles all ontology classes with proper RDF serialization.
+    Writes GUI form data to TTL files with automatic QUDT unit conversion and SHACL validation.
 
-    Key responsibilities:
-    - Filter ontology properties (dyn:) from GUI properties (gui:)
-    - Convert form data to RDF triples
-    - Handle measurement properties with units
-    - Add metadata (user, dates, version)
-    - Validate before saving (SHACL)
-    - Handle file overwrite confirmation
+    Responsibilities:
+    - Convert form data dictionary to RDF graph
+    - Handle unit conversion using QUDT for measurement properties
+    - Validate RDF graph using SHACL shapes before saving
+    - Serialize graph to TTL format
+    - Save to specified file path
+
+    Unit Conversion Strategy:
+    - UnitValueWidget provides: {'value': X, 'unit': user_unit, 'reference_unit': storage_unit}
+    - If user_unit != storage_unit, convert using QUDTManager
+    - Store ONLY the converted numeric value (float) in TTL
+    - Unit information preserved in ontology via dyn:hasUnit
+
+    Validation Strategy:
+    - After creating RDF graph (with unit conversion), validate using SHACL shapes
+    - If blocking violations exist, return None (save aborted)
+    - If only warnings/infos, return path and validation_result (caller handles user confirmation)
     """
 
-    def __init__(self, namespace_manager: NamespaceManager, ontology_manager=None):
+    def __init__(self, ontology_manager, qudt_manager=None):
         """
-        Initialize the instance writer.
+        Initialize instance writer.
 
         Args:
-            namespace_manager: Namespace manager for URI handling
-            ontology_manager: Optional ontology manager for property metadata
+            ontology_manager: OntologyManager for namespace access
+            qudt_manager: QUDTManager for unit conversions (optional but recommended)
         """
-        self.ns_manager = namespace_manager
-        self.ontology_manager = ontology_manager
+        self.ontology = ontology_manager
+        self.qudt = qudt_manager
 
-        # Specimens directory (outside the code package)
-        self.specimens_dir = Path(config.BASE_DIR) / "specimens"
-        self.specimens_dir.mkdir(exist_ok=True)
+        # Get namespace manager
+        self.ns_manager = ontology_manager.namespace_manager if hasattr(ontology_manager, 'namespace_manager') else None
 
-        logger.info("InstanceWriter initialized")
+        # Standard namespaces
+        self.DYN = Namespace("https://dynamat.utep.edu/ontology#")
+        self.GUI = Namespace("https://dynamat.utep.edu/ontology/gui#")
+        self.QUDT = Namespace("http://qudt.org/schema/qudt/")
+        self.UNIT = Namespace("http://qudt.org/vocab/unit/")
+        self.QKDV = Namespace("http://qudt.org/vocab/quantitykind/")
 
-    def write_instance(
-        self,
-        class_uri: str,
-        instance_id: str,
-        form_data: Dict[str, Any],
-        output_path: Optional[Path] = None,
-        user_uri: Optional[str] = None,
-        notes: Optional[str] = None
-    ) -> str:
+        # Initialize SHACL validator
+        self.validator = SHACLValidator(ontology_manager)
+
+        logger.info("InstanceWriter initialized with QUDT unit conversion and SHACL validation support")
+
+    def write_instance(self,
+                      form_data: Dict[str, Any],
+                      class_uri: str,
+                      instance_id: str,
+                      output_path: Path,
+                      additional_triples: list = None,
+                      skip_validation: bool = False) -> Tuple[Optional[str], ValidationResult]:
         """
-        Main method: Convert form data to TTL and save.
+        Write form data to a TTL file with unit conversion and SHACL validation.
 
         Args:
-            class_uri: The ontology class (dyn:Specimen, dyn:SHPBCompression, etc.)
-            instance_id: Instance identifier (SPN-AL6061-001)
-            form_data: Extracted form data from FormDataHandler
-            output_path: Optional custom output path (auto-determined if None)
-            user_uri: Optional user URI (will prompt if None)
-            notes: Optional notes to include
+            form_data: Dictionary from FormDataHandler (property_uri -> widget_value)
+            class_uri: RDF class URI (e.g., "dyn:Specimen", "dyn:MechanicalTest")
+            instance_id: Instance identifier (e.g., "DYNML-AL6061-001")
+            output_path: Path where TTL file will be saved
+            additional_triples: Optional list of (subject, predicate, object) tuples to add
+            skip_validation: If True, skip SHACL validation (for testing)
 
         Returns:
-            Path to saved file
+            Tuple of (saved_file_path, validation_result):
+            - saved_file_path: Path to saved file, or None if save was blocked by validation
+            - validation_result: SHACL validation result with violations/warnings/infos
+
+        Example:
+            >>> writer = InstanceWriter(ontology_manager, qudt_manager)
+            >>> data = {
+            ...     'dyn:hasOriginalLength': {'value': 10.0, 'unit': 'unit:IN', 'reference_unit': 'unit:MilliM'},
+            ...     'dyn:hasSpecimenID': 'DYNML-AL6061-001',
+            ...     'dyn:hasMaterial': 'dyn:Al6061_T6'
+            ... }
+            >>> path, validation_result = writer.write_instance(
+            ...     form_data=data,
+            ...     class_uri='dyn:Specimen',
+            ...     instance_id='DYNML_AL6061_001',
+            ...     output_path=Path('specimens/DYNML-AL6061-001/DYNML-AL6061-001_specimen.ttl')
+            ... )
+            >>> if path:
+            ...     print(f"Saved to {path}")
+            >>> if validation_result.has_any_issues():
+            ...     # Caller can display ValidationResultsDialog here
+            ...     pass
         """
-        logger.info(f"Writing instance: {instance_id} of class {class_uri}")
+        try:
+            # Create RDF graph
+            graph = Graph()
+            self._setup_namespaces(graph)
 
-        # 1. Validate before saving
-        if not self._validate_instance(form_data):
-            raise ValueError("Instance validation failed")
+            # Create instance URI
+            instance_uri = self._create_instance_uri(instance_id)
+            instance_ref = URIRef(instance_uri)
 
-        # 2. Filter to only ontology properties (exclude GUI annotations)
-        filtered_data = self._filter_ontology_properties(form_data)
-        logger.debug(f"Filtered {len(form_data)} properties to {len(filtered_data)} ontology properties")
+            # Add type assertion
+            class_ref = self._resolve_uri(class_uri)
+            graph.add((instance_ref, RDF.type, class_ref))
 
-        # 3. Get or prompt for user
-        if user_uri is None:
-            user_uri = self._get_user_selection()
+            # Process each property from form data
+            for property_uri, value in form_data.items():
+                if value is None or value == "":
+                    continue  # Skip empty values
 
-        # 4. Determine output path
-        if output_path is None:
-            output_path = self._determine_output_path(class_uri, instance_id, filtered_data)
+                property_ref = self._resolve_uri(property_uri)
+                rdf_value = self._convert_to_rdf_value(value)
 
-        # 5. Check for overwrite
-        if output_path.exists():
-            if not self._confirm_overwrite(output_path):
-                logger.info("User cancelled overwrite")
-                return None
+                graph.add((instance_ref, property_ref, rdf_value))
 
-        # 6. Create RDF graph
-        graph = self._create_instance_graph(
-            class_uri=class_uri,
-            instance_id=instance_id,
-            form_data=filtered_data,
-            user_uri=user_uri,
-            notes=notes,
-            is_overwrite=output_path.exists()
-        )
+            # Add any additional triples
+            if additional_triples:
+                for subject, predicate, obj in additional_triples:
+                    graph.add((subject, predicate, obj))
 
-        # 7. Save to file
-        self._save_graph_to_file(graph, output_path)
+            # Validate RDF graph with SHACL (after unit conversion, before save)
+            validation_result = self._validate_instance_graph(graph, skip_validation)
 
-        logger.info(f"Successfully saved instance to: {output_path}")
-        return str(output_path)
+            # Check validation result - return immediately if blocking violations exist
+            if validation_result.has_blocking_issues():
+                logger.warning(f"Validation failed with {len(validation_result.violations)} violation(s). Save blocked.")
+                return None, validation_result
 
-    # ============================================================================
-    # VALIDATION
-    # ============================================================================
+            # If warnings/infos exist, caller can handle showing dialog
+            # We continue here, but caller may cancel based on user choice
 
-    def _validate_instance(self, form_data: Dict[str, Any]) -> bool:
+            # Ensure output directory exists
+            output_path = Path(output_path)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Serialize to TTL
+            self._save_graph(graph, output_path)
+
+            logger.info(f"Instance {instance_id} written to {output_path}")
+            return str(output_path), validation_result
+
+        except Exception as e:
+            logger.error(f"Failed to write instance {instance_id}: {e}", exc_info=True)
+            raise
+
+    def _validate_instance_graph(self, graph: Graph, skip_validation: bool = False) -> ValidationResult:
         """
-        Validate instance data before saving (SHACL validation).
+        Validate RDF instance graph with SHACL shapes.
 
         Args:
-            form_data: Form data to validate
+            graph: RDF graph containing the instance data
+            skip_validation: If True, skip validation (for testing)
 
         Returns:
-            True if validation passes
-
-        NOTE: This is a placeholder. Full SHACL validation will be implemented later.
+            ValidationResult with violations, warnings, and infos
         """
-        # TODO: Implement SHACL validation
-        # For now, just return True for testing
-        logger.debug("SHACL validation (placeholder): PASS")
-        return True
+        if skip_validation:
+            logger.debug("SHACL validation skipped (skip_validation=True)")
+            return ValidationResult(conforms=True, raw_report="Validation skipped")
 
-    # ============================================================================
-    # FILTERING
-    # ============================================================================
+        logger.info("Running SHACL validation on instance graph...")
+        validation_result = self.validator.validate(graph)
 
-    def _filter_ontology_properties(self, form_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Filter to only include dyn: namespace properties.
-        Excludes GUI annotation properties (gui: namespace) like hasDisplayName, hasFormGroup, etc.
-
-        Args:
-            form_data: Raw form data
-
-        Returns:
-            Filtered data with only ontology properties
-        """
-        filtered = {}
-
-        dyn_namespace = "https://dynamat.utep.edu/ontology#"
-        gui_namespace = "https://dynamat.utep.edu/ontology/gui#"
-
-        for prop_uri, value in form_data.items():
-            # Include properties from dyn: namespace, exclude gui: namespace
-            if prop_uri.startswith(dyn_namespace) and not prop_uri.startswith(gui_namespace):
-                filtered[prop_uri] = value
-
-        return filtered
-
-    # ============================================================================
-    # GRAPH CREATION
-    # ============================================================================
-
-    def _create_instance_graph(
-        self,
-        class_uri: str,
-        instance_id: str,
-        form_data: Dict[str, Any],
-        user_uri: str,
-        notes: Optional[str],
-        is_overwrite: bool
-    ) -> Graph:
-        """
-        Create RDF graph for the instance.
-
-        Args:
-            class_uri: Class URI
-            instance_id: Instance identifier
-            form_data: Filtered form data
-            user_uri: User URI
-            notes: Optional notes
-            is_overwrite: Whether this is overwriting an existing file
-
-        Returns:
-            RDF Graph
-        """
-        # Create graph
-        graph = Graph()
-        self.ns_manager.setup_graph_namespaces(graph)
-
-        # Generate instance URI (replace hyphens with underscores)
-        instance_uri = self._generate_instance_uri(instance_id)
-        instance_ref = URIRef(instance_uri)
-        class_ref = URIRef(class_uri)
-
-        # Add type assertion
-        graph.add((instance_ref, RDF.type, OWL.NamedIndividual))
-        graph.add((instance_ref, RDF.type, class_ref))
-
-        # Add label
-        label = self._generate_label(instance_id, class_uri)
-        graph.add((instance_ref, RDFS.label, Literal(label, lang="en")))
-
-        # Add property values
-        for prop_uri, value in form_data.items():
-            self._add_property_to_graph(graph, instance_ref, prop_uri, value)
-
-        # Add metadata
-        self._add_metadata_to_graph(graph, instance_ref, user_uri, notes, is_overwrite)
-
-        return graph
-
-    def _add_property_to_graph(self, graph: Graph, instance_ref: URIRef,
-                               prop_uri: str, value: Any):
-        """
-        Add a property value to the graph.
-        Handles measurement properties with unit conversion.
-
-        Args:
-            graph: RDF graph
-            instance_ref: Instance URI reference
-            prop_uri: Property URI
-            value: Property value
-        """
-        prop_ref = URIRef(prop_uri)
-
-        # Handle measurement properties from UnitValueWidget (dict with 'value' and 'unit')
-        if isinstance(value, dict) and 'value' in value and 'unit' in value:
-            # Convert the value to standard unit using runtime conversion
-            # This is triggered when UnitValueWidget data is processed
-            converted_value = self._convert_unit_to_standard(
-                value['value'],
-                value['unit'],
-                prop_uri
-            )
-
-            # Store only the converted value (in standard unit)
-            # The standard unit is defined in the ontology, not stored in the instance
-            graph.add((instance_ref, prop_ref, Literal(converted_value, datatype=XSD.double)))
-
-        # Handle object properties (URIs)
-        elif isinstance(value, str) and value.startswith('http'):
-            graph.add((instance_ref, prop_ref, URIRef(value)))
-
-        # Handle data properties with proper datatypes
+        # Log validation summary
+        if validation_result.conforms:
+            logger.info("✓ SHACL validation passed")
         else:
-            rdf_value = self._convert_to_rdf_literal(value, prop_uri)
-            graph.add((instance_ref, prop_ref, rdf_value))
+            logger.warning(f"✗ SHACL validation found issues: {validation_result.get_summary()}")
 
-    def _add_metadata_to_graph(self, graph: Graph, instance_ref: URIRef,
-                               user_uri: str, notes: Optional[str],
-                               is_overwrite: bool):
+        return validation_result
+
+    def _convert_to_rdf_value(self, value: Any) -> Union[URIRef, Literal]:
         """
-        Add metadata to the instance.
+        Convert Python/form value to RDF value with unit conversion.
+
+        This is the CORE method where unit conversion happens!
 
         Args:
-            graph: RDF graph
-            instance_ref: Instance URI reference
-            user_uri: User URI
-            notes: Optional notes
-            is_overwrite: Whether this is an overwrite operation
-        """
-        now = datetime.now()
-
-        # User
-        graph.add((instance_ref, self.ns_manager.DYN.hasUser, URIRef(user_uri)))
-
-        # Dates
-        if is_overwrite:
-            # This is an overwrite - update modified date
-            graph.add((instance_ref, self.ns_manager.DYN.hasModifiedDate,
-                      Literal(now.isoformat(), datatype=XSD.dateTime)))
-        else:
-            # New instance - set creation date
-            graph.add((instance_ref, self.ns_manager.DYN.hasCreationDate,
-                      Literal(now.isoformat(), datatype=XSD.dateTime)))
-
-        # Version
-        graph.add((instance_ref, self.ns_manager.DYN.hasDynamatVersion,
-                  Literal(config.VERSION)))
-
-        # Notes (if provided)
-        if notes:
-            graph.add((instance_ref, self.ns_manager.DYN.hasNotes, Literal(notes)))
-
-    # ============================================================================
-    # UNIT CONVERSION (PLACEHOLDER)
-    # ============================================================================
-
-    def _convert_unit_to_standard(self, value: float, unit_uri: str,
-                                   property_uri: str) -> float:
-        """
-        Convert measurement value to standard unit at runtime.
-
-        This is triggered when UnitValueWidget data is processed (dict with 'value' and 'unit').
-        The standard unit for each property is defined in the ontology.
-
-        Args:
-            value: Numeric value from the widget
-            unit_uri: Unit URI selected in the widget
-            property_uri: Property URI (to determine standard unit from ontology)
+            value: Value from form widget (could be dict with units, string, number, etc.)
 
         Returns:
-            Converted value in standard unit
-
-        NOTE: This is a placeholder. Full unit conversion will be implemented later.
-        The actual implementation will:
-        1. Query ontology for property's standard unit (e.g., meters for length)
-        2. Use QUDT conversion factors to convert from input unit to standard unit
-        3. Return the converted value
-
-        For now, just returns the original value unchanged.
+            RDF URIRef or Literal ready for graph insertion
         """
-        # TODO: Implement full unit conversion logic:
-        # 1. Get standard unit from ontology for this property
-        # 2. Get conversion factor from QUDT (unit_uri -> standard_unit)
-        # 3. Apply conversion: converted_value = value * conversion_factor
-        # 4. Return converted value
+        # === UNIT CONVERSION LOGIC ===
+        # Check if this is a unit-value dictionary from UnitValueWidget
+        if isinstance(value, dict) and 'value' in value and 'unit' in value and 'reference_unit' in value:
+            numeric_value = value['value']
+            user_unit = value['unit']  # Unit selected by user in dropdown
+            reference_unit = value['reference_unit']  # dyn:hasUnit from ontology (storage unit)
 
-        logger.debug(f"Unit conversion (placeholder): {value} from {unit_uri} for {property_uri}")
-        logger.debug(f"  -> Returning original value: {value} (conversion not yet implemented)")
+            # Perform unit conversion if units differ (URI-level comparison)
+            if user_unit and reference_unit and user_unit != reference_unit and self.qudt:
+                try:
+                    # Convert from user's unit to ontology-defined storage unit
+                    converted_value = self.qudt.convert_value(
+                        value=numeric_value,
+                        from_unit_uri=user_unit,
+                        to_unit_uri=reference_unit
+                    )
 
-        return value
+                    logger.info(
+                        f"Unit conversion: {numeric_value} ({user_unit}) → "
+                        f"{converted_value:.6f} ({reference_unit})"
+                    )
 
-    # ============================================================================
-    # VALUE CONVERSION
-    # ============================================================================
+                    return Literal(converted_value, datatype=XSD.double)
 
-    def _convert_to_rdf_literal(self, value: Any, prop_uri: str) -> Literal:
-        """
-        Convert Python value to RDF Literal with correct datatype.
-
-        Args:
-            value: Python value
-            prop_uri: Property URI (to get metadata if available)
-
-        Returns:
-            RDF Literal with appropriate datatype
-        """
-        # Get property metadata if available
-        property_metadata = None
-        if self.ontology_manager:
-            try:
-                # Try to get metadata from ontology
-                property_metadata = self.ontology_manager.get_property_metadata(prop_uri)
-            except:
-                pass
-
-        # Use metadata if available
-        if property_metadata:
-            data_type = property_metadata.data_type.lower()
-
-            if data_type == "integer":
-                return Literal(int(value), datatype=XSD.integer)
-            elif data_type in ["double", "float"]:
-                return Literal(float(value), datatype=XSD.double)
-            elif data_type == "boolean":
-                return Literal(bool(value), datatype=XSD.boolean)
-            elif data_type == "date":
-                return Literal(str(value), datatype=XSD.date)
+                except Exception as e:
+                    logger.warning(
+                        f"Unit conversion failed ({user_unit} → {reference_unit}): {e}. "
+                        f"Storing original value."
+                    )
+                    # Fallback: store original value if conversion fails
+                    return Literal(numeric_value, datatype=XSD.double)
             else:
-                return Literal(str(value))
+                # No conversion needed (same unit, missing info, or no QUDT manager)
+                return Literal(numeric_value, datatype=XSD.double)
 
-        # Fallback: Infer from Python type
-        if isinstance(value, bool):
+        # === STANDARD TYPE CONVERSIONS (no units) ===
+        elif isinstance(value, str):
+            # Check if it's a URI or a literal string
+            if value.startswith("http") or value.startswith("dyn:") or value.startswith("unit:"):
+                return self._resolve_uri(value)
+            else:
+                return Literal(value, datatype=XSD.string)
+
+        elif isinstance(value, bool):
             return Literal(value, datatype=XSD.boolean)
+
         elif isinstance(value, int):
             return Literal(value, datatype=XSD.integer)
+
         elif isinstance(value, float):
             return Literal(value, datatype=XSD.double)
-        elif hasattr(value, 'isoformat'):  # datetime/date
+
+        elif isinstance(value, datetime):
             return Literal(value.isoformat(), datatype=XSD.dateTime)
+
+        elif hasattr(value, 'isoformat'):  # date objects
+            return Literal(value.isoformat(), datatype=XSD.date)
+
         else:
+            # Default: convert to string
+            logger.warning(f"Unknown value type {type(value)}, converting to string")
             return Literal(str(value))
 
-    # ============================================================================
-    # FILE OPERATIONS
-    # ============================================================================
+    def _setup_namespaces(self, graph: Graph):
+        """Setup standard namespaces for the graph."""
+        if self.ns_manager:
+            # Use namespace manager if available
+            self.ns_manager.setup_graph_namespaces(graph)
+        else:
+            # Fallback: manually bind common namespaces
+            graph.bind("dyn", self.DYN)
+            graph.bind("gui", self.GUI)
+            graph.bind("rdf", RDF)
+            graph.bind("rdfs", RDFS)
+            graph.bind("owl", OWL)
+            graph.bind("xsd", XSD)
+            graph.bind("qudt", self.QUDT)
+            graph.bind("unit", self.UNIT)
+            graph.bind("qkdv", self.QKDV)
 
-    def _determine_output_path(self, class_uri: str, instance_id: str,
-                               form_data: Dict[str, Any]) -> Path:
-        """
-        Determine output path based on class type and instance ID.
-        Uses underscores in file paths.
+    def _create_instance_uri(self, instance_id: str) -> str:
+        """Create full URI for instance."""
+        # Clean instance ID (remove special characters if needed)
+        clean_id = instance_id.replace(" ", "_").replace("-", "_")
+        return str(self.DYN[clean_id])
 
-        Args:
-            class_uri: Class URI
-            instance_id: Instance identifier
-            form_data: Form data (may contain specimen reference for tests)
-
-        Returns:
-            Path object for output file
-        """
-        # Convert instance_id to use underscores
-        safe_id = instance_id.replace("-", "_")
-
-        # Extract class name
-        class_name = self._extract_class_name(class_uri)
-
-        # Determine path based on class type
-        if class_name == "Specimen":
-            # specimens/SPN_AL6061_001/SPN_AL6061_001_specimen.ttl
-            specimen_dir = self.specimens_dir / safe_id
-            specimen_dir.mkdir(parents=True, exist_ok=True)
-            return specimen_dir / f"{safe_id}_specimen.ttl"
-
-        elif "Test" in class_name or "Compression" in class_name:
-            # Need to find specimen reference to determine directory
-            specimen_id = self._extract_specimen_id_from_test(form_data)
-            if specimen_id:
-                safe_specimen_id = specimen_id.replace("-", "_")
-                specimen_dir = self.specimens_dir / safe_specimen_id
-                specimen_dir.mkdir(parents=True, exist_ok=True)
-
-                # Include test type and date in filename
-                # e.g., SPN_AL6061_001_SHPB_20250115.ttl
-                return specimen_dir / f"{safe_id}.ttl"
+    def _resolve_uri(self, uri_string: str) -> URIRef:
+        """Resolve prefixed URI to full URI."""
+        if uri_string.startswith("http"):
+            return URIRef(uri_string)
+        elif ":" in uri_string:
+            prefix, local = uri_string.split(":", 1)
+            if prefix == "dyn":
+                return URIRef(self.DYN[local])
+            elif prefix == "unit":
+                return URIRef(self.UNIT[local])
+            elif prefix == "qkdv":
+                return URIRef(self.QKDV[local])
+            elif prefix == "gui":
+                return URIRef(self.GUI[local])
             else:
-                # Fallback: create in general tests directory
-                tests_dir = self.specimens_dir / "tests"
-                tests_dir.mkdir(parents=True, exist_ok=True)
-                return tests_dir / f"{safe_id}.ttl"
-
+                # Unknown prefix, return as-is
+                return URIRef(uri_string)
         else:
-            # Generic: save in class-specific directory
-            class_dir = self.specimens_dir / class_name.lower()
-            class_dir.mkdir(parents=True, exist_ok=True)
-            return class_dir / f"{safe_id}.ttl"
+            # No prefix, assume dyn namespace
+            return URIRef(self.DYN[uri_string])
 
-    def _save_graph_to_file(self, graph: Graph, file_path: Path):
+    def _save_graph(self, graph: Graph, output_path: Path):
+        """Serialize and save graph to TTL file."""
+        try:
+            # Serialize with nice formatting
+            ttl_content = graph.serialize(format='turtle')
+
+            # Write to file
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(ttl_content)
+
+            logger.debug(f"Graph serialized to {output_path} ({len(graph)} triples)")
+
+        except Exception as e:
+            logger.error(f"Failed to save graph to {output_path}: {e}")
+            raise
+
+    def update_instance(self,
+                       instance_uri: str,
+                       updates: Dict[str, Any],
+                       ttl_file: Path,
+                       skip_validation: bool = False) -> Tuple[Optional[str], ValidationResult]:
         """
-        Save RDF graph to TTL file with proper formatting.
+        Update existing instance by loading TTL, modifying, and re-saving with validation.
 
         Args:
-            graph: RDF graph
-            file_path: Output file path
-        """
-        # Ensure parent directory exists
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Serialize to TTL
-        with file_path.open("w", encoding="utf-8") as f:
-            f.write(graph.serialize(format="turtle"))
-
-        logger.info(f"Saved TTL file: {file_path}")
-
-    def _confirm_overwrite(self, file_path: Path) -> bool:
-        """
-        Show confirmation dialog for file overwrite.
-
-        Args:
-            file_path: Path to file that exists
+            instance_uri: URI of instance to update
+            updates: Dictionary of property_uri -> new_value
+            ttl_file: Path to existing TTL file
+            skip_validation: If True, skip SHACL validation (for testing)
 
         Returns:
-            True if user confirms overwrite, False otherwise
+            Tuple of (saved_file_path, validation_result):
+            - saved_file_path: Path to saved file, or None if save was blocked by validation
+            - validation_result: SHACL validation result
         """
-        if not PYQT_AVAILABLE:
-            # Fallback for testing without GUI
-            logger.warning(f"File exists: {file_path}. Auto-confirming overwrite (no GUI available)")
-            return True
+        try:
+            # Load existing graph
+            graph = Graph()
+            graph.parse(ttl_file, format='turtle')
+            self._setup_namespaces(graph)
 
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Icon.Warning)
-        msg.setWindowTitle("Confirm Overwrite")
-        msg.setText(f"File already exists:\n{file_path}\n\nDo you want to overwrite it?")
-        msg.setInformativeText("The modification date will be updated.")
-        msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        msg.setDefaultButton(QMessageBox.StandardButton.No)
+            instance_ref = self._resolve_uri(instance_uri)
 
-        result = msg.exec()
-        return result == QMessageBox.StandardButton.Yes
+            # Update each property
+            for property_uri, new_value in updates.items():
+                property_ref = self._resolve_uri(property_uri)
 
-    # ============================================================================
-    # USER SELECTION
-    # ============================================================================
+                # Remove old triples
+                graph.remove((instance_ref, property_ref, None))
 
-    def _get_user_selection(self) -> str:
-        """
-        Prompt user to select/enter user.
+                # Add new value
+                if new_value is not None and new_value != "":
+                    rdf_value = self._convert_to_rdf_value(new_value)
+                    graph.add((instance_ref, property_ref, rdf_value))
 
-        Returns:
-            User URI
+            # Validate updated graph with SHACL
+            validation_result = self._validate_instance_graph(graph, skip_validation)
 
-        NOTE: This is a placeholder. Full user management will be implemented later.
-        For now, just creates a placeholder user.
-        """
-        # TODO: Implement proper user selection dialog
-        # For now, use a simple input dialog
+            # Check validation result - return immediately if blocking violations exist
+            if validation_result.has_blocking_issues():
+                logger.warning(f"Validation failed with {len(validation_result.violations)} violation(s). Update blocked.")
+                return None, validation_result
 
-        # Placeholder user
-        placeholder_user = "PlaceholderUser"
+            # Save updated graph
+            self._save_graph(graph, ttl_file)
 
-        # In the future, this would show a dialog with user list
-        # For now, just return placeholder
-        user_uri = str(self.ns_manager.DYN[placeholder_user])
+            logger.info(f"Instance {instance_uri} updated in {ttl_file}")
+            return str(ttl_file), validation_result
 
-        logger.debug(f"Using user: {user_uri}")
-        return user_uri
-
-    # ============================================================================
-    # HELPER METHODS
-    # ============================================================================
-
-    def _generate_instance_uri(self, instance_id: str) -> str:
-        """
-        Generate instance URI from ID.
-        Replaces hyphens with underscores for valid URIs.
-
-        Args:
-            instance_id: Instance identifier
-
-        Returns:
-            Full instance URI
-        """
-        # Replace hyphens with underscores
-        clean_id = instance_id.replace("-", "_")
-        return str(self.ns_manager.DYN[clean_id])
-
-    def _generate_label(self, instance_id: str, class_uri: str) -> str:
-        """
-        Generate human-readable label for instance.
-
-        Args:
-            instance_id: Instance identifier
-            class_uri: Class URI
-
-        Returns:
-            Label string
-        """
-        class_name = self._extract_class_name(class_uri)
-
-        if class_name == "Specimen":
-            return instance_id
-        elif "Test" in class_name:
-            return f"{class_name} - {instance_id}"
-        else:
-            return f"{class_name}: {instance_id}"
-
-    def _extract_class_name(self, class_uri: str) -> str:
-        """Extract class name from URI."""
-        if "#" in class_uri:
-            return class_uri.split("#")[-1]
-        elif "/" in class_uri:
-            return class_uri.split("/")[-1]
-        else:
-            return class_uri
-
-    def _extract_specimen_id_from_test(self, form_data: Dict[str, Any]) -> Optional[str]:
-        """
-        Extract specimen ID from test form data.
-
-        Args:
-            form_data: Form data
-
-        Returns:
-            Specimen ID if found, None otherwise
-        """
-        # Look for hasSpecimen property
-        for prop_uri, value in form_data.items():
-            if "hasSpecimen" in prop_uri:
-                # Value might be URI or ID
-                if isinstance(value, str):
-                    if "#" in value:
-                        return value.split("#")[-1].replace("_", "-")
-                    elif "/" in value:
-                        return value.split("/")[-1].replace("_", "-")
-                    else:
-                        return value
-
-        return None
+        except Exception as e:
+            logger.error(f"Failed to update instance {instance_uri}: {e}", exc_info=True)
+            raise

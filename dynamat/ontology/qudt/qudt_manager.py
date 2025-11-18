@@ -27,15 +27,19 @@ class QUDTUnit:
     symbol: str
     label: str
     quantity_kind: str
-    
+    conversion_multiplier: float = 1.0  # Multiplier to convert to SI base unit
+    conversion_offset: float = 0.0  # Offset for interval scales (temperature, etc.)
+
     def to_dict(self) -> Dict:
         return {
             'uri': self.uri,
             'symbol': self.symbol,
             'label': self.label,
-            'quantity_kind': self.quantity_kind
+            'quantity_kind': self.quantity_kind,
+            'conversion_multiplier': self.conversion_multiplier,
+            'conversion_offset': self.conversion_offset
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict) -> 'QUDTUnit':
         return cls(**data)
@@ -216,52 +220,68 @@ class QUDTManager:
         """Extract unit information from RDF graph, handling duplicates properly."""
         # Strategy: Query for all unit-quantityKind pairs, then aggregate by unit
         query = """
-        SELECT ?unit ?symbol ?label ?quantityKind WHERE {
+        SELECT ?unit ?symbol ?label ?quantityKind ?conversionMultiplier ?conversionOffset WHERE {
             ?unit a qudt:Unit .
-            
+
             # Symbol is required
             OPTIONAL { ?unit qudt:symbol ?symbol }
-            
+
             # English labels only
-            OPTIONAL { 
+            OPTIONAL {
                 ?unit rdfs:label ?label .
                 FILTER(LANG(?label) = "en" || LANG(?label) = "")
             }
-            
+
             # Quantity kind (a unit can have multiple)
             OPTIONAL { ?unit qudt:hasQuantityKind ?quantityKind }
+
+            # Conversion multiplier to SI base unit
+            OPTIONAL { ?unit qudt:conversionMultiplier ?conversionMultiplier }
+
+            # Conversion offset for interval scales (temperature, etc.)
+            OPTIONAL { ?unit qudt:conversionOffset ?conversionOffset }
         }
         """
         
         results = graph.query(query)
-        
+
         # First pass: collect all data per unit URI
-        units_data = {}  # unit_uri -> {symbol, labels, quantity_kinds}
-        
+        units_data = {}  # unit_uri -> {symbol, labels, quantity_kinds, conversion_multiplier, conversion_offset}
+
         for row in results:
             if not row.unit:
                 continue
-            
+
             unit_uri = str(row.unit).strip()
-            
+
             if unit_uri not in units_data:
                 units_data[unit_uri] = {
                     'symbols': set(),
                     'labels': set(),
-                    'quantity_kinds': set()
+                    'quantity_kinds': set(),
+                    'conversion_multiplier': 1.0,  # Default if not specified
+                    'conversion_offset': 0.0  # Default if not specified
                 }
-            
+
             # Collect symbol
             if row.symbol:
                 units_data[unit_uri]['symbols'].add(str(row.symbol))
-            
+
             # Collect label
             if row.label:
                 units_data[unit_uri]['labels'].add(str(row.label))
-            
+
             # Collect quantity kind
             if row.quantityKind:
                 units_data[unit_uri]['quantity_kinds'].add(str(row.quantityKind).strip())
+
+            # Collect conversion multiplier (should be same for all rows with same unit)
+            if row.conversionMultiplier:
+                units_data[unit_uri]['conversion_multiplier'] = float(row.conversionMultiplier)
+
+            # Collect conversion offset (should be same for all rows with same unit)
+            if row.conversionOffset:
+                units_data[unit_uri]['conversion_offset'] = float(row.conversionOffset)
         
         # Second pass: create QUDTUnit objects
         for unit_uri, data in units_data.items():
@@ -280,13 +300,15 @@ class QUDTManager:
             # Create one QUDTUnit per unit (not per quantity kind)
             # But index it under ALL its quantity kinds
             quantity_kinds = data['quantity_kinds'] if data['quantity_kinds'] else {'unknown'}
-            
+
             for qk in quantity_kinds:
                 unit = QUDTUnit(
                     uri=unit_uri,
                     symbol=symbol,
                     label=label,
-                    quantity_kind=qk
+                    quantity_kind=qk,
+                    conversion_multiplier=data['conversion_multiplier'],
+                    conversion_offset=data['conversion_offset']
                 )
                 
                 # Store by URI (only once)
@@ -362,9 +384,102 @@ class QUDTManager:
         """Get unit information by URI."""
         if not self._is_loaded:
             self.load()
-        
+
         return self.units_by_uri.get(unit_uri)
-    
+
+    def convert_value(self, value: float, from_unit_uri: str, to_unit_uri: str) -> float:
+        """
+        Convert a value between two units using QUDT conversionMultipliers and conversionOffsets.
+
+        Uses the full QUDT formula for ratio and interval scales:
+            SI_value = (value × from_multiplier) + from_offset
+            target_value = (SI_value - to_offset) / to_multiplier
+
+        This handles both:
+        - Ratio scales (length, mass, force): offset = 0
+        - Interval scales (temperature): offset ≠ 0
+
+        Args:
+            value: The numeric value in from_unit
+            from_unit_uri: Source unit URI (e.g., "http://qudt.org/vocab/unit/IN")
+            to_unit_uri: Target unit URI (e.g., "http://qudt.org/vocab/unit/MilliM")
+
+        Returns:
+            Converted value in to_unit
+
+        Raises:
+            ValueError: If units are not found or incompatible
+
+        Examples:
+            >>> manager.convert_value(10.0, "unit:IN", "unit:MilliM")
+            254.0  # 10 inches = 254 millimeters (ratio scale, offset = 0)
+
+            >>> manager.convert_value(100.0, "unit:DEG_C", "unit:K")
+            373.15  # 100°C = 373.15 K (interval scale, offset = 273.15)
+        """
+        if not self._is_loaded:
+            self.load()
+
+        # Normalize URIs (handle both full URIs and prefixed forms)
+        from_unit_uri = self._normalize_unit_uri(from_unit_uri)
+        to_unit_uri = self._normalize_unit_uri(to_unit_uri)
+
+        # If same unit, no conversion needed
+        if from_unit_uri == to_unit_uri:
+            return value
+
+        # Get unit information
+        from_unit = self.get_unit_by_uri(from_unit_uri)
+        to_unit = self.get_unit_by_uri(to_unit_uri)
+
+        if not from_unit:
+            raise ValueError(f"Source unit not found in QUDT: {from_unit_uri}")
+        if not to_unit:
+            raise ValueError(f"Target unit not found in QUDT: {to_unit_uri}")
+
+        # Check if units are compatible (same quantity kind)
+        if from_unit.quantity_kind != to_unit.quantity_kind:
+            logger.warning(
+                f"Unit conversion between different quantity kinds: "
+                f"{from_unit.quantity_kind} → {to_unit.quantity_kind}"
+            )
+
+        # Perform conversion through SI base unit with full QUDT formula
+        # Step 1: Convert to SI base unit (handles both ratio and interval scales)
+        si_value = (value * from_unit.conversion_multiplier) + from_unit.conversion_offset
+
+        # Step 2: Convert from SI base unit to target unit
+        target_value = (si_value - to_unit.conversion_offset) / to_unit.conversion_multiplier
+
+        logger.debug(
+            f"Converted {value} {from_unit.symbol} → {target_value} {to_unit.symbol} "
+            f"(via {si_value} SI, from_offset={from_unit.conversion_offset}, "
+            f"to_offset={to_unit.conversion_offset})"
+        )
+
+        return target_value
+
+    def _normalize_unit_uri(self, unit_uri: str) -> str:
+        """
+        Normalize unit URI to full form.
+
+        Handles both prefixed forms (unit:MilliM) and full URIs.
+        """
+        if not unit_uri:
+            return ""
+
+        unit_uri = str(unit_uri).strip().strip('"\'')
+
+        # Handle namespace prefixes
+        if ':' in unit_uri and not unit_uri.startswith('http'):
+            prefix, local = unit_uri.split(':', 1)
+            if prefix == 'unit':
+                return f'http://qudt.org/vocab/unit/{local}'
+            elif prefix == 'qkdv':
+                return f'http://qudt.org/vocab/quantitykind/{local}'
+
+        return unit_uri
+
     def clear_cache(self):
         """Clear the disk cache."""
         try:

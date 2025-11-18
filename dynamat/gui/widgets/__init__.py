@@ -12,6 +12,7 @@ from .base.unit_value_widget import UnitValueWidget
 # Import from root widgets (maintaining compatibility)
 from .terminal_widget import TerminalWidget
 from .action_panel import ActionPanelWidget
+from .validation_results_dialog import ValidationResultsDialog
 
 # Import submodules for organized access
 from . import base
@@ -20,14 +21,17 @@ from . import forms
 __all__ = [
     # Form widgets
     'SpecimenFormWidget',
-    
+
     # Base widgets
     'UnitValueWidget',
-    
+
+    # Dialogs
+    'ValidationResultsDialog',
+
     # Other widgets
     'TerminalWidget',
     'ActionPanelWidget',
-    
+
     # Submodules
     'base',
     'forms'

@@ -294,12 +294,7 @@ class OntologyManager:
     # ============================================================================
     # COMPONENT FACTORY METHODS
     # ============================================================================
-    
-    def create_temp_handler(self):
-        """Create a TempInstanceHandler with proper dependencies."""
-        from .temp_handler import TempInstanceHandler
-        return TempInstanceHandler(self.sparql_executor, self.namespace_manager)
-    
+
     def create_template_manager(self, template_dir=None):
         """Create a TemplateManager with proper dependencies."""
         from .template_manager import TemplateManager
