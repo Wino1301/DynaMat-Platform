@@ -16,8 +16,12 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QAction
 
 from ....ontology import OntologyManager
+from ....ontology.qudt import QUDTManager
 from ...builders.ontology_form_builder import OntologyFormBuilder
 from ...builders.layout_manager import LayoutStyle
+from ...parsers.instance_writer import InstanceWriter
+from ...widgets.validation_results_dialog import ValidationResultsDialog
+from ...core.form_validator import ValidationResult
 
 logger = logging.getLogger(__name__)
 
@@ -42,25 +46,38 @@ class SpecimenFormWidget(QWidget):
     template_loaded = pyqtSignal(str)
     template_saved = pyqtSignal(str)
     
-    def __init__(self, ontology_manager: OntologyManager, parent=None):
+    def __init__(self, ontology_manager: OntologyManager, main_window=None, parent=None):
         super().__init__(parent)
-        
+
         self.ontology_manager = ontology_manager
+        self.main_window = main_window
         self.logger = logging.getLogger(__name__)
-        
+
+        # Initialize QUDT manager for unit conversions
+        try:
+            self.qudt_manager = QUDTManager()
+            self.qudt_manager.load()
+            self.logger.info("QUDT manager initialized successfully")
+        except Exception as e:
+            self.logger.warning(f"Failed to initialize QUDT manager: {e}")
+            self.qudt_manager = None
+
+        # Initialize instance writer for TTL serialization
+        self.instance_writer = InstanceWriter(ontology_manager, self.qudt_manager)
+
         # Initialize form builder with dependencies
         self.form_builder = OntologyFormBuilder(ontology_manager)
         self._enable_dependencies()
-        
+
         # Form state
         self.current_specimen_uri = None
         self.form_widget = None
         self.is_modified = False
         self.original_data = {}
-        
+
         self._setup_ui()
         self._create_specimen_form()
-        
+
         self.logger.info("Specimen form widget initialized")
     
     def _setup_ui(self):
@@ -240,10 +257,107 @@ class SpecimenFormWidget(QWidget):
         error_label.setStyleSheet("color: red; padding: 20px; background-color: #2a1a1a; border: 1px solid red;")
         error_label.setWordWrap(True)
         error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
+
         self._clear_content_layout()
         self.content_layout.addWidget(error_label)
-    
+
+    def _extract_specimen_id(self, form_data: Dict[str, Any]) -> Optional[str]:
+        """
+        Extract specimen ID from form data, trying multiple possible key formats.
+
+        Args:
+            form_data: Dictionary of form data
+
+        Returns:
+            Specimen ID string, or None if not found
+        """
+        # Try different possible key formats
+        possible_keys = [
+            "https://dynamat.utep.edu/ontology#hasSpecimenID",
+            "dyn:hasSpecimenID",
+            "hasSpecimenID"
+        ]
+
+        for key in possible_keys:
+            if key in form_data and form_data[key]:
+                return str(form_data[key]).strip()
+
+        # If not found with exact match, try searching for keys that contain "SpecimenID"
+        for key in form_data.keys():
+            if "SpecimenID" in key or "specimenid" in key.lower():
+                value = form_data[key]
+                if value:
+                    self.logger.info(f"Found specimen ID with key: {key}")
+                    return str(value).strip()
+
+        self.logger.warning("Specimen ID not found in form data")
+        return None
+
+    def _compute_specimen_output_path(self, form_data: Dict[str, Any]) -> Optional[Path]:
+        """
+        Compute output file path for specimen TTL file (without creating directories).
+
+        NOTE: This method does NOT create any directories. Folders are created only
+        after validation passes to avoid leaving empty directories when validation fails.
+
+        Path structure: specimens/SPN-{MaterialID}-{XXX}/SPN-{MaterialID}-{XXX}_specimen.ttl
+
+        Args:
+            form_data: Dictionary of form data
+
+        Returns:
+            Path object for the output file, or None if specimen ID is missing
+        """
+        # Extract specimen ID from form data
+        specimen_id = self._extract_specimen_id(form_data)
+
+        if not specimen_id:
+            self.logger.error("Cannot generate output path: Specimen ID is missing from form data")
+            return None
+
+        # Clean specimen ID (replace spaces and special characters)
+        clean_id = specimen_id.replace(" ", "-").replace("_", "-")
+
+        # Compute directory structure (no folder creation)
+        # specimens/SPN-{MaterialID}-{XXX}/
+        specimens_dir = Path("specimens")
+        specimen_folder = specimens_dir / clean_id
+
+        # Compute output file path
+        # specimens/SPN-{MaterialID}-{XXX}/SPN-{MaterialID}-{XXX}_specimen.ttl
+        output_file = specimen_folder / f"{clean_id}_specimen.ttl"
+
+        self.logger.info(f"Computed output path: {output_file}")
+        return output_file
+
+    def _show_validation_results(self, validation_result: ValidationResult, allow_save: bool = True) -> int:
+        """
+        Show validation results dialog to user.
+
+        Args:
+            validation_result: Validation result from SHACL validation
+            allow_save: Whether to show "Save Anyway" button (only if no violations)
+
+        Returns:
+            Dialog result code (QMessageBox.StandardButton.Ok if user accepted)
+        """
+        try:
+            # Create and show validation results dialog
+            dialog = ValidationResultsDialog(validation_result, parent=self)
+            result = dialog.exec()
+
+            self.logger.info(f"Validation dialog closed with result: {result}")
+            return result
+
+        except Exception as e:
+            self.logger.error(f"Failed to show validation results dialog: {e}", exc_info=True)
+            # Fallback to simple message box
+            QMessageBox.warning(
+                self, "Validation Issues",
+                f"Validation issues detected:\n\n{validation_result.get_summary()}"
+            )
+            return QMessageBox.StandardButton.Ok
+
     # ============================================================================
     # PUBLIC METHODS
     # ============================================================================
@@ -317,29 +431,147 @@ class SpecimenFormWidget(QWidget):
             QMessageBox.critical(self, "Error", f"Failed to validate form: {str(e)}")
     
     def save_specimen(self):
-        """Save current specimen data"""
+        """Save current specimen data to TTL file with unit conversion and SHACL validation"""
         try:
-            # First validate
+            # First validate form structure
             errors = self.form_builder.validate_form(self.form_widget)
             if errors:
                 self.validate_form()  # Show errors to user
                 return
-            
+
             # Get form data
             data = self.form_builder.get_form_data(self.form_widget)
-            
-            # TODO: Implement actual saving with ontology
-            # For now, just emit signal and update status
+
+            # Debug: Log all form data keys to see what we're getting
+            self.logger.debug("Form data keys:")
+            for key in data.keys():
+                self.logger.debug(f"  - {key}: {data[key]}")
+
+            # Extract specimen ID - try multiple possible key formats
+            specimen_id = self._extract_specimen_id(data)
+            if not specimen_id:
+                QMessageBox.critical(
+                    self, "Save Error",
+                    "Cannot save specimen: Specimen ID is required.\n\n"
+                    "Please fill in the Specimen ID field before saving."
+                )
+                return
+
+            self.logger.info(f"Extracted specimen ID: {specimen_id}")
+
+            # Compute output path (does not create folders yet)
+            output_path = self._compute_specimen_output_path(data)
+            if not output_path:
+                QMessageBox.critical(
+                    self, "Save Error",
+                    "Failed to generate output file path.\n\n"
+                    "Please check the specimen ID format."
+                )
+                return
+
+            self.logger.info(f"Computed output path: {output_path}")
+
+            # === ADD METADATA TRACKING ===
+            # Add metadata for creation/modification tracking
+            from datetime import datetime
+            from dynamat.config import config
+
+            # Get current user from main window
+            current_user = None
+            if self.main_window and hasattr(self.main_window, 'get_current_user'):
+                current_user = self.main_window.get_current_user()
+
+            # Detect if this is a new file or editing existing
+            is_new_file = not output_path.exists()
+
+            # Add metadata fields
+            if current_user:
+                if is_new_file:
+                    # New file: add creation metadata
+                    data['dyn:hasCreatedBy'] = current_user
+                    data['dyn:hasCreatedDate'] = datetime.now().isoformat()
+                    data['dyn:hasAppVersion'] = config.VERSION
+                    self.logger.info(f"Added creation metadata for new specimen (user: {current_user})")
+                else:
+                    # Editing existing file: add modification metadata
+                    # Keep existing creation metadata, add modification metadata
+                    data['dyn:hasModifiedBy'] = current_user
+                    data['dyn:hasModifiedDate'] = datetime.now().isoformat()
+                    data['dyn:hasAppVersion'] = config.VERSION
+                    self.logger.info(f"Added modification metadata for existing specimen (user: {current_user})")
+            else:
+                self.logger.warning("No user selected - metadata tracking will be incomplete")
+
+            # Update status
+            self.status_label.setText("Saving specimen with unit conversion and validation...")
+            self.progress_bar.setVisible(True)
+            self.progress_bar.setRange(0, 0)  # Indeterminate
+
+            # Write instance with automatic unit conversion and SHACL validation
+            # Use the specimen_id directly (already cleaned by _extract_specimen_id)
+            saved_path, validation_result = self.instance_writer.write_instance(
+                form_data=data,
+                class_uri="https://dynamat.utep.edu/ontology#Specimen",
+                instance_id=specimen_id,  # Use the extracted specimen ID
+                output_path=output_path
+            )
+
+            self.progress_bar.setVisible(False)
+
+            # Handle validation results
+            if saved_path is None:
+                # Save was blocked by validation violations
+                self._show_validation_results(validation_result, allow_save=False)
+                self.status_label.setText("Save blocked by validation errors")
+                return
+
+            # Validation passed - now safe to create specimen subdirectories
+            # (main folder already created by instance_writer)
+            specimen_folder = Path(saved_path).parent
+            try:
+                (specimen_folder / "raw").mkdir(exist_ok=True)
+                (specimen_folder / "processed").mkdir(exist_ok=True)
+                self.logger.info(f"Created subdirectories in {specimen_folder}")
+            except Exception as e:
+                self.logger.warning(f"Failed to create subdirectories: {e}")
+                # Non-critical error, continue with save
+
+            # Check if there are warnings or infos (non-blocking issues)
+            if validation_result.has_any_issues():
+                # Show dialog, user can choose to continue or cancel
+                user_choice = self._show_validation_results(validation_result, allow_save=True)
+                if user_choice != QMessageBox.StandardButton.Ok:
+                    # User canceled, but file was already saved
+                    self.status_label.setText("Specimen saved (with warnings)")
+                else:
+                    self.status_label.setText("Specimen saved successfully")
+            else:
+                # No issues, save was completely successful
+                self.status_label.setText("Specimen saved successfully")
+                QMessageBox.information(
+                    self, "Save Successful",
+                    f"Specimen saved successfully!\n\nFile: {saved_path}\n\n"
+                    f"- Unit conversions applied\n"
+                    f"- SHACL validation passed"
+                )
+
+            # Update form state
             self.specimen_saved.emit(data)
             self.is_modified = False
             self.original_data = data.copy()
-            self.status_label.setText("Specimen saved")
-            
-            QMessageBox.information(self, "Save", "Specimen saved successfully!")
-            
+            self.current_specimen_uri = f"https://dynamat.utep.edu/ontology#{specimen_id}"
+
+            self.logger.info(f"Specimen {specimen_id} saved successfully to {saved_path}")
+
         except Exception as e:
-            self.logger.error(f"Failed to save specimen: {e}")
-            QMessageBox.critical(self, "Error", f"Failed to save specimen: {str(e)}")
+            self.logger.error(f"Failed to save specimen: {e}", exc_info=True)
+            self.progress_bar.setVisible(False)
+            self.status_label.setText("Save failed")
+            QMessageBox.critical(
+                self, "Save Error",
+                f"Failed to save specimen:\n\n{str(e)}\n\n"
+                f"See log for details."
+            )
     
     def load_specimen_data(self, data: Dict[str, Any]):
         """Load specimen data into form"""

@@ -386,7 +386,7 @@ dyn:hasDensity rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     gui:hasDisplayName "Density (kg/m³)" ;
     gui:hasFormGroup "BasicProperties" ;
     gui:hasDisplayOrder 1 ;
-    dyn:hasUnit "unit:KG-PER-M3" ;
+    dyn:hasUnit "unit:KiloGM-PER-M3" ;
     rdfs:comment "Material density for simulation (kg/m³)"@en .
 
 dyn:hasElasticModulus rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;

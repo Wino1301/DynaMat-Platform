@@ -390,15 +390,15 @@ class ConstraintManager:
     def get_constraints_for_class(self, class_uri: str) -> List[Constraint]:
         """
         Get all constraints for a specific class.
-        
+
         Args:
             class_uri: URI of the class
-            
+
         Returns:
-            List of constraints, sorted by priority
+            List of constraints, sorted by priority (higher values run first, lower values run last and can override)
         """
         constraints = self.constraints_by_class.get(class_uri, [])
-        return sorted(constraints, key=lambda c: c.priority)
+        return sorted(constraints, key=lambda c: c.priority, reverse=True)
     
     def get_constraint(self, constraint_uri: str) -> Optional[Constraint]:
         """

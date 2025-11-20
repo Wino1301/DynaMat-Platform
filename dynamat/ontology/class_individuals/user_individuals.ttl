@@ -1,0 +1,52 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# =============================================================================
+# DynaMat Platform - User Individuals
+# For ontology/class_individuals/user_individuals.ttl
+# Placeholder user instances for metadata tracking
+# =============================================================================
+
+#################################################################
+#   Users
+#################################################################
+
+dyn:User_ErwinCazares rdf:type owl:NamedIndividual, dyn:User ;
+    rdfs:label "Erwin Cazares"@en ;
+    dyn:hasFirstName "Erwin"@en ;
+    dyn:hasLastName "Cazares"@en ;
+    dyn:hasEmail "ecazares3@miners.utep.edu"@en ;
+    dyn:hasAffiliation "University of Texas at El Paso"@en ;
+    dyn:hasORCID "https://orcid.org/0000-0001-6717-0715"@en .
+
+#################################################################
+#    Laboratory Instances
+#################################################################
+
+dyn:DynamatLab rdf:type owl:NamedIndividual, dyn:Laboratory ;
+    rdfs:label "DynamatLab"@en ;
+    dyn:hasName "Dynamic Materials Laboratory"@en ;
+    dyn:hasAffiliation "University of Texas at El Paso (UTEP)"@en .
+
+#################################################################
+#    NOTES FOR FUTURE USER MANAGEMENT
+#################################################################
+
+# To add new users, create individual instances following this pattern:
+#
+# dyn:User_FirstLast rdf:type owl:NamedIndividual, dyn:User ;
+#    rdfs:label "FirstName LastName"@en ;
+#    dyn:hasFirstName "FirstName"@en ;
+#    dyn:hasMiddleName "MiddleName"@en ;
+#    dyn:hasLastName "LastName"@en ;
+#    dyn:hasEmail "UserEmail@domain.com"@en ;
+#    dyn:hasAffiliation "University/Company/Lab/etc"@en ;
+#    dyn:hasORCID "Users ORCID's"@en .
+#
+# User URIs should follow the pattern: dyn:User_FirstLast
+# This allows the user to be referenced in metadata tracking properties:
+#   - dyn:hasCreatedBy
+#   - dyn:hasModifiedBy

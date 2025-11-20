@@ -36,7 +36,7 @@ dyn:hasBatchID rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     gui:hasDisplayName "Batch ID" ;
     rdfs:comment "String identifier for the batch (e.g., BATCH-AL001-2024-01)"@en .
 
-dyn:hasSpecimenRole rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+dyn:hasSpecimenRole rdf:type owl:ObjectProperty;
     rdfs:domain dyn:Specimen ;
     rdfs:range dyn:SpecimenRole ;
     rdfs:label "Specimen Role"@en ;
@@ -44,7 +44,7 @@ dyn:hasSpecimenRole rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     gui:hasFormGroup "Identification" ;
     gui:hasGroupOrder 1 ;
     gui:hasDisplayOrder 3 ;
-    rdfs:comment "Purpose of specimen in testing"@en .
+    rdfs:comment "Purpose / Role(s) of specimen in DYNAMAT activities"@en .
 
 #################################################################
 #    2. Material Properties
@@ -71,8 +71,8 @@ dyn:hasCompositePhaseDescription rdf:type owl:ObjectProperty, owl:FunctionalProp
     rdfs:range dyn:CompositePhaseDescription ;
     rdfs:label "Composite Phase Description"@en ;
     gui:hasDisplayName "Phase Description" ;
-    gui:hasFormGroup "CompositeProperties" ;
-    gui:hasGroupOrder 3 ;
+    gui:hasFormGroup "MaterialProperties" ;
+    gui:hasGroupOrder 2 ;
     gui:hasDisplayOrder 1 ;
     rdfs:comment "Reference to composite phase configuration defining materials and volume fractions"@en .
 
@@ -315,17 +315,6 @@ dyn:isCharacterizationRepresentative rdf:type owl:DatatypeProperty, owl:Function
 #    7. Manufacturing Properties
 #################################################################
 
-dyn:hasManufacturedDate rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:Specimen ;
-    rdfs:domain dyn:SpecimenBatchID ;
-    rdfs:range xsd:date ;
-    rdfs:label "Manufactured Date"@en ;
-    gui:hasDisplayName "Manufactured Date" ;
-    gui:hasFormGroup "Manufacturing" ;
-    gui:hasGroupOrder 7 ;
-    gui:hasDisplayOrder 1 ;
-    rdfs:comment "Date when specimen was manufactured or prepared"@en .
-
 dyn:hasManufacturingMethod rdf:type owl:ObjectProperty ;
     rdfs:domain dyn:Specimen ;
     rdfs:domain dyn:SpecimenBatchID ;
@@ -334,8 +323,19 @@ dyn:hasManufacturingMethod rdf:type owl:ObjectProperty ;
     gui:hasDisplayName "Manufacturing Method" ;
     gui:hasFormGroup "Manufacturing" ;
     gui:hasGroupOrder 7 ;
-    gui:hasDisplayOrder 2 ;
+    gui:hasDisplayOrder 1 ;
     rdfs:comment "Manufacturing method(s) used to create the specimen. Multiple methods can be selected for specimens with sequential processing steps (e.g., casting followed by machining)."@en .
+
+dyn:hasManufacturedDate rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:domain dyn:SpecimenBatchID ;
+    rdfs:range xsd:date ;
+    rdfs:label "Manufactured Date"@en ;
+    gui:hasDisplayName "Manufactured Date" ;
+    gui:hasFormGroup "Manufacturing" ;
+    gui:hasGroupOrder 7 ;
+    gui:hasDisplayOrder 2 ;
+    rdfs:comment "Date when specimen was manufactured or prepared"@en .
 
 dyn:hasHeatTreatment rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
@@ -414,11 +414,11 @@ dyn:hasMachiningTolerance rdf:type owl:DatatypeProperty, owl:FunctionalProperty 
     dyn:hasUnit "unit:MilliM" ;
     rdfs:comment "Machining tolerance specification for machined specimens"@en .
 
-dyn:hasMetalTemperature rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+dyn:hasMoltenMetalTemperature rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
     rdfs:domain dyn:SpecimenBatchID ;
     rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:BoilingPoint ;
+    qudt:hasQuantityKind qkdv:MeltingPoint ;
     rdfs:label "Molten Metal Temperature"@en ;
     gui:hasDisplayName "Molten Metal Temperature" ;
     gui:hasFormGroup "ProcessingHistory" ;
@@ -431,7 +431,7 @@ dyn:hasMoldTemperature rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
     rdfs:domain dyn:SpecimenBatchID ;
     rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:BoilingPoint ;
+    qudt:hasQuantityKind qkdv:MeltingPoint ;
     rdfs:label "Mold Temperature"@en ;
     gui:hasDisplayName "Mold Temperature" ;
     gui:hasFormGroup "ProcessingHistory" ;
@@ -460,7 +460,7 @@ dyn:hasCastCoolingDuration rdf:type owl:DatatypeProperty, owl:FunctionalProperty
 dyn:hasHeatTreatmentTemperature rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
     rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:BoilingPoint ;
+    qudt:hasQuantityKind qkdv:MeltingPoint ;
     rdfs:label "Heat Treatment Temperature"@en ;
     gui:hasDisplayName "Heat Treatment Temperature" ;
     gui:hasFormGroup "HeatTreatment" ;

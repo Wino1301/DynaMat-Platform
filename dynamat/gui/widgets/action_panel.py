@@ -9,7 +9,7 @@ from typing import Dict, Any, List, Optional
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QPushButton, QLabel, QFrame,
     QListWidget, QListWidgetItem, QGroupBox, QHBoxLayout,
-    QFileDialog, QMessageBox
+    QFileDialog, QMessageBox, QComboBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QIcon, QPixmap
@@ -35,6 +35,7 @@ class ActionPanelWidget(QWidget):
     template_saved = pyqtSignal(str)
     new_instance = pyqtSignal(str)
     recent_file_opened = pyqtSignal(str)
+    user_changed = pyqtSignal(str)
     
     def __init__(self, ontology_manager: OntologyManager, parent=None):
         super().__init__(parent)
@@ -42,6 +43,7 @@ class ActionPanelWidget(QWidget):
         self.ontology_manager = ontology_manager
         self.recent_files = []  # List of recent file paths
         self.available_templates = {}  # Dict of template name -> data
+        self.user_selector = None  # User selection combo box
         
         self._setup_ui()
         self._load_recent_files()
@@ -58,11 +60,11 @@ class ActionPanelWidget(QWidget):
         # DynaMat Logo at the top
         self._create_logo_section(layout)
 
+        # User Selector (between logo and quick actions)
+        self._create_user_selector(layout)
+
         # Quick Actions Group
         self._create_quick_actions_group(layout)
-
-        # Templates Group
-        self._create_templates_group(layout)
 
         # Recent Files Group
         self._create_recent_files_group(layout)
@@ -105,6 +107,56 @@ class ActionPanelWidget(QWidget):
         separator.setFrameShadow(QFrame.Shadow.Sunken)
         parent_layout.addWidget(separator)
 
+    def _create_user_selector(self, parent_layout):
+        """Create user selector group"""
+        group = QGroupBox("Current User")
+        layout = QVBoxLayout(group)
+
+        # User combo box
+        self.user_selector = QComboBox()
+        self.user_selector.setToolTip("Select the current user for metadata tracking")
+
+        # Add placeholder text
+        self.user_selector.addItem("Select User...")
+
+        # Populate with User individuals from ontology
+        try:
+            # Use domain_queries to get full user instances with labels
+            user_class_uri = "https://dynamat.utep.edu/ontology#User"
+            users = self.ontology_manager.domain_queries.get_instances_of_class(user_class_uri)
+
+            if users:
+                for user in users:
+                    user_uri = user['uri']
+                    # Use label if available, otherwise use local name
+                    user_label = user.get('label', user_uri.split('#')[-1])
+                    self.user_selector.addItem(user_label, user_uri)
+
+                logger.info(f"Loaded {len(users)} user(s) into user selector")
+            else:
+                logger.warning("No User individuals found in ontology")
+                self.user_selector.addItem("No users available")
+                self.user_selector.setEnabled(False)
+
+        except Exception as e:
+            logger.error(f"Failed to load users from ontology: {e}")
+            self.user_selector.addItem("Error loading users")
+            self.user_selector.setEnabled(False)
+
+        # Connect signal
+        self.user_selector.currentIndexChanged.connect(self._on_user_changed)
+
+        layout.addWidget(self.user_selector)
+        parent_layout.addWidget(group)
+
+    def _on_user_changed(self, index):
+        """Handle user selection change"""
+        if index > 0:  # Skip placeholder at index 0
+            user_uri = self.user_selector.itemData(index)
+            if user_uri:
+                self.user_changed.emit(user_uri)
+                logger.info(f"User changed to: {self.user_selector.currentText()} ({user_uri})")
+
     def _create_quick_actions_group(self, parent_layout):
         """Create quick actions group"""
         group = QGroupBox("Quick Actions")
@@ -137,31 +189,7 @@ class ActionPanelWidget(QWidget):
         layout.addWidget(validate_btn)
         
         parent_layout.addWidget(group)
-    
-    def _create_templates_group(self, parent_layout):
-        """Create templates group"""
-        group = QGroupBox("Templates")
-        layout = QVBoxLayout(group)
-        
-        # Template buttons
-        load_template_btn = QPushButton("Load Template")
-        load_template_btn.setToolTip("Load a specimen or test template")
-        load_template_btn.clicked.connect(self._load_template)
-        layout.addWidget(load_template_btn)
-        
-        save_template_btn = QPushButton("Save Template")
-        save_template_btn.setToolTip("Save current data as template")
-        save_template_btn.clicked.connect(self._save_template)
-        layout.addWidget(save_template_btn)
-        
-        # Template list (show available templates)
-        self.template_list = QListWidget()
-        self.template_list.setMaximumHeight(100)
-        self.template_list.itemDoubleClicked.connect(self._load_template_from_list)
-        layout.addWidget(self.template_list)
-        
-        parent_layout.addWidget(group)
-    
+
     def _create_recent_files_group(self, parent_layout):
         """Create recent files group"""
         group = QGroupBox("Recent Files")
@@ -180,72 +208,7 @@ class ActionPanelWidget(QWidget):
         layout.addWidget(clear_recent_btn)
         
         parent_layout.addWidget(group)
-    
-    def _load_template(self):
-        """Load a template file"""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "Load Template",
-            "", "Template Files (*.ttl *.json);;All Files (*)"
-        )
-        
-        if file_path:
-            try:
-                # This would load the actual template file
-                # For now, show placeholder
-                template_data = {
-                    "name": "Loaded Template",
-                    "file_path": file_path,
-                    "data": {}  # Actual template data would go here
-                }
-                
-                self.template_loaded.emit(template_data)
-                self._add_recent_file(file_path)
-                
-                logger.info(f"Template loaded: {file_path}")
-                
-            except Exception as e:
-                logger.error(f"Failed to load template: {e}")
-                QMessageBox.critical(
-                    self, "Error",
-                    f"Failed to load template:\n{str(e)}"
-                )
-    
-    def _save_template(self):
-        """Save current data as template"""
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, "Save Template",
-            "", "Template Files (*.ttl *.json);;All Files (*)"
-        )
-        
-        if file_path:
-            try:
-                # This would save the actual template file
-                # For now, just show success message
-                QMessageBox.information(
-                    self, "Template Saved",
-                    f"Template saved to:\n{file_path}"
-                )
-                
-                self.template_saved.emit(file_path)
-                self._add_recent_file(file_path)
-                
-                logger.info(f"Template saved: {file_path}")
-                
-            except Exception as e:
-                logger.error(f"Failed to save template: {e}")
-                QMessageBox.critical(
-                    self, "Error",
-                    f"Failed to save template:\n{str(e)}"
-                )
-    
-    def _load_template_from_list(self, item: QListWidgetItem):
-        """Load template from the template list"""
-        template_name = item.text()
-        if template_name in self.available_templates:
-            template_data = self.available_templates[template_name]
-            self.template_loaded.emit(template_data)
-            logger.info(f"Template loaded from list: {template_name}")
-    
+
     def _open_recent_file(self, item: QListWidgetItem):
         """Open a recent file"""
         file_path = item.text()
@@ -309,33 +272,21 @@ class ActionPanelWidget(QWidget):
         """Save recent files to settings"""
         # This would save to application settings/config
         pass
-    
+
     def _load_available_templates(self):
-        """Load available templates"""
-        # This would scan the templates directory
-        # For now, create some example templates
-        self.available_templates = {
-            "Al6061 Cylindrical": {
-                "name": "Al6061 Cylindrical",
-                "description": "Aluminum 6061 cylindrical specimen template",
-                "data": {
-                    "https://dynamat.utep.edu/ontology#hasMaterialID": "AL6061",
-                    "https://dynamat.utep.edu/ontology#hasShape": "https://dynamat.utep.edu/ontology#CylindricalShape"
-                }
-            },
-            "Steel Rectangular": {
-                "name": "Steel Rectangular", 
-                "description": "Steel rectangular specimen template",
-                "data": {
-                    "https://dynamat.utep.edu/ontology#hasMaterialID": "STEEL",
-                    "https://dynamat.utep.edu/ontology#hasShape": "https://dynamat.utep.edu/ontology#RectangularShape"
-                }
-            }
-        }
-        
-        # Update template list display
-        self.template_list.clear()
-        for template_name in self.available_templates:
-            item = QListWidgetItem(template_name)
-            item.setToolTip(self.available_templates[template_name]["description"])
-            self.template_list.addItem(item)
+        """Load available templates (placeholder for backwards compatibility)"""
+        # Templates functionality moved to individual activity forms
+        # Keeping method stub to avoid breaking existing code
+        self.available_templates = {}
+        logger.info("Template loading skipped - templates now managed per activity form")
+
+    def get_selected_user(self) -> Optional[str]:
+        """
+        Get the currently selected user URI.
+
+        Returns:
+            User URI string, or None if no user selected
+        """
+        if self.user_selector and self.user_selector.currentIndex() > 0:
+            return self.user_selector.currentData()
+        return None

@@ -311,6 +311,8 @@ class GUISchemaBuilder:
 
         # Make sure class_uri is a proper URI
         if not class_uri.startswith("http"):
+            # Remove namespace prefix if present (e.g., "dyn:Specimen" -> "Specimen")
+            class_uri = class_uri.split(":")[-1]
             class_uri = f"{self.ns.DYN}{class_uri}"
         
         # SPARQL QUERY - Extracts all class properties

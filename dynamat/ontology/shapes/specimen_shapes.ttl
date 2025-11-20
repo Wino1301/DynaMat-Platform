@@ -2,830 +2,237 @@
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix qudt: <http://qudt.org/schema/qudt/> .
-@prefix unit: <http://qudt.org/vocab/unit/> .
-@prefix qkdv: <http://qudt.org/vocab/quantitykind/> .
-@prefix dc: <http://purl.org/dc/terms/> .
 
 # =============================================================================
-# DynaMat Platform - Specimen Class SHACL Shapes
-# Based on actual properties defined in specimen_class.ttl
-# Updated with comprehensive sh:message annotations for better debugging
+# DynaMat Platform - Specimen SHACL Shapes
+# =============================================================================
+#
+# VALIDATION PHILOSOPHY:
+# - GUI handles: data types, basic ranges, required field indicators
+# - SHACL handles: business rules, patterns, cross-property constraints
+#
+# This file contains ONLY validation that cannot be done at the GUI level:
+# 1. Required fields (minCount)
+# 2. Pattern matching (ID formats)
+# 3. Cardinality constraints (maxCount for single-value properties)
+# 4. Cross-property business rules (conditional constraints)
+# 5. Data consistency rules (dimensional logic, parameter applicability)
+#
+# Simple validations (data types, positive numbers) are handled by widgets.
 # =============================================================================
 
 #################################################################
-#    Specimen Shape (Base specimen class)
+#    Core Specimen Shape
 #################################################################
 
 dyn:SpecimenShape a sh:NodeShape ;
     sh:targetClass dyn:Specimen ;
+    rdfs:comment "Core validation rules for specimen instances" ;
 
     # =========================================================================
-    # OBJECT PROPERTIES
-    # =========================================================================
-
-    # --- Material Properties ---
-    sh:property [
-        sh:path dyn:hasMaterial ;
-        sh:class dyn:Material ;
-        sh:maxCount 1 ;
-        sh:name "Material" ;
-        sh:description "Material composition of the specimen" ;
-        sh:group "MaterialProperties" ;
-        sh:order 1 ;
-        sh:severity sh:Violation ;
-        sh:message "Material must be a valid dyn:Material instance (max 1)" ;
-    ] ;
-
-    # --- Composite Properties ---
-    sh:property [
-        sh:path dyn:hasCompositePhaseDescription ;
-        sh:class dyn:CompositePhaseDescription ;
-        sh:maxCount 1 ;
-        sh:name "Composite Phase Description" ;
-        sh:description "Reference to composite phase configuration defining materials and volume fractions" ;
-        sh:group "CompositeProperties" ;
-        sh:order 1 ;
-        sh:severity sh:Info ;
-        sh:message "Composite phase description must be a valid dyn:CompositePhaseDescription instance (max 1)" ;
-    ] ;
-
-    # --- Geometry and Structure ---
-    sh:property [
-        sh:path dyn:hasStructure ;
-        sh:class dyn:Structure ;
-        sh:maxCount 1 ;
-        sh:name "Structure" ;
-        sh:description "Structural configuration of the specimen" ;
-        sh:group "StructureParameters" ;
-        sh:order 1 ;
-        sh:severity sh:Violation ;
-        sh:message "Structure must be a valid dyn:Structure instance (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasShape ;
-        sh:class dyn:Shape ;
-        sh:maxCount 1 ;
-        sh:name "Shape" ;
-        sh:description "Geometric shape of the specimen" ;
-        sh:group "GeometryDimensions" ;
-        sh:order 1 ;
-        sh:severity sh:Violation ;
-        sh:message "Shape must be a valid dyn:Shape instance (max 1)" ;
-    ] ;
-
-    # --- Identification ---
-    sh:property [
-        sh:path dyn:hasSpecimenBatchID ;
-        sh:class dyn:SpecimenBatchID ;
-        sh:maxCount 1 ;
-        sh:name "Specimen Batch ID" ;
-        sh:description "Batch identifier for specimens from same processing run" ;
-        sh:group "Identification" ;
-        sh:order 2 ;
-        sh:message "Specimen batch ID must be a valid dyn:SpecimenBatchID instance (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasSpecimenRole ;
-        sh:class dyn:SpecimenRole ;
-        sh:maxCount 1 ;
-        sh:name "Specimen Role" ;
-        sh:description "Purpose of specimen in testing" ;
-        sh:group "Identification" ;
-        sh:order 3 ;
-        sh:message "Specimen role must be a valid dyn:SpecimenRole instance (max 1)" ;
-    ] ;
-
-    # --- Characterization Tracking ---
-    sh:property [
-        sh:path dyn:hasCharacterizationGroupID ;
-        sh:class dyn:CharacterizationGroup ;
-        sh:maxCount 1 ;
-        sh:name "Characterization Group ID" ;
-        sh:description "Identifier for specimens that share similar conditions and can share characterization data" ;
-        sh:group "Characterization Tracking" ;
-        sh:order 1 ;
-        sh:message "Characterization group must be a valid dyn:CharacterizationGroup instance (max 1)" ;
-    ] ;
-
-    # --- Manufacturing ---
-    sh:property [
-        sh:path dyn:hasManufacturingMethod ;
-        sh:class dyn:ManufacturingMethod ;
-        sh:name "Manufacturing Method" ;
-        sh:description "Manufacturing method(s) used to create the specimen" ;
-        sh:group "Manufacturing" ;
-        sh:order 2 ;
-        sh:message "Manufacturing method must be a valid dyn:ManufacturingMethod instance" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasHeatTreatment ;
-        sh:class dyn:HeatTreatment ;
-        sh:maxCount 1 ;
-        sh:name "Heat Treatment" ;
-        sh:description "Heat treatment process applied to the specimen" ;
-        sh:group "Manufacturing" ;
-        sh:order 3 ;
-        sh:message "Heat treatment must be a valid dyn:HeatTreatment instance (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasSurfaceFinish ;
-        sh:class dyn:SurfaceFinish ;
-        sh:maxCount 1 ;
-        sh:name "Surface Finish" ;
-        sh:description "Surface finish condition of the specimen" ;
-        sh:group "Manufacturing" ;
-        sh:order 4 ;
-        sh:message "Surface finish must be a valid dyn:SurfaceFinish instance (max 1)" ;
-    ] ;
-
-    # --- Processing History ---
-    sh:property [
-        sh:path dyn:hasBuildOrientation ;
-        sh:class dyn:BuildOrientation ;
-        sh:maxCount 1 ;
-        sh:name "Build Orientation" ;
-        sh:description "Build orientation for additive manufacturing specimens" ;
-        sh:group "ProcessingHistory" ;
-        sh:order 1 ;
-        sh:message "Build orientation must be a valid dyn:BuildOrientation instance (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasPolishingCompound ;
-        sh:class dyn:PolishingCompound ;
-        sh:maxCount 1 ;
-        sh:name "Polishing Compound" ;
-        sh:description "Polishing compound or abrasive used for final surface finishing" ;
-        sh:group "SurfaceFinish" ;
-        sh:order 2 ;
-        sh:message "Polishing compound must be a valid dyn:PolishingCompound instance (max 1)" ;
-    ] ;
-
-    # =========================================================================
-    # DATA PROPERTIES - Identification
+    # REQUIRED FIELDS (Critical - must be present)
     # =========================================================================
 
     sh:property [
         sh:path dyn:hasSpecimenID ;
-        sh:datatype xsd:string ;
-        sh:maxCount 1 ;
         sh:minCount 1 ;
-        sh:name "Specimen ID" ;
-        sh:description "Unique specimen identifier (format: DYNML-MaterialID-Number, e.g., DYNML-AL6061-001)" ;
-        sh:group "Identification" ;
-        sh:order 1 ;
-        sh:pattern "^DYNML-[A-Z0-9]+-[0-9]{3}$" ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:pattern "^DYNML-[A-Z0-9]+-[0-9]{5}$" ;
+        sh:message "Specimen ID is required and must follow format: DYNML-<MaterialCode>-<5digits> (e.g., DYNML-AL6061-00001)" ;
         sh:severity sh:Violation ;
-        sh:message "Specimen ID is required and must follow the format DYNML-MaterialID-Number (e.g., DYNML-AL6061-001, DYNML-SS316L-002) where MaterialID is alphanumeric and Number is exactly 3 digits" ;
     ] ;
 
     sh:property [
-        sh:path dyn:isCharacterizationRepresentative ;
-        sh:datatype xsd:boolean ;
+        sh:path dyn:hasMaterial ;
+        sh:nodeKind sh:IRI ;  # Must be a URI reference (not sh:class to allow subclasses)
+        sh:minCount 1 ;
         sh:maxCount 1 ;
-        sh:name "Characterization Representative" ;
-        sh:description "True if this specimen underwent characterization representing its group" ;
-        sh:group "Characterization Tracking" ;
-        sh:order 2 ;
-        sh:message "Characterization representative flag must be a boolean value (max 1)" ;
+        sh:message "Material is required and must be a valid material reference" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    sh:property [
+        sh:path dyn:hasSpecimenRole ;
+        sh:nodeKind sh:IRI ;  # Must be a URI reference (not sh:class to allow subclasses)
+        sh:minCount 1 ;
+        sh:message "Specimen role is required (e.g., TestSpecimen, CharacterizationSpecimen)" ;
+        sh:severity sh:Violation ;
     ] ;
 
     # =========================================================================
-    # DATA PROPERTIES - Original Dimensions
+    # CARDINALITY CONSTRAINTS (Ensure single-value properties)
     # =========================================================================
+    # Only enforce maxCount=1 for properties that should be single-valued
+    # GUI widgets enforce this, but SHACL provides schema-level guarantee
 
-    sh:property [
-        sh:path dyn:hasOriginalLength ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Original Length" ;
-        sh:description "Initial length of specimen before testing (mm)" ;
-        sh:group "GeometryDimensions" ;
-        sh:order 2 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Original length must be a positive number in millimeters (max 1)" ;
-    ] ;
+    # Object Properties
+    sh:property [ sh:path dyn:hasCompositePhaseDescription ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasStructure ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasShape ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasSpecimenBatchID ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasCharacterizationGroupID ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasHeatTreatment ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasSurfaceFinish ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasBuildOrientation ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasPolishingCompound ; sh:maxCount 1 ] ;
 
-    sh:property [
-        sh:path dyn:hasOriginalGaugeLength ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Original Gauge Length" ;
-        sh:description "Initial gauge length for dogbone/tensile specimens (mm)" ;
-        sh:group "GeometryDimensions" ;
-        sh:order 3 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Original gauge length must be a positive number in millimeters (max 1)" ;
-    ] ;
+    # Data Properties - Identification
+    sh:property [ sh:path dyn:isCharacterizationRepresentative ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
 
-    sh:property [
-        sh:path dyn:hasOriginalWidth ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Original Width" ;
-        sh:description "Initial width for rectangular specimens (mm)" ;
-        sh:group "GeometryDimensions" ;
-        sh:order 4 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Original width must be a positive number in millimeters (max 1)" ;
-    ] ;
+    # Data Properties - Dimensions (measurements)
+    # Note: No min/max value constraints - GUI widgets handle range validation
+    sh:property [ sh:path dyn:hasOriginalLength ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasOriginalGaugeLength ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasOriginalWidth ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasOriginalHeight ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasOriginalThickness ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasOriginalDiameter ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasOriginalCrossSection ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasOriginalMass ; sh:maxCount 1 ] ;
 
-    sh:property [
-        sh:path dyn:hasOriginalHeight ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Original Height" ;
-        sh:description "Initial height for rectangular specimens (mm)" ;
-        sh:group "GeometryDimensions" ;
-        sh:order 5 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Original height must be a positive number in millimeters (max 1)" ;
-    ] ;
+    sh:property [ sh:path dyn:hasFinalLength ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasFinalGaugeLength ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasFinalWidth ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasFinalHeight ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasFinalThickness ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasFinalDiameter ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasFinalCrossSection ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasFinalMass ; sh:maxCount 1 ] ;
 
-    sh:property [
-        sh:path dyn:hasOriginalThickness ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Original Thickness" ;
-        sh:description "Initial thickness of specimen before testing (mm)" ;
-        sh:group "GeometryDimensions" ;
-        sh:order 6 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Original thickness must be a positive number in millimeters (max 1)" ;
-    ] ;
+    # Data Properties - Manufacturing
+    sh:property [ sh:path dyn:hasManufacturedDate ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
 
-    sh:property [
-        sh:path dyn:hasOriginalDiameter ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Original Diameter" ;
-        sh:description "Initial diameter for cylindrical specimens (mm)" ;
-        sh:group "GeometryDimensions" ;
-        sh:order 7 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Original diameter must be a positive number in millimeters (max 1)" ;
-    ] ;
+    # Data Properties - Processing Parameters
+    sh:property [ sh:path dyn:hasBuildAngle ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasLayerThickness ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasMachiningTolerance ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasMetalTemperature ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasMoldTemperature ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasCastCoolingDuration ; sh:maxCount 1 ] ;
 
-    sh:property [
-        sh:path dyn:hasOriginalCrossSection ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Original Cross Section" ;
-        sh:description "Initial cross-sectional area of specimen (mm²)" ;
-        sh:group "GeometryDimensions" ;
-        sh:order 8 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Original cross section must be a positive number in square millimeters (max 1)" ;
-    ] ;
+    # Data Properties - Heat Treatment
+    sh:property [ sh:path dyn:hasHeatTreatmentTemperature ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasHeatTreatmentDuration ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasCoolingTime ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasCoolingRate ; sh:maxCount 1 ] ;
 
-    sh:property [
-        sh:path dyn:hasOriginalMass ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Original Mass" ;
-        sh:description "Initial mass of specimen before testing (g)" ;
-        sh:group "GeometryDimensions" ;
-        sh:order 9 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Original mass must be a positive number in grams (max 1)" ;
-    ] ;
+    # Data Properties - Surface Finish
+    sh:property [ sh:path dyn:hasFinalGritSize ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasSurfaceRoughness ; sh:maxCount 1 ] ;
 
-    # =========================================================================
-    # DATA PROPERTIES - Post-Test Dimensions
-    # =========================================================================
+    # Data Properties - Lattice Structure
+    sh:property [ sh:path dyn:hasLatticeCellsX ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasLatticeCellsY ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasLatticeCellsZ ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasVoxelSize ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasLatticeNodeRadius ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasLatticeStrutMinX ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasLatticeStrutMaxX ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasLatticeStrutMinY ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasLatticeStrutMaxY ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasLatticeStrutMinZ ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasLatticeStrutMaxZ ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasLatticeNx ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasLatticeNy ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasLatticeNz ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasLatticeRingThickness ; sh:maxCount 1 ] .
 
-    sh:property [
-        sh:path dyn:hasFinalLength ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Final Length" ;
-        sh:description "Final length of specimen after testing (mm)" ;
-        sh:group "PostTestDimensions" ;
-        sh:order 1 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Final length must be a positive number in millimeters (max 1)" ;
-    ] ;
 
-    sh:property [
-        sh:path dyn:hasFinalGaugeLength ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Final Gauge Length" ;
-        sh:description "Final gauge length for dogbone/tensile specimens after testing (mm)" ;
-        sh:group "PostTestDimensions" ;
-        sh:order 2 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Final gauge length must be a positive number in millimeters (max 1)" ;
-    ] ;
+#################################################################
+#    Business Rules - Complex Validation Constraints
+#################################################################
 
-    sh:property [
-        sh:path dyn:hasFinalWidth ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Final Width" ;
-        sh:description "Final width for rectangular specimens after testing (mm)" ;
-        sh:group "PostTestDimensions" ;
-        sh:order 3 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Final width must be a positive number in millimeters (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasFinalHeight ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Final Height" ;
-        sh:description "Final height for rectangular specimens after testing (mm)" ;
-        sh:group "PostTestDimensions" ;
-        sh:order 4 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Final height must be a positive number in millimeters (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasFinalThickness ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Final Thickness" ;
-        sh:description "Final thickness of specimen after testing (mm)" ;
-        sh:group "PostTestDimensions" ;
-        sh:order 5 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Final thickness must be a positive number in millimeters (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasFinalDiameter ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Final Diameter" ;
-        sh:description "Final diameter for cylindrical specimens after testing (mm)" ;
-        sh:group "PostTestDimensions" ;
-        sh:order 6 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Final diameter must be a positive number in millimeters (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasFinalCrossSection ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Final Cross Section" ;
-        sh:description "Final cross-sectional area after testing (mm²)" ;
-        sh:group "PostTestDimensions" ;
-        sh:order 7 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Final cross section must be a positive number in square millimeters (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasFinalMass ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Final Mass" ;
-        sh:description "Final mass of specimen after testing (g)" ;
-        sh:group "PostTestDimensions" ;
-        sh:order 8 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Final mass must be a positive number in grams (max 1)" ;
-    ] ;
-
-    # =========================================================================
-    # DATA PROPERTIES - Manufacturing and Metadata
-    # =========================================================================
-
-    sh:property [
-        sh:path dyn:hasManufacturedDate ;
-        sh:datatype xsd:date ;
-        sh:maxCount 1 ;
-        sh:name "Manufactured Date" ;
-        sh:description "Date when specimen was manufactured or prepared" ;
-        sh:group "Manufacturing" ;
-        sh:order 1 ;
-        sh:severity sh:Info ;
-        sh:message "Manufactured date must be a valid date in format YYYY-MM-DD (max 1)" ;
-    ] ;
-
-    # =========================================================================
-    # DATA PROPERTIES - Processing History Parameters
-    # =========================================================================
-
-    sh:property [
-        sh:path dyn:hasBuildAngle ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Build Angle" ;
-        sh:description "Specific build angle in degrees for custom orientations (0° = horizontal, 90° = vertical)" ;
-        sh:group "ProcessingHistory" ;
-        sh:order 2 ;
-        sh:minInclusive 0.0 ;
-        sh:maxInclusive 90.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Build angle must be between 0 and 90 degrees (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasLayerThickness ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Layer Thickness" ;
-        sh:description "Layer thickness for additive manufacturing process (μm)" ;
-        sh:group "ProcessingHistory" ;
-        sh:order 3 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Layer thickness must be a positive number in micrometers (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasMachiningTolerance ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Machining Tolerance" ;
-        sh:description "Machining tolerance specification for machined specimens (mm)" ;
-        sh:group "ProcessingHistory" ;
-        sh:order 4 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Machining tolerance must be a positive number in millimeters (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasMetalTemperature ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Molten Metal Temperature" ;
-        sh:description "Temperature of molten metal at which the casting was performed (°C)" ;
-        sh:group "ProcessingHistory" ;
-        sh:order 5 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Metal temperature must be a positive number in degrees Celsius (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasMoldTemperature ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Mold Temperature" ;
-        sh:description "Temperature of mold at which the casting was performed (°C)" ;
-        sh:group "ProcessingHistory" ;
-        sh:order 6 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Mold temperature must be a positive number in degrees Celsius (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasCastCoolingDuration ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Cast Cooling Duration" ;
-        sh:description "Duration of cooling from the casting process (min)" ;
-        sh:group "ProcessingHistory" ;
-        sh:order 7 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Cast cooling duration must be a positive number in minutes (max 1)" ;
-    ] ;
-
-    # =========================================================================
-    # DATA PROPERTIES - Heat Treatment Parameters
-    # =========================================================================
-
-    sh:property [
-        sh:path dyn:hasHeatTreatmentTemperature ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Heat Treatment Temperature" ;
-        sh:description "Temperature at which heat treatment was performed (°C)" ;
-        sh:group "HeatTreatment" ;
-        sh:order 1 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Heat treatment temperature must be a positive number in degrees Celsius (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasHeatTreatmentDuration ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Heat Treatment Duration" ;
-        sh:description "Duration of heat treatment process (min)" ;
-        sh:group "HeatTreatment" ;
-        sh:order 2 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Heat treatment duration must be a positive number in minutes (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasCoolingTime ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Cooling Time" ;
-        sh:description "Time duration for cooling after heat treatment (min)" ;
-        sh:group "HeatTreatment" ;
-        sh:order 3 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Cooling time must be a positive number in minutes (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasCoolingRate ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Cooling Rate" ;
-        sh:description "Cooling rate after heat treatment in degrees Celsius per minute" ;
-        sh:group "HeatTreatment" ;
-        sh:order 4 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Cooling rate must be a positive number in °C/min (max 1)" ;
-    ] ;
-
-    # =========================================================================
-    # DATA PROPERTIES - Surface Finish Parameters
-    # =========================================================================
-
-    sh:property [
-        sh:path dyn:hasFinalGritSize ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Final Grit Size" ;
-        sh:description "Final grit size used for surface finishing (μm)" ;
-        sh:group "SurfaceFinish" ;
-        sh:order 1 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Final grit size must be a positive number in micrometers (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasSurfaceRoughness ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Surface Roughness" ;
-        sh:description "Measured surface roughness Ra value (μm)" ;
-        sh:group "SurfaceFinish" ;
-        sh:order 3 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Surface roughness must be a positive number in micrometers (max 1)" ;
-    ] ;
-
-    # =========================================================================
-    # DATA PROPERTIES - Structure Parameters (Lattice)
-    # =========================================================================
-
-    sh:property [
-        sh:path dyn:hasLatticeCellsX ;
-        sh:datatype xsd:integer ;
-        sh:maxCount 1 ;
-        sh:name "Lattice Cells X" ;
-        sh:description "Number of unit cells in X direction" ;
-        sh:group "StructureParameters" ;
-        sh:order 2 ;
-        sh:minInclusive 1 ;
-        sh:severity sh:Violation ;
-        sh:message "Lattice cells X must be a positive integer (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasLatticeCellsY ;
-        sh:datatype xsd:integer ;
-        sh:maxCount 1 ;
-        sh:name "Lattice Cells Y" ;
-        sh:description "Number of unit cells in Y direction" ;
-        sh:group "StructureParameters" ;
-        sh:order 3 ;
-        sh:minInclusive 1 ;
-        sh:severity sh:Violation ;
-        sh:message "Lattice cells Y must be a positive integer (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasLatticeCellsZ ;
-        sh:datatype xsd:integer ;
-        sh:maxCount 1 ;
-        sh:name "Lattice Cells Z" ;
-        sh:description "Number of unit cells in Z direction" ;
-        sh:group "StructureParameters" ;
-        sh:order 4 ;
-        sh:minInclusive 1 ;
-        sh:severity sh:Violation ;
-        sh:message "Lattice cells Z must be a positive integer (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasVoxelSize ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Voxel Size" ;
-        sh:description "Physical size of each voxel/unit cell (mm)" ;
-        sh:group "StructureParameters" ;
-        sh:order 5 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Voxel size must be a positive number in millimeters (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasLatticeNodeRadius ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Node Radius" ;
-        sh:description "Radius of spherical nodes in lattice structure (mm)" ;
-        sh:group "StructureParameters" ;
-        sh:order 6 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Lattice node radius must be a positive number in millimeters (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasLatticeStrutMinX ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Min Strut Thickness X" ;
-        sh:description "Minimum strut thickness in X direction (mm)" ;
-        sh:group "StructureParameters" ;
-        sh:order 7 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Minimum strut thickness X must be a positive number in millimeters (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasLatticeStrutMaxX ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Max Strut Thickness X" ;
-        sh:description "Maximum strut thickness in X direction (mm)" ;
-        sh:group "StructureParameters" ;
-        sh:order 8 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Maximum strut thickness X must be a positive number in millimeters (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasLatticeStrutMinY ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Min Strut Thickness Y" ;
-        sh:description "Minimum strut thickness in Y direction (mm)" ;
-        sh:group "StructureParameters" ;
-        sh:order 9 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Minimum strut thickness Y must be a positive number in millimeters (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasLatticeStrutMaxY ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Max Strut Thickness Y" ;
-        sh:description "Maximum strut thickness in Y direction (mm)" ;
-        sh:group "StructureParameters" ;
-        sh:order 10 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Maximum strut thickness Y must be a positive number in millimeters (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasLatticeStrutMinZ ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Min Strut Thickness Z" ;
-        sh:description "Minimum strut thickness in Z direction (mm)" ;
-        sh:group "StructureParameters" ;
-        sh:order 11 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Minimum strut thickness Z must be a positive number in millimeters (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasLatticeStrutMaxZ ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Max Strut Thickness Z" ;
-        sh:description "Maximum strut thickness in Z direction (mm)" ;
-        sh:group "StructureParameters" ;
-        sh:order 12 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Maximum strut thickness Z must be a positive number in millimeters (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasLatticeNx ;
-        sh:datatype xsd:integer ;
-        sh:maxCount 1 ;
-        sh:name "Resolution Points X" ;
-        sh:description "Number of resolution points in X direction" ;
-        sh:group "StructureParameters" ;
-        sh:order 13 ;
-        sh:minInclusive 1 ;
-        sh:severity sh:Violation ;
-        sh:message "Resolution points X must be a positive integer (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasLatticeNy ;
-        sh:datatype xsd:integer ;
-        sh:maxCount 1 ;
-        sh:name "Resolution Points Y" ;
-        sh:description "Number of resolution points in Y direction" ;
-        sh:group "StructureParameters" ;
-        sh:order 14 ;
-        sh:minInclusive 1 ;
-        sh:severity sh:Violation ;
-        sh:message "Resolution points Y must be a positive integer (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasLatticeNz ;
-        sh:datatype xsd:integer ;
-        sh:maxCount 1 ;
-        sh:name "Resolution Points Z" ;
-        sh:description "Number of resolution points in Z direction" ;
-        sh:group "StructureParameters" ;
-        sh:order 15 ;
-        sh:minInclusive 1 ;
-        sh:severity sh:Violation ;
-        sh:message "Resolution points Z must be a positive integer (max 1)" ;
-    ] ;
-
-    sh:property [
-        sh:path dyn:hasLatticeRingThickness ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Lattice Ring Thickness" ;
-        sh:description "Thickness of outer ring that encapsulates the lattice structure (mm)" ;
-        sh:group "StructureParameters" ;
-        sh:order 16 ;
-        sh:minExclusive 0.0 ;
-        sh:severity sh:Violation ;
-        sh:message "Lattice ring thickness must be a positive number in millimeters (max 1)" ;
+# -----------------------------------------------------------------------------
+# Unique Specimen ID Constraint
+# -----------------------------------------------------------------------------
+dyn:UniqueSpecimenIDConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:severity sh:Violation ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Specimen ID must be unique - a specimen with ID '{?id}' already exists" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            SELECT ?this WHERE {
+                ?this dyn:hasSpecimenID ?id .
+                ?other dyn:hasSpecimenID ?id .
+                FILTER(?this != ?other)
+            }
+        """ ;
     ] .
 
-#################################################################
-#    Validation Rules (Complex Constraints)
-#################################################################
-
-# Ensure at least one dimension is specified
-dyn:SpecimenDimensionConstraint a sh:NodeShape ;
+# -----------------------------------------------------------------------------
+# Build Angle Constraint (only for custom orientation)
+# -----------------------------------------------------------------------------
+dyn:BuildAngleConstraint a sh:NodeShape ;
     sh:targetClass dyn:Specimen ;
-    sh:severity sh:Warning ;
-    sh:or (
-        [ sh:property [ sh:path dyn:hasOriginalLength ; sh:minCount 1 ] ]
-        [ sh:property [ sh:path dyn:hasOriginalDiameter ; sh:minCount 1 ] ]
-        [ sh:property [ sh:path dyn:hasOriginalWidth ; sh:minCount 1 ] ]
-        [ sh:property [ sh:path dyn:hasOriginalHeight ; sh:minCount 1 ] ]
-        [ sh:property [ sh:path dyn:hasOriginalThickness ; sh:minCount 1 ] ]
-    ) ;
-    sh:message "At least one dimension must be specified for the specimen (length, diameter, width, height, or thickness)" .
+    sh:severity sh:Violation ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Build angle should only be specified when build orientation is 'Custom' - for standard orientations, use predefined values" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            # Query description: Build angle should only be present when build orientation is CustomAngle
+            SELECT ?this WHERE {
+                ?this dyn:hasBuildAngle ?angle .
+                FILTER NOT EXISTS { ?this dyn:hasBuildOrientation dyn:CustomAngle }
+            }
+        """ ;
+    ] .
 
-# Ensure strut max is greater than or equal to strut min for each direction
+# -----------------------------------------------------------------------------
+# Shape Requirement for Test/Calibration Specimens
+# -----------------------------------------------------------------------------
+dyn:TestSpecimenShapeRequirement a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:severity sh:Violation ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Test and calibration specimens must have a shape specified (e.g., Cylindrical, Cubic, or Dogbone)" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            # Query description: Test and calibration specimens require a shape to be specified
+            SELECT ?this WHERE {
+                {
+                    ?this dyn:hasSpecimenRole dyn:TestSpecimen .
+                } UNION {
+                    ?this dyn:hasSpecimenRole dyn:CalibrationSpecimen .
+                }
+                FILTER NOT EXISTS { ?this dyn:hasShape ?shape }
+            }
+        """ ;
+    ] .
+
+# -----------------------------------------------------------------------------
+# Strut Thickness Constraint (max >= min)
+# -----------------------------------------------------------------------------
 dyn:StrutThicknessConstraint a sh:NodeShape ;
     sh:targetClass dyn:Specimen ;
     sh:severity sh:Violation ;
     sh:sparql [
         a sh:SPARQLConstraint ;
-        sh:severity sh:Violation ;
-        sh:message "Maximum strut thickness must be greater than or equal to minimum strut thickness in each direction (X, Y, Z)" ;
+        sh:message "Maximum strut thickness must be greater than or equal to minimum strut thickness in each direction" ;
         sh:prefixes [
             sh:declare [
                 sh:prefix "dyn" ;
-                sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
             ]
         ] ;
         sh:select """
@@ -847,301 +254,544 @@ dyn:StrutThicknessConstraint a sh:NodeShape ;
         """ ;
     ] .
 
-# Ensure manufactured date is not in the future
-dyn:ManufacturedDateConstraint a sh:NodeShape ;
-    sh:targetClass dyn:Specimen ;
-    sh:severity sh:Violation ;
-    sh:if [
-        sh:property [ sh:path dyn:hasManufacturedDate ; sh:minCount 1 ]
-    ] ;
-    sh:then [
-        sh:sparql [
-            a sh:SPARQLConstraint ;
-            sh:message "Manufactured date cannot be in the future - please verify the date is correct" ;
-            sh:prefixes [
-                sh:declare [
-                    sh:prefix "dyn" ;
-                    sh:namespace "https://dynamat.utep.edu/ontology#" ;
-                ]
-            ] ;
-            sh:select """
-                SELECT ?this WHERE {
-                    ?this dyn:hasManufacturedDate ?date .
-                    FILTER(?date > NOW())
-                }
-            """ ;
-        ]
-    ] .
-
-# Ensure dimensional consistency for cylindrical specimens
+# -----------------------------------------------------------------------------
+# Dimensional Consistency - Cylindrical Specimens (REQUIRED - Validation)
+# -----------------------------------------------------------------------------
 dyn:CylindricalSpecimenConstraint a sh:NodeShape ;
-    sh:targetClass dyn:Specimen ;
-    sh:severity sh:Warning ;
-    sh:if [
-        sh:property [
-            sh:path dyn:hasShape ;
-            sh:hasValue dyn:Cylindrical ;
-        ]
-    ] ;
-    sh:then [
-        sh:and (
-            # Should have diameter, not width/height
-            [ sh:property [ sh:path dyn:hasOriginalDiameter ; sh:minCount 1 ] ]
-            [ sh:property [ sh:path dyn:hasOriginalWidth ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasOriginalHeight ; sh:maxCount 0 ] ]
-        )
-    ] ;
-    sh:message "Cylindrical specimens must have diameter specified, not width/height. Please use diameter for cylindrical geometry." .
-
-# Ensure dimensional consistency for rectangular specimens
-dyn:RectangularSpecimenConstraint a sh:NodeShape ;
-    sh:targetClass dyn:Specimen ;
-    sh:severity sh:Warning ;
-    sh:if [
-        sh:property [
-            sh:path dyn:hasShape ;
-            sh:hasValue dyn:Rectangular ;
-        ]
-    ] ;
-    sh:then [
-        sh:and (
-            # Should have width and height, not diameter
-            [ sh:property [ sh:path dyn:hasOriginalWidth ; sh:minCount 1 ] ]
-            [ sh:property [ sh:path dyn:hasOriginalHeight ; sh:minCount 1 ] ]
-            [ sh:property [ sh:path dyn:hasOriginalDiameter ; sh:maxCount 0 ] ]
-        )
-    ] ;
-    sh:message "Rectangular specimens must have width and height specified, not diameter. Please use width/height for rectangular geometry." .
-
-# Ensure lattice properties are only used for lattice structures
-dyn:LatticePropertiesConstraint a sh:NodeShape ;
-    sh:targetClass dyn:Specimen ;
-    sh:severity sh:Warning ;
-    sh:if [
-        sh:property [
-            sh:path dyn:hasStructure ;
-            sh:hasValue dyn:Lattice ;
-        ]
-    ] ;
-    sh:else [
-        # If structure is not lattice, no lattice properties should be used
-        sh:and (
-            [ sh:property [ sh:path dyn:hasLatticeCellsX ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasLatticeCellsY ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasLatticeCellsZ ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasVoxelSize ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasLatticeNodeRadius ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasLatticeRingThickness ; sh:maxCount 0 ] ]
-        )
-    ] ;
-    sh:message "Lattice properties (cells, voxel size, node radius, etc.) should only be used for specimens with lattice structure type" .
-
-# Ensure build angle is only used when build orientation is Custom
-dyn:BuildAngleConstraint a sh:NodeShape ;
-    sh:targetClass dyn:Specimen ;
-    sh:severity sh:Violation ;
-    sh:if [
-        sh:property [
-            sh:path dyn:hasBuildOrientation ;
-            sh:hasValue dyn:CustomAngle ;
-        ]
-    ] ;
-    sh:else [
-        sh:property [ sh:path dyn:hasBuildAngle ; sh:maxCount 0 ]
-    ] ;
-    sh:message "Build angle should only be specified when build orientation is set to 'Custom' - for standard orientations (Horizontal, Vertical, etc.), use those predefined values instead" .
-
-# Ensure heat treatment parameters are only used when heat treatment is specified
-dyn:HeatTreatmentParametersConstraint a sh:NodeShape ;
-    sh:targetClass dyn:Specimen ;
-    sh:severity sh:Warning ;
-    sh:if [
-        sh:property [ sh:path dyn:hasHeatTreatment ; sh:minCount 1 ]
-    ] ;
-    sh:else [
-        sh:and (
-            [ sh:property [ sh:path dyn:hasHeatTreatmentTemperature ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasHeatTreatmentDuration ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasCoolingTime ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasCoolingRate ; sh:maxCount 0 ] ]
-        )
-    ] ;
-    sh:message "Heat treatment parameters (temperature, duration, cooling time/rate) should only be specified when a heat treatment type is selected" .
-
-# Ensure surface finish parameters are only used when surface finish is specified
-dyn:SurfaceFinishParametersConstraint a sh:NodeShape ;
-    sh:targetClass dyn:Specimen ;
-    sh:severity sh:Warning ;
-    sh:if [
-        sh:property [ sh:path dyn:hasSurfaceFinish ; sh:minCount 1 ]
-    ] ;
-    sh:else [
-        sh:and (
-            [ sh:property [ sh:path dyn:hasFinalGritSize ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasPolishingCompound ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasSurfaceRoughness ; sh:maxCount 0 ] ]
-        )
-    ] ;
-    sh:message "Surface finish parameters (grit size, polishing compound, roughness) should only be specified when a surface finish type is selected" .
-
-# Ensure AM-specific parameters are only used when AM manufacturing method is selected
-dyn:AMParametersConstraint a sh:NodeShape ;
-    sh:targetClass dyn:Specimen ;
-    sh:severity sh:Warning ;
-    sh:if [
-        sh:property [
-            sh:path dyn:hasManufacturingMethod ;
-            sh:hasValue dyn:AdditiveManufacturing ;
-        ]
-    ] ;
-    sh:else [
-        sh:and (
-            [ sh:property [ sh:path dyn:hasBuildOrientation ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasBuildAngle ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasLayerThickness ; sh:maxCount 0 ] ]
-        )
-    ] ;
-    sh:message "Additive manufacturing parameters (build orientation, build angle, layer thickness) should only be specified when Additive Manufacturing is selected as a manufacturing method" .
-
-# Ensure casting-specific parameters are only used when casting manufacturing method is selected
-dyn:CastingParametersConstraint a sh:NodeShape ;
-    sh:targetClass dyn:Specimen ;
-    sh:severity sh:Warning ;
-    sh:if [
-        sh:property [
-            sh:path dyn:hasManufacturingMethod ;
-            sh:hasValue dyn:Casting ;
-        ]
-    ] ;
-    sh:else [
-        sh:and (
-            [ sh:property [ sh:path dyn:hasMetalTemperature ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasMoldTemperature ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasCastCoolingDuration ; sh:maxCount 0 ] ]
-        )
-    ] ;
-    sh:message "Casting parameters (metal temperature, mold temperature, cooling duration) should only be specified when Casting is selected as a manufacturing method" .
-
-# Ensure machining tolerance is only used when machining manufacturing method is selected
-dyn:MachiningParametersConstraint a sh:NodeShape ;
-    sh:targetClass dyn:Specimen ;
-    sh:severity sh:Warning ;
-    sh:if [
-        sh:property [
-            sh:path dyn:hasManufacturingMethod ;
-            sh:hasValue dyn:Machining ;
-        ]
-    ] ;
-    sh:else [
-        sh:property [ sh:path dyn:hasMachiningTolerance ; sh:maxCount 0 ]
-    ] ;
-    sh:message "Machining tolerance should only be specified when Machining is selected as a manufacturing method" .
-
-# Ensure unique specimen ID within the dataset
-dyn:UniqueSpecimenIDConstraint a sh:NodeShape ;
     sh:targetClass dyn:Specimen ;
     sh:severity sh:Violation ;
     sh:sparql [
         a sh:SPARQLConstraint ;
-        sh:message "Specimen ID must be unique within the dataset - a specimen with ID '{?id}' already exists" ;
+        sh:message "Cylindrical specimens require diameter and height. Width, length, thickness, and gauge length should not be specified." ;
         sh:prefixes [
             sh:declare [
                 sh:prefix "dyn" ;
-                sh:namespace "https://dynamat.utep.edu/ontology#" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
             ]
         ] ;
         sh:select """
+            # Query description: Cylindrical specimens must have diameter and height, and must not have width, length, thickness, or gauge length
             SELECT ?this WHERE {
-                ?this dyn:hasSpecimenID ?id .
-                ?other dyn:hasSpecimenID ?id .
-                FILTER(?this != ?other)
+                ?this dyn:hasShape dyn:CylindricalShape .
+                {
+                    # Missing required dimensions
+                    FILTER NOT EXISTS { ?this dyn:hasOriginalDiameter ?diameter }
+                } UNION {
+                    FILTER NOT EXISTS { ?this dyn:hasOriginalHeight ?height }
+                } UNION {
+                    # Has forbidden dimensions
+                    ?this dyn:hasOriginalWidth ?width .
+                } UNION {
+                    ?this dyn:hasOriginalLength ?length .
+                } UNION {
+                    ?this dyn:hasOriginalThickness ?thickness .
+                } UNION {
+                    ?this dyn:hasOriginalGaugeLength ?gaugeLength .
+                }
+            }
+        """ ;
+    ] .
+
+# -----------------------------------------------------------------------------
+# Dimensional Consistency - Cubic Specimens (REQUIRED - Validation)
+# -----------------------------------------------------------------------------
+dyn:CubicSpecimenConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:severity sh:Violation ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Cubic specimens require length (cube side). Diameter, width, height, thickness, and gauge length should not be specified." ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            # Query description: Cubic specimens must have length (cube side), and must not have diameter, width, height, thickness, or gauge length
+            SELECT ?this WHERE {
+                ?this dyn:hasShape dyn:CubicShape .
+                {
+                    # Missing required dimension
+                    FILTER NOT EXISTS { ?this dyn:hasOriginalLength ?length }
+                } UNION {
+                    # Has forbidden dimensions
+                    ?this dyn:hasOriginalDiameter ?diameter .
+                } UNION {
+                    ?this dyn:hasOriginalWidth ?width .
+                } UNION {
+                    ?this dyn:hasOriginalHeight ?height .
+                } UNION {
+                    ?this dyn:hasOriginalThickness ?thickness .
+                } UNION {
+                    ?this dyn:hasOriginalGaugeLength ?gaugeLength .
+                }
+            }
+        """ ;
+    ] .
+
+# -----------------------------------------------------------------------------
+# Dimensional Consistency - Dogbone Specimens (REQUIRED - Validation)
+# -----------------------------------------------------------------------------
+dyn:DogboneSpecimenConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:severity sh:Violation ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Dogbone specimens require length, gauge length, width, and thickness. Diameter and height should not be specified." ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            # Query description: Dogbone specimens must have length, gauge length, width, and thickness; diameter and height should not be specified
+            SELECT ?this WHERE {
+                ?this dyn:hasShape dyn:DogboneShape .
+                {
+                    # Missing required dimensions
+                    FILTER NOT EXISTS { ?this dyn:hasOriginalLength ?length }
+                } UNION {
+                    FILTER NOT EXISTS { ?this dyn:hasOriginalGaugeLength ?gaugeLength }
+                } UNION {
+                    FILTER NOT EXISTS { ?this dyn:hasOriginalWidth ?width }
+                } UNION {
+                    FILTER NOT EXISTS { ?this dyn:hasOriginalThickness ?thickness }
+                } UNION {
+                    # Has forbidden dimensions
+                    ?this dyn:hasOriginalDiameter ?diameter .
+                } UNION {
+                    ?this dyn:hasOriginalHeight ?height .
+                }
+            }
+        """ ;
+    ] .
+
+# -----------------------------------------------------------------------------
+# Lattice Properties Constraint (only for lattice structures)
+# -----------------------------------------------------------------------------
+dyn:LatticePropertiesConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:severity sh:Warning ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Lattice properties should only be specified for specimens with lattice structure" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            # Query description: Lattice properties should only exist when structure is LatticeStructure
+            SELECT ?this WHERE {
+                FILTER NOT EXISTS { ?this dyn:hasStructure dyn:LatticeStructure }
+                {
+                    ?this dyn:hasLatticeCellsX ?cellsX .
+                } UNION {
+                    ?this dyn:hasLatticeCellsY ?cellsY .
+                } UNION {
+                    ?this dyn:hasLatticeCellsZ ?cellsZ .
+                } UNION {
+                    ?this dyn:hasVoxelSize ?voxelSize .
+                } UNION {
+                    ?this dyn:hasLatticeNodeRadius ?nodeRadius .
+                } UNION {
+                    ?this dyn:hasLatticeRingThickness ?ringThickness .
+                }
+            }
+        """ ;
+    ] .
+
+# -----------------------------------------------------------------------------
+# Heat Treatment Parameters Constraint
+# -----------------------------------------------------------------------------
+dyn:HeatTreatmentParametersConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:severity sh:Warning ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Heat treatment parameters should only be specified when a heat treatment type is selected" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            # Query description: Heat treatment parameters should only exist when hasHeatTreatment is specified
+            SELECT ?this WHERE {
+                FILTER NOT EXISTS { ?this dyn:hasHeatTreatment ?treatment }
+                {
+                    ?this dyn:hasHeatTreatmentTemperature ?temp .
+                } UNION {
+                    ?this dyn:hasHeatTreatmentDuration ?duration .
+                } UNION {
+                    ?this dyn:hasCoolingTime ?coolTime .
+                } UNION {
+                    ?this dyn:hasCoolingRate ?coolRate .
+                }
+            }
+        """ ;
+    ] .
+
+# -----------------------------------------------------------------------------
+# Surface Finish Parameters Constraint
+# -----------------------------------------------------------------------------
+dyn:SurfaceFinishParametersConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:severity sh:Warning ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Surface finish parameters should only be specified when a surface finish type is selected" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            # Query description: Surface finish parameters should only exist when hasSurfaceFinish is specified
+            SELECT ?this WHERE {
+                FILTER NOT EXISTS { ?this dyn:hasSurfaceFinish ?finish }
+                {
+                    ?this dyn:hasFinalGritSize ?grit .
+                } UNION {
+                    ?this dyn:hasPolishingCompound ?compound .
+                } UNION {
+                    ?this dyn:hasSurfaceRoughness ?roughness .
+                }
+            }
+        """ ;
+    ] .
+
+# -----------------------------------------------------------------------------
+# Additive Manufacturing Parameters Constraint
+# -----------------------------------------------------------------------------
+dyn:AMParametersConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:severity sh:Warning ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Additive manufacturing parameters should only be specified when Additive Manufacturing is selected" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            # Query description: AM parameters should only exist when manufacturing method is 3DPrinting
+            SELECT ?this WHERE {
+                FILTER NOT EXISTS { ?this dyn:hasManufacturingMethod dyn:3DPrinting }
+                {
+                    ?this dyn:hasBuildOrientation ?orientation .
+                } UNION {
+                    ?this dyn:hasBuildAngle ?angle .
+                } UNION {
+                    ?this dyn:hasLayerThickness ?layerThickness .
+                }
+            }
+        """ ;
+    ] .
+
+# -----------------------------------------------------------------------------
+# Casting Parameters Constraint
+# -----------------------------------------------------------------------------
+dyn:CastingParametersConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:severity sh:Warning ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Casting parameters should only be specified when Casting is selected as manufacturing method" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            # Query description: Casting parameters should only exist when manufacturing method is Casting
+            SELECT ?this WHERE {
+                FILTER NOT EXISTS { ?this dyn:hasManufacturingMethod dyn:Casting }
+                {
+                    ?this dyn:hasMetalTemperature ?metalTemp .
+                } UNION {
+                    ?this dyn:hasMoldTemperature ?moldTemp .
+                } UNION {
+                    ?this dyn:hasCastCoolingDuration ?coolDuration .
+                }
+            }
+        """ ;
+    ] .
+
+# -----------------------------------------------------------------------------
+# Machining Parameters Constraint
+# -----------------------------------------------------------------------------
+dyn:MachiningParametersConstraint a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:severity sh:Warning ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Machining tolerance should only be specified when Machining is selected as manufacturing method" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            # Query description: Machining tolerance should only exist when manufacturing method is Machining
+            SELECT ?this WHERE {
+                ?this dyn:hasMachiningTolerance ?tolerance .
+                FILTER NOT EXISTS { ?this dyn:hasManufacturingMethod dyn:Machining }
+            }
+        """ ;
+    ] .
+
+# -----------------------------------------------------------------------------
+# Composite Materials Recommendation
+# -----------------------------------------------------------------------------
+dyn:CompositePhaseRecommendation a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:severity sh:Info ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Consider specifying composite phase description to document matrix, reinforcement, and volume fractions" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ] ;
+            sh:declare [
+                sh:prefix "rdf" ;
+                sh:namespace "http://www.w3.org/1999/02/22-rdf-syntax-ns#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            # Query description: Specimens with composite materials should have phase descriptions to document matrix/reinforcement details
+            SELECT ?this WHERE {
+                ?this dyn:hasMaterial ?material .
+                ?material rdf:type dyn:Composite .
+                FILTER NOT EXISTS { ?this dyn:hasCompositePhaseDescription ?desc }
             }
         """ ;
     ] .
 
 #################################################################
-#    Additional Validation Rules (from GUI Constraints)
+#    Metadata Tracking Constraints
 #################################################################
 
-# Post-test dimensions should not be present for non-destructive testing specimens
-dyn:NonTestingSpecimenPostTestConstraint a sh:NodeShape ;
+# -----------------------------------------------------------------------------
+# Creation Metadata Required (Violation - Blocks Save)
+# -----------------------------------------------------------------------------
+dyn:CreationMetadataRequired a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:severity sh:Violation ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Form creation must have user metadata. Please select an user to attribute this form to." ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            # Query description: All specimens must have creation metadata for proper provenance tracking
+            SELECT ?this WHERE {
+                ?this a dyn:Specimen .
+                {
+                    FILTER NOT EXISTS { ?this dyn:hasCreatedBy ?creator }
+                } UNION {
+                    FILTER NOT EXISTS { ?this dyn:hasCreatedDate ?created }
+                } UNION {
+                    FILTER NOT EXISTS { ?this dyn:hasAppVersion ?version }
+                }
+            }
+        """ ;
+    ] .
+
+# -----------------------------------------------------------------------------
+# Modification Metadata Consistency (Violation - Blocks Save)
+# -----------------------------------------------------------------------------
+dyn:ModificationMetadataConsistency a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:severity sh:Violation ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "If modification metadata is present, both modified by and modified date must be specified together" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            # Query description: Modification metadata must be complete (both user and date) when present
+            SELECT ?this WHERE {
+                ?this a dyn:Specimen .
+                {
+                    # Has modifiedBy but not modifiedDate
+                    ?this dyn:hasModifiedBy ?modifier .
+                    FILTER NOT EXISTS { ?this dyn:hasModifiedDate ?modDate }
+                } UNION {
+                    # Has modifiedDate but not modifiedBy
+                    ?this dyn:hasModifiedDate ?modDate .
+                    FILTER NOT EXISTS { ?this dyn:hasModifiedBy ?modifier }
+                }
+            }
+        """ ;
+    ] .
+
+# -----------------------------------------------------------------------------
+# Creation Metadata Immutability Warning
+# -----------------------------------------------------------------------------
+dyn:CreationMetadataImmutability a sh:NodeShape ;
     sh:targetClass dyn:Specimen ;
     sh:severity sh:Warning ;
-    sh:if [
-        sh:property [
-            sh:path dyn:hasSpecimenRole ;
-            sh:in (dyn:CharacterizationSpecimen
-                   dyn:ReferenceSpecimen
-                   dyn:CalibrationSpecimen) ;
-        ]
-    ] ;
-    sh:then [
-        sh:and (
-            [ sh:property [ sh:path dyn:hasFinalLength ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasFinalDiameter ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasFinalCrossSection ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasFinalThickness ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasFinalHeight ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasFinalWidth ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasFinalMass ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasFinalGaugeLength ; sh:maxCount 0 ] ]
-        )
-    ] ;
-    sh:message "Characterization, reference, and calibration specimens should not have post-test dimensions - they are not subjected to destructive testing" .
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Creation metadata should not be changed after initial save. Only modification metadata should be updated." ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            # Query description: Specimens with modification metadata should retain original creation metadata
+            SELECT ?this WHERE {
+                ?this a dyn:Specimen .
+                ?this dyn:hasModifiedBy ?modifier .
+                {
+                    FILTER NOT EXISTS { ?this dyn:hasCreatedBy ?creator }
+                } UNION {
+                    FILTER NOT EXISTS { ?this dyn:hasCreatedDate ?created }
+                }
+            }
+        """ ;
+    ] .
 
-# Dogbone specimens must have required dimensions
-dyn:DogboneSpecimenDimensionsConstraint a sh:NodeShape ;
-    sh:targetClass dyn:Specimen ;
-    sh:severity sh:Warning ;
-    sh:if [
-        sh:property [
-            sh:path dyn:hasShape ;
-            sh:hasValue dyn:DogboneShape ;
-        ]
-    ] ;
-    sh:then [
-        sh:and (
-            [ sh:property [ sh:path dyn:hasOriginalGaugeLength ; sh:minCount 1 ] ]
-            [ sh:property [ sh:path dyn:hasOriginalWidth ; sh:minCount 1 ] ]
-            [ sh:property [ sh:path dyn:hasOriginalThickness ; sh:minCount 1 ] ]
-        )
-    ] ;
-    sh:message "Dogbone specimens must specify gauge length, width, and thickness for proper cross-sectional area calculation" .
-
-# Composite materials should have phase description for completeness
-dyn:CompositePropertiesCompletenessConstraint a sh:NodeShape ;
+# -----------------------------------------------------------------------------
+# Modified Specimen Information (Info - Display Only)
+# -----------------------------------------------------------------------------
+dyn:ModifiedSpecimenInfo a sh:NodeShape ;
     sh:targetClass dyn:Specimen ;
     sh:severity sh:Info ;
-    sh:if [
-        sh:property [
-            sh:path dyn:hasMaterial ;
-            sh:class dyn:Composite ;
-        ]
-    ] ;
-    sh:then [
-        sh:property [
-            sh:path dyn:hasCompositePhaseDescription ;
-            sh:minCount 1 ;
-        ]
-    ] ;
-    sh:message "Consider specifying a composite phase description for composite materials to document matrix, reinforcement, and volume fractions" .
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "This specimen has been modified since creation. See modification metadata for details." ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            # Query description: Informational message for specimens that have been modified
+            SELECT ?this WHERE {
+                ?this a dyn:Specimen .
+                ?this dyn:hasModifiedBy ?modifier .
+                ?this dyn:hasModifiedDate ?modDate .
+            }
+        """ ;
+    ] .
 
-# Cubic specimens should use length (not width/height/diameter)
-dyn:CubicSpecimenDimensionsConstraint a sh:NodeShape ;
+#################################################################
+#    Post-Test Dimension Warnings (Non-Characterization Only)
+#################################################################
+
+# -----------------------------------------------------------------------------
+# Cylindrical Specimens - Post-Test Dimensions Warning
+# -----------------------------------------------------------------------------
+dyn:CylindricalPostTestWarning a sh:NodeShape ;
     sh:targetClass dyn:Specimen ;
     sh:severity sh:Warning ;
-    sh:if [
-        sh:property [
-            sh:path dyn:hasShape ;
-            sh:hasValue dyn:CubicShape ;
-        ]
-    ] ;
-    sh:then [
-        sh:and (
-            [ sh:property [ sh:path dyn:hasOriginalLength ; sh:minCount 1 ] ]
-            [ sh:property [ sh:path dyn:hasOriginalDiameter ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasOriginalWidth ; sh:maxCount 0 ] ]
-            [ sh:property [ sh:path dyn:hasOriginalHeight ; sh:maxCount 0 ] ]
-        )
-    ] ;
-    sh:message "Cubic specimens should specify length (cube side) rather than width, height, or diameter" .
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Post-test dimensions (final diameter and height) are recommended for cylindrical test specimens. These document specimen changes after testing." ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            # Query description: Cylindrical test/calibration specimens should have final diameter and height to document post-test changes
+            SELECT ?this WHERE {
+                ?this dyn:hasShape dyn:CylindricalShape .
+                { ?this dyn:hasSpecimenRole dyn:TestSpecimen . }
+                UNION
+                { ?this dyn:hasSpecimenRole dyn:CalibrationSpecimen . }
+                {
+                    FILTER NOT EXISTS { ?this dyn:hasFinalDiameter ?diameter }
+                } UNION {
+                    FILTER NOT EXISTS { ?this dyn:hasFinalHeight ?height }
+                }
+            }
+        """ ;
+    ] .
+
+# -----------------------------------------------------------------------------
+# Cubic Specimens - Post-Test Dimensions Warning
+# -----------------------------------------------------------------------------
+dyn:CubicPostTestWarning a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:severity sh:Warning ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Post-test dimension (final length) is recommended for cubic test specimens. This documents specimen changes after testing." ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            # Query description: Cubic test/calibration specimens should have final length to document post-test changes
+            SELECT ?this WHERE {
+                ?this dyn:hasShape dyn:CubicShape .
+                { ?this dyn:hasSpecimenRole dyn:TestSpecimen . }
+                UNION
+                { ?this dyn:hasSpecimenRole dyn:CalibrationSpecimen . }
+                FILTER NOT EXISTS { ?this dyn:hasFinalLength ?length }
+            }
+        """ ;
+    ] .
+
+# -----------------------------------------------------------------------------
+# Dogbone Specimens - Post-Test Dimensions Warning
+# -----------------------------------------------------------------------------
+dyn:DogbonePostTestWarning a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:severity sh:Warning ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Post-test dimensions (final length, gauge length, width, and thickness) are recommended for dogbone test specimens. These document specimen changes after testing." ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            # Query description: Dogbone test/calibration specimens should have all final dimensions to document post-test changes
+            SELECT ?this WHERE {
+                ?this dyn:hasShape dyn:DogboneShape .
+                { ?this dyn:hasSpecimenRole dyn:TestSpecimen . }
+                UNION
+                { ?this dyn:hasSpecimenRole dyn:CalibrationSpecimen . }
+                {
+                    FILTER NOT EXISTS { ?this dyn:hasFinalLength ?length }
+                } UNION {
+                    FILTER NOT EXISTS { ?this dyn:hasFinalGaugeLength ?gaugeLength }
+                } UNION {
+                    FILTER NOT EXISTS { ?this dyn:hasFinalWidth ?width }
+                } UNION {
+                    FILTER NOT EXISTS { ?this dyn:hasFinalThickness ?thickness }
+                }
+            }
+        """ ;
+    ] .

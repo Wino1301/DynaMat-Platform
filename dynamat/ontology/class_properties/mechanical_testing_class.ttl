@@ -409,11 +409,11 @@ dyn:hasLoadingRate rdf:type owl:DatatypeProperty ;
                    rdf:type owl:FunctionalProperty ;
                    rdfs:domain dyn:QuasistaticTest ;
                    rdfs:range xsd:double ;
-                   qudt:hasQuantityKind qkdv:ForcePerTime ;
-                   rdfs:comment "Rate of force application"@en ;
+                   qudt:hasQuantityKind qkdv:PressurePerTime ;
+                   rdfs:comment "Rate of stress application (Pa/s)"@en ;
                    rdfs:label "Loading Rate"@en ;
-                   dyn:hasUnit "unit:N-PER-SEC" ;
-                   gui:hasDisplayName "Loading Rate (N/s)" ;
+                   dyn:hasUnit "unit:PA-PER-SEC" ;
+                   gui:hasDisplayName "Loading Rate (Pa/s)" ;
                    gui:hasDisplayOrder 1 ;
                    gui:hasFormGroup "TestConditions" .
 
@@ -569,9 +569,9 @@ dyn:hasPulseStrainAmplitude rdf:type owl:DatatypeProperty ;
                             rdfs:domain dyn:SHPBCompression ;
                             rdfs:range xsd:double ;
                             qudt:hasQuantityKind qkdv:Strain ;
-                            rdfs:comment "Maximum strain amplitude of the incident pulse"@en ;
+                            rdfs:comment "Maximum strain amplitude of the incident pulse (values in microstrain, 1 µε = 10⁻⁶)"@en ;
                             rdfs:label "Pulse Strain Amplitude"@en ;
-                            dyn:hasUnit "unit:MicroStrain" ;
+                            dyn:hasUnit "unit:UNITLESS" ;
                             gui:hasDisplayName "Pulse Strain Amplitude (μɛ)" ;
                             gui:hasDisplayOrder 4 ;
                             gui:hasFormGroup "PulseCharacteristics" .
@@ -662,7 +662,7 @@ dyn:hasTestTemperature rdf:type owl:DatatypeProperty ;
                        rdf:type owl:FunctionalProperty ;
                        rdfs:domain dyn:MechanicalTest ;
                        rdfs:range xsd:double ;
-                       qudt:hasQuantityKind qkdv:BoilingPoint ;
+                       qudt:hasQuantityKind qkdv:MeltingPoint ;
                        rdfs:comment "Temperature during testing"@en ;
                        rdfs:label "Test Temperature"@en ;
                        dyn:hasUnit "unit:DEG_C" ;

@@ -42,14 +42,7 @@ class MainWindow(QMainWindow):
     def __init__(self, ontology_manager: OntologyManager, parent=None):
         super().__init__(parent)
 
-        try:
-            self.ontology_manager = OntologyManager()
-            print(f"OntologyManager created: {self.ontology_manager}")
-            print(f"Has get_class_metadata_for_form: {hasattr(self.ontology_manager, 'get_class_metadata_for_form')}")
-        except Exception as e:
-            print(f"OntologyManager creation failed: {e}")
-            self.ontology_manager = None
-        
+        self.ontology_manager = ontology_manager
         self.current_activity = None
         self.activity_widgets = {}
         self.content_widget = None
@@ -273,7 +266,7 @@ class MainWindow(QMainWindow):
         """Initialize specimen activity widget immediately"""
         try:
             logger.info("Initializing specimen activity widget")
-            self.activity_widgets["specimen"] = SpecimenFormWidget(self.ontology_manager)
+            self.activity_widgets["specimen"] = SpecimenFormWidget(self.ontology_manager, main_window=self)
             self.log_message("Specimen form widget created and cached")
         except Exception as e:
             logger.error(f"Failed to initialize specimen form: {e}", exc_info=True)
@@ -381,7 +374,20 @@ class MainWindow(QMainWindow):
         }
         name = activity_names.get(activity_id, activity_id.title())
         self.activity_status.setText(f"Activity: {name}")
-    
+
+    def get_current_user(self) -> Optional[str]:
+        """
+        Get the currently selected user URI from the action panel.
+
+        Returns:
+            User URI string, or None if no user selected
+
+        This method is used by forms to retrieve the current user for metadata tracking.
+        """
+        if self.action_panel:
+            return self.action_panel.get_selected_user()
+        return None
+
     def _on_template_loaded(self, template_data: Dict[str, Any]):
         """Handle template loaded signal"""
         self.log_message(f"Template loaded: {template_data.get('name', 'Unknown')}")

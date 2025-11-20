@@ -10,7 +10,8 @@ from datetime import datetime
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QLineEdit, QTextEdit, QComboBox,
     QSpinBox, QDoubleSpinBox, QDateEdit, QCheckBox,
-    QHBoxLayout, QFrame, QListWidget, QListWidgetItem, QAbstractItemView
+    QHBoxLayout, QFrame, QListWidget, QListWidgetItem, QAbstractItemView,
+    QPushButton, QCalendarWidget, QDialog, QVBoxLayout, QDialogButtonBox
 )
 from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QFont
@@ -372,43 +373,45 @@ class WidgetFactory:
     def _create_spinbox_widget(self, prop: PropertyMetadata) -> QSpinBox:
         """Create an integer spin box widget."""
         widget = QSpinBox()
-        widget.setMinimum(-2147483648)
+        widget.setMinimum(0)  # Default to 0 minimum (measurements are non-negative)
         widget.setMaximum(2147483647)
-        
+        widget.setValue(0)  # Default value
+
         if prop.description:
             widget.setToolTip(prop.description)
-        
+
         if hasattr(prop, 'min_value') and prop.min_value is not None:
             widget.setMinimum(int(prop.min_value))
-        
+
         if hasattr(prop, 'max_value') and prop.max_value is not None:
             widget.setMaximum(int(prop.max_value))
-        
+
         if hasattr(prop, 'default_value') and prop.default_value is not None:
             widget.setValue(int(prop.default_value))
-        
+
         return widget
     
     def _create_double_spinbox_widget(self, prop: PropertyMetadata) -> QDoubleSpinBox:
         """Create a double spin box widget."""
         widget = QDoubleSpinBox()
-        widget.setMinimum(-1e10)
+        widget.setMinimum(0.0)  # Default to 0 minimum (measurements are non-negative)
         widget.setMaximum(1e10)
         widget.setDecimals(6)
         widget.setSingleStep(0.1)
-        
+        widget.setValue(0.0)  # Default value
+
         if prop.description:
             widget.setToolTip(prop.description)
-        
+
         if hasattr(prop, 'min_value') and prop.min_value is not None:
             widget.setMinimum(float(prop.min_value))
-        
+
         if hasattr(prop, 'max_value') and prop.max_value is not None:
             widget.setMaximum(float(prop.max_value))
-        
+
         if hasattr(prop, 'default_value') and prop.default_value is not None:
             widget.setValue(float(prop.default_value))
-        
+
         return widget
     
     def _create_checkbox_widget(self, prop: PropertyMetadata) -> QCheckBox:
@@ -427,11 +430,11 @@ class WidgetFactory:
         """Create a date edit widget."""
         widget = QDateEdit()
         widget.setCalendarPopup(True)
-        widget.setDate(QDate.currentDate())
-        
+        widget.setDate(QDate.currentDate())  # Default to today
+
         if prop.description:
             widget.setToolTip(prop.description)
-        
+
         return widget
     
     def _create_unit_value_widget(self, prop: PropertyMetadata) -> QWidget:

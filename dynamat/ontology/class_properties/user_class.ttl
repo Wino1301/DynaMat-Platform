@@ -1,0 +1,92 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix gui: <https://dynamat.utep.edu/ontology/gui#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dc: <http://purl.org/dc/terms/> .
+
+# =============================================================================
+# USER CLASS PROPERTIES
+# For DynaMat Platform - Dynamic Materials Testing Ontology
+# Properties for User class
+# =============================================================================
+
+#################################################################
+#    User Class Definition
+#################################################################
+
+dyn:User rdf:type owl:Class ;
+    rdfs:label "User"@en ;
+    rdfs:comment "A user of the DynaMat Platform who creates, modifies, and manages experimental data"@en .
+
+#################################################################
+#    User Data Properties
+#################################################################
+
+dyn:hasFirstName rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:User ;
+    rdfs:range xsd:string ;
+    rdfs:label "First Name"@en ;
+    gui:hasDisplayName "First Name" ;
+    gui:hasFormGroup "UserInfo" ;
+    gui:hasDisplayOrder 1 ;
+    rdfs:comment "First name of the user"@en .
+
+dyn:hasMiddleName rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:User ;
+    rdfs:range xsd:string ;
+    rdfs:label "Middle Name"@en ;
+    gui:hasDisplayName "Middle Name" ;
+    gui:hasFormGroup "UserInfo" ;
+    gui:hasDisplayOrder 2 ;
+    rdfs:comment "Middle name of the user"@en .
+
+dyn:hasLastName rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:User ;
+    rdfs:range xsd:string ;
+    rdfs:label "Last Name"@en ;
+    gui:hasDisplayName "Last Name" ;
+    gui:hasFormGroup "UserInfo" ;
+    gui:hasDisplayOrder 3 ;
+    rdfs:comment "Last name of the user"@en .
+
+dyn:hasEmail rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:User ;
+    rdfs:range xsd:string ;
+    rdfs:label "Email"@en ;
+    gui:hasDisplayName "Email Address" ;
+    gui:hasFormGroup "UserInfo" ;
+    gui:hasDisplayOrder 4 ;
+    rdfs:comment "Email address of the user"@en .
+
+dyn:hasAffiliation rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:User, dyn:Laboratory ;
+    rdfs:range xsd:string ;
+    rdfs:label "Affiliation"@en ;
+    gui:hasDisplayName "Affiliation" ;
+    gui:hasFormGroup "UserInfo" ;
+    gui:hasDisplayOrder 5 ;
+    rdfs:comment "Institutional affiliation of the user"@en .
+
+dyn:hasORCID rdf:type owl:DatatypeProperty , owl:FunctionalProperty ;
+             rdfs:domain dyn:User ;
+             rdfs:range xsd:string ;
+             rdfs:comment "ORCID identifier for the user"@en ;
+             rdfs:label "ORCID"@en ;
+             gui:hasDisplayName "ORCID" ;
+             gui:hasDisplayOrder 6 ;
+             gui:hasFormGroup "UserInfo" .
+
+#################################################################
+#    User Object Properties
+#################################################################
+
+dyn:hasLaboratory rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:User ;
+    rdfs:range dyn:Laboratory ;
+    rdfs:label "Laboratory"@en ;
+    gui:hasDisplayName "Laboratory" ;
+    gui:hasFormGroup "UserInfo" ;
+    gui:hasDisplayOrder 7 ;
+    rdfs:comment "Laboratory where the user conducts research"@en .

@@ -8,11 +8,11 @@ from typing import Dict, List, Optional, Any, Union
 from datetime import datetime
 
 from PyQt6.QtWidgets import (
-    QWidget, QLabel, QLineEdit, QTextEdit, QComboBox, 
-    QSpinBox, QDoubleSpinBox, QDateEdit, QCheckBox, 
-    QGroupBox, QFormLayout, QVBoxLayout, QHBoxLayout
+    QWidget, QLabel, QLineEdit, QTextEdit, QComboBox,
+    QSpinBox, QDoubleSpinBox, QDateEdit, QCheckBox,
+    QListWidget, QGroupBox, QFormLayout, QVBoxLayout, QHBoxLayout
 )
-from PyQt6.QtCore import QDate
+from PyQt6.QtCore import QDate, Qt
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +31,11 @@ class FormDataHandler:
         
         # Value extractors by widget type
         self.value_extractors = {
+            QLabel: self._extract_label_value,
             QLineEdit: self._extract_line_edit_value,
             QTextEdit: self._extract_text_edit_value,
             QComboBox: self._extract_combo_box_value,
+            QListWidget: self._extract_list_widget_value,
             QSpinBox: self._extract_spinbox_value,
             QDoubleSpinBox: self._extract_double_spinbox_value,
             QDateEdit: self._extract_date_edit_value,
@@ -45,6 +47,7 @@ class FormDataHandler:
             QLineEdit: self._set_line_edit_value,
             QTextEdit: self._set_text_edit_value,
             QComboBox: self._set_combo_box_value,
+            QListWidget: self._set_list_widget_value,
             QSpinBox: self._set_spinbox_value,
             QDoubleSpinBox: self._set_double_spinbox_value,
             QDateEdit: self._set_date_edit_value,
@@ -58,35 +61,51 @@ class FormDataHandler:
     def extract_form_data(self, form_widget: QWidget) -> Dict[str, Any]:
         """
         Extract all data from a form widget.
-        
+
+        Only extracts data from visible widgets. Hidden widgets (due to dependencies
+        or conditional display) are automatically excluded.
+
         Args:
             form_widget: The form widget containing form fields
-            
+
         Returns:
             Dictionary mapping property URI to value
         """
         data = {}
-        
+
         try:
             # Look for form_fields attribute (created by form builder)
             if hasattr(form_widget, 'form_fields'):
                 form_fields = form_widget.form_fields
-                
+
                 for property_uri, form_field in form_fields.items():
                     try:
-                        value = self.get_widget_value(form_field.widget)
-                        if value is not None and value != "":
+                        widget = form_field.widget
+
+                        # VISIBILITY CHECK: Skip if widget or its parent is hidden
+                        if not self._is_widget_visible(widget):
+                            self.logger.debug(f"Skipping {property_uri}: widget not visible")
+                            continue
+
+                        # Extract value from visible widget
+                        value = self.get_widget_value(widget)
+
+                        # Skip None, empty strings, and placeholder values
+                        if value is not None and value != "" and not self._is_placeholder_value(value, widget):
                             data[property_uri] = value
+                        else:
+                            self.logger.debug(f"Skipping {property_uri}: placeholder/empty value")
+
                     except Exception as e:
                         self.logger.error(f"Error extracting value for {property_uri}: {e}")
-                        
+
             else:
                 self.logger.warning("Form widget has no form_fields attribute")
-                
+
         except Exception as e:
             self.logger.error(f"Error extracting form data: {e}")
-            
-        self.logger.info(f"Extracted data for {len(data)} properties")
+
+        self.logger.info(f"Extracted data for {len(data)} properties (visibility-filtered)")
         return data
     
     def populate_form_data(self, form_widget: QWidget, data: Dict[str, Any]) -> bool:
@@ -170,9 +189,101 @@ class FormDataHandler:
         return errors
     
     # ============================================================================
+    # HELPER METHODS
+    # ============================================================================
+
+    def _is_widget_visible(self, widget: QWidget) -> bool:
+        """
+        Check if a widget is visible (considering parent visibility).
+
+        A widget is only truly visible if it AND all its parents are visible.
+        This aligns with dependency system hiding/showing fields.
+
+        Args:
+            widget: Widget to check
+
+        Returns:
+            True if widget is visible and should be included in form data
+        """
+        if not widget:
+            return False
+
+        # Check widget itself
+        if not widget.isVisible():
+            return False
+
+        # Check all parents up the hierarchy
+        parent = widget.parent()
+        while parent:
+            if not parent.isVisible():
+                return False
+            parent = parent.parent()
+
+        return True
+
+    def _is_placeholder_value(self, value: Any, widget: QWidget = None) -> bool:
+        """
+        Check if a value is a placeholder (not real data).
+
+        With visibility-based validation, this is much simpler:
+        - String placeholders like "(Select...)"
+        - For numeric values: only treat 0 as placeholder if it's the default AND field is optional
+
+        Args:
+            value: The value to check
+            widget: Optional widget to check for context
+
+        Returns:
+            True if the value is a placeholder
+        """
+        # String placeholders
+        if isinstance(value, str):
+            placeholders = [
+                "(Select...)",
+                "(select...)",
+                "Select...",
+                "select...",
+                "(None)",
+                "(none)",
+                "---",
+                "N/A",
+                "n/a",
+                ""
+            ]
+            return value.strip() in placeholders
+
+        # For unit value dictionaries, check if at default/unfilled state
+        if isinstance(value, dict) and 'value' in value:
+            numeric_val = value['value']
+            # Only treat 0 as placeholder if widget is at its minimum value
+            # This allows intentional 0 entries
+            if numeric_val == 0 or numeric_val == 0.0:
+                # Check if this is just default unfilled state
+                if widget and hasattr(widget, 'value_spinbox'):
+                    # If user hasn't changed from default, it's a placeholder
+                    spinbox = widget.value_spinbox
+                    return spinbox.value() == spinbox.minimum()
+                # Default: treat 0 in dict as placeholder for backward compat
+                return True
+            return False
+
+        # For plain numeric values (spinboxes without units)
+        # Only treat 0 as placeholder if it's at the widget's minimum value
+        if isinstance(value, (int, float)):
+            if value == 0 or value == 0.0:
+                # If we have widget context, check if user has changed it
+                if widget and isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+                    return widget.value() == widget.minimum()
+                # Default: treat 0 as placeholder
+                return True
+            return False
+
+        return False
+
+    # ============================================================================
     # WIDGET VALUE OPERATIONS
     # ============================================================================
-    
+
     def get_widget_value(self, widget: QWidget) -> Any:
         """
         Get value from any widget type.
@@ -243,7 +354,15 @@ class FormDataHandler:
     # ============================================================================
     # VALUE EXTRACTORS
     # ============================================================================
-    
+
+    def _extract_label_value(self, widget: QLabel) -> str:
+        """Extract value from QLabel (for read-only fields)."""
+        text = widget.text().strip()
+        # Skip empty or placeholder values
+        if text and text != "(auto-generated)" and text != "-":
+            return text
+        return None
+
     def _extract_line_edit_value(self, widget: QLineEdit) -> str:
         """Extract value from QLineEdit."""
         return widget.text().strip()
@@ -259,7 +378,30 @@ class FormDataHandler:
         if data is not None and data != "":
             return data
         return widget.currentText()
-    
+
+    def _extract_list_widget_value(self, widget: QListWidget) -> Union[List[str], str]:
+        """
+        Extract value from QListWidget (for multi-select fields like manufacturing methods).
+        Returns list of selected items' data (URIs) or text if no data.
+        """
+        selected_items = widget.selectedItems()
+        if not selected_items:
+            return None
+
+        values = []
+        for item in selected_items:
+            # Try to get data (URI) first, then fall back to text
+            data = item.data(Qt.ItemDataRole.UserRole)
+            if data is not None and data != "":
+                values.append(data)
+            else:
+                values.append(item.text())
+
+        # Return single value if only one selected, otherwise return list
+        if len(values) == 1:
+            return values[0]
+        return values
+
     def _extract_spinbox_value(self, widget: QSpinBox) -> int:
         """Extract value from QSpinBox."""
         return widget.value()
@@ -279,11 +421,17 @@ class FormDataHandler:
     def _extract_unit_value_widget_value(self, widget: QWidget) -> Dict[str, Any]:
         """Extract value from UnitValueWidget."""
         try:
-            return {
+            data = {
                 'value': widget.getValue(),
                 'unit': widget.getUnit(),
                 'unit_symbol': widget.getUnitSymbol()
             }
+
+            # Add reference_unit if available (for unit conversion)
+            if hasattr(widget, 'reference_unit_uri') and widget.reference_unit_uri:
+                data['reference_unit'] = widget.reference_unit_uri
+
+            return data
         except Exception as e:
             self.logger.error(f"Error extracting unit value widget: {e}")
             return None
@@ -319,20 +467,50 @@ class FormDataHandler:
             if widget.itemData(i) == value:
                 widget.setCurrentIndex(i)
                 return True
-        
+
         # Try to find by text
         index = widget.findText(str(value))
         if index >= 0:
             widget.setCurrentIndex(index)
             return True
-        
+
         # Set as editable text if not found
         if widget.isEditable():
             widget.setCurrentText(str(value))
             return True
-        
+
         return False
-    
+
+    def _set_list_widget_value(self, widget: QListWidget, value: Any) -> bool:
+        """
+        Set value for QListWidget (for multi-select fields).
+        Value can be a single item or a list of items.
+        """
+        # Clear current selection
+        widget.clearSelection()
+
+        # Normalize value to list
+        if not isinstance(value, list):
+            values = [value] if value else []
+        else:
+            values = value
+
+        if not values:
+            return False
+
+        success = False
+        for val in values:
+            # Try to find and select by data first
+            for i in range(widget.count()):
+                item = widget.item(i)
+                item_data = item.data(Qt.ItemDataRole.UserRole)
+                if item_data == val or item.text() == str(val):
+                    item.setSelected(True)
+                    success = True
+                    break
+
+        return success
+
     def _set_spinbox_value(self, widget: QSpinBox, value: Any) -> bool:
         """Set value for QSpinBox."""
         try:

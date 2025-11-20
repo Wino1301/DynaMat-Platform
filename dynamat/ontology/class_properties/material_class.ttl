@@ -302,7 +302,7 @@ dyn:hasDensity rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
 dyn:hasMeltingPoint rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Material ;
     rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:BoilingPoint ;
+    qudt:hasQuantityKind qkdv:MeltingPoint ;
     rdfs:label "Melting Point"@en ;
     gui:hasDisplayName "Melting Point (°C)" ;
     gui:hasFormGroup "ThermalProperties" ;
@@ -329,7 +329,7 @@ dyn:hasSpecificHeat rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     gui:hasDisplayName "Specific Heat (J/kg·K)" ;
     gui:hasFormGroup "ThermalProperties" ;
     gui:hasDisplayOrder 3 ;
-    dyn:hasUnit "unit:J-PER-KG-K" ;
+    dyn:hasUnit "unit:J-PER-KiloGM-K" ;
     rdfs:comment "Specific heat capacity"@en .
 
 #################################################################

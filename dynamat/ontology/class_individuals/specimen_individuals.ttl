@@ -25,11 +25,6 @@ dyn:TestSpecimen rdf:type owl:NamedIndividual, dyn:SpecimenRole ;
     dyn:hasName "Test Specimen"@en ;
     dyn:hasDescription "Specimen used for mechanical testing only"@en .
 
-dyn:TestAndCharacterization rdf:type owl:NamedIndividual, dyn:SpecimenRole ;
-    rdfs:label "Test and Characterization"@en ;
-    dyn:hasName "Test and Characterization Specimen"@en ;
-    dyn:hasDescription "Specimen used for both mechanical testing and material characterization"@en .
-
 dyn:CalibrationSpecimen rdf:type owl:NamedIndividual, dyn:SpecimenRole ;
     rdfs:label "Calibration Specimen"@en ;
     dyn:hasName "Calibration Specimen"@en ;

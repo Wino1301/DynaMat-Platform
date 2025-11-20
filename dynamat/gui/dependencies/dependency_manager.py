@@ -207,8 +207,8 @@ class DependencyManager(QObject):
             constraints = self.constraints_by_trigger.get(trigger_property, [])
             self.logger.debug(f"Found {len(constraints)} constraints for this trigger")
 
-            # Sort by priority (lower = higher priority)
-            constraints = sorted(constraints, key=lambda c: c.priority)
+            # Sort by priority (higher values run first, lower values run last and can override)
+            constraints = sorted(constraints, key=lambda c: c.priority, reverse=True)
 
             # Evaluate each constraint
             for constraint in constraints:
@@ -437,21 +437,32 @@ class DependencyManager(QObject):
         Handles:
         - List values (multi-select) - checks if ANY item matches
         - gui:anyValue - matches any non-None/non-empty value
+        - gui:noValue - matches when value is None or empty
         - Direct URI matching (exact match)
         - Partial URI matching (fragment/local name match)
         - Class membership checking (e.g., is material a Composite?)
         - String matching (case-insensitive)
         """
-        # Handle special case: gui:anyValue
+        # Handle special cases: gui:anyValue and gui:noValue
         expected_str = str(expected).strip() if expected else ""
+
+        # gui:anyValue - matches any non-None/non-empty value
         if "anyValue" in expected_str:
-            # For anyValue, check if value is not None and not empty
             if isinstance(value, list):
                 has_value = len(value) > 0
             else:
                 has_value = value is not None and str(value).strip() != ""
             self.logger.debug(f"    Match (anyValue): value={'present' if has_value else 'absent'}")
             return has_value
+
+        # gui:noValue - matches when value is None or empty
+        if "noValue" in expected_str:
+            if isinstance(value, list):
+                is_empty = len(value) == 0
+            else:
+                is_empty = value is None or str(value).strip() == ""
+            self.logger.debug(f"    Match (noValue): value={'absent' if is_empty else 'present'}")
+            return is_empty
 
         # Handle list values (multi-select widgets)
         # For lists, check if ANY item in the list matches the expected value
@@ -935,7 +946,8 @@ class DependencyManager(QObject):
             data = widget.currentData()
             # Check if data is empty string (e.g., "(Select...)" option)
             if data == "":
-                return None
+                # Return the text so constraints can match against placeholder text
+                return widget.currentText()
             if data:
                 # Check if it's a URI
                 data_str = str(data)

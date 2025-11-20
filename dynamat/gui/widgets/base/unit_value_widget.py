@@ -41,20 +41,21 @@ class UnitValueWidget(QWidget):
         
     def _setup_ui(self):
         """Setup the widget UI"""
-        
+
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
-        
+
         # Value spinbox
         self.value_spinbox = QDoubleSpinBox()
-        self.value_spinbox.setMinimum(-1e10)
+        self.value_spinbox.setMinimum(0.0)
         self.value_spinbox.setMaximum(1e10)
         self.value_spinbox.setDecimals(6)
         self.value_spinbox.setSingleStep(0.1)
+        self.value_spinbox.setValue(0.0)
         self.value_spinbox.setMinimumWidth(100)
         layout.addWidget(self.value_spinbox, 1)
-        
+
         # Unit combobox - MAKE IT WIDER AND MORE VISIBLE
         self.unit_combobox = QComboBox()
         self.unit_combobox.setMinimumWidth(100)  # Increased from 60
@@ -195,7 +196,15 @@ class UnitValueWidget(QWidget):
         self.value_spinbox.setValue(0.0)
         if self.unit_combobox.count() > 0:
             self.unit_combobox.setCurrentIndex(0)
-    
+
+    def setMinimum(self, minimum: float):
+        """Set minimum value"""
+        self.value_spinbox.setMinimum(minimum)
+
+    def setMaximum(self, maximum: float):
+        """Set maximum value"""
+        self.value_spinbox.setMaximum(maximum)
+
     def setRange(self, minimum: float, maximum: float):
         """Set the range for the value spinbox"""
         self.value_spinbox.setMinimum(minimum)

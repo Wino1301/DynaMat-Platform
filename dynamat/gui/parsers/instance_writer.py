@@ -9,7 +9,7 @@ Converts values from user-selected units to ontology-defined storage units (dyn:
 import logging
 from pathlib import Path
 from typing import Dict, Any, Union, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, date
 
 from rdflib import Graph, URIRef, Literal, Namespace, BNode
 from rdflib.namespace import RDF, RDFS, OWL, XSD
@@ -183,9 +183,9 @@ class InstanceWriter:
 
         # Log validation summary
         if validation_result.conforms:
-            logger.info("✓ SHACL validation passed")
+            logger.info("SHACL validation passed")
         else:
-            logger.warning(f"✗ SHACL validation found issues: {validation_result.get_summary()}")
+            logger.warning(f"SHACL validation found issues: {validation_result.get_summary()}")
 
         return validation_result
 
@@ -203,10 +203,10 @@ class InstanceWriter:
         """
         # === UNIT CONVERSION LOGIC ===
         # Check if this is a unit-value dictionary from UnitValueWidget
-        if isinstance(value, dict) and 'value' in value and 'unit' in value and 'reference_unit' in value:
+        if isinstance(value, dict) and 'value' in value:
             numeric_value = value['value']
-            user_unit = value['unit']  # Unit selected by user in dropdown
-            reference_unit = value['reference_unit']  # dyn:hasUnit from ontology (storage unit)
+            user_unit = value.get('unit')  # Unit selected by user in dropdown
+            reference_unit = value.get('reference_unit')  # dyn:hasUnit from ontology (storage unit)
 
             # Perform unit conversion if units differ (URI-level comparison)
             if user_unit and reference_unit and user_unit != reference_unit and self.qudt:
@@ -219,7 +219,7 @@ class InstanceWriter:
                     )
 
                     logger.info(
-                        f"Unit conversion: {numeric_value} ({user_unit}) → "
+                        f"Unit conversion: {numeric_value} ({user_unit}) to "
                         f"{converted_value:.6f} ({reference_unit})"
                     )
 
@@ -241,6 +241,15 @@ class InstanceWriter:
             # Check if it's a URI or a literal string
             if value.startswith("http") or value.startswith("dyn:") or value.startswith("unit:"):
                 return self._resolve_uri(value)
+            # Check if it's a date string (YYYY-MM-DD format)
+            elif len(value) == 10 and value.count('-') == 2:
+                try:
+                    # Validate it's a proper date (datetime imported at top)
+                    datetime.strptime(value, "%Y-%m-%d")
+                    return Literal(value, datatype=XSD.date)
+                except ValueError:
+                    # Not a valid date, treat as string
+                    return Literal(value, datatype=XSD.string)
             else:
                 return Literal(value, datatype=XSD.string)
 

@@ -104,17 +104,6 @@ dyn:hasDataSeries rdf:type owl:ObjectProperty ;
                   rdfs:label "Data Series"@en .
 
 
-###  https://dynamat.utep.edu/ontology#hasLaboratory
-dyn:hasLaboratory rdf:type owl:ObjectProperty ,
-                           owl:FunctionalProperty ;
-                  rdfs:domain dyn:User ;
-                  rdfs:range dyn:Laboratory ;
-                  rdfs:comment "Laboratory where the user works"@en ;
-                  rdfs:label "Laboratory"@en ;
-                  gui:hasDisplayName "Laboratory" ;
-                  gui:hasDisplayOrder 5 ;
-                  gui:hasFormGroup "UserInfo" .
-
 ###  https://dynamat.utep.edu/ontology#hasMeasurement
 dyn:hasMeasurement rdf:type owl:ObjectProperty ;
                    rdfs:domain dyn:PhysicalObject ;
@@ -132,6 +121,24 @@ dyn:hasUser rdf:type owl:ObjectProperty ;
             gui:hasDisplayName "Operator" ;
             gui:hasDisplayOrder 2 ;
             gui:hasFormGroup "TestSetup" .
+
+
+###  https://dynamat.utep.edu/ontology#hasCreatedBy
+dyn:hasCreatedBy rdf:type owl:ObjectProperty ,
+                          owl:FunctionalProperty ;
+                 rdfs:domain dyn:Entity ;
+                 rdfs:range dyn:User ;
+                 rdfs:comment "User who created this entity"@en ;
+                 rdfs:label "Created By"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasModifiedBy
+dyn:hasModifiedBy rdf:type owl:ObjectProperty ,
+                           owl:FunctionalProperty ;
+                  rdfs:domain dyn:Entity ;
+                  rdfs:range dyn:User ;
+                  rdfs:comment "User who last modified this entity"@en ;
+                  rdfs:label "Modified By"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#isPartOf
@@ -159,24 +166,36 @@ dyn:performedOn rdf:type owl:ObjectProperty ,
 #    Data properties
 #################################################################
 
-###  https://dynamat.utep.edu/ontology#hasAffiliation
-dyn:hasAffiliation rdf:type owl:DatatypeProperty ,
-                            owl:FunctionalProperty ;
-                   rdfs:domain dyn:User ;
-                   rdfs:range xsd:string ;
-                   rdfs:comment "Institutional affiliation of the user"@en ;
-                   rdfs:label "Affiliation"@en ;
-                   gui:hasDisplayName "Affiliation" ;
-                   gui:hasDisplayOrder 1 ;
-                   gui:hasFormGroup "UserInfo" .
-
-
 ###  https://dynamat.utep.edu/ontology#hasDate
 dyn:hasDate rdf:type owl:DatatypeProperty ;
             rdfs:domain dyn:Entity ;
             rdfs:range xsd:date ;
             rdfs:comment "Generic date property"@en ;
             rdfs:label "Date"@en .
+
+###  https://dynamat.utep.edu/ontology#hasCreatedDate
+dyn:hasCreatedDate rdf:type owl:DatatypeProperty ,
+                            owl:FunctionalProperty ;
+                   rdfs:domain dyn:Entity ;
+                   rdfs:range xsd:dateTime ;
+                   rdfs:comment "Date and time when this entity was created"@en ;
+                   rdfs:label "Created Date"@en .
+
+###  https://dynamat.utep.edu/ontology#hasModifiedDate
+dyn:hasModifiedDate rdf:type owl:DatatypeProperty ,
+                             owl:FunctionalProperty ;
+                    rdfs:domain dyn:Entity ;
+                    rdfs:range xsd:dateTime ;
+                    rdfs:comment "Date and time when this entity was last modified"@en ;
+                    rdfs:label "Modified Date"@en .
+
+###  https://dynamat.utep.edu/ontology#hasAppVersion
+dyn:hasAppVersion rdf:type owl:DatatypeProperty ,
+                           owl:FunctionalProperty ;
+                  rdfs:domain dyn:Entity ;
+                  rdfs:range xsd:string ;
+                  rdfs:comment "Version of DynaMat Platform used to create/modify this entity"@en ;
+                  rdfs:label "App Version"@en .
 
 ###  https://dynamat.utep.edu/ontology#hasDescription
 dyn:hasDescription rdf:type owl:DatatypeProperty ;
@@ -196,17 +215,6 @@ dyn:hasDimension rdf:type owl:DatatypeProperty ;
                  rdfs:comment "Physical dimension measurement"@en ;
                  rdfs:label "Dimension"@en .
 
-###  https://dynamat.utep.edu/ontology#hasEmail
-dyn:hasEmail rdf:type owl:DatatypeProperty ,
-                      owl:FunctionalProperty ;
-             rdfs:domain dyn:User ;
-             rdfs:range xsd:string ;
-             rdfs:comment "Email address of the user"@en ;
-             rdfs:label "Email"@en ;
-             gui:hasDisplayName "Email" ;
-             gui:hasDisplayOrder 2 ;
-             gui:hasFormGroup "UserInfo" .
-
 ###  https://dynamat.utep.edu/ontology#hasName
 dyn:hasName rdf:type owl:DatatypeProperty ,
                      owl:FunctionalProperty ;
@@ -216,36 +224,12 @@ dyn:hasName rdf:type owl:DatatypeProperty ,
             rdfs:label "Name"@en ;
             gui:hasDisplayName "Name" .
 
-
-###  https://dynamat.utep.edu/ontology#hasORCID
-dyn:hasORCID rdf:type owl:DatatypeProperty ,
-                      owl:FunctionalProperty ;
-             rdfs:domain dyn:User ;
-             rdfs:range xsd:string ;
-             rdfs:comment "ORCID identifier for the user"@en ;
-             rdfs:label "ORCID"@en ;
-             gui:hasDisplayName "ORCID" ;
-             gui:hasDisplayOrder 4 ;
-             gui:hasFormGroup "UserInfo" .
-
 ###  https://dynamat.utep.edu/ontology#hasProperty
 dyn:hasProperty rdf:type owl:DatatypeProperty ;
                 rdfs:domain dyn:Material ;
                 rdfs:range xsd:double ;
                 rdfs:comment "Measured or specified material property"@en ;
                 rdfs:label "Material Property"@en .
-
-###  https://dynamat.utep.edu/ontology#hasRole
-dyn:hasRole rdf:type owl:DatatypeProperty ,
-                     owl:FunctionalProperty ;
-            rdfs:domain dyn:User ;
-            rdfs:range xsd:string ;
-            rdfs:comment "Role or position of the user"@en ;
-            rdfs:label "Role"@en ;
-            gui:hasDisplayName "Role" ;
-            gui:hasDisplayOrder 3 ;
-            gui:hasFormGroup "UserInfo" ;
-            gui:hasValidValues "Principal Investigator,Postdoc,Graduate Student,Undergraduate Student,Research Scientist,Technician" .
 
 ###  https://dynamat.utep.edu/ontology#hasSpecimenID
 dyn:hasSpecimenID rdf:type owl:DatatypeProperty ;
@@ -768,13 +752,13 @@ dyn:hasAuthor rdf:type owl:AnnotationProperty ;
 dyn:hasCreatedDate rdf:type owl:AnnotationProperty ;
                    rdfs:comment "Date when the template or entity was created"@en ;
                    rdfs:label "Created Date"@en ;
-                   rdfs:range xsd:dateTime .
+                   rdfs:range xsd:date .
 
 ###  https://dynamat.utep.edu/ontology#hasLastModified
 dyn:hasLastModified rdf:type owl:AnnotationProperty ;
                     rdfs:comment "Date when the template or entity was last modified"@en ;
                     rdfs:label "Last Modified"@en ;
-                    rdfs:range xsd:dateTime .
+                    rdfs:range xsd:date .
 
 ###  https://dynamat.utep.edu/ontology#hasTags
 dyn:hasTags rdf:type owl:AnnotationProperty ;
