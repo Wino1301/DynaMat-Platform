@@ -10,17 +10,19 @@ from pathlib import Path
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QLabel, QMessageBox, QFrame, QProgressBar, QScrollArea,
-    QToolBar, QSizePolicy
+    QToolBar, QSizePolicy, QDialog
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QAction
 
 from ....ontology import OntologyManager
 from ....ontology.qudt import QUDTManager
+from ....ontology.instance_query_builder import InstanceQueryBuilder
 from ...builders.ontology_form_builder import OntologyFormBuilder
 from ...builders.layout_manager import LayoutStyle
 from ...parsers.instance_writer import InstanceWriter
 from ...widgets.validation_results_dialog import ValidationResultsDialog
+from ...widgets.load_entity_dialog import LoadEntityDialog
 from ...core.form_validator import ValidationResult
 
 logger = logging.getLogger(__name__)
@@ -69,6 +71,24 @@ class SpecimenFormWidget(QWidget):
         self.form_builder = OntologyFormBuilder(ontology_manager)
         self._enable_dependencies()
 
+        # Initialize instance query builder for loading existing specimens
+        self.instance_query_builder = InstanceQueryBuilder(ontology_manager)
+        try:
+            # Build index of existing specimens
+            specimens_dir = Path("specimens")
+            if specimens_dir.exists():
+                indexed_count = self.instance_query_builder.scan_and_index(
+                    specimens_dir,
+                    "https://dynamat.utep.edu/ontology#Specimen",
+                    "*_specimen.ttl"
+                )
+                self.logger.info(f"Indexed {indexed_count} existing specimens")
+            else:
+                self.logger.warning("Specimens directory not found, creating it")
+                specimens_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            self.logger.warning(f"Could not build specimen index: {e}")
+
         # Form state
         self.current_specimen_uri = None
         self.form_widget = None
@@ -110,17 +130,25 @@ class SpecimenFormWidget(QWidget):
         toolbar.addAction(new_action)
         
         toolbar.addSeparator()
-        
+
+        # Load existing specimen action
+        load_existing_action = QAction("Load Existing", self)
+        load_existing_action.setShortcut("Ctrl+O")
+        load_existing_action.triggered.connect(self.load_existing_specimen)
+        toolbar.addAction(load_existing_action)
+
+        toolbar.addSeparator()
+
         # Load template action
         load_template_action = QAction("Load Template", self)
         load_template_action.triggered.connect(self.load_template)
         toolbar.addAction(load_template_action)
-        
+
         # Save template action
         save_template_action = QAction("Save Template", self)
         save_template_action.triggered.connect(self.save_template)
         toolbar.addAction(save_template_action)
-        
+
         toolbar.addSeparator()
         
         # Validate action
@@ -372,7 +400,7 @@ class SpecimenFormWidget(QWidget):
             )
             if reply != QMessageBox.StandardButton.Yes:
                 return
-        
+
         try:
             self.form_builder.clear_form(self.form_widget)
             self.current_specimen_uri = None
@@ -380,10 +408,73 @@ class SpecimenFormWidget(QWidget):
             self.original_data = self.form_builder.get_form_data(self.form_widget)
             self.status_label.setText("New specimen form")
             self.logger.info("New specimen form created")
-            
+
         except Exception as e:
             self.logger.error(f"Failed to create new specimen: {e}")
             QMessageBox.critical(self, "Error", f"Failed to create new specimen: {str(e)}")
+
+    def load_existing_specimen(self):
+        """Open dialog to load existing specimen using SPARQL query"""
+        if self.is_modified:
+            reply = QMessageBox.question(
+                self, "Unsaved Changes",
+                "You have unsaved changes. Continue without saving?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+
+        try:
+            # Create dialog with specimen-specific display properties
+            dialog = LoadEntityDialog(
+                query_builder=self.instance_query_builder,
+                class_uri="https://dynamat.utep.edu/ontology#Specimen",
+                display_properties=["hasSpecimenID", "hasMaterial", "hasShape", "hasStructure"],
+                property_labels={
+                    "hasSpecimenID": "Specimen ID",
+                    "hasMaterial": "Material",
+                    "hasShape": "Shape",
+                    "hasStructure": "Structure"
+                },
+                title="Load Existing Specimen",
+                parent=self
+            )
+
+            # Show dialog and handle result
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                data = dialog.get_selected_data()
+
+                if data:
+                    # Debug logging
+                    self.logger.info(f"Dialog returned {len(data)} properties")
+                    self.logger.debug(f"Data keys: {list(data.keys())[:10]}")  # First 10 keys
+
+                    # DEBUG: Show what we received
+                    sample_keys = list(data.keys())[:5]
+                    debug_msg = f"Received {len(data)} properties\n\nSample keys:\n" + "\n".join(sample_keys[:5])
+                    QMessageBox.information(self, "Debug: Data Received", debug_msg)
+
+                    # Load data into form
+                    self.logger.info("Calling load_specimen_data...")
+                    self.load_specimen_data(data)
+
+                    # Update current specimen URI
+                    self.current_specimen_uri = data.get('uri')
+
+                    # Update status
+                    specimen_id = data.get('https://dynamat.utep.edu/ontology#hasSpecimenID', 'Unknown')
+                    self.status_label.setText(f"Loaded specimen: {specimen_id}")
+                    self.logger.info(f"Loaded existing specimen: {specimen_id}")
+                else:
+                    self.logger.warning("Dialog returned no data")
+
+        except Exception as e:
+            self.logger.error(f"Failed to load existing specimen: {e}", exc_info=True)
+            QMessageBox.critical(
+                self, "Error",
+                f"Failed to load existing specimen:\n\n{str(e)}\n\n"
+                f"See log for details."
+            )
     
     def load_template(self):
         """Load specimen template"""
@@ -475,6 +566,7 @@ class SpecimenFormWidget(QWidget):
             # Add metadata for creation/modification tracking
             from datetime import datetime
             from dynamat.config import config
+            from rdflib import Graph, Namespace, RDF
 
             # Get current user from main window
             current_user = None
@@ -493,12 +585,40 @@ class SpecimenFormWidget(QWidget):
                     data['dyn:hasAppVersion'] = config.VERSION
                     self.logger.info(f"Added creation metadata for new specimen (user: {current_user})")
                 else:
-                    # Editing existing file: add modification metadata
-                    # Keep existing creation metadata, add modification metadata
-                    data['dyn:hasModifiedBy'] = current_user
-                    data['dyn:hasModifiedDate'] = datetime.now().isoformat()
-                    data['dyn:hasAppVersion'] = config.VERSION
-                    self.logger.info(f"Added modification metadata for existing specimen (user: {current_user})")
+                    # Editing existing file: preserve creation metadata, add modification metadata
+                    try:
+                        # Load existing TTL file to extract creation metadata
+                        existing_graph = Graph()
+                        existing_graph.parse(output_path, format='turtle')
+                        DYN = Namespace("https://dynamat.utep.edu/ontology#")
+
+                        # Find the specimen instance (there should be only one)
+                        specimen_uri = None
+                        for s in existing_graph.subjects(RDF.type, DYN.Specimen):
+                            specimen_uri = s
+                            break
+
+                        if specimen_uri:
+                            # Extract existing creation metadata
+                            for prop in [DYN.hasCreatedBy, DYN.hasCreatedDate, DYN.hasAppVersion]:
+                                for _, _, value in existing_graph.triples((specimen_uri, prop, None)):
+                                    prop_name = str(prop).replace("https://dynamat.utep.edu/ontology#", "dyn:")
+                                    data[prop_name] = str(value)
+                                    self.logger.debug(f"Preserved creation metadata: {prop_name} = {value}")
+
+                        # Add modification metadata
+                        data['dyn:hasModifiedBy'] = current_user
+                        data['dyn:hasModifiedDate'] = datetime.now().isoformat()
+                        data['dyn:hasAppVersion'] = config.VERSION
+                        self.logger.info(f"Preserved creation metadata and added modification metadata (user: {current_user})")
+
+                    except Exception as e:
+                        self.logger.warning(f"Could not load existing metadata from {output_path}: {e}")
+                        # Fallback: treat as new file if we can't read existing metadata
+                        data['dyn:hasCreatedBy'] = current_user
+                        data['dyn:hasCreatedDate'] = datetime.now().isoformat()
+                        data['dyn:hasAppVersion'] = config.VERSION
+                        self.logger.info(f"Fallback: Added creation metadata (could not read existing file)")
             else:
                 self.logger.warning("No user selected - metadata tracking will be incomplete")
 
@@ -563,6 +683,19 @@ class SpecimenFormWidget(QWidget):
 
             self.logger.info(f"Specimen {specimen_id} saved successfully to {saved_path}")
 
+            # Refresh the specimen index to include the newly saved specimen
+            try:
+                specimens_dir = Path("specimens")
+                if specimens_dir.exists():
+                    self.instance_query_builder.scan_and_index(
+                        specimens_dir,
+                        "https://dynamat.utep.edu/ontology#Specimen",
+                        "*_specimen.ttl"
+                    )
+                    self.logger.debug("Specimen index refreshed after save")
+            except Exception as e:
+                self.logger.warning(f"Could not refresh specimen index: {e}")
+
         except Exception as e:
             self.logger.error(f"Failed to save specimen: {e}", exc_info=True)
             self.progress_bar.setVisible(False)
@@ -576,17 +709,34 @@ class SpecimenFormWidget(QWidget):
     def load_specimen_data(self, data: Dict[str, Any]):
         """Load specimen data into form"""
         try:
+            self.logger.info(f"load_specimen_data: Received {len(data)} properties")
+
+            # Log sample properties for debugging
+            sample_props = list(data.keys())[:5]
+            self.logger.debug(f"Sample property keys: {sample_props}")
+
+            # DEBUG: Show form field keys
+            if hasattr(self.form_widget, 'form_fields'):
+                form_field_keys = list(self.form_widget.form_fields.keys())[:5]
+                debug_msg = f"Form has {len(self.form_widget.form_fields)} fields\n\nSample form field keys:\n" + "\n".join(form_field_keys[:5])
+                QMessageBox.information(self, "Debug: Form Fields", debug_msg)
+
             success = self.form_builder.set_form_data(self.form_widget, data)
+
+            self.logger.info(f"form_builder.set_form_data returned: {success}")
+
             if success:
                 self.original_data = data.copy()
                 self.is_modified = False
                 self.status_label.setText("Specimen data loaded")
                 self.specimen_loaded.emit(data)
+                self.logger.info("Specimen data successfully loaded into form")
             else:
+                self.logger.warning("set_form_data returned False - some data could not be loaded")
                 QMessageBox.warning(self, "Warning", "Some data could not be loaded")
-                
+
         except Exception as e:
-            self.logger.error(f"Failed to load specimen data: {e}")
+            self.logger.error(f"Failed to load specimen data: {e}", exc_info=True)
             QMessageBox.critical(self, "Error", f"Failed to load specimen data: {str(e)}")
     
     def get_form_data(self) -> Dict[str, Any]:

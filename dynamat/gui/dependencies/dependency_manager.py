@@ -856,7 +856,14 @@ class DependencyManager(QObject):
             trigger_property = constraint.triggers[0]
             selected_individual_uri = trigger_values.get(trigger_property)
 
-            if not selected_individual_uri:
+            # Check if no valid individual selected (None, empty, or placeholder text)
+            is_placeholder = (
+                not selected_individual_uri or
+                selected_individual_uri == "" or
+                str(selected_individual_uri).startswith("(")
+            )
+
+            if is_placeholder:
                 self.logger.debug("No individual selected for population")
                 # Reset populated fields to defaults and re-enable them when selection is cleared
                 for property_uri, _ in constraint.populate_fields:

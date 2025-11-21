@@ -145,22 +145,26 @@ class GenerationEngine:
         
         return processed
     
-    def _extract_material_code(self, **kwargs) -> str:
+    def _extract_material_code(self, material_uri: str = None, **kwargs) -> str:
         """
         Extract material code from a material URI.
 
-        Accepts material URI from any property that contains 'Material' in the key.
+        Can be called either with a direct URI or with kwargs containing a material property.
+
+        Args:
+            material_uri: Direct material URI (optional)
+            **kwargs: Dictionary that may contain material URI in any property with 'Material' in the key
 
         Returns:
             Material code string
         """
         try:
-            # Extract material URI from kwargs (could be any property URI)
-            material_uri = None
-            for key, value in kwargs.items():
-                if 'Material' in key or 'material' in key:
-                    material_uri = value
-                    break
+            # If material_uri not provided directly, extract from kwargs
+            if material_uri is None:
+                for key, value in kwargs.items():
+                    if 'Material' in key or 'material' in key:
+                        material_uri = value
+                        break
 
             if material_uri is None:
                 self.logger.error("No material URI provided in inputs")
@@ -259,47 +263,62 @@ class GenerationEngine:
     def _get_next_specimen_sequence(self, material_code: str) -> int:
         """
         Get the next sequence number for a specimen with given material code.
-        
+
+        Scans the specimens/ directory for existing specimen folders and extracts
+        the maximum sequence number for the given material code.
+
         Args:
             material_code: Material code to check
-            
+
         Returns:
             Next sequence number
         """
         try:
-            # Query existing specimens with this material code
-            query = """
-            SELECT ?specimenID WHERE {
-                ?specimen rdf:type dyn:Specimen .
-                ?specimen dyn:hasSpecimenID ?specimenID .
-                FILTER(CONTAINS(?specimenID, ?materialFilter))
-            }
-            """
-            
-            from rdflib import Literal
-            results = self.ontology_manager.graph.query(
-                query,
-                initBindings={"materialFilter": Literal(f"DYNML-{material_code}-")}
-            )
-            
+            from pathlib import Path
+            import re
+
+            # Path to specimens directory
+            specimens_dir = Path("specimens")
+
+            # Check if directory exists
+            if not specimens_dir.exists():
+                self.logger.info(f"Specimens directory not found, starting sequence at 1")
+                return 1
+
             max_sequence = 0
             prefix = f"DYNML-{material_code}-"
-            
-            for row in results:
-                specimen_id = str(row.specimenID)
-                if specimen_id.startswith(prefix):
+
+            # Pattern to match specimen folders: DYNML-{materialCode}-{sequence}
+            # Allow for variations in casing and hyphens
+            pattern = re.compile(
+                rf"DYNML-{re.escape(material_code)}-(\d+)",
+                re.IGNORECASE
+            )
+
+            # Scan all directories in specimens/
+            for folder in specimens_dir.iterdir():
+                if not folder.is_dir():
+                    continue
+
+                folder_name = folder.name
+
+                # Try to match the pattern
+                match = pattern.match(folder_name)
+                if match:
                     try:
-                        # Extract sequence number
-                        sequence_str = specimen_id[len(prefix):]
-                        sequence_num = int(sequence_str)
+                        sequence_num = int(match.group(1))
                         max_sequence = max(max_sequence, sequence_num)
+                        self.logger.debug(f"Found existing specimen: {folder_name} with sequence {sequence_num}")
                     except ValueError:
+                        self.logger.warning(f"Could not parse sequence number from folder: {folder_name}")
                         continue
-            
-            return max_sequence + 1
-            
+
+            next_sequence = max_sequence + 1
+            self.logger.info(f"Next sequence for material code '{material_code}': {next_sequence}")
+            return next_sequence
+
         except Exception as e:
-            self.logger.error(f"Failed to get next sequence: {e}")
+            self.logger.error(f"Failed to get next sequence: {e}", exc_info=True)
             return 1
     
     # ============================================================================

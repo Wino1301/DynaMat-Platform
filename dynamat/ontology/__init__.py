@@ -31,6 +31,7 @@ from .query_builder import (
 
 from .template_manager import TemplateManager, TemplateMetadata
 from .validator import SHACLValidator, ValidationReport, ValidationResult, ValidationSeverity
+from .instance_query_builder import InstanceQueryBuilder
 
 # Factory functions for refactored components
 def create_template_manager(ontology_manager: 'OntologyManager', template_dir=None) -> TemplateManager:
@@ -54,6 +55,10 @@ def create_query_builder(ontology_manager: 'OntologyManager') -> DynaMatQueryBui
         ontology_manager.sparql_executor,
         ontology_manager.namespace_manager
     )
+
+def create_instance_query_builder(ontology_manager: 'OntologyManager') -> InstanceQueryBuilder:
+    """Create an InstanceQueryBuilder with proper dependencies."""
+    return InstanceQueryBuilder(ontology_manager)
 
 __all__ = [
     # Main interface
@@ -84,9 +89,11 @@ __all__ = [
     'ValidationReport',
     'ValidationResult',
     'ValidationSeverity',
-    
+    'InstanceQueryBuilder',
+
     # Factory functions
     'create_template_manager',
     'create_validator',
-    'create_query_builder'
+    'create_query_builder',
+    'create_instance_query_builder'
 ]
