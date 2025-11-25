@@ -269,5 +269,4 @@ dyn:CompositePhase_Al60_A356_40 rdf:type owl:NamedIndividual, dyn:CompositePhase
 #     # Optional fields
 #     dyn:hasCharacterizationGroupID "AL001-Cast-Machined-Group1"@en ;
 #     dyn:isCharacterizationRepresentative true ;
-#     dyn:hasTestingConditionCode "AL001-CAST-MACHINED"@en ;
 #     dyn:hasDescription "Cylindrical A356 specimen cast then machined to final dimensions"@en .

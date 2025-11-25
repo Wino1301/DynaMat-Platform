@@ -63,6 +63,14 @@ gui:hasGroupOrder rdf:type owl:AnnotationProperty ;
                   rdfs:label "Group Order"@en .
 
 
+###  https://dynamat.utep.edu/ontology/gui#allowsUserCreation
+gui:allowsUserCreation rdf:type owl:AnnotationProperty ;
+                       rdfs:domain owl:Class ;
+                       rdfs:range xsd:boolean ;
+                       rdfs:comment "Indicates whether users can create new individuals of this class through the GUI. Classes without this annotation or with false value have fixed individuals defined in the ontology."@en ;
+                       rdfs:label "Allows User Creation"@en .
+
+
 ###  https://dynamat.utep.edu/ontology/gui#hasValidValues
 gui:hasValidValues rdf:type owl:AnnotationProperty ;
                    rdfs:comment "List of valid values for dropdown selections"@en ;
@@ -339,7 +347,8 @@ dyn:CompositePhaseDescription rdf:type owl:Class ;
 dyn:SpecimenBatchID rdf:type owl:Class ;
                     rdfs:subClassOf dyn:Entity ;
                     rdfs:comment "Batch identifier for specimens from the same processing run. Stores manufacturing metadata (date, method, material) that can be auto-populated for all specimens in the batch."@en ;
-                    rdfs:label "Specimen Batch ID"@en .
+                    rdfs:label "Specimen Batch ID"@en ;
+                    gui:allowsUserCreation true .
 
 
 ###  https://dynamat.utep.edu/ontology#CompressionTest
@@ -433,7 +442,8 @@ dyn:InformationObject rdf:type owl:Class ;
 dyn:Laboratory rdf:type owl:Class ;
                rdfs:subClassOf dyn:Entity ;
                rdfs:comment "Research laboratory or facility"@en ;
-               rdfs:label "Laboratory"@en .
+               rdfs:label "Laboratory"@en ;
+               gui:allowsUserCreation true .
 
 
 ###  https://dynamat.utep.edu/ontology#LoadCell
@@ -447,7 +457,8 @@ dyn:LoadCell rdf:type owl:Class ;
 dyn:Material rdf:type owl:Class ;
              rdfs:subClassOf dyn:PhysicalObject ;
              rdfs:comment "Base class for all materials"@en ;
-             rdfs:label "Material"@en .
+             rdfs:label "Material"@en ;
+             gui:allowsUserCreation true .
 
 
 ###  https://dynamat.utep.edu/ontology#MaterialModel

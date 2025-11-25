@@ -18,6 +18,7 @@ from PyQt6.QtGui import QIcon, QFont
 
 from ..ontology.manager import OntologyManager
 from .widgets.forms.specimen_form import SpecimenFormWidget
+from .widgets.forms.individual_manager import IndividualManagerWidget
 from .widgets.terminal_widget import TerminalWidget
 from .widgets.action_panel import ActionPanelWidget
 
@@ -157,6 +158,7 @@ class MainWindow(QMainWindow):
         # Activity buttons
         activities = [
             ("specimen", "Specimen", "Manage specimen metadata and properties"),
+            ("individual", "Individual Manager", "Create and manage class individuals (Users, Materials, etc.)"),
             ("mechanical", "Mechanical Test", "Configure and run mechanical tests"),
             ("visualize", "Visualize", "View and analyze test data")
         ]
@@ -300,6 +302,8 @@ class MainWindow(QMainWindow):
             # Update content based on activity
             if activity_id == "specimen":
                 self._show_specimen_activity()
+            elif activity_id == "individual":
+                self._show_individual_activity()
             elif activity_id == "mechanical":
                 self._show_mechanical_activity()
             elif activity_id == "visualize":
@@ -334,7 +338,38 @@ class MainWindow(QMainWindow):
             if "specimen" in self.activity_widgets:
                 self.content_widget = self.activity_widgets["specimen"]
                 self.content_layout.addWidget(self.content_widget)
-    
+
+    def _show_individual_activity(self):
+        """Show individual manager interface"""
+        self.content_title.setText("Individual Manager")
+
+        # Create or reuse individual manager widget
+        if "individual" not in self.activity_widgets:
+            try:
+                logger.info("Creating Individual Manager widget")
+                individual_manager = IndividualManagerWidget(
+                    self.ontology_manager,
+                    main_window=self,
+                    parent=None
+                )
+
+                # Connect signals
+                individual_manager.ontology_reloaded.connect(self._on_ontology_reloaded)
+
+                self.activity_widgets["individual"] = individual_manager
+                logger.info("Individual Manager widget created successfully")
+
+            except Exception as e:
+                logger.error(f"Failed to create Individual Manager widget: {e}", exc_info=True)
+                error_label = QLabel(f"Error loading Individual Manager:\n{str(e)}")
+                error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                error_label.setStyleSheet("color: red; font-size: 12px;")
+                self.activity_widgets["individual"] = error_label
+
+        self.content_widget = self.activity_widgets["individual"]
+        self.content_widget.show()
+        self.content_layout.addWidget(self.content_widget)
+
     def _show_mechanical_activity(self):
         """Show mechanical test interface"""
         self.content_title.setText("Mechanical Testing")
@@ -412,7 +447,20 @@ class MainWindow(QMainWindow):
                     specimen_widget.create_new_specimen()
         else:
             logger.warning(f"Cannot create instance of {class_uri} in current interface")
-    
+
+    def _on_ontology_reloaded(self):
+        """Handle ontology reload after individual creation"""
+        logger.info("Ontology reloaded - refreshing forms")
+
+        # Refresh specimen form if it exists (to update dropdowns with new individuals)
+        if "specimen" in self.activity_widgets:
+            specimen_widget = self.activity_widgets["specimen"]
+            # The form will automatically show new individuals on next use
+            # since form dropdowns query the ontology directly
+            logger.debug("Specimen widget will show new individuals on next interaction")
+
+        self.log_message("New individuals are now available in forms")
+
     def log_message(self, message: str, level: str = "info"):
         """Log message to terminal and logger"""
         # Log to Python logger

@@ -1,0 +1,23 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+dyn:DYNML_A356_00001 a dyn:Specimen ;
+    dyn:hasAppVersion "2.0.0"^^xsd:string ;
+    dyn:hasCastCoolingDuration 3e+01 ;
+    dyn:hasCreatedBy dyn:User_ErwinCazares ;
+    dyn:hasCreatedDate "2025-11-20T12:29:01.451512"^^xsd:string ;
+    dyn:hasFinalCrossSection 1.1e-01 ;
+    dyn:hasFinalLength 1e-01 ;
+    dyn:hasManufacturedDate "2025-11-21"^^xsd:date ;
+    dyn:hasManufacturingMethod dyn:Casting ;
+    dyn:hasMaterial dyn:A356 ;
+    dyn:hasModifiedBy dyn:User_ErwinCazares ;
+    dyn:hasModifiedDate "2025-11-21T09:39:48.466619"^^xsd:string ;
+    dyn:hasMoldTemperature 2e+02 ;
+    dyn:hasOriginalCrossSection 1.1e-01 ;
+    dyn:hasOriginalLength 1e-01 ;
+    dyn:hasShape dyn:CubicShape ;
+    dyn:hasSpecimenBatchID dyn:Batch_AL001_CastMachined ;
+    dyn:hasSpecimenID "DYNML-A356-00001"^^xsd:string ;
+    dyn:hasSpecimenRole dyn:CalibrationSpecimen .
+

@@ -10,12 +10,20 @@ class Config:
     # Base paths
     BASE_DIR = Path(__file__).parent.parent
     DATA_DIR = BASE_DIR / "data"
+    USER_DATA_DIR = BASE_DIR / "user_data"
     ONTOLOGY_DIR = BASE_DIR / "dynamat" / "ontology"
     TEMPLATE_DIR = ONTOLOGY_DIR / "templates"
     QUDT_CACHE_DIR = ONTOLOGY_DIR / "qudt" / "cache"
-    
+
+    # User data paths
+    SPECIMENS_DIR = USER_DATA_DIR / "specimens"
+    USER_INDIVIDUALS_DIR = USER_DATA_DIR / "individuals"
+
     # Ensure directories exist
     DATA_DIR.mkdir(exist_ok=True)
+    USER_DATA_DIR.mkdir(exist_ok=True)
+    SPECIMENS_DIR.mkdir(exist_ok=True)
+    USER_INDIVIDUALS_DIR.mkdir(exist_ok=True)
     
     # Ontology URIs
     ONTOLOGY_URI = "https://github.com/UTEP-Dynamic-Materials-Lab/ontology#"
@@ -52,6 +60,9 @@ class Config:
     def ensure_directories(cls):
         """Create necessary directories if they don't exist."""
         cls.DATA_DIR.mkdir(parents=True, exist_ok=True)
+        cls.USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
+        cls.SPECIMENS_DIR.mkdir(parents=True, exist_ok=True)
+        cls.USER_INDIVIDUALS_DIR.mkdir(parents=True, exist_ok=True)
         cls.TEMPLATE_DIR.mkdir(parents=True, exist_ok=True)
         cls.QUDT_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 

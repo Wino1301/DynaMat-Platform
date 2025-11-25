@@ -74,8 +74,38 @@ class DependencyManager(QObject):
         }
         self._recent_errors = []  # Last 10 errors: (constraint_uri, error_message)
 
+        # Loading mode flag - when True, generation constraints are suppressed
+        self._loading_mode = False
+
         self.logger.info("Dependency manager initialized with constraint-based system")
-    
+
+    # ============================================================================
+    # LOADING MODE CONTROL
+    # ============================================================================
+
+    def set_loading_mode(self, enabled: bool):
+        """
+        Enable or disable loading mode.
+
+        When loading mode is enabled, generation constraints are suppressed to preserve
+        loaded values (e.g., specimen ID). Other constraints (visibility, calculation,
+        population) continue to work normally.
+
+        Args:
+            enabled: True to enable loading mode, False to disable
+        """
+        self._loading_mode = enabled
+        self.logger.debug(f"Loading mode: {'enabled' if enabled else 'disabled'}")
+
+    def is_loading_mode(self) -> bool:
+        """
+        Check if currently in loading mode.
+
+        Returns:
+            True if loading mode is active
+        """
+        return self._loading_mode
+
     # ============================================================================
     # SETUP AND CONFIGURATION
     # ============================================================================
@@ -728,6 +758,13 @@ class DependencyManager(QObject):
     def _action_generate(self, constraint: Constraint, trigger_values: Dict[str, Any]):
         """Generate value from template operation."""
         try:
+            # Skip generation during loading mode to preserve loaded values
+            if self._loading_mode:
+                self.logger.debug(
+                    f"Skipping generation for {constraint.generation_target} (loading mode active)"
+                )
+                return
+
             # Prepare inputs for generation (pass property URIs directly)
             inputs = {}
             for input_prop in constraint.generation_inputs:

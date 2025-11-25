@@ -188,7 +188,22 @@ class OntologyFormBuilder(QObject):
         """Disable dependency management."""
         self.dependency_manager = None
         self.logger.info("Dependency management disabled")
-    
+
+    def set_loading_mode(self, enabled: bool):
+        """
+        Enable or disable loading mode for dependency manager.
+
+        When enabled, generation constraints are suppressed during data loading
+        to preserve loaded values (e.g., specimen ID). Other constraints (visibility,
+        calculation, population) continue to work normally.
+
+        Args:
+            enabled: True to enable loading mode, False to disable
+        """
+        if self.dependency_manager:
+            self.dependency_manager.set_loading_mode(enabled)
+            self.logger.debug(f"Loading mode set to: {enabled}")
+
     # ============================================================================
     # FORM DATA METHODS (Delegated to FormManager)
     # ============================================================================
@@ -208,15 +223,26 @@ class OntologyFormBuilder(QObject):
     def set_form_data(self, form_widget: QWidget, data: Dict[str, Any]) -> bool:
         """
         Populate form widget with data.
-        
+
+        During data loading, generation constraints are suppressed to preserve
+        loaded values (e.g., specimen ID). Other constraints (visibility,
+        calculation, population) continue to work normally.
+
         Args:
             form_widget: Form widget created by this builder
             data: Data to populate
-            
+
         Returns:
             True if successful
         """
-        return self.form_manager.set_form_data(form_widget, data)
+        # Enable loading mode to suppress generation constraints
+        self.set_loading_mode(True)
+        try:
+            result = self.form_manager.set_form_data(form_widget, data)
+            return result
+        finally:
+            # Always disable loading mode, even if error occurs
+            self.set_loading_mode(False)
     
     def validate_form(self, form_widget: QWidget) -> Dict[str, List[str]]:
         """

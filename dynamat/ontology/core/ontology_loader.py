@@ -12,6 +12,13 @@ from rdflib import Graph
 
 logger = logging.getLogger(__name__)
 
+# Import config for user data paths
+try:
+    from ...config import config
+except ImportError:
+    # Fallback if import fails
+    config = None
+
 
 class OntologyLoader:
     """
@@ -61,11 +68,11 @@ class OntologyLoader:
             "core/DynaMat_core.ttl",
             "class_properties/*.ttl",
             "shapes/*.ttl",
-            "class_individuals/*.ttl"
+            "class_individuals/*.ttl"  # System-provided individuals
         ]
-        
+
         self._files_loaded = 0
-        
+
         for pattern in load_order:
             if "*" in pattern:
                 # Handle wildcards
@@ -80,10 +87,25 @@ class OntologyLoader:
                 if ttl_file.exists():
                     self._load_ttl_file(ttl_file)
                     self._files_loaded += 1
-        
+
+        # Load user-created individuals from user_data/individuals/
+        if config and hasattr(config, 'USER_INDIVIDUALS_DIR'):
+            user_individuals_dir = config.USER_INDIVIDUALS_DIR
+            if user_individuals_dir.exists():
+                user_files_loaded = 0
+                for ttl_file in sorted(user_individuals_dir.glob("*.ttl")):
+                    # Skip .gitkeep files
+                    if ttl_file.name != ".gitkeep":
+                        self._load_ttl_file(ttl_file)
+                        self._files_loaded += 1
+                        user_files_loaded += 1
+
+                if user_files_loaded > 0:
+                    logger.info(f"Loaded {user_files_loaded} user-created individual files")
+
         if self._files_loaded == 0:
             raise ValueError("No TTL files found in ontology directory")
-        
+
         logger.info(f"Loaded {self._files_loaded} TTL files successfully")
         return self.graph
     

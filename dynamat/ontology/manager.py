@@ -104,11 +104,11 @@ class OntologyManager:
     def get_all_individuals(self, class_uri: Optional[str] = None, include_subclasses: bool = True) -> List[str]:
         """
         Get all individuals of a class (backwards compatibility method).
-        
+
         Args:
             class_uri: URI of the class, or None for all individuals
             include_subclasses: Whether to include instances of subclasses (default True)
-            
+
         Returns:
             List of individual URIs (not dicts, just URIs for legacy compatibility)
         """
@@ -117,7 +117,53 @@ class OntologyManager:
             return [inst['uri'] for inst in instances]
         else:
             return self.domain_queries.get_all_individuals()
-            
+
+    def get_classes_with_individuals(self) -> List[Dict[str, str]]:
+        """
+        Get all classes that have NamedIndividual instances defined AND allow user creation.
+
+        Used by Individual Manager to populate class selector dropdown.
+        Only returns classes marked with gui:allowsUserCreation true.
+
+        Returns:
+            List of dicts with 'uri' and 'label' keys
+            Example: [{'uri': 'dyn:User', 'label': 'User'}, ...]
+        """
+        query = """
+            SELECT DISTINCT ?class ?label
+            WHERE {
+                ?individual rdf:type owl:NamedIndividual ;
+                           rdf:type ?class .
+                ?class rdfs:label ?label ;
+                       gui:allowsUserCreation true .
+                FILTER(?class != owl:NamedIndividual)
+                FILTER(STRSTARTS(STR(?class), "https://dynamat.utep.edu/ontology#"))
+            }
+            ORDER BY ?label
+        """
+
+        results = self.sparql_executor.execute_query(query)
+
+        # Convert to list of dicts with uri and label
+        classes = []
+        for result in results:
+            class_uri = str(result['class'])
+            # Convert full URI to prefixed form (dyn:ClassName)
+            if "#" in class_uri:
+                class_name = class_uri.split('#')[-1]
+                prefixed_uri = f"dyn:{class_name}"
+            else:
+                prefixed_uri = class_uri
+
+            classes.append({
+                'uri': prefixed_uri,
+                'label': str(result['label']),
+                'full_uri': class_uri
+            })
+
+        logger.debug(f"Found {len(classes)} classes with individuals")
+        return classes
+
     # ============================================================================
     # NAMESPACE ACCESS - Used by form_builder.py and other components
     # ============================================================================

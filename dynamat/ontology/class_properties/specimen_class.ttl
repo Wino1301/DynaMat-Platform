@@ -29,13 +29,6 @@ dyn:hasSpecimenBatchID rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     gui:hasDisplayOrder 2 ;
     rdfs:comment "Batch identifier for specimens from same processing run"@en .
 
-dyn:hasBatchID rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:SpecimenBatchID ;
-    rdfs:range xsd:string ;
-    rdfs:label "Batch ID String"@en ;
-    gui:hasDisplayName "Batch ID" ;
-    rdfs:comment "String identifier for the batch (e.g., BATCH-AL001-2024-01)"@en .
-
 dyn:hasSpecimenRole rdf:type owl:ObjectProperty;
     rdfs:domain dyn:Specimen ;
     rdfs:range dyn:SpecimenRole ;

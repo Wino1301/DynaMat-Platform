@@ -1,0 +1,8 @@
+@prefix ns1: <https://dynamat.utep.edu/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ns1:User_3 a owl:NamedIndividual,
+        ns1:User ;
+    ns1:hasFirstName "3"^^xsd:string .
+

@@ -18,7 +18,8 @@
 
 dyn:User rdf:type owl:Class ;
     rdfs:label "User"@en ;
-    rdfs:comment "A user of the DynaMat Platform who creates, modifies, and manages experimental data"@en .
+    rdfs:comment "A user of the DynaMat Platform who creates, modifies, and manages experimental data"@en ;
+    gui:allowsUserCreation true .
 
 #################################################################
 #    User Data Properties

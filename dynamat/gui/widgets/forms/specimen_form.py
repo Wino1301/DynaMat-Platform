@@ -24,6 +24,7 @@ from ...parsers.instance_writer import InstanceWriter
 from ...widgets.validation_results_dialog import ValidationResultsDialog
 from ...widgets.load_entity_dialog import LoadEntityDialog
 from ...core.form_validator import ValidationResult
+from ....config import config
 
 logger = logging.getLogger(__name__)
 
@@ -75,17 +76,16 @@ class SpecimenFormWidget(QWidget):
         self.instance_query_builder = InstanceQueryBuilder(ontology_manager)
         try:
             # Build index of existing specimens
-            specimens_dir = Path("specimens")
-            if specimens_dir.exists():
+            if config.SPECIMENS_DIR.exists():
                 indexed_count = self.instance_query_builder.scan_and_index(
-                    specimens_dir,
+                    config.SPECIMENS_DIR,
                     "https://dynamat.utep.edu/ontology#Specimen",
                     "*_specimen.ttl"
                 )
                 self.logger.info(f"Indexed {indexed_count} existing specimens")
             else:
                 self.logger.warning("Specimens directory not found, creating it")
-                specimens_dir.mkdir(parents=True, exist_ok=True)
+                config.SPECIMENS_DIR.mkdir(parents=True, exist_ok=True)
         except Exception as e:
             self.logger.warning(f"Could not build specimen index: {e}")
 
@@ -347,12 +347,11 @@ class SpecimenFormWidget(QWidget):
         clean_id = specimen_id.replace(" ", "-").replace("_", "-")
 
         # Compute directory structure (no folder creation)
-        # specimens/SPN-{MaterialID}-{XXX}/
-        specimens_dir = Path("specimens")
-        specimen_folder = specimens_dir / clean_id
+        # user_data/specimens/SPN-{MaterialID}-{XXX}/
+        specimen_folder = config.SPECIMENS_DIR / clean_id
 
         # Compute output file path
-        # specimens/SPN-{MaterialID}-{XXX}/SPN-{MaterialID}-{XXX}_specimen.ttl
+        # user_data/specimens/SPN-{MaterialID}-{XXX}/SPN-{MaterialID}-{XXX}_specimen.ttl
         output_file = specimen_folder / f"{clean_id}_specimen.ttl"
 
         self.logger.info(f"Computed output path: {output_file}")
@@ -448,11 +447,6 @@ class SpecimenFormWidget(QWidget):
                     # Debug logging
                     self.logger.info(f"Dialog returned {len(data)} properties")
                     self.logger.debug(f"Data keys: {list(data.keys())[:10]}")  # First 10 keys
-
-                    # DEBUG: Show what we received
-                    sample_keys = list(data.keys())[:5]
-                    debug_msg = f"Received {len(data)} properties\n\nSample keys:\n" + "\n".join(sample_keys[:5])
-                    QMessageBox.information(self, "Debug: Data Received", debug_msg)
 
                     # Load data into form
                     self.logger.info("Calling load_specimen_data...")
@@ -565,7 +559,6 @@ class SpecimenFormWidget(QWidget):
             # === ADD METADATA TRACKING ===
             # Add metadata for creation/modification tracking
             from datetime import datetime
-            from dynamat.config import config
             from rdflib import Graph, Namespace, RDF
 
             # Get current user from main window
@@ -685,10 +678,9 @@ class SpecimenFormWidget(QWidget):
 
             # Refresh the specimen index to include the newly saved specimen
             try:
-                specimens_dir = Path("specimens")
-                if specimens_dir.exists():
+                if config.SPECIMENS_DIR.exists():
                     self.instance_query_builder.scan_and_index(
-                        specimens_dir,
+                        config.SPECIMENS_DIR,
                         "https://dynamat.utep.edu/ontology#Specimen",
                         "*_specimen.ttl"
                     )
@@ -715,15 +707,21 @@ class SpecimenFormWidget(QWidget):
             sample_props = list(data.keys())[:5]
             self.logger.debug(f"Sample property keys: {sample_props}")
 
-            # DEBUG: Show form field keys
-            if hasattr(self.form_widget, 'form_fields'):
-                form_field_keys = list(self.form_widget.form_fields.keys())[:5]
-                debug_msg = f"Form has {len(self.form_widget.form_fields)} fields\n\nSample form field keys:\n" + "\n".join(form_field_keys[:5])
-                QMessageBox.information(self, "Debug: Form Fields", debug_msg)
+            # Clear form first to reset all fields and visibility state
+            self.logger.debug("Clearing form before loading new data")
+            self.form_builder.clear_form(self.form_widget)
 
+            # Load the data with loading mode (automatically enabled in set_form_data)
+            # Loading mode suppresses generation constraints to preserve loaded values
+            # Other constraints (visibility, calculation, population) run normally
             success = self.form_builder.set_form_data(self.form_widget, data)
 
             self.logger.info(f"form_builder.set_form_data returned: {success}")
+
+            # Note: We don't call _evaluate_all_constraints() here because:
+            # - Constraints already evaluated during loading (as each field was set)
+            # - Calling it again would regenerate the specimen ID (loading mode is now off)
+            # - Visibility constraints already ran during loading to show/hide appropriate fields
 
             if success:
                 self.original_data = data.copy()

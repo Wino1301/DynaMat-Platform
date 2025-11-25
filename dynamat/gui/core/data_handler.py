@@ -44,6 +44,7 @@ class FormDataHandler:
         
         # Value setters by widget type
         self.value_setters = {
+            QLabel: self._set_label_value,
             QLineEdit: self._set_line_edit_value,
             QTextEdit: self._set_text_edit_value,
             QComboBox: self._set_combo_box_value,
@@ -131,14 +132,20 @@ class FormDataHandler:
                 if property_uri in form_fields:
                     try:
                         widget = form_fields[property_uri].widget
+                        widget_type = type(widget).__name__
                         if self.set_widget_value(widget, value):
+                            self.logger.debug(f"SUCCESS: Set {property_uri} = '{value}' (widget: {widget_type})")
                             populated_count += 1
+                        else:
+                            self.logger.warning(f"FAILED: Could not set {property_uri} = '{value}' (widget: {widget_type})")
                     except Exception as e:
                         self.logger.error(f"Error setting value for {property_uri}: {e}")
                 else:
-                    self.logger.debug(f"Property {property_uri} not found in form")
-            
-            self.logger.info(f"Populated {populated_count} fields from {len(data)} data items")
+                    # Extract short name for logging
+                    short_name = property_uri.split('#')[-1].split('/')[-1] if '#' in property_uri or '/' in property_uri else property_uri
+                    self.logger.warning(f"Property {short_name} not found in form (full URI: {property_uri})")
+
+            self.logger.info(f"Populated {populated_count}/{len(data)} fields successfully")
             return populated_count > 0
             
         except Exception as e:
@@ -450,6 +457,11 @@ class FormDataHandler:
     # VALUE SETTERS
     # ============================================================================
     
+    def _set_label_value(self, widget: QLabel, value: Any) -> bool:
+        """Set value for QLabel (read-only display fields)."""
+        widget.setText(str(value))
+        return True
+
     def _set_line_edit_value(self, widget: QLineEdit, value: Any) -> bool:
         """Set value for QLineEdit."""
         widget.setText(str(value))
