@@ -332,6 +332,17 @@ dyn:hasSpecificHeat rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     dyn:hasUnit "unit:J-PER-KiloGM-K" ;
     rdfs:comment "Specific heat capacity"@en .
 
+dyn:hasWaveSpeed rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Material ;
+    rdfs:range xsd:double ;
+    qudt:hasQuantityKind qkdv:Velocity ;
+    rdfs:label "Wave Speed"@en ;
+    gui:hasDisplayName "Elastic Wave Speed (m/s)" ;
+    gui:hasFormGroup "MechanicalProperties" ;
+    gui:hasDisplayOrder 4 ;
+    dyn:hasUnit "unit:M-PER-SEC" ;
+    rdfs:comment "Elastic wave propagation speed in material, calculated as C_bar = sqrt(E/ρ). Critical for SHPB bar characterization and pulse timing calculations."@en .
+
 #################################################################
 #    Data Properties - Alloy and Composition
 #################################################################
