@@ -134,10 +134,12 @@ dyn:hasElasticModulus rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:subPropertyOf dyn:hasMechanicalProperty ;
     rdfs:domain dyn:Material ;
     rdfs:range dyn:PropertyValue ;
+    qudt:hasQuantityKind qkdv:Stress ;
     rdfs:label "Elastic Modulus"@en ;
     gui:hasDisplayName "Elastic Modulus" ;
     gui:hasFormGroup "ElasticProperties" ;
     gui:hasDisplayOrder 1 ;
+    dyn:hasUnit "unit:GigaPA" ;
     rdfs:comment "Young's modulus of elasticity with provenance"@en .
 
 dyn:hasPoissonsRatio rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
@@ -154,20 +156,24 @@ dyn:hasYieldStrength rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:subPropertyOf dyn:hasMechanicalProperty ;
     rdfs:domain dyn:Material ;
     rdfs:range dyn:PropertyValue ;
+    qudt:hasQuantityKind qkdv:Stress ;
     rdfs:label "Yield Strength"@en ;
     gui:hasDisplayName "Yield Strength" ;
     gui:hasFormGroup "JohnsonCookParameters" ;
     gui:hasDisplayOrder 1 ;
+    dyn:hasUnit "unit:MegaPA" ;
     rdfs:comment "Yield strength (Johnson-Cook A parameter) with provenance"@en .
 
 dyn:hasHardeningConstant rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:subPropertyOf dyn:hasMechanicalProperty ;
     rdfs:domain dyn:Material ;
     rdfs:range dyn:PropertyValue ;
+    qudt:hasQuantityKind qkdv:Stress ;
     rdfs:label "Hardening Constant"@en ;
     gui:hasDisplayName "Hardening Constant" ;
     gui:hasFormGroup "JohnsonCookParameters" ;
     gui:hasDisplayOrder 2 ;
+    dyn:hasUnit "unit:MegaPA" ;
     rdfs:comment "Hardening constant (Johnson-Cook B parameter) with provenance"@en .
 
 dyn:hasHardeningExponent rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
@@ -234,16 +240,6 @@ dyn:hasPrimaryPhase rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     gui:hasDisplayOrder 2 ;
     rdfs:comment "Dominant phase in the material"@en .
 
-# Material property values with provenance
-dyn:hasPropertyValue rdf:type owl:ObjectProperty ;
-    rdfs:domain dyn:Material ;
-    rdfs:range dyn:PropertyValue ;
-    rdfs:label "Property Value"@en ;
-    gui:hasDisplayName "Property Values" ;
-    gui:hasFormGroup "MaterialProperties" ;
-    gui:hasDisplayOrder 2 ;
-    rdfs:comment "Property values with provenance information"@en .
-
 #################################################################
 #    Data Properties - Material Identification
 #################################################################
@@ -266,13 +262,22 @@ dyn:hasMaterialCode rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     gui:hasDisplayOrder 2 ;
     rdfs:comment "Internal material identification code"@en .
 
+dyn:hasPlottingLabel rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Material ;
+    rdfs:range xsd:string ;
+    rdfs:label "Plotting Label"@en ;
+    gui:hasDisplayName "Plotting Label" ;
+    gui:hasFormGroup "Identification" ;
+    gui:hasDisplayOrder 3 ;
+    rdfs:comment "Short label used for plots and visualizations"@en .
+
 dyn:hasSupplier rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Material ;
     rdfs:range xsd:string ;
     rdfs:label "Supplier"@en ;
     gui:hasDisplayName "Supplier" ;
     gui:hasFormGroup "Identification" ;
-    gui:hasDisplayOrder 3 ;
+    gui:hasDisplayOrder 4 ;
     rdfs:comment "Material supplier or source"@en .
 
 dyn:hasLotNumber rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -281,8 +286,11 @@ dyn:hasLotNumber rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:label "Lot Number"@en ;
     gui:hasDisplayName "Lot Number" ;
     gui:hasFormGroup "Identification" ;
-    gui:hasDisplayOrder 4 ;
+    gui:hasDisplayOrder 5 ;
     rdfs:comment "Supplier lot or batch number"@en .
+
+# Extend domain of hasDescription to include Material (defined in core for Specimen)
+dyn:hasDescription rdfs:domain dyn:Material .
 
 #################################################################
 #    Data Properties - Basic Material Properties
@@ -293,7 +301,7 @@ dyn:hasDensity rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:range xsd:double ;
     qudt:hasQuantityKind qkdv:Density ;
     rdfs:label "Density"@en ;
-    gui:hasDisplayName "Density (g/cm³)" ;
+    gui:hasDisplayName "Density" ;
     gui:hasFormGroup "PhysicalProperties" ;
     gui:hasDisplayOrder 1 ;
     dyn:hasUnit "unit:GM-PER-CentiM3" ;

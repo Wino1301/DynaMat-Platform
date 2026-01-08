@@ -306,3 +306,71 @@ class PulseDetector:
         seg = seg * mask
 
         return seg[:n_points]  # ensure exact length
+
+    def calculate_rise_time(
+        self,
+        pulse: np.ndarray,
+        time: np.ndarray,
+        low_pct: float = 0.10,
+        high_pct: float = 0.85
+    ) -> float:
+        """Calculate pulse rise time between percentage thresholds.
+
+        Measures the time interval between the pulse crossing the low and high
+        percentage thresholds of its peak value.
+
+        Parameters
+        ----------
+        pulse : np.ndarray
+            Pulse signal (1D).
+        time : np.ndarray
+            Time array corresponding to pulse (same length).
+        low_pct : float, default 0.10
+            Lower threshold as fraction of peak (e.g., 0.10 for 10%).
+        high_pct : float, default 0.85
+            Upper threshold as fraction of peak (e.g., 0.85 for 85%).
+
+        Returns
+        -------
+        float
+            Rise time in same units as time array.
+
+        Raises
+        ------
+        ValueError
+            If pulse doesn't cross both thresholds.
+
+        Examples
+        --------
+        >>> detector = PulseDetector(pulse_points=15000)
+        >>> rise_time = detector.calculate_rise_time(pulse, time)
+        """
+        # Normalize to max absolute peak (positive or negative)
+        peak_val = (
+            np.min(pulse) if np.abs(np.min(pulse)) > np.max(pulse)
+            else np.max(pulse)
+        )
+
+        val_low = low_pct * peak_val
+        val_high = high_pct * peak_val
+
+        if peak_val < 0:
+            # For negative pulses (compressive)
+            idx_low_arr = np.where(pulse <= val_low)[0]
+            idx_high_arr = np.where(pulse <= val_high)[0]
+        else:
+            # For positive pulses (tensile)
+            idx_low_arr = np.where(pulse >= val_low)[0]
+            idx_high_arr = np.where(pulse >= val_high)[0]
+
+        if len(idx_low_arr) == 0 or len(idx_high_arr) == 0:
+            raise ValueError(
+                f"Pulse does not cross {low_pct*100:.0f}% and {high_pct*100:.0f}% thresholds"
+            )
+
+        idx_low = idx_low_arr[0]
+        idx_high = idx_high_arr[0]
+
+        rise_time = time[idx_high] - time[idx_low]
+
+        return rise_time

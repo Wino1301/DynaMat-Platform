@@ -58,8 +58,26 @@ dyn:DataSeries rdf:type owl:Class ;
                rdfs:comment "A series of measured or calculated data points representing a physical quantity from a mechanical test. Each series contains metadata about the data location (file, column), physical units, analysis method, and summary statistics."@en .
 
 
+###  https://dynamat.utep.edu/ontology#ProcessedData
+dyn:ProcessedData rdf:type owl:Class ;
+                  rdfs:subClassOf dyn:DataSeries ;
+                  rdfs:comment "Calculated quantities (stress, strain, force)"@en ;
+                  rdfs:label "Processed Data"@en .
+
+
+###  https://dynamat.utep.edu/ontology#RawSignal
+dyn:RawSignal rdf:type owl:Class ;
+              rdfs:subClassOf dyn:DataSeries ;
+              rdfs:comment "Raw sensor voltage/signal data"@en ;
+              rdfs:label "Raw Signal"@en .
+
+
 ###  https://dynamat.utep.edu/ontology#MechanicalTest
 dyn:MechanicalTest rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#MeasurementEquipment
+dyn:MeasurementEquipment rdf:type owl:Class .
 
 
 #################################################################
@@ -87,6 +105,52 @@ dyn:hasDataSeries rdf:type owl:ObjectProperty ;
                   gui:hasDisplayName "Data Series" ;
                   gui:hasDisplayOrder 1 ;
                   gui:hasFormGroup "AnalysisResults" .
+
+
+###  https://dynamat.utep.edu/ontology#derivedFrom
+dyn:derivedFrom rdf:type owl:ObjectProperty ;
+                rdfs:domain dyn:DataSeries ;
+                rdfs:range dyn:DataSeries ;
+                rdfs:comment "Raw data series used to calculate this processed data"@en ;
+                rdfs:label "Derived From"@en ;
+                gui:hasDisplayName "Derived From" ;
+                gui:hasDisplayOrder 2 ;
+                gui:hasFormGroup "DataProvenance" .
+
+
+###  https://dynamat.utep.edu/ontology#measuredBy
+dyn:measuredBy rdf:type owl:ObjectProperty ;
+               rdfs:domain dyn:DataSeries ;
+               rdfs:range dyn:MeasurementEquipment ;
+               rdfs:comment "Which sensor/equipment collected this data"@en ;
+               rdfs:label "Measured By"@en ;
+               gui:hasDisplayName "Measured By" ;
+               gui:hasDisplayOrder 1 ;
+               gui:hasFormGroup "DataProvenance" .
+
+
+###  https://dynamat.utep.edu/ontology#hasRawDataFile
+dyn:hasRawDataFile rdf:type owl:ObjectProperty ,
+                            owl:FunctionalProperty ;
+                   rdfs:domain dyn:MechanicalTest ;
+                   rdfs:range dyn:AnalysisFile ;
+                   rdfs:comment "Raw sensor data file from data acquisition system"@en ;
+                   rdfs:label "Raw Data File"@en ;
+                   gui:hasDisplayName "Raw Data File" ;
+                   gui:hasDisplayOrder 1 ;
+                   gui:hasFormGroup "DataFiles" .
+
+
+###  https://dynamat.utep.edu/ontology#hasProcessedDataFile
+dyn:hasProcessedDataFile rdf:type owl:ObjectProperty ,
+                                  owl:FunctionalProperty ;
+                         rdfs:domain dyn:MechanicalTest ;
+                         rdfs:range dyn:AnalysisFile ;
+                         rdfs:comment "Processed/calculated results file (stress, strain, etc.)"@en ;
+                         rdfs:label "Processed Data File"@en ;
+                         gui:hasDisplayName "Processed Data File" ;
+                         gui:hasDisplayOrder 2 ;
+                         gui:hasFormGroup "DataFiles" .
 
 
 #################################################################
@@ -147,6 +211,18 @@ dyn:hasColumnIndex rdf:type owl:DatatypeProperty ,
                    gui:hasFormGroup "FileReference" .
 
 
+###  https://dynamat.utep.edu/ontology#hasLegendName
+dyn:hasLegendName rdf:type owl:DatatypeProperty ,
+                           owl:FunctionalProperty ;
+                  rdfs:domain dyn:DataSeries ;
+                  rdfs:range xsd:string ;
+                  rdfs:comment "Human-readable name for plots and displays"@en ;
+                  rdfs:label "Legend Name"@en ;
+                  gui:hasDisplayName "Display Name" ;
+                  gui:hasDisplayOrder 4 ;
+                  gui:hasFormGroup "FileReference" .
+
+
 #################################################################
 #    Data Properties - Physical Quantity Metadata
 #################################################################
@@ -176,7 +252,7 @@ dyn:hasQuantityKind rdf:type owl:DatatypeProperty ,
 
 
 #################################################################
-#    Data Properties - Summary Statistics (Queryable)
+#    Data Properties - Summary Statistics
 #################################################################
 
 ###  https://dynamat.utep.edu/ontology#hasDataPointCount
@@ -189,6 +265,141 @@ dyn:hasDataPointCount rdf:type owl:DatatypeProperty ,
                       gui:hasDisplayName "Data Point Count" ;
                       gui:hasDisplayOrder 5 ;
                       gui:hasFormGroup "Statistics" .
+
+
+#################################################################
+#    Data Properties - Processing & Provenance
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasProcessingMethod
+dyn:hasProcessingMethod rdf:type owl:DatatypeProperty ,
+                                 owl:FunctionalProperty ;
+                        rdfs:domain dyn:DataSeries ;
+                        rdfs:range xsd:string ;
+                        rdfs:comment "Algorithm or method used to calculate this data"@en ;
+                        rdfs:label "Processing Method"@en ;
+                        gui:hasDisplayName "Processing Method" ;
+                        gui:hasDisplayOrder 1 ;
+                        gui:hasFormGroup "ProcessingInfo" .
+
+
+###  https://dynamat.utep.edu/ontology#hasFilterApplied
+dyn:hasFilterApplied rdf:type owl:DatatypeProperty ,
+                              owl:FunctionalProperty ;
+                     rdfs:domain dyn:DataSeries ;
+                     rdfs:range xsd:boolean ;
+                     rdfs:comment "Whether filtering was applied to this data"@en ;
+                     rdfs:label "Filter Applied"@en ;
+                     gui:hasDisplayName "Filter Applied" ;
+                     gui:hasDisplayOrder 2 ;
+                     gui:hasFormGroup "ProcessingInfo" .
+
+
+###  https://dynamat.utep.edu/ontology#hasFilterType
+dyn:hasFilterType rdf:type owl:DatatypeProperty ,
+                           owl:FunctionalProperty ;
+                  rdfs:domain dyn:DataSeries ;
+                  rdfs:range xsd:string ;
+                  rdfs:comment "Type of filter applied (if any)"@en ;
+                  rdfs:label "Filter Type"@en ;
+                  gui:hasDisplayName "Filter Type" ;
+                  gui:hasDisplayOrder 3 ;
+                  gui:hasFormGroup "ProcessingInfo" ;
+                  gui:hasValidValues "LowPass,HighPass,BandPass,Butterworth,Savitzky-Golay" .
+
+
+###  https://dynamat.utep.edu/ontology#hasFilterFrequency
+dyn:hasFilterFrequency rdf:type owl:DatatypeProperty ,
+                                owl:FunctionalProperty ;
+                       rdfs:domain dyn:DataSeries ;
+                       rdfs:range xsd:double ;
+                       qudt:hasQuantityKind qkdv:Frequency ;
+                       rdfs:comment "Cutoff frequency for applied filter"@en ;
+                       rdfs:label "Filter Frequency"@en ;
+                       dyn:hasUnit "unit:HZ" ;
+                       gui:hasDisplayName "Filter Frequency (Hz)" ;
+                       gui:hasDisplayOrder 4 ;
+                       gui:hasFormGroup "ProcessingInfo" .
+
+
+#################################################################
+#    Data Properties - SHPB Pulse Processing
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasTukeyFactor
+dyn:hasTukeyFactor rdf:type owl:DatatypeProperty ,
+                            owl:FunctionalProperty ;
+                   rdfs:domain dyn:DataSeries ;
+                   rdfs:range xsd:double ;
+                   rdfs:comment "Tukey windowing factor used for pulse processing"@en ;
+                   rdfs:label "Tukey Factor"@en ;
+                   gui:hasDisplayName "Tukey Factor" ;
+                   gui:hasDisplayOrder 5 ;
+                   gui:hasFormGroup "ProcessingInfo" .
+
+
+###  https://dynamat.utep.edu/ontology#hasTukeyWindowLength
+dyn:hasTukeyWindowLength rdf:type owl:DatatypeProperty ,
+                                  owl:FunctionalProperty ;
+                         rdfs:domain dyn:DataSeries ;
+                         rdfs:range xsd:integer ;
+                         rdfs:comment "Length of Tukey window applied to pulse data"@en ;
+                         rdfs:label "Tukey Window Length"@en ;
+                         gui:hasDisplayName "Tukey Window Length" ;
+                         gui:hasDisplayOrder 6 ;
+                         gui:hasFormGroup "ProcessingInfo" .
+
+
+###  https://dynamat.utep.edu/ontology#isCenteredPulse
+dyn:isCenteredPulse rdf:type owl:DatatypeProperty ,
+                             owl:FunctionalProperty ;
+                    rdfs:domain dyn:DataSeries ;
+                    rdfs:range xsd:boolean ;
+                    rdfs:comment "Whether pulse data has been centered and aligned"@en ;
+                    rdfs:label "Centered Pulse"@en ;
+                    gui:hasDisplayName "Centered Pulse" ;
+                    gui:hasDisplayOrder 7 ;
+                    gui:hasFormGroup "ProcessingInfo" .
+
+
+###  https://dynamat.utep.edu/ontology#isAlignedPulse
+dyn:isAlignedPulse rdf:type owl:DatatypeProperty ,
+                            owl:FunctionalProperty ;
+                   rdfs:domain dyn:DataSeries ;
+                   rdfs:range xsd:boolean ;
+                   rdfs:comment "Whether pulse data has been time-aligned"@en ;
+                   rdfs:label "Aligned Pulse"@en ;
+                   gui:hasDisplayName "Aligned Pulse" ;
+                   gui:hasDisplayOrder 8 ;
+                   gui:hasFormGroup "ProcessingInfo" .
+
+
+###  https://dynamat.utep.edu/ontology#isReferencePulse
+dyn:isReferencePulse rdf:type owl:DatatypeProperty ,
+                              owl:FunctionalProperty ;
+                     rdfs:domain dyn:DataSeries ;
+                     rdfs:range xsd:boolean ;
+                     rdfs:comment "High-quality pulse data used as template for window selection"@en ;
+                     rdfs:label "Reference Pulse"@en ;
+                     gui:hasDisplayName "Reference Pulse" ;
+                     gui:hasDisplayOrder 1 ;
+                     gui:hasFormGroup "DataQuality" .
+
+
+#################################################################
+#    Data Properties - Machine Learning
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#isTrainingData
+dyn:isTrainingData rdf:type owl:DatatypeProperty ,
+                            owl:FunctionalProperty ;
+                   rdfs:domain dyn:DataSeries ;
+                   rdfs:range xsd:boolean ;
+                   rdfs:comment "Whether this data series is used for PINN training"@en ;
+                   rdfs:label "Training Data"@en ;
+                   gui:hasDisplayName "Training Data" ;
+                   gui:hasDisplayOrder 1 ;
+                   gui:hasFormGroup "MachineLearning" .
 
 
 #################################################################
@@ -207,6 +418,30 @@ dyn:hasFilePath rdf:type owl:DatatypeProperty ,
                 gui:hasFormGroup "FileMetadata" .
 
 
+###  https://dynamat.utep.edu/ontology#hasFileName
+dyn:hasFileName rdf:type owl:DatatypeProperty ,
+                         owl:FunctionalProperty ;
+                rdfs:domain dyn:AnalysisFile ;
+                rdfs:range xsd:string ;
+                rdfs:comment "Name of the data file (e.g., raw_data.csv)"@en ;
+                rdfs:label "File Name"@en ;
+                gui:hasDisplayName "File Name" ;
+                gui:hasDisplayOrder 2 ;
+                gui:hasFormGroup "FileMetadata" .
+
+
+###  https://dynamat.utep.edu/ontology#hasFileSize
+dyn:hasFileSize rdf:type owl:DatatypeProperty ,
+                         owl:FunctionalProperty ;
+                rdfs:domain dyn:AnalysisFile ;
+                rdfs:range xsd:integer ;
+                rdfs:comment "Size of file in bytes"@en ;
+                rdfs:label "File Size"@en ;
+                gui:hasDisplayName "File Size (bytes)" ;
+                gui:hasDisplayOrder 3 ;
+                gui:hasFormGroup "FileMetadata" .
+
+
 ###  https://dynamat.utep.edu/ontology#hasFileFormat
 dyn:hasFileFormat rdf:type owl:DatatypeProperty ,
                            owl:FunctionalProperty ;
@@ -215,9 +450,22 @@ dyn:hasFileFormat rdf:type owl:DatatypeProperty ,
                   rdfs:comment "Format of the data file"@en ;
                   rdfs:label "File Format"@en ;
                   gui:hasDisplayName "File Format" ;
-                  gui:hasDisplayOrder 2 ;
+                  gui:hasDisplayOrder 4 ;
                   gui:hasFormGroup "FileMetadata" ;
                   gui:hasValidValues "CSV, HDF5, JSON" .
+
+
+###  https://dynamat.utep.edu/ontology#hasFileEncoding
+dyn:hasFileEncoding rdf:type owl:DatatypeProperty ,
+                             owl:FunctionalProperty ;
+                    rdfs:domain dyn:AnalysisFile ;
+                    rdfs:range xsd:string ;
+                    rdfs:comment "Character encoding of the file (e.g., UTF-8)"@en ;
+                    rdfs:label "File Encoding"@en ;
+                    gui:hasDisplayName "File Encoding" ;
+                    gui:hasDisplayOrder 5 ;
+                    gui:hasFormGroup "FileMetadata" ;
+                    gui:hasValidValues "UTF-8,ASCII,ISO-8859-1" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasProcessingDate
@@ -228,7 +476,45 @@ dyn:hasProcessingDate rdf:type owl:DatatypeProperty ,
                       rdfs:comment "Timestamp when analysis was performed and file was created"@en ;
                       rdfs:label "Processing Date"@en ;
                       gui:hasDisplayName "Processing Date" ;
-                      gui:hasDisplayOrder 3 ;
+                      gui:hasDisplayOrder 6 ;
                       gui:hasFormGroup "FileMetadata" .
 
 
+###  https://dynamat.utep.edu/ontology#hasDelimiter
+dyn:hasDelimiter rdf:type owl:DatatypeProperty ,
+                          owl:FunctionalProperty ;
+                 rdfs:domain dyn:AnalysisFile ;
+                 rdfs:range xsd:string ;
+                 rdfs:comment "CSV delimiter character (comma, semicolon, tab, pipe)"@en ;
+                 rdfs:label "Delimiter"@en ;
+                 gui:hasDisplayName "CSV Delimiter" ;
+                 gui:hasDisplayOrder 1 ;
+                 gui:hasFormGroup "FileFormat" ;
+                 gui:hasValidValues ",;|\t" .
+
+
+###  https://dynamat.utep.edu/ontology#hasHeaderRow
+dyn:hasHeaderRow rdf:type owl:DatatypeProperty ,
+                          owl:FunctionalProperty ;
+                 rdfs:domain dyn:AnalysisFile ;
+                 rdfs:range xsd:boolean ;
+                 rdfs:comment "Whether CSV file contains column headers"@en ;
+                 rdfs:label "Header Row"@en ;
+                 gui:hasDisplayName "Has Header Row" ;
+                 gui:hasDisplayOrder 2 ;
+                 gui:hasFormGroup "FileFormat" .
+
+
+###  https://dynamat.utep.edu/ontology#hasSkipRows
+dyn:hasSkipRows rdf:type owl:DatatypeProperty ,
+                         owl:FunctionalProperty ;
+                rdfs:domain dyn:AnalysisFile ;
+                rdfs:range xsd:integer ;
+                rdfs:comment "Number of initial rows to skip when reading"@en ;
+                rdfs:label "Skip Rows"@en ;
+                gui:hasDisplayName "Rows to Skip" ;
+                gui:hasDisplayOrder 3 ;
+                gui:hasFormGroup "FileFormat" .
+
+
+###  Generated by the OWL API (version 4.5.29.2024-05-13T12:11:03Z) https://github.com/owlcs/owlapi

@@ -147,26 +147,26 @@ class DynaMatQueryBuilder:
             filters.append(f'?specimen dyn:hasShape "{search_params.shape}"')
         
         if search_params.batch_id:
-            filters.append(f'?specimen dyn:hasBatchId "{search_params.batch_id}"')
-        
+            filters.append(f'?specimen dyn:hasSpecimenBatchID "{search_params.batch_id}"')
+
         if search_params.creation_date_from:
             date_str = search_params.creation_date_from.isoformat() if hasattr(search_params.creation_date_from, 'isoformat') else str(search_params.creation_date_from)
-            filters.append(f'?specimen dyn:hasDate ?date . FILTER(?date >= "{date_str}"^^xsd:date)')
-        
+            filters.append(f'?specimen dyn:hasManufacturedDate ?date . FILTER(?date >= "{date_str}"^^xsd:date)')
+
         if search_params.creation_date_to:
             date_str = search_params.creation_date_to.isoformat() if hasattr(search_params.creation_date_to, 'isoformat') else str(search_params.creation_date_to)
-            filters.append(f'?specimen dyn:hasDate ?date . FILTER(?date <= "{date_str}"^^xsd:date)')
-        
-        # Dimensional filters
+            filters.append(f'?specimen dyn:hasManufacturedDate ?date . FILTER(?date <= "{date_str}"^^xsd:date)')
+
+        # Dimensional filters (measurements stored as direct xsd:double values)
         if search_params.diameter_min or search_params.diameter_max:
-            filters.append('?specimen dyn:hasDiameter/dyn:hasValue ?diameter')
+            filters.append('?specimen dyn:hasOriginalDiameter ?diameter')
             if search_params.diameter_min:
                 filters.append(f'FILTER(?diameter >= {search_params.diameter_min})')
             if search_params.diameter_max:
                 filters.append(f'FILTER(?diameter <= {search_params.diameter_max})')
-        
+
         if search_params.length_min or search_params.length_max:
-            filters.append('?specimen dyn:hasLength/dyn:hasValue ?length')
+            filters.append('?specimen dyn:hasOriginalLength ?length')
             if search_params.length_min:
                 filters.append(f'FILTER(?length >= {search_params.length_min})')
             if search_params.length_max:
@@ -177,17 +177,17 @@ class DynaMatQueryBuilder:
         query = f"""
         SELECT ?specimen ?specimenId ?material ?materialName ?shape ?batchId ?date WHERE {{
             ?specimen rdf:type/rdfs:subClassOf* dyn:Specimen .
-            
-            OPTIONAL {{ ?specimen dyn:hasSpecimenId ?specimenId }}
+
+            OPTIONAL {{ ?specimen dyn:hasSpecimenID ?specimenId }}
             OPTIONAL {{ ?specimen dyn:hasMaterial ?material }}
             OPTIONAL {{ ?specimen dyn:hasMaterial/dyn:hasMaterialName ?materialName }}
             OPTIONAL {{ ?specimen dyn:hasShape ?shape }}
-            OPTIONAL {{ ?specimen dyn:hasBatchId ?batchId }}
-            OPTIONAL {{ ?specimen dyn:hasDate ?date }}
-            
+            OPTIONAL {{ ?specimen dyn:hasSpecimenBatchID ?batchId }}
+            OPTIONAL {{ ?specimen dyn:hasManufacturedDate ?date }}
+
             {filter_clause}
         }}
-        ORDER BY ?date DESC ?specimenId
+        ORDER BY DESC(?date) ?specimenId
         """
         
         return self.sparql.execute_query(query)
@@ -195,24 +195,24 @@ class DynaMatQueryBuilder:
     def get_specimen_details(self, specimen_uri: str) -> Dict[str, Any]:
         """
         Get detailed information about a specific specimen.
-        
+
         Args:
             specimen_uri: URI of the specimen
-            
+
         Returns:
             Dictionary with specimen details
         """
         query = """
-        SELECT ?property ?value ?unit WHERE {
+        SELECT ?property ?value ?unit WHERE {{
             <{specimen_uri}> ?property ?value .
-            
+
             # Get units for measurements
-            OPTIONAL {
+            OPTIONAL {{
                 <{specimen_uri}> ?property ?measurement .
                 ?measurement dyn:hasValue ?value .
                 ?measurement dyn:hasUnit ?unit .
-            }
-        }
+            }}
+        }}
         """.format(specimen_uri=specimen_uri)
         
         results = self.sparql.execute_query(query)
@@ -266,7 +266,7 @@ class DynaMatQueryBuilder:
         filters = []
         
         if search_params.specimen_id:
-            filters.append(f'?test dyn:hasSpecimen/dyn:hasSpecimenId "{search_params.specimen_id}"')
+            filters.append(f'?test dyn:hasSpecimen/dyn:hasSpecimenID "{search_params.specimen_id}"')
         
         if search_params.material_name:
             filters.append(f'?test dyn:hasSpecimen/dyn:hasMaterial/dyn:hasMaterialName "{search_params.material_name}"')
@@ -307,17 +307,17 @@ class DynaMatQueryBuilder:
         SELECT ?test ?testType ?specimen ?specimenId ?material ?materialName ?date ?operator WHERE {{
             ?test rdf:type ?testType .
             ?testType rdfs:subClassOf* dyn:MechanicalTest .
-            
+
             OPTIONAL {{ ?test dyn:hasSpecimen ?specimen }}
-            OPTIONAL {{ ?test dyn:hasSpecimen/dyn:hasSpecimenId ?specimenId }}
+            OPTIONAL {{ ?test dyn:hasSpecimen/dyn:hasSpecimenID ?specimenId }}
             OPTIONAL {{ ?test dyn:hasSpecimen/dyn:hasMaterial ?material }}
             OPTIONAL {{ ?test dyn:hasSpecimen/dyn:hasMaterial/dyn:hasMaterialName ?materialName }}
             OPTIONAL {{ ?test dyn:hasDate ?date }}
             OPTIONAL {{ ?test dyn:hasOperator ?operator }}
-            
+
             {filter_clause}
         }}
-        ORDER BY ?date DESC ?test
+        ORDER BY DESC(?date) ?test
         """
         
         return self.sparql.execute_query(query)
@@ -325,25 +325,25 @@ class DynaMatQueryBuilder:
     def get_test_results(self, test_uri: str) -> Dict[str, Any]:
         """
         Get detailed results for a specific test.
-        
+
         Args:
             test_uri: URI of the test
-            
+
         Returns:
             Dictionary with test results and measurements
         """
         query = """
-        SELECT ?resultType ?measurement ?value ?unit ?description WHERE {
+        SELECT ?resultType ?measurement ?value ?unit ?description WHERE {{
             <{test_uri}> dyn:hasResult ?result .
             ?result rdf:type ?resultType .
-            
-            OPTIONAL {
+
+            OPTIONAL {{
                 ?result ?measurement ?measurementValue .
                 ?measurementValue dyn:hasValue ?value .
                 ?measurementValue dyn:hasUnit ?unit .
-                OPTIONAL { ?measurementValue rdfs:comment ?description }
-            }
-        }
+                OPTIONAL {{ ?measurementValue rdfs:comment ?description }}
+            }}
+        }}
         """.format(test_uri=test_uri)
         
         results = self.sparql.execute_query(query)
@@ -441,33 +441,33 @@ class DynaMatQueryBuilder:
     def get_data_completeness(self, entity_uri: str) -> Dict[str, Any]:
         """
         Analyze data completeness for an entity.
-        
+
         Args:
             entity_uri: URI of the entity to analyze
-            
+
         Returns:
             Dictionary with completeness analysis
         """
         query = """
-        SELECT ?property ?hasValue WHERE {
-            {
+        SELECT ?property ?hasValue WHERE {{
+            {{
                 # Properties this entity has
                 <{entity_uri}> ?property ?value .
                 BIND(true AS ?hasValue)
-            }
+            }}
             UNION
-            {
+            {{
                 # Expected properties (from class definition)
                 <{entity_uri}> rdf:type ?type .
                 ?property rdfs:domain ?type .
                 BIND(false AS ?hasValue)
-                
+
                 # Only include if not already present
-                FILTER NOT EXISTS {
+                FILTER NOT EXISTS {{
                     <{entity_uri}> ?property ?anyValue .
-                }
-            }
-        }
+                }}
+            }}
+        }}
         """.format(entity_uri=entity_uri)
         
         results = self.sparql.execute_query(query)

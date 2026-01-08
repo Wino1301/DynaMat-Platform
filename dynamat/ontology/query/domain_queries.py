@@ -95,10 +95,10 @@ class DomainQueries:
             root_class = str(self.ns.DYN.Entity)
         
         query = """
-        SELECT ?class ?subclass WHERE {
+        SELECT ?class ?subclass WHERE {{
             ?subclass rdfs:subClassOf* <{root_class}> .
             ?subclass rdfs:subClassOf ?class .
-        }
+        }}
         """.format(root_class=root_class)
         
         results = self.sparql.execute_query(query)
@@ -130,11 +130,11 @@ class DomainQueries:
             SELECT DISTINCT ?individual ?label ?name WHERE {{
                 ?individual rdf:type ?instanceClass .
                 ?instanceClass rdfs:subClassOf* <{class_uri}> .
-                
+
                 OPTIONAL {{ ?individual rdfs:label ?label }}
                 OPTIONAL {{ ?individual dyn:hasName ?name }}
                 OPTIONAL {{ ?individual dyn:hasMaterialName ?name }}
-                OPTIONAL {{ ?individual dyn:hasSpecimenId ?name }}
+                OPTIONAL {{ ?individual dyn:hasSpecimenID ?name }}
             }}
             ORDER BY ?label ?name ?individual
             """.format(class_uri=class_uri)
@@ -142,11 +142,11 @@ class DomainQueries:
             query = """
             SELECT DISTINCT ?individual ?label ?name WHERE {{
                 ?individual rdf:type <{class_uri}> .
-                
+
                 OPTIONAL {{ ?individual rdfs:label ?label }}
                 OPTIONAL {{ ?individual dyn:hasName ?name }}
                 OPTIONAL {{ ?individual dyn:hasMaterialName ?name }}
-                OPTIONAL {{ ?individual dyn:hasSpecimenId ?name }}
+                OPTIONAL {{ ?individual dyn:hasSpecimenID ?name }}
             }}
             ORDER BY ?label ?name ?individual
             """.format(class_uri=class_uri)
@@ -206,15 +206,15 @@ class DomainQueries:
     def get_material_by_name(self, material_name: str) -> Optional[Dict[str, Any]]:
         """Get material information by name."""
         query = """
-        SELECT ?material ?materialCode ?alloyDesignation ?description WHERE {
+        SELECT ?material ?materialCode ?alloyDesignation ?description WHERE {{
             ?material rdf:type/rdfs:subClassOf* dyn:Material .
             ?material dyn:hasMaterialName ?name .
             FILTER(LCASE(STR(?name)) = LCASE("{material_name}"))
-            
-            OPTIONAL { ?material dyn:hasMaterialCode ?materialCode }
-            OPTIONAL { ?material dyn:hasAlloyDesignation ?alloyDesignation }
-            OPTIONAL { ?material rdfs:comment ?description }
-        }
+
+            OPTIONAL {{ ?material dyn:hasMaterialCode ?materialCode }}
+            OPTIONAL {{ ?material dyn:hasAlloyDesignation ?alloyDesignation }}
+            OPTIONAL {{ ?material rdfs:comment ?description }}
+        }}
         """.format(material_name=material_name.lower())
         
         results = self.sparql.execute_query(query)
@@ -244,23 +244,23 @@ class DomainQueries:
         if shape:
             filters.append(f'?specimen dyn:hasShape "{shape}"')
         if batch_id:
-            filters.append(f'?specimen dyn:hasBatchId "{batch_id}"')
+            filters.append(f'?specimen dyn:hasSpecimenBatchID "{batch_id}"')
         
         filter_clause = " . ".join(filters) if filters else ""
         
         query = f"""
         SELECT ?specimen ?specimenId ?material ?shape ?batchId ?date WHERE {{
             ?specimen rdf:type/rdfs:subClassOf* dyn:Specimen .
-            
-            OPTIONAL {{ ?specimen dyn:hasSpecimenId ?specimenId }}
-            OPTIONAL {{ ?specimen dyn:hasMaterial ?material }}  
+
+            OPTIONAL {{ ?specimen dyn:hasSpecimenID ?specimenId }}
+            OPTIONAL {{ ?specimen dyn:hasMaterial ?material }}
             OPTIONAL {{ ?specimen dyn:hasShape ?shape }}
-            OPTIONAL {{ ?specimen dyn:hasBatchId ?batchId }}
-            OPTIONAL {{ ?specimen dyn:hasDate ?date }}
-            
+            OPTIONAL {{ ?specimen dyn:hasSpecimenBatchID ?batchId }}
+            OPTIONAL {{ ?specimen dyn:hasManufacturedDate ?date }}
+
             {filter_clause}
         }}
-        ORDER BY ?date DESC
+        ORDER BY DESC(?date)
         """
         
         return self.sparql.execute_query(query)
@@ -290,7 +290,7 @@ class DomainQueries:
         filters = []
         
         if specimen_id:
-            filters.append(f'?test dyn:hasSpecimen/dyn:hasSpecimenId "{specimen_id}"')
+            filters.append(f'?test dyn:hasSpecimen/dyn:hasSpecimenID "{specimen_id}"')
         if material_name:
             filters.append(f'?test dyn:hasSpecimen/dyn:hasMaterial/dyn:hasMaterialName "{material_name}"')
         if test_type:
@@ -328,14 +328,14 @@ class DomainQueries:
     def get_specimen_measurements(self, specimen_uri: str) -> Dict[str, Any]:
         """Get all measurements for a specimen."""
         query = """
-        SELECT ?measurementType ?value ?unit ?description WHERE {
+        SELECT ?measurementType ?value ?unit ?description WHERE {{
             <{specimen_uri}> ?measurementType ?measurement .
             ?measurement rdf:type dyn:Measurement .
-            
+
             ?measurement dyn:hasValue ?value .
-            OPTIONAL { ?measurement dyn:hasUnit ?unit }
-            OPTIONAL { ?measurement rdfs:comment ?description }
-        }
+            OPTIONAL {{ ?measurement dyn:hasUnit ?unit }}
+            OPTIONAL {{ ?measurement rdfs:comment ?description }}
+        }}
         """.format(specimen_uri=specimen_uri)
         
         results = self.sparql.execute_query(query)
@@ -353,14 +353,14 @@ class DomainQueries:
     def get_test_results(self, test_uri: str) -> Dict[str, Any]:
         """Get all results/measurements for a test."""
         query = """
-        SELECT ?resultType ?value ?unit ?description WHERE {
+        SELECT ?resultType ?value ?unit ?description WHERE {{
             <{test_uri}> dyn:hasResult ?result .
             ?result rdf:type ?resultType .
-            
+
             ?result dyn:hasValue ?value .
-            OPTIONAL { ?result dyn:hasUnit ?unit }
-            OPTIONAL { ?result rdfs:comment ?description }
-        }
+            OPTIONAL {{ ?result dyn:hasUnit ?unit }}
+            OPTIONAL {{ ?result rdfs:comment ?description }}
+        }}
         """.format(test_uri=test_uri)
         
         results = self.sparql.execute_query(query)
@@ -397,11 +397,11 @@ class DomainQueries:
         SELECT ?materialName ?specimen ?value ?unit ?date WHERE {{
             ?specimen dyn:hasMaterial/dyn:hasMaterialName ?materialName .
             FILTER({material_filter})
-            
+
             ?specimen dyn:{measurement_name} ?measurement .
             ?measurement dyn:hasValue ?value .
             OPTIONAL {{ ?measurement dyn:hasUnit ?unit }}
-            OPTIONAL {{ ?specimen dyn:hasDate ?date }}
+            OPTIONAL {{ ?specimen dyn:hasManufacturedDate ?date }}
         }}
         ORDER BY ?materialName ?date
         """
@@ -434,19 +434,19 @@ class DomainQueries:
             Dictionary with specimen history including tests and measurements
         """
         query = """
-        SELECT ?specimen ?material ?structure ?processing ?test ?testType ?testDate WHERE {
-            ?specimen dyn:hasSpecimenId "{specimen_id}" .
-            
-            OPTIONAL { ?specimen dyn:hasMaterial ?material }
-            OPTIONAL { ?specimen dyn:hasStructure ?structure }
-            OPTIONAL { ?specimen dyn:hasProcessing ?processing }
-            
-            OPTIONAL { 
+        SELECT ?specimen ?material ?structure ?processing ?test ?testType ?testDate WHERE {{
+            ?specimen dyn:hasSpecimenID "{specimen_id}" .
+
+            OPTIONAL {{ ?specimen dyn:hasMaterial ?material }}
+            OPTIONAL {{ ?specimen dyn:hasStructure ?structure }}
+            OPTIONAL {{ ?specimen dyn:hasProcessing ?processing }}
+
+            OPTIONAL {{
                 ?test dyn:hasSpecimen ?specimen .
                 ?test rdf:type ?testType .
                 ?test dyn:hasDate ?testDate
-            }
-        }
+            }}
+        }}
         ORDER BY ?testDate
         """.format(specimen_id=specimen_id)
         

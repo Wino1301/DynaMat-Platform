@@ -16,61 +16,44 @@
 #################################################################
 
 # Striker Bars
-dyn:StrikerBar_C350_2ft rdf:type owl:NamedIndividual, dyn:Bar ;
-    rdfs:label "Striker Bar C350 2ft"@en ;
-    dyn:hasName "Steel C350 Striker Bar 2ft"@en ;
-    dyn:hasBarID "STR-C350-2FT-001"@en ;
-    dyn:hasMaterial dyn:SteelC350 ;
-    dyn:hasLength 609.6 ;  # 2 feet in mm
-    dyn:hasDiameter 19.05 ;  # 3/4 inch in mm
-    dyn:hasDescription "2-foot steel C350 striker bar for SHPB compression tests"@en .
+dyn:StrikerBar_C350_18in_0375in rdf:type owl:NamedIndividual, dyn:Bar ;
+    rdfs:label "Striker Bar C350 18in"@en ;
+    dyn:hasName "Steel C350 Striker Bar 18in"@en ;
+    dyn:hasMaterial dyn:C350_Maraging ;
+    dyn:hasLength "457.2"^^xsd:double ;  # mm
+    dyn:hasDiameter "9.525"^^xsd:double ;  # mm
+    dyn:hasCrossSection "71.25574"^^xsd:double ;  # mm2 (calculated from diameter)
+    dyn:hasDescription "18 inch steel C350 striker bar for SHPB compression tests"@en .
 
-dyn:StrikerBar_C350_1ft rdf:type owl:NamedIndividual, dyn:Bar ;
-    rdfs:label "Striker Bar C350 1ft"@en ;
-    dyn:hasName "Steel C350 Striker Bar 1ft"@en ;
-    dyn:hasBarID "STR-C350-1FT-001"@en ;
-    dyn:hasMaterial dyn:SteelC350 ;
-    dyn:hasLength 304.8 ;  # 1 foot in mm
-    dyn:hasDiameter 19.05 ;
-    dyn:hasDescription "1-foot steel C350 striker bar for SHPB compression tests"@en .
+dyn:StrikerBar_C350_12in_0375in rdf:type owl:NamedIndividual, dyn:Bar ;
+    rdfs:label "Striker Bar C350 12in"@en ;
+    dyn:hasName "Steel C350 Striker Bar 12in"@en ;
+    dyn:hasMaterial dyn:C350_Maraging ;
+    dyn:hasLength "304.8"^^xsd:double ;  # 1 foot in mm
+    dyn:hasDiameter "9.525"^^xsd:double ;  # mm
+    dyn:hasCrossSection "71.25574"^^xsd:double ;  # mm2 (calculated from diameter)
+    dyn:hasDescription "12-inch steel C350 striker bar for SHPB compression tests"@en .
 
 # Incident Bars
-dyn:IncidentBar_C350_6ft rdf:type owl:NamedIndividual, dyn:Bar ;
+dyn:IncidentBar_C350_8ft_0375in rdf:type owl:NamedIndividual, dyn:Bar ;
     rdfs:label "Incident Bar C350 6ft"@en ;
     dyn:hasName "Steel C350 Incident Bar 6ft"@en ;
-    dyn:hasBarID "INC-C350-6FT-001"@en ;
-    dyn:hasMaterial dyn:SteelC350 ;
-    dyn:hasLength 1828.8 ;  # 6 feet in mm
-    dyn:hasDiameter 19.05 ;
-    dyn:hasDescription "6-foot steel C350 incident bar for SHPB compression tests"@en .
-
-dyn:IncidentBar_C350_4ft rdf:type owl:NamedIndividual, dyn:Bar ;
-    rdfs:label "Incident Bar C350 4ft"@en ;
-    dyn:hasName "Steel C350 Incident Bar 4ft"@en ;
-    dyn:hasBarID "INC-C350-4FT-001"@en ;
-    dyn:hasMaterial dyn:SteelC350 ;
-    dyn:hasLength 1219.2 ;  # 4 feet in mm
-    dyn:hasDiameter 19.05 ;
-    dyn:hasDescription "4-foot steel C350 incident bar for SHPB compression tests"@en .
+    dyn:hasMaterial dyn:C350_Maraging ;
+    dyn:hasLength "2438.4"^^xsd:double ;  # 8 feet in mm
+    dyn:hasDiameter "9.525"^^xsd:double ;  # mm
+    dyn:hasCrossSection "71.25574"^^xsd:double ;  # mm2 (calculated from diameter)
+    dyn:hasDescription "8-foot steel C350 incident bar for SHPB compression tests"@en .
 
 # Transmission Bars
-dyn:TransmissionBar_C350_6ft rdf:type owl:NamedIndividual, dyn:Bar ;
+dyn:TransmissionBar_C350_6ft_0375in rdf:type owl:NamedIndividual, dyn:Bar ;
     rdfs:label "Transmission Bar C350 6ft"@en ;
     dyn:hasName "Steel C350 Transmission Bar 6ft"@en ;
-    dyn:hasBarID "TRA-C350-6FT-001"@en ;
-    dyn:hasMaterial dyn:SteelC350 ;
-    dyn:hasLength 1828.8 ;  # 6 feet in mm
-    dyn:hasDiameter 19.05 ;
+    dyn:hasMaterial dyn:C350_Maraging ;
+    dyn:hasLength "1828.8"^^xsd:double ;  # 6 feet in mm
+    dyn:hasDiameter "9.525"^^xsd:double ;  # mm
+    dyn:hasCrossSection "71.25574"^^xsd:double ;  # mm2 (calculated from diameter)
     dyn:hasDescription "6-foot steel C350 transmission bar for SHPB compression tests"@en .
 
-dyn:TransmissionBar_C350_4ft rdf:type owl:NamedIndividual, dyn:Bar ;
-    rdfs:label "Transmission Bar C350 4ft"@en ;
-    dyn:hasName "Steel C350 Transmission Bar 4ft"@en ;
-    dyn:hasBarID "TRA-C350-4FT-001"@en ;
-    dyn:hasMaterial dyn:SteelC350 ;
-    dyn:hasLength 1219.2 ;  # 4 feet in mm
-    dyn:hasDiameter 19.05 ;
-    dyn:hasDescription "4-foot steel C350 transmission bar for SHPB compression tests"@en .
 
 #################################################################
 #    Momentum Trap Configurations
@@ -80,15 +63,13 @@ dyn:MomentumTrap_Full rdf:type owl:NamedIndividual, dyn:MomentumTrap ;
     rdfs:label "Full Momentum Trap"@en ;
     dyn:hasName "Fully Engaged Momentum Trap"@en ;
     dyn:hasDescription "Momentum trap fully engaged for complete energy absorption"@en ;
-    dyn:hasTrapState "Fully Engaged"@en ;
-    dyn:hasTaylorGapDistance 0.0 .
+    dyn:hasTrapState "Fully Engaged"@en .
 
-dyn:MomentumTrap_TaylorGap rdf:type owl:NamedIndividual, dyn:MomentumTrap ;
-    rdfs:label "Taylor Gap Momentum Trap"@en ;
-    dyn:hasName "Taylor Gap Momentum Trap"@en ;
-    dyn:hasDescription "Momentum trap with Taylor gap for partial engagement"@en ;
-    dyn:hasTrapState "Taylor Gap"@en ;
-    dyn:hasTaylorGapDistance 3.0 .
+dyn:MomentumTrap_TailoredGap rdf:type owl:NamedIndividual, dyn:MomentumTrap ;
+    rdfs:label "Tailored Gap Momentum Trap"@en ;
+    dyn:hasName "Tailored Gap Momentum Trap"@en ;
+    dyn:hasDescription "Momentum trap with Tailored gap for partial engagement"@en ;
+    dyn:hasTrapState "Tailored Gap"@en .
 
 # Note: When no momentum trap is used, simply don't set the hasMomentumTrap property
 # The property is optional (maxCount 1) and its absence indicates no trap usage
@@ -101,24 +82,24 @@ dyn:PulseShaper_Copper_0015in rdf:type owl:NamedIndividual, dyn:PulseShaper ;
     rdfs:label "Copper Pulse Shaper 0.015in"@en ;
     dyn:hasName "Copper Pulse Shaper 0.015 inch"@en ;
     dyn:hasMaterial dyn:CU101 ;
-    dyn:hasThickness 0.381 ;  # 0.015 inch in mm
-    dyn:hasDiameter 3.0 ;     # 3 mm diameter
+    dyn:hasThickness "0.381"^^xsd:double ;  # 0.015 inch in mm
+    dyn:hasDiameter "3.0"^^xsd:double ;     # 3 mm diameter
     dyn:hasDescription "0.015-inch thick copper disc for pulse shaping"@en .
 
 dyn:PulseShaper_Copper_0020in rdf:type owl:NamedIndividual, dyn:PulseShaper ;
     rdfs:label "Copper Pulse Shaper 0.020in"@en ;
     dyn:hasName "Copper Pulse Shaper 0.020 inch"@en ;
     dyn:hasMaterial dyn:CU101 ;
-    dyn:hasThickness 0.508 ;  # 0.020 inch in mm
-    dyn:hasDiameter 3.0 ;     # 3 mm diameter
+    dyn:hasThickness "0.508"^^xsd:double ;  # 0.020 inch in mm
+    dyn:hasDiameter "3.0"^^xsd:double ;     # 3 mm diameter
     dyn:hasDescription "0.020-inch thick copper disc for pulse shaping"@en .
 
 dyn:PulseShaper_Copper_0025in rdf:type owl:NamedIndividual, dyn:PulseShaper ;
     rdfs:label "Copper Pulse Shaper 0.025in"@en ;
     dyn:hasName "Copper Pulse Shaper 0.025 inch"@en ;
     dyn:hasMaterial dyn:CU101 ;
-    dyn:hasThickness 0.635 ;  # 0.025 inch in mm
-    dyn:hasDiameter 3.0 ;     # 3 mm diameter
+    dyn:hasThickness "0.635"^^xsd:double ;  # 0.025 inch in mm
+    dyn:hasDiameter "3.0"^^xsd:double ;     # 3 mm diameter
     dyn:hasDescription "0.025-inch thick copper disc for pulse shaping"@en .
 
 #################################################################
@@ -179,9 +160,9 @@ dyn:DAQ_HighSpeed rdf:type owl:NamedIndividual, dyn:Equipment ;
     dyn:hasName "National Instruments PXIe-6366 High-Speed DAQ"@en ;
     dyn:hasModel "PXIe-6366"@en ;
     dyn:hasManufacturer "National Instruments"@en ;
-    dyn:hasSamplingRate 2000000.0 ;  # 2 MHz
-    dyn:hasResolution 16 ;
-    dyn:hasChannelCount 8 ;
+    dyn:hasSamplingRate "2000000.0"^^xsd:double ;  # 2 MHz
+    dyn:hasResolution "16"^^xsd:integer ;
+    dyn:hasChannelCount "8"^^xsd:integer ;
     dyn:hasDescription "High-speed data acquisition for SHPB testing"@en .
 
 dyn:DAQ_Oscilloscope rdf:type owl:NamedIndividual, dyn:Equipment ;
@@ -189,9 +170,9 @@ dyn:DAQ_Oscilloscope rdf:type owl:NamedIndividual, dyn:Equipment ;
     dyn:hasName "Tektronix DPO4104B Oscilloscope"@en ;
     dyn:hasModel "DPO4104B"@en ;
     dyn:hasManufacturer "Tektronix"@en ;
-    dyn:hasSamplingRate 5000000000.0 ;  # 5 GHz
-    dyn:hasResolution 8 ;
-    dyn:hasChannelCount 4 ;
+    dyn:hasSamplingRate "5000000000.0"^^xsd:double ;  # 5 GHz
+    dyn:hasResolution "8"^^xsd:integer ;
+    dyn:hasChannelCount "4"^^xsd:integer ;
     dyn:hasDescription "1 GHz oscilloscope for high-speed SHPB measurements"@en .
 
 #################################################################
@@ -203,8 +184,8 @@ dyn:UTM_Instron_5982 rdf:type owl:NamedIndividual, dyn:Equipment ;
     dyn:hasName "Instron 5982 Universal Testing Machine"@en ;
     dyn:hasModel "5982"@en ;
     dyn:hasManufacturer "Instron"@en ;
-    dyn:hasMaxLoad 100000.0 ;  # 100 kN
-    dyn:hasLoadResolution 0.5 ;
+    dyn:hasMaxLoad "100000.0"^^xsd:double ;  # 100 kN
+    dyn:hasLoadResolution "0.5"^^xsd:double ;
     dyn:hasDescription "100kN dual column universal testing machine for quasi-static tests"@en .
 
 #################################################################
@@ -224,6 +205,8 @@ dyn:UTM_Instron_5982 rdf:type owl:NamedIndividual, dyn:Equipment ;
 #     dyn:hasName "Incident Bar Strain Gauge SG1"@en ;
 #     dyn:hasGaugeResistance 350.0 ;
 #     dyn:hasGaugeFactor 2.12 ;
+#     dyn:hasCalibrationVoltage 2.0 ;
+#     dyn:hasCalibrationResistance 59950.0 ;
 #     dyn:hasGaugeLocation "Incident Bar"@en ;
 #     dyn:hasDistanceFromSpecimen 915.0 ;
 #     dyn:hasDescription "Strain gauge on incident bar for pulse measurement"@en .

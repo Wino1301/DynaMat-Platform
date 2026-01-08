@@ -58,18 +58,6 @@ dyn:hasDataAcquisitionSystem rdf:type owl:ObjectProperty ,
                              gui:hasFormGroup "DataAcquisition" .
 
 
-###  https://dynamat.utep.edu/ontology#hasIncidentBar
-dyn:hasIncidentBar rdf:type owl:ObjectProperty ,
-                            owl:FunctionalProperty ;
-                   rdfs:domain dyn:SHPBCompression ;
-                   rdfs:range dyn:Bar ;
-                   rdfs:comment "Incident bar used in SHPB test"@en ;
-                   rdfs:label "Incident Bar"@en ;
-                   gui:hasDisplayName "Incident Bar" ;
-                   gui:hasDisplayOrder 1 ;
-                   gui:hasFormGroup "EquipmentConfiguration" .
-
-
 ###  https://dynamat.utep.edu/ontology#hasLoadFrame
 dyn:hasLoadFrame rdf:type owl:ObjectProperty ,
                           owl:FunctionalProperty ;
@@ -82,30 +70,6 @@ dyn:hasLoadFrame rdf:type owl:ObjectProperty ,
                  gui:hasFormGroup "EquipmentConfiguration" .
 
 
-###  https://dynamat.utep.edu/ontology#hasMomentumTrap
-dyn:hasMomentumTrap rdf:type owl:ObjectProperty ,
-                             owl:FunctionalProperty ;
-                    rdfs:domain dyn:SHPBCompression ;
-                    rdfs:range dyn:MomentumTrap ;
-                    rdfs:comment "Momentum trap configuration used"@en ;
-                    rdfs:label "Momentum Trap"@en ;
-                    gui:hasDisplayName "Momentum Trap" ;
-                    gui:hasDisplayOrder 3 ;
-                    gui:hasFormGroup "EquipmentConfiguration" .
-
-
-###  https://dynamat.utep.edu/ontology#hasPulseShaper
-dyn:hasPulseShaper rdf:type owl:ObjectProperty ,
-                            owl:FunctionalProperty ;
-                   rdfs:domain dyn:SHPBCompression ;
-                   rdfs:range dyn:PulseShaper ;
-                   rdfs:comment "Pulse shaper instance used (material accessed via hasMaterial)"@en ;
-                   rdfs:label "Pulse Shaper"@en ;
-                   gui:hasDisplayName "Pulse Shaper" ;
-                   gui:hasDisplayOrder 6 ;
-                   gui:hasFormGroup "TestConditions" .
-
-
 ###  https://dynamat.utep.edu/ontology#hasStrainGauge
 dyn:hasStrainGauge rdf:type owl:ObjectProperty ;
                    rdfs:domain dyn:MechanicalTest ;
@@ -115,18 +79,6 @@ dyn:hasStrainGauge rdf:type owl:ObjectProperty ;
                    gui:hasDisplayName "Strain Gauge" ;
                    gui:hasDisplayOrder 1 ;
                    gui:hasFormGroup "StrainGaugeConfiguration" .
-
-
-###  https://dynamat.utep.edu/ontology#hasStrikerBar
-dyn:hasStrikerBar rdf:type owl:ObjectProperty ,
-                           owl:FunctionalProperty ;
-                  rdfs:domain dyn:SHPBCompression ;
-                  rdfs:range dyn:Bar ;
-                  rdfs:comment "Striker bar used in SHPB test"@en ;
-                  rdfs:label "Striker Bar"@en ;
-                  gui:hasDisplayName "Striker Bar" ;
-                  gui:hasDisplayOrder 0 ;
-                  gui:hasFormGroup "EquipmentConfiguration" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasTestingMachine
@@ -141,36 +93,9 @@ dyn:hasTestingMachine rdf:type owl:ObjectProperty ,
                       gui:hasFormGroup "EquipmentConfiguration" .
 
 
-###  https://dynamat.utep.edu/ontology#hasTransmissionBar
-dyn:hasTransmissionBar rdf:type owl:ObjectProperty ,
-                                owl:FunctionalProperty ;
-                       rdfs:domain dyn:SHPBCompression ;
-                       rdfs:range dyn:Bar ;
-                       rdfs:comment "Transmission bar used in SHPB test"@en ;
-                       rdfs:label "Transmission Bar"@en ;
-                       gui:hasDisplayName "Transmission Bar" ;
-                       gui:hasDisplayOrder 2 ;
-                       gui:hasFormGroup "EquipmentConfiguration" .
-
-
 #################################################################
 #    Data properties
 #################################################################
-
-###  https://dynamat.utep.edu/ontology#hasBarrelOffset
-dyn:hasBarrelOffset rdf:type owl:DatatypeProperty ;
-                    rdfs:subPropertyOf dyn:hasTestCondition ;
-                    rdf:type owl:FunctionalProperty ;
-                    rdfs:domain dyn:SHPBCompression ;
-                    rdfs:range xsd:double ;
-                    qudt:hasQuantityKind qkdv:Length ;
-                    rdfs:comment "Separation distance between barrel end and incident bar"@en ;
-                    rdfs:label "Barrel Offset"@en ;
-                    dyn:hasUnit "unit:MilliM" ;
-                    gui:hasDisplayName "Barrel Offset (mm)" ;
-                    gui:hasDisplayOrder 13 ;
-                    gui:hasFormGroup "TestConditions" .
-
 
 ###  https://dynamat.utep.edu/ontology#hasCalibrationResistance
 dyn:hasCalibrationResistance rdf:type owl:DatatypeProperty ,
@@ -373,36 +298,6 @@ dyn:hasHeatingRate rdf:type owl:DatatypeProperty ;
                    gui:hasFormGroup "TestConditions" .
 
 
-###  https://dynamat.utep.edu/ontology#hasIncidentBarLength
-dyn:hasIncidentBarLength rdf:type owl:DatatypeProperty ;
-                         rdfs:subPropertyOf dyn:hasTestCondition ;
-                         rdf:type owl:FunctionalProperty ;
-                         rdfs:domain dyn:SHPBCompression ;
-                         rdfs:range xsd:double ;
-                         qudt:hasQuantityKind qkdv:Length ;
-                         rdfs:comment "Length of incident bar used"@en ;
-                         rdfs:label "Incident Bar Length"@en ;
-                         dyn:hasUnit "unit:MilliM" ;
-                         gui:hasDisplayName "Incident Bar Length (mm)" ;
-                         gui:hasDisplayOrder 3 ;
-                         gui:hasFormGroup "TestConditions" .
-
-
-###  https://dynamat.utep.edu/ontology#hasIncidentStrainGaugeDistance
-dyn:hasIncidentStrainGaugeDistance rdf:type owl:DatatypeProperty ;
-                                   rdfs:subPropertyOf dyn:hasTestCondition ;
-                                   rdf:type owl:FunctionalProperty ;
-                                   rdfs:domain dyn:SHPBCompression ;
-                                   rdfs:range xsd:double ;
-                                   qudt:hasQuantityKind qkdv:Length ;
-                                   rdfs:comment "Distance from incident bar strain gauge to specimen interface"@en ;
-                                   rdfs:label "Incident Strain Gauge Distance"@en ;
-                                   dyn:hasUnit "unit:MilliM" ;
-                                   gui:hasDisplayName "Incident Strain Gauge Distance (mm)" ;
-                                   gui:hasDisplayOrder 10 ;
-                                   gui:hasFormGroup "StrainGaugeConfiguration" .
-
-
 ###  https://dynamat.utep.edu/ontology#hasLoadingRate
 dyn:hasLoadingRate rdf:type owl:DatatypeProperty ;
                    rdfs:subPropertyOf dyn:hasTestCondition ;
@@ -418,32 +313,6 @@ dyn:hasLoadingRate rdf:type owl:DatatypeProperty ;
                    gui:hasFormGroup "TestConditions" .
 
 
-###  https://dynamat.utep.edu/ontology#hasLubricationType
-dyn:hasLubricationType rdf:type owl:DatatypeProperty ,
-                                owl:FunctionalProperty ;
-                       rdfs:domain dyn:SHPBCompression ;
-                       rdfs:range xsd:string ;
-                       rdfs:comment "Type of lubrication/grease used (if applicable)"@en ;
-                       rdfs:label "Lubrication Type"@en ;
-                       gui:hasDisplayName "Lubrication Type" ;
-                       gui:hasDisplayOrder 15 ;
-                       gui:hasFormGroup "TestConditions" ;
-                       gui:hasValidValues "White Lithium Grease, Molybdenum Disulfide, Graphite, Other" .
-
-
-###  https://dynamat.utep.edu/ontology#hasLubricationUsed
-dyn:hasLubricationUsed rdf:type owl:DatatypeProperty ;
-                       rdfs:subPropertyOf dyn:hasTestCondition ;
-                       rdf:type owl:FunctionalProperty ;
-                       rdfs:domain dyn:SHPBCompression ;
-                       rdfs:range xsd:boolean ;
-                       rdfs:comment "Whether grease or lubrication was applied during test setup"@en ;
-                       rdfs:label "Lubrication Used"@en ;
-                       gui:hasDisplayName "Grease/Lubrication Applied" ;
-                       gui:hasDisplayOrder 14 ;
-                       gui:hasFormGroup "TestConditions" .
-
-
 ###  https://dynamat.utep.edu/ontology#hasMaximumLoad
 dyn:hasMaximumLoad rdf:type owl:DatatypeProperty ;
                    rdfs:subPropertyOf dyn:hasTestCondition ;
@@ -457,169 +326,6 @@ dyn:hasMaximumLoad rdf:type owl:DatatypeProperty ;
                    gui:hasDisplayName "Maximum Load (N)" ;
                    gui:hasDisplayOrder 3 ;
                    gui:hasFormGroup "TestConditions" .
-
-
-###  https://dynamat.utep.edu/ontology#hasPulseDuration
-dyn:hasPulseDuration rdf:type owl:DatatypeProperty ;
-                     rdfs:subPropertyOf dyn:hasTestCondition ;
-                     rdf:type owl:FunctionalProperty ;
-                     rdfs:domain dyn:SHPBCompression ;
-                     rdfs:range xsd:double ;
-                     qudt:hasQuantityKind qkdv:Time ;
-                     rdfs:comment "Duration of the stress pulse generated"@en ;
-                     rdfs:label "Pulse Duration"@en ;
-                     dyn:hasUnit "unit:MicroSEC" ;
-                     gui:hasDisplayName "Pulse Duration (μs)" ;
-                     gui:hasDisplayOrder 1 ;
-                     gui:hasFormGroup "PulseCharacteristics" .
-
-
-###  https://dynamat.utep.edu/ontology#hasPulseLength
-dyn:hasPulseLength rdf:type owl:DatatypeProperty ;
-                   rdfs:subPropertyOf dyn:hasTestCondition ;
-                   rdf:type owl:FunctionalProperty ;
-                   rdfs:domain dyn:SHPBCompression ;
-                   rdfs:range xsd:double ;
-                   qudt:hasQuantityKind qkdv:Length ;
-                   rdfs:comment "Physical length of the stress pulse in the bar"@en ;
-                   rdfs:label "Pulse Length"@en ;
-                   dyn:hasUnit "unit:MilliM" ;
-                   gui:hasDisplayName "Pulse Length (mm)" ;
-                   gui:hasDisplayOrder 2 ;
-                   gui:hasFormGroup "PulseCharacteristics" .
-
-
-###  https://dynamat.utep.edu/ontology#hasPulseRiseTime
-dyn:hasPulseRiseTime rdf:type owl:DatatypeProperty ;
-                     rdfs:subPropertyOf dyn:hasTestCondition ;
-                     rdf:type owl:FunctionalProperty ;
-                     rdfs:domain dyn:SHPBCompression ;
-                     rdfs:range xsd:double ;
-                     qudt:hasQuantityKind qkdv:Time ;
-                     rdfs:comment "Time for pulse to rise from 10% to 90% of maximum amplitude"@en ;
-                     rdfs:label "Pulse Rise Time"@en ;
-                     dyn:hasUnit "unit:MicroSEC" ;
-                     gui:hasDisplayName "Pulse Rise Time (μs)" ;
-                     gui:hasDisplayOrder 6 ;
-                     gui:hasFormGroup "PulseCharacteristics" .
-
-
-###  https://dynamat.utep.edu/ontology#hasPulseShaperDiameter
-dyn:hasPulseShaperDiameter rdf:type owl:DatatypeProperty ;
-                           rdfs:subPropertyOf dyn:hasTestCondition ;
-                           rdf:type owl:FunctionalProperty ;
-                           rdfs:domain dyn:SHPBCompression ;
-                           rdfs:range xsd:double ;
-                           qudt:hasQuantityKind qkdv:Length ;
-                           rdfs:comment "Diameter of pulse shaper material"@en ;
-                           rdfs:label "Pulse Shaper Diameter"@en ;
-                           dyn:hasUnit "unit:MilliM" ;
-                           gui:hasDisplayName "Pulse Shaper Diameter (mm)" ;
-                           gui:hasDisplayOrder 8 ;
-                           gui:hasFormGroup "TestConditions" .
-
-
-###  https://dynamat.utep.edu/ontology#hasPulseShaperThickness
-dyn:hasPulseShaperThickness rdf:type owl:DatatypeProperty ;
-                            rdfs:subPropertyOf dyn:hasTestCondition ;
-                            rdf:type owl:FunctionalProperty ;
-                            rdfs:domain dyn:SHPBCompression ;
-                            rdfs:range xsd:double ;
-                            qudt:hasQuantityKind qkdv:Length ;
-                            rdfs:comment "Thickness of pulse shaper material"@en ;
-                            rdfs:label "Pulse Shaper Thickness"@en ;
-                            dyn:hasUnit "unit:MilliM" ;
-                            gui:hasDisplayName "Pulse Shaper Thickness (mm)" ;
-                            gui:hasDisplayOrder 9 ;
-                            gui:hasFormGroup "TestConditions" .
-
-
-###  https://dynamat.utep.edu/ontology#hasPulseShaping
-dyn:hasPulseShaping rdf:type owl:DatatypeProperty ;
-                    rdfs:subPropertyOf dyn:hasTestCondition ;
-                    rdf:type owl:FunctionalProperty ;
-                    rdfs:domain dyn:SHPBCompression ;
-                    rdfs:range xsd:boolean ;
-                    rdfs:comment "Whether pulse shaping technique was used"@en ;
-                    rdfs:label "Pulse Shaping"@en ;
-                    gui:hasDisplayName "Pulse Shaping Used" ;
-                    gui:hasDisplayOrder 5 ;
-                    gui:hasFormGroup "TestConditions" .
-
-
-###  https://dynamat.utep.edu/ontology#hasPulseSpeed
-dyn:hasPulseSpeed rdf:type owl:DatatypeProperty ;
-                  rdfs:subPropertyOf dyn:hasTestCondition ;
-                  rdf:type owl:FunctionalProperty ;
-                  rdfs:domain dyn:SHPBCompression ;
-                  rdfs:range xsd:double ;
-                  qudt:hasQuantityKind qkdv:Velocity ;
-                  rdfs:comment "Propagation speed of the stress pulse in the bar"@en ;
-                  rdfs:label "Pulse Speed"@en ;
-                  dyn:hasUnit "unit:M-PER-SEC" ;
-                  gui:hasDisplayName "Pulse Speed (m/s)" ;
-                  gui:hasDisplayOrder 3 ;
-                  gui:hasFormGroup "PulseCharacteristics" .
-
-
-###  https://dynamat.utep.edu/ontology#hasPulseStrainAmplitude
-dyn:hasPulseStrainAmplitude rdf:type owl:DatatypeProperty ;
-                            rdfs:subPropertyOf dyn:hasTestCondition ;
-                            rdf:type owl:FunctionalProperty ;
-                            rdfs:domain dyn:SHPBCompression ;
-                            rdfs:range xsd:double ;
-                            qudt:hasQuantityKind qkdv:Strain ;
-                            rdfs:comment "Maximum strain amplitude of the incident pulse (values in microstrain, 1 µε = 10⁻⁶)"@en ;
-                            rdfs:label "Pulse Strain Amplitude"@en ;
-                            dyn:hasUnit "unit:UNITLESS" ;
-                            gui:hasDisplayName "Pulse Strain Amplitude (μɛ)" ;
-                            gui:hasDisplayOrder 4 ;
-                            gui:hasFormGroup "PulseCharacteristics" .
-
-
-###  https://dynamat.utep.edu/ontology#hasPulseStressAmplitude
-dyn:hasPulseStressAmplitude rdf:type owl:DatatypeProperty ;
-                            rdfs:subPropertyOf dyn:hasTestCondition ;
-                            rdf:type owl:FunctionalProperty ;
-                            rdfs:domain dyn:SHPBCompression ;
-                            rdfs:range xsd:double ;
-                            qudt:hasQuantityKind qkdv:Stress ;
-                            rdfs:comment "Maximum stress amplitude of the incident pulse"@en ;
-                            rdfs:label "Pulse Stress Amplitude"@en ;
-                            dyn:hasUnit "unit:MegaPA" ;
-                            gui:hasDisplayName "Pulse Stress Amplitude (MPa)" ;
-                            gui:hasDisplayOrder 5 ;
-                            gui:hasFormGroup "PulseCharacteristics" .
-
-
-###  https://dynamat.utep.edu/ontology#hasStrikerLength
-dyn:hasStrikerLength rdf:type owl:DatatypeProperty ;
-                     rdfs:subPropertyOf dyn:hasTestCondition ;
-                     rdf:type owl:FunctionalProperty ;
-                     rdfs:domain dyn:SHPBCompression ;
-                     rdfs:range xsd:double ;
-                     qudt:hasQuantityKind qkdv:Length ;
-                     rdfs:comment "Length of striker bar used"@en ;
-                     rdfs:label "Striker Length"@en ;
-                     dyn:hasUnit "unit:MilliM" ;
-                     gui:hasDisplayName "Striker Length (mm)" ;
-                     gui:hasDisplayOrder 2 ;
-                     gui:hasFormGroup "TestConditions" .
-
-
-###  https://dynamat.utep.edu/ontology#hasStrikerVelocity
-dyn:hasStrikerVelocity rdf:type owl:DatatypeProperty ;
-                       rdfs:subPropertyOf dyn:hasTestCondition ;
-                       rdf:type owl:FunctionalProperty ;
-                       rdfs:domain dyn:SHPBCompression ;
-                       rdfs:range xsd:double ;
-                       qudt:hasQuantityKind qkdv:Velocity ;
-                       rdfs:comment "Impact velocity of striker bar"@en ;
-                       rdfs:label "Striker Velocity"@en ;
-                       dyn:hasUnit "unit:M-PER-SEC" ;
-                       gui:hasDisplayName "Striker Velocity (m/s)" ;
-                       gui:hasDisplayOrder 1 ;
-                       gui:hasFormGroup "TestConditions" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasTargetStrainRate
@@ -707,36 +413,6 @@ dyn:hasTestValidity rdf:type owl:DatatypeProperty ,
                     gui:hasFormGroup "TestValidation" .
 
 
-###  https://dynamat.utep.edu/ontology#hasTransmissionBarLength
-dyn:hasTransmissionBarLength rdf:type owl:DatatypeProperty ;
-                             rdfs:subPropertyOf dyn:hasTestCondition ;
-                             rdf:type owl:FunctionalProperty ;
-                             rdfs:domain dyn:SHPBCompression ;
-                             rdfs:range xsd:double ;
-                             qudt:hasQuantityKind qkdv:Length ;
-                             rdfs:comment "Length of transmission bar used"@en ;
-                             rdfs:label "Transmission Bar Length"@en ;
-                             dyn:hasUnit "unit:MilliM" ;
-                             gui:hasDisplayName "Transmission Bar Length (mm)" ;
-                             gui:hasDisplayOrder 4 ;
-                             gui:hasFormGroup "TestConditions" .
-
-
-###  https://dynamat.utep.edu/ontology#hasTransmissionStrainGaugeDistance
-dyn:hasTransmissionStrainGaugeDistance rdf:type owl:DatatypeProperty ;
-                                       rdfs:subPropertyOf dyn:hasTestCondition ;
-                                       rdf:type owl:FunctionalProperty ;
-                                       rdfs:domain dyn:SHPBCompression ;
-                                       rdfs:range xsd:double ;
-                                       qudt:hasQuantityKind qkdv:Length ;
-                                       rdfs:comment "Distance from transmission bar strain gauge to specimen interface"@en ;
-                                       rdfs:label "Transmission Strain Gauge Distance"@en ;
-                                       dyn:hasUnit "unit:MilliM" ;
-                                       gui:hasDisplayName "Transmission Strain Gauge Distance (mm)" ;
-                                       gui:hasDisplayOrder 11 ;
-                                       gui:hasFormGroup "StrainGaugeConfiguration" .
-
-
 ###  https://dynamat.utep.edu/ontology#hasValidityNotes
 dyn:hasValidityNotes rdf:type owl:DatatypeProperty ;
                      rdfs:domain dyn:MechanicalTest ;
@@ -746,18 +422,6 @@ dyn:hasValidityNotes rdf:type owl:DatatypeProperty ;
                      gui:hasDisplayName "Validity Notes" ;
                      gui:hasDisplayOrder 2 ;
                      gui:hasFormGroup "TestValidation" .
-
-
-###  https://dynamat.utep.edu/ontology#hasWaveDispersion
-dyn:hasWaveDispersion rdf:type owl:DatatypeProperty ,
-                               owl:FunctionalProperty ;
-                      rdfs:domain dyn:SHPBCompression ;
-                      rdfs:range xsd:string ;
-                      rdfs:comment "Assessment of wave pulse dispersion quality"@en ;
-                      rdfs:label "Wave Dispersion"@en ;
-                      gui:hasDisplayName "Wave Dispersion Assessment" ;
-                      gui:hasDisplayOrder 3 ;
-                      gui:hasFormGroup "QualitativeAssessment" .
 
 
 #################################################################

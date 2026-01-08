@@ -26,10 +26,10 @@ dyn:Al6061_T6 rdf:type owl:NamedIndividual, dyn:AluminiumAlloy ;
     dyn:hasDescription "Structural aluminum alloy, heat treated T6 condition"@en ;
     dyn:hasPlottingLabel "Al6061-T6"@en ;
     # Direct thermal properties (simplified approach)
-    dyn:hasMeltingPoint 582.0 ;
-    dyn:hasThermalConductivity 167.0 ;
-    dyn:hasSpecificHeat 896.0 ;
-    dyn:hasDensity 2.70 .
+    dyn:hasMeltingPoint "582.0"^^xsd:double ;
+    dyn:hasThermalConductivity "167.0"^^xsd:double ;
+    dyn:hasSpecificHeat "896.0"^^xsd:double ;
+    dyn:hasDensity "2.70"^^xsd:double .
 
 dyn:Al7075_T6 rdf:type owl:NamedIndividual, dyn:AluminiumAlloy ;
     rdfs:label "Al7075-T6"@en ;
@@ -42,10 +42,10 @@ dyn:Al7075_T6 rdf:type owl:NamedIndividual, dyn:AluminiumAlloy ;
     dyn:hasDescription "High strength aluminum alloy, aerospace grade"@en ;
     dyn:hasPlottingLabel "Al7075-T6"@en ;
     # Direct thermal properties
-    dyn:hasMeltingPoint 477.0 ;
-    dyn:hasThermalConductivity 130.0 ;
-    dyn:hasSpecificHeat 960.0 ;
-    dyn:hasDensity 2.81 .
+    dyn:hasMeltingPoint "477.0"^^xsd:double ;
+    dyn:hasThermalConductivity "130.0"^^xsd:double ;
+    dyn:hasSpecificHeat "960.0"^^xsd:double ;
+    dyn:hasDensity "2.81"^^xsd:double .
 
 dyn:A356 rdf:type owl:NamedIndividual, dyn:AluminiumAlloy ;
     rdfs:label "A356"@en ;
@@ -58,10 +58,10 @@ dyn:A356 rdf:type owl:NamedIndividual, dyn:AluminiumAlloy ;
     dyn:hasDescription "Aluminum casting alloy with excellent castability"@en ;
     dyn:hasPlottingLabel "A356"@en ;
     # Direct thermal properties
-    dyn:hasMeltingPoint 615.0 ;
-    dyn:hasThermalConductivity 151.0 ;
-    dyn:hasSpecificHeat 963.0 ;
-    dyn:hasDensity 2.68 .
+    dyn:hasMeltingPoint "615.0"^^xsd:double ;
+    dyn:hasThermalConductivity "151.0"^^xsd:double ;
+    dyn:hasSpecificHeat "963.0"^^xsd:double ;
+    dyn:hasDensity "2.68"^^xsd:double .
 
 #################################################################
 #    Material Individuals - Steel Alloys
@@ -78,28 +78,23 @@ dyn:SS316 rdf:type owl:NamedIndividual, dyn:SteelAlloy ;
     dyn:hasDescription "Austenitic stainless steel with molybdenum for corrosion resistance"@en ;
     dyn:hasPlottingLabel "SS316"@en ;
     # Direct thermal properties
-    dyn:hasMeltingPoint 1375.0 ;
-    dyn:hasThermalConductivity 16.2 ;
-    dyn:hasSpecificHeat 500.0 ;
-    dyn:hasDensity 8.00 .
+    dyn:hasMeltingPoint "1375.0"^^xsd:double ;
+    dyn:hasThermalConductivity "16.2"^^xsd:double ;
+    dyn:hasSpecificHeat "500.0"^^xsd:double ;
+    dyn:hasDensity "8.00"^^xsd:double .
 
-dyn:C530_Maraging rdf:type owl:NamedIndividual, dyn:SteelAlloy ;
-    rdfs:label "C530 Maraging Steel"@en ;
-    dyn:hasName "C530 Maraging Steel"@en ;
+dyn:C350_Maraging rdf:type owl:NamedIndividual, dyn:SteelAlloy ;
+    rdfs:label "C350 Maraging Steel"@en ;
+    dyn:hasName "C350 Maraging Steel"@en ;
     dyn:hasMaterialName "C530"@en ;
     dyn:hasMaterialCode "SC350"@en ;
-    dyn:hasAlloyDesignation "C530"@en ;
+    dyn:hasAlloyDesignation "C350"@en ;
     dyn:hasTemper "Aged"@en ;
-    dyn:hasChemicalComposition "Fe-18Ni-8Co-3Mo-1Ti-0.8Al"@en ;
     dyn:hasDescription "Ultra-high strength maraging steel"@en ;
-    dyn:hasPlottingLabel "C530"@en ;
-    # Direct thermal properties
-    dyn:hasMeltingPoint 1413.0 ;
-    dyn:hasThermalConductivity 17.4 ;
-    dyn:hasSpecificHeat 460.0 ;
-    dyn:hasDensity 8.10 ;
-    # Mechanical properties for SHPB bars
-    dyn:hasWaveSpeed 5000.0 .
+    dyn:hasPlottingLabel "C350"@en ;
+    dyn:hasDensity "8.0825"^^xsd:double ;
+    dyn:hasWaveSpeed "5000.0"^^xsd:double ;
+    dyn:hasElasticModulus "200000"^^xsd:double .
 
 #################################################################
 #    Material Individuals - Copper Alloys
@@ -116,10 +111,10 @@ dyn:CU101 rdf:type owl:NamedIndividual, dyn:Metal ;
     dyn:hasDescription "Oxygen-free electronic copper for pulse shapers and electrical applications"@en ;
     dyn:hasPlottingLabel "CU101"@en ;
     # Direct thermal properties
-    dyn:hasMeltingPoint 1083.0 ;
-    dyn:hasThermalConductivity 391.0 ;
-    dyn:hasSpecificHeat 385.0 ;
-    dyn:hasDensity 8.96 .
+    dyn:hasMeltingPoint "1083.0"^^xsd:double ;
+    dyn:hasThermalConductivity "391.0"^^xsd:double ;
+    dyn:hasSpecificHeat "385.0"^^xsd:double ;
+    dyn:hasDensity "8.96"^^xsd:double .
 
 #################################################################
 #    Material Individuals - Composite Alloys

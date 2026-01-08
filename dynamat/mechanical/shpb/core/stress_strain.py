@@ -1,8 +1,9 @@
 """Stress-strain calculation for SHPB analysis.
 
 This module provides tools for converting aligned SHPB pulses into
-engineering stress-strain curves using 1-wave, 2-wave, or 3-wave analysis
-methods.
+engineering stress-strain curves using 1-wave and 3-wave analysis methods.
+All results include bar displacement, bar force, engineering quantities,
+and true stress-strain calculations.
 
 Classes
 -------
@@ -18,9 +19,10 @@ Materials at very High Rates of Loading. Proceedings of the Physical
 Society. Section B, 62(11), 676.
 """
 from __future__ import annotations
-from typing import Tuple, Dict, Literal
+from typing import Dict
 import numpy as np
 from scipy.integrate import cumulative_trapezoid
+from scipy.stats import pearsonr
 
 
 class StressStrainCalculator:
@@ -28,113 +30,194 @@ class StressStrainCalculator:
 
     Computes engineering stress, strain, and strain rate from incident,
     transmitted, and reflected pulses using standard SHPB equations.
-    Supports 1-wave, 2-wave, and 3-wave analysis methods.
+    Calculates two analysis methods (1-wave and 2/3-wave) simultaneously
+    along with derived quantities (bar displacement, bar force, true stress,
+    true strain, and true strain rate).
 
-    All results are returned as absolute values following the compressive
-    loading convention (positive stress, strain, and strain rate).
+    Results include both engineering and true quantities following the
+    compressive loading convention.
 
     Parameters
     ----------
-    bar_diameter : float
-        Bar diameter (mm).
+    bar_area : float
+        Bar cross-sectional area (mm²).
     bar_wave_speed : float
         Elastic wave speed in bar material (mm/ms).
     bar_elastic_modulus : float
         Elastic / Young's modulus of bar material (GPa).
-    specimen_diameter : float
-        Specimen diameter (mm).
+    specimen_area : float
+        Specimen cross-sectional area (mm²).
     specimen_length : float
         Initial specimen length (mm).
     strain_scale_factor : float, default 1e4
         Scale factor to convert input strain signals to dimensionless strain.
         Default 1e4 assumes input strains are in units where 10000 = 1.0 strain
         (common for SHPB gauge data). Set to 1.0 if inputs are already dimensionless.
+    use_voltage_input : bool, default False
+        If True, input arrays are treated as voltages and converted to strain
+        using gauge parameters before analysis.
+    incident_reflected_gauge_params : dict, optional
+        Gauge parameters for incident/reflected bars. Required if use_voltage_input=True.
+        Must contain keys: 'gauge_res', 'gauge_factor', 'cal_voltage', 'cal_resistance'.
+    transmitted_gauge_params : dict, optional
+        Gauge parameters for transmitted bar. Required if use_voltage_input=True.
+        Must contain keys: 'gauge_res', 'gauge_factor', 'cal_voltage', 'cal_resistance'.
 
     Examples
     --------
+    >>> # Example 1: Using strain inputs
     >>> calculator = StressStrainCalculator(
-    ...     bar_diameter=19.0,
+    ...     bar_area=283.53,
     ...     bar_wave_speed=4953.3,
-    ...     bar_elastic_modulus=200.0,  # GPa
-    ...     specimen_diameter=12.7,
+    ...     bar_elastic_modulus=199.99,
+    ...     specimen_area=126.68,
     ...     specimen_length=6.5,
-    ...     strain_scale_factor=1e4  # Convert scaled gauge data to dimensionless
+    ...     strain_scale_factor=1e4
     ... )
-    >>> results = calculator.calculate(
-    ...     incident=inc_aligned,
-    ...     transmitted=trs_aligned,
-    ...     reflected=ref_aligned,
-    ...     time_vector=time,
-    ...     method='1-wave'
+    >>> results = calculator.calculate(inc_aligned, trs_aligned, ref_aligned, time)
+    >>> stress_1w = results['stress_1w']
+    >>> force_1w = results['bar_force_1w']
+    >>> true_strain_3w = results['true_strain_3w']
+    >>>
+    >>> # Example 2: Using voltage inputs
+    >>> calculator = StressStrainCalculator(
+    ...     bar_area=283.53,
+    ...     bar_wave_speed=4953.3,
+    ...     bar_elastic_modulus=199.99,
+    ...     specimen_area=126.68,
+    ...     specimen_length=6.5,
+    ...     use_voltage_input=True,
+    ...     incident_reflected_gauge_params={
+    ...         'gauge_res': 350, 'gauge_factor': 2.1,
+    ...         'cal_voltage': 5.0, 'cal_resistance': 100000
+    ...     },
+    ...     transmitted_gauge_params={
+    ...         'gauge_res': 350, 'gauge_factor': 2.1,
+    ...         'cal_voltage': 5.0, 'cal_resistance': 100000
+    ...     }
     ... )
-    >>> stress = results['stress']
-    >>> strain = results['strain']
-    >>> strain_rate = results['strain_rate']
+    >>> results = calculator.calculate(inc_voltage, trs_voltage, ref_voltage, time)
+    >>> stress_3w = results['stress_3w']
+    >>> displacement_3w = results['bar_displacement_3w']
     """
 
     def __init__(
         self,
-        bar_diameter: float,
+        bar_area: float,
         bar_wave_speed: float,
         bar_elastic_modulus: float,
-        specimen_diameter: float,
+        specimen_area: float,
         specimen_length: float,
-        strain_scale_factor: float = 1e4
+        strain_scale_factor: float = 1e4,
+        use_voltage_input: bool = False,
+        incident_reflected_gauge_params: dict = None,
+        transmitted_gauge_params: dict = None
     ):
-        self.bar_diameter = bar_diameter
+
         self.bar_wave_speed = bar_wave_speed
         self.bar_elastic_modulus = bar_elastic_modulus
-        self.specimen_diameter = specimen_diameter
         self.specimen_length = specimen_length
         self.strain_scale_factor = strain_scale_factor
+        self.use_voltage_input = use_voltage_input
 
         # Derived quantities
-        self.bar_area = np.pi * (bar_diameter / 2) ** 2
-        self.specimen_area = np.pi * (specimen_diameter / 2) ** 2
+        self.bar_area = bar_area
+        self.specimen_area = specimen_area
         self.area_ratio = self.bar_area / self.specimen_area
+
+        # Voltage-to-strain conversion parameters
+        self.incident_reflected_gauge_params = incident_reflected_gauge_params
+        self.transmitted_gauge_params = transmitted_gauge_params
+
+        # Validate gauge parameters if voltage input is enabled
+        if use_voltage_input:
+            required_keys = ['gauge_res', 'gauge_factor', 'cal_voltage', 'cal_resistance']
+
+            if incident_reflected_gauge_params is None:
+                raise ValueError(
+                    "incident_reflected_gauge_params must be provided when use_voltage_input=True"
+                )
+            if transmitted_gauge_params is None:
+                raise ValueError(
+                    "transmitted_gauge_params must be provided when use_voltage_input=True"
+                )
+
+            # Check incident/reflected parameters
+            missing_ir = [k for k in required_keys if k not in incident_reflected_gauge_params]
+            if missing_ir:
+                raise ValueError(
+                    f"incident_reflected_gauge_params missing required keys: {missing_ir}"
+                )
+
+            # Check transmitted parameters
+            missing_t = [k for k in required_keys if k not in transmitted_gauge_params]
+            if missing_t:
+                raise ValueError(
+                    f"transmitted_gauge_params missing required keys: {missing_t}"
+                )
 
     def calculate(
         self,
         incident: np.ndarray,
         transmitted: np.ndarray,
         reflected: np.ndarray,
-        time_vector: np.ndarray,
-        method: Literal['1-wave', '2-wave', '3-wave'] = '1-wave'
+        time_vector: np.ndarray
     ) -> Dict[str, np.ndarray]:
-        """Calculate stress-strain curve from aligned pulses.
+        """Calculate stress-strain curves from aligned pulses using two methods.
 
-        Input strains are automatically converted to dimensionless using
-        the strain_scale_factor.
+        Computes 1-wave and 3-wave analysis simultaneously with all derived
+        quantities including bar displacements, forces, and true stress-strain.
+        All results are returned in a single flat dictionary with suffixes
+        _1w (1-wave) and _3w (3-wave).
+
+        Input strains/voltages are automatically converted to dimensionless strain
+        using the strain_scale_factor (and voltage_to_strain if enabled).
 
         Parameters
         ----------
         incident : np.ndarray
-            Incident pulse strain (in units defined by strain_scale_factor).
+            Incident pulse (voltage if use_voltage_input=True, else strain).
         transmitted : np.ndarray
-            Transmitted pulse strain (in units defined by strain_scale_factor).
+            Transmitted pulse (voltage if use_voltage_input=True, else strain).
         reflected : np.ndarray
-            Reflected pulse strain (in units defined by strain_scale_factor).
+            Reflected pulse (voltage if use_voltage_input=True, else strain).
         time_vector : np.ndarray
             Time axis (ms), same length as pulses.
-        method : {'1-wave', '2-wave', '3-wave'}, default '1-wave'
-            Analysis method:
-            - '1-wave': Uses only reflected/transmitted pulses (assumes equilibrium)
-            - '2-wave': Uses incident and reflected pulses
-            - '3-wave': Uses all three pulses (most complete, checks equilibrium)
 
         Returns
         -------
         Dict[str, np.ndarray]
-            Dictionary containing:
-            - 'stress' : Engineering stress (MPa, absolute value)
-            - 'strain' : Engineering strain (unitless, absolute value)
-            - 'strain_rate' : Strain rate (1/s, absolute value)
+            Dictionary containing all calculated series with suffixes:
+            - 'bar_displacement_1w' : Bar displacement (mm) - 1-wave
+            - 'bar_force_1w' : Bar force (N) - 1-wave
+            - 'strain_rate_1w' : Engineering strain rate (1/ms) - 1-wave
+            - 'strain_1w' : Engineering strain (unitless) - 1-wave
+            - 'stress_1w' : Engineering stress (MPa) - 1-wave
+            - 'true_strain_rate_1w' : True strain rate (1/ms) - 1-wave
+            - 'true_strain_1w' : True strain (unitless) - 1-wave
+            - 'true_stress_1w' : True stress (MPa) - 1-wave
+            - 'bar_displacement_3w' : Bar displacement (mm) - 3-wave
+            - 'bar_force_3w' : Bar force (N) - 3-wave
+            - 'strain_rate_3w' : Engineering strain rate (1/ms) - 3-wave
+            - 'strain_3w' : Engineering strain (unitless) - 3-wave
+            - 'stress_3w' : Engineering stress (MPa) - 3-wave
+            - 'true_strain_rate_3w' : True strain rate (1/ms) - 3-wave
+            - 'true_strain_3w' : True strain (unitless) - 3-wave
+            - 'true_stress_3w' : True stress (MPa) - 3-wave
             - 'time' : Time vector (ms)
 
         Raises
         ------
         ValueError
             If input arrays have different lengths.
+
+        Examples
+        --------
+        >>> calculator = StressStrainCalculator(...)
+        >>> results = calculator.calculate(inc, trs, ref, time)
+        >>> stress_1w = results['stress_1w']
+        >>> true_strain_3w = results['true_strain_3w']
+        >>> force_1w = results['bar_force_1w']
         """
         # Validate inputs
         N = len(time_vector)
@@ -145,256 +228,286 @@ class StressStrainCalculator:
                 f"transmitted={len(transmitted)}, reflected={len(reflected)}"
             )
 
-        # Calculate based on method
-        if method == '1-wave':
-            return self._calculate_1wave(
-                transmitted, reflected, time_vector
-            )
-        elif method == '2-wave':
-            return self._calculate_2wave(
-                incident, reflected, time_vector
-            )
-        elif method == '3-wave':
-            return self._calculate_3wave(
-                incident, transmitted, reflected, time_vector
-            )
-        else:
-            raise ValueError(
-                f"Unknown method '{method}'. "
-                f"Use '1-wave', '2-wave', or '3-wave'."
-            )
+        # Convert voltage to strain if needed
+        if self.use_voltage_input:
+            incident = self.voltage_to_strain(incident, self.incident_reflected_gauge_params)
+            transmitted = self.voltage_to_strain(transmitted, self.transmitted_gauge_params)
+            reflected = self.voltage_to_strain(reflected, self.incident_reflected_gauge_params)
 
-    def _calculate_1wave(
-        self,
-        transmitted: np.ndarray,
-        reflected: np.ndarray,
-        time: np.ndarray
-    ) -> Dict[str, np.ndarray]:
-        """1-wave analysis (assumes stress equilibrium).
-
-        Uses:
-        - Stress from transmitted pulse
-        - Strain rate from reflected pulse
-        - Strain from integrating strain rate
-
-        Input strains are automatically converted to dimensionless using
-        the strain_scale_factor. Returns absolute values (compressive loading convention).
-
-        Parameters
-        ----------
-        transmitted : np.ndarray
-            Transmitted pulse strain (in units defined by strain_scale_factor).
-        reflected : np.ndarray
-            Reflected pulse strain (in units defined by strain_scale_factor).
-        time : np.ndarray
-            Time vector (ms).
-
-        Returns
-        -------
-        Dict[str, np.ndarray]
-            Stress-strain data.
-        """
-        c = self.bar_wave_speed
-        L = self.specimen_length
-        E_bar = self.bar_elastic_modulus  # GPa (outputs MPa when multiplied by dimensionless strain)
-
-        # Convert input strains to dimensionless
-        transmitted_norm = transmitted / self.strain_scale_factor
-        reflected_norm = reflected / self.strain_scale_factor
-
-        # Stress from transmitted pulse (MPa)
-        # E_bar is in GPa, so multiply by 1000 to convert to MPa
-        stress = self.area_ratio * E_bar * transmitted_norm * 1000.0
-
-        # Strain rate from reflected pulse (1/ms)
-        strain_rate_ms = -(2 * c / L) * reflected_norm
-
-        # Integrate to get strain
-        strain = cumulative_trapezoid(strain_rate_ms, time, initial=0)
-
-        # Convert strain rate to 1/s for output
-        strain_rate_s = strain_rate_ms * 1000.0
-
-        # Return absolute values (compressive loading convention)
-        return {
-            'stress': np.abs(stress),
-            'strain': np.abs(strain),
-            'strain_rate': np.abs(strain_rate_s),
-            'time': time
-        }
-
-    def _calculate_2wave(
-        self,
-        incident: np.ndarray,
-        reflected: np.ndarray,
-        time: np.ndarray
-    ) -> Dict[str, np.ndarray]:
-        """2-wave analysis (uses incident and reflected bars).
-
-        Uses:
-        - Stress from (incident + reflected)
-        - Strain rate from reflected pulse
-        - Strain from integrating strain rate
-
-        Input strains are automatically converted to dimensionless using
-        the strain_scale_factor. Returns absolute values (compressive loading convention).
-
-        Parameters
-        ----------
-        incident : np.ndarray
-            Incident pulse strain (in units defined by strain_scale_factor).
-        reflected : np.ndarray
-            Reflected pulse strain (in units defined by strain_scale_factor).
-        time : np.ndarray
-            Time vector (ms).
-
-        Returns
-        -------
-        Dict[str, np.ndarray]
-            Stress-strain data.
-        """
-        c = self.bar_wave_speed
-        L = self.specimen_length
-        E_bar = self.bar_elastic_modulus  # GPa (outputs MPa when multiplied by dimensionless strain)
-
-        # Convert input strains to dimensionless
-        incident_norm = incident / self.strain_scale_factor
-        reflected_norm = reflected / self.strain_scale_factor
-
-        # Stress from incident + reflected (MPa)
-        # E_bar is in GPa, so multiply by 1000 to convert to MPa
-        stress = self.area_ratio * E_bar * (incident_norm + reflected_norm) * 1000.0
-
-        # Strain rate from reflected pulse (1/ms)
-        strain_rate_ms = -(2 * c / L) * reflected_norm
-
-        # Integrate to get strain
-        strain = cumulative_trapezoid(strain_rate_ms, time, initial=0)
-
-        # Convert strain rate to 1/s
-        strain_rate_s = strain_rate_ms * 1000.0
-
-        # Return absolute values (compressive loading convention)
-        return {
-            'stress': np.abs(stress),
-            'strain': np.abs(strain),
-            'strain_rate': np.abs(strain_rate_s),
-            'time': time
-        }
-
-    def _calculate_3wave(
-        self,
-        incident: np.ndarray,
-        transmitted: np.ndarray,
-        reflected: np.ndarray,
-        time: np.ndarray
-    ) -> Dict[str, np.ndarray]:
-        """3-wave analysis (uses all three pulses).
-
-        Uses:
-        - Stress from transmitted pulse (or average of 1-wave and 2-wave)
-        - Strain rate from all three pulses
-        - Strain from integrating strain rate
-
-        This is the most complete method and allows checking equilibrium.
-
-        Input strains are automatically converted to dimensionless using
-        the strain_scale_factor. Returns absolute values (compressive loading convention).
-
-        Parameters
-        ----------
-        incident : np.ndarray
-            Incident pulse strain (in units defined by strain_scale_factor).
-        transmitted : np.ndarray
-            Transmitted pulse strain (in units defined by strain_scale_factor).
-        reflected : np.ndarray
-            Reflected pulse strain (in units defined by strain_scale_factor).
-        time : np.ndarray
-            Time vector (ms).
-
-        Returns
-        -------
-        Dict[str, np.ndarray]
-            Stress-strain data.
-        """
-        c = self.bar_wave_speed
-        L = self.specimen_length
-        E_bar = self.bar_elastic_modulus  # GPa (outputs MPa when multiplied by dimensionless strain)
-
-        # Convert input strains to dimensionless
+        # Convert to dimensionless strain
         incident_norm = incident / self.strain_scale_factor
         transmitted_norm = transmitted / self.strain_scale_factor
         reflected_norm = reflected / self.strain_scale_factor
 
-        # Stress from transmitted pulse (traditional 1-wave, MPa)
-        # E_bar is in GPa, so multiply by 1000 to convert to MPa
-        stress = self.area_ratio * E_bar * transmitted_norm * 1000.0
+        # Common parameters
+        c = self.bar_wave_speed
+        L = self.specimen_length
+        E_bar = self.bar_elastic_modulus  # GPa
+        A_bar = self.bar_area
+        A_spec = self.specimen_area
 
-        # Strain rate from 3-wave formula (1/ms)
-        strain_rate_ms = (c / L) * (incident_norm - reflected_norm - transmitted_norm)
+        # ===== 1-WAVE ANALYSIS =====
+        # Bar displacement (mm)
+        bar_displacement_1w = c * transmitted_norm
 
-        # Integrate to get strain
-        strain = cumulative_trapezoid(strain_rate_ms, time, initial=0)
+        # Bar force (N)
+        bar_force_1w = A_bar * E_bar  * transmitted_norm
 
-        # Convert strain rate to 1/s
-        strain_rate_s = strain_rate_ms * 1000.0
+        # Engineering strain rate (1/ms)
+        strain_rate_1w = (2 * c * reflected_norm) / L
 
-        # Return absolute values (compressive loading convention)
+        # True strain rate (1/ms)
+        true_strain_rate_1w = np.log(1 + strain_rate_1w)
+
+        # Engineering strain (integrate strain rate)
+        strain_1w = ((2 * c) / L) * cumulative_trapezoid(reflected_norm, time_vector, initial=0)
+
+        # Engineering stress (MPa)
+        stress_1w = E_bar  * (A_bar / A_spec) * transmitted_norm
+
+        # True strain
+        true_strain_1w = np.log(1 + strain_1w)
+
+        # True stress (MPa) - uses strain_1w
+        true_stress_1w = stress_1w * (1 + strain_1w)
+
+        # ===== 3-WAVE ANALYSIS =====
+        # Bar displacement (mm)
+        bar_displacement_3w = c * (incident_norm + reflected_norm)
+
+        # Bar force (N)
+        bar_force_3w = A_bar * E_bar  * (incident_norm + reflected_norm)
+
+        # Engineering strain rate (1/ms)
+        strain_rate_3w = (c / L) * (incident_norm - reflected_norm - transmitted_norm)
+
+        # True strain rate (1/ms)
+        true_strain_rate_3w = np.log(1 - strain_rate_3w)
+
+        # Engineering strain (integrate strain rate)
+        strain_3w = (c / L) * cumulative_trapezoid(
+            (incident_norm - reflected_norm - transmitted_norm),
+            time_vector,
+            initial=0
+        )
+
+        # Engineering stress (MPa)
+        stress_3w = E_bar  * (A_bar / A_spec) * (incident_norm + reflected_norm)
+
+        # True strain
+        true_strain_3w = np.log(1 + strain_3w)
+
+        # True stress (MPa) - uses strain_3w
+        true_stress_3w = stress_3w * (1 + strain_3w)
+
+        # Return all results in a single flat dictionary with absolute values
         return {
-            'stress': np.abs(stress),
-            'strain': np.abs(strain),
-            'strain_rate': np.abs(strain_rate_s),
-            'time': time
+            'bar_displacement_1w': np.abs(bar_displacement_1w),
+            'bar_force_1w': np.abs(bar_force_1w),
+            'strain_rate_1w': np.abs(strain_rate_1w) * 1000,
+            'strain_1w': np.abs(strain_1w),
+            'stress_1w': np.abs(stress_1w),
+            'true_strain_rate_1w': np.abs(true_strain_rate_1w) *1000,
+            'true_strain_1w': np.abs(true_strain_1w),
+            'true_stress_1w': np.abs(true_stress_1w),
+            'bar_displacement_3w': np.abs(bar_displacement_3w),
+            'bar_force_3w': np.abs(bar_force_3w),
+            'strain_rate_3w': np.abs(strain_rate_3w) * 1000,
+            'strain_3w': np.abs(strain_3w),
+            'stress_3w': np.abs(stress_3w),
+            'true_strain_rate_3w': np.abs(true_strain_rate_3w) * 1000,
+            'true_strain_3w': np.abs(true_strain_3w),
+            'true_stress_3w': np.abs(true_stress_3w),
+            'time': time_vector
         }
 
-    def calculate_all_methods(
-        self,
-        incident: np.ndarray,
-        transmitted: np.ndarray,
-        reflected: np.ndarray,
-        time_vector: np.ndarray
-    ) -> Dict[str, Dict[str, np.ndarray]]:
-        """Calculate stress-strain using all three methods for comparison.
-
-        Useful for validating equilibrium assumptions and understanding
-        differences between methods.
-
-        Input strains are automatically converted to dimensionless using
-        the strain_scale_factor. All results are returned as absolute values
-        (compressive loading convention).
+    def voltage_to_strain(self, voltage_array: np.ndarray, gauge_params: dict) -> np.ndarray:
+        """
+        Converts measured voltage from a strain gauge into strain.
 
         Parameters
         ----------
-        incident : np.ndarray
-            Incident pulse strain (in units defined by strain_scale_factor).
-        transmitted : np.ndarray
-            Transmitted pulse strain (in units defined by strain_scale_factor).
-        reflected : np.ndarray
-            Reflected pulse strain (in units defined by strain_scale_factor).
-        time_vector : np.ndarray
-            Time axis (ms).
+        voltage_array : np.ndarray
+            Voltage measurements from the strain gauge (in volts).
+        gauge_params : dict
+            Dictionary containing gauge parameters with keys:
+            - 'gauge_res' : float - Gauge resistance (ohms)
+            - 'gauge_factor' : float - Gauge sensitivity coefficient (unitless)
+            - 'cal_voltage' : float - Calibration voltage (volts)
+            - 'cal_resistance' : float - Calibration resistor resistance (ohms)
 
         Returns
         -------
-        Dict[str, Dict[str, np.ndarray]]
-            Dictionary with keys '1-wave', '2-wave', '3-wave', each containing
-            the stress-strain results for that method.
+        np.ndarray
+            Calculated strain values (unitless, dimensionless).
+
+        Notes
+        -----
+        The conversion uses the formula:
+        strain = voltage * (gauge_res / (cal_voltage * gauge_factor * (gauge_res + cal_resistance)))
+        """
+        gauge_res = gauge_params['gauge_res']
+        gauge_factor = gauge_params['gauge_factor']
+        cal_voltage = gauge_params['cal_voltage']
+        cal_resistance = gauge_params['cal_resistance']
+
+        conversion_factor = gauge_res / (cal_voltage * gauge_factor * (gauge_res + cal_resistance))
+        strain = voltage_array * conversion_factor
+
+        return strain
+
+    def calculate_equilibrium_metrics(self, results: Dict[str, np.ndarray]) -> Dict[str, float]:
+        """Calculate equilibrium assessment metrics between 1-wave and 3-wave analyses.
+
+        Computes five metrics to assess the quality of stress equilibrium:
+        1. Force Balance Coefficient (FBC) - measures force equilibrium
+        2. Stress Equilibrium Quality Index (SEQI) - normalized RMSE metric
+        3. Time-Windowed Analysis - metrics during loading, plateau, and unloading
+        4. Stress Oscillation Index (SOI) - stress uniformity during plateau
+        5. Dynamic Stress Uniformity Factor (DSUF) - R² correlation
+
+        Parameters
+        ----------
+        results : Dict[str, np.ndarray]
+            Dictionary returned by calculate() containing stress-strain data
+            for both 1-wave and 3-wave analyses.
+
+        Returns
+        -------
+        Dict[str, float]
+            Dictionary containing equilibrium metrics:
+            - 'FBC' : Force Balance Coefficient (0-1, higher is better)
+            - 'SEQI' : Stress Equilibrium Quality Index (0-1, higher is better)
+            - 'SOI' : Stress Oscillation Index (lower is better)
+            - 'DSUF' : Dynamic Stress Uniformity Factor / R² (0-1, higher is better)
+            - 'windowed_FBC_loading' : FBC during loading phase (0-50% peak)
+            - 'windowed_FBC_plateau' : FBC during plateau phase (50-100% peak)
+            - 'windowed_FBC_unloading' : FBC during unloading phase
+            - 'windowed_DSUF_loading' : R² during loading phase
+            - 'windowed_DSUF_plateau' : R² during plateau phase
+            - 'windowed_DSUF_unloading' : R² during unloading phase
 
         Examples
         --------
-        >>> all_results = calculator.calculate_all_methods(inc, trs, ref, time)
-        >>> stress_1w = all_results['1-wave']['stress']
-        >>> stress_3w = all_results['3-wave']['stress']
-        >>> equilibrium_error = np.mean(np.abs(stress_1w - stress_3w))
+        >>> results = calculator.calculate(inc, trs, ref, time)
+        >>> metrics = calculator.calculate_equilibrium_metrics(results)
+        >>> print(f"Force Balance: {metrics['FBC']:.3f}")
+        >>> print(f"Overall R²: {metrics['DSUF']:.3f}")
+        >>> print(f"Plateau R²: {metrics['windowed_DSUF_plateau']:.3f}")
+
+        Notes
+        -----
+        - FBC and DSUF values close to 1.0 indicate good equilibrium
+        - SEQI values > 0.9 typically indicate acceptable equilibrium
+        - SOI values < 0.05 (5%) suggest good stress uniformity
+        - Windowed metrics help identify where equilibrium breaks down
+        - All metrics use absolute values to handle compressive convention
+
+        References
+        ----------
+        Chen, W. W., & Song, B. (2011). Split Hopkinson (Kolsky) Bar: Design,
+        Testing and Applications. Springer.
         """
+        # Extract required data
+        stress_1w = results['stress_1w']
+        stress_3w = results['stress_3w']
+        bar_force_1w = results['bar_force_1w']
+        bar_force_3w = results['bar_force_3w']
+
+        # Find valid region (where stress is non-negligible)
+        stress_threshold = 0.01 * np.max(stress_3w)  # 1% of peak
+        valid_mask = (stress_3w > stress_threshold) & (stress_1w > stress_threshold)
+
+        if not valid_mask.any():
+            # Return NaN metrics if no valid data
+            return {
+                'FBC': np.nan,
+                'SEQI': np.nan,
+                'SOI': np.nan,
+                'DSUF': np.nan,
+                'windowed_FBC_loading': np.nan,
+                'windowed_FBC_plateau': np.nan,
+                'windowed_FBC_unloading': np.nan,
+                'windowed_DSUF_loading': np.nan,
+                'windowed_DSUF_plateau': np.nan,
+                'windowed_DSUF_unloading': np.nan,
+            }
+
+        # ===== METRIC 1: Force Balance Coefficient (FBC) =====
+        force_diff = np.abs(bar_force_3w - bar_force_1w)
+        force_max = np.maximum(bar_force_3w, bar_force_1w)
+        force_ratio = force_diff / (force_max + 1e-10)  # Avoid division by zero
+        FBC = float(1.0 - np.mean(force_ratio[valid_mask]))
+
+        # ===== METRIC 2: Stress Equilibrium Quality Index (SEQI) =====
+        stress_diff = stress_3w[valid_mask] - stress_1w[valid_mask]
+        rmse = np.sqrt(np.mean(stress_diff**2))
+        stress_range = np.max(stress_3w[valid_mask]) - np.min(stress_3w[valid_mask])
+        nrmse = rmse / (stress_range + 1e-10)
+        SEQI = float(np.exp(-nrmse))
+
+        # ===== METRIC 3: Time-Windowed Analysis =====
+        peak_stress = np.max(stress_3w)
+        peak_idx = np.argmax(stress_3w)
+
+        # Define phase masks
+        loading_mask = (stress_3w < 0.5 * peak_stress) & valid_mask
+        plateau_mask = (stress_3w >= 0.5 * peak_stress) & valid_mask
+        unloading_mask = (np.arange(len(stress_3w)) > peak_idx) & valid_mask
+
+        def compute_phase_metrics(mask):
+            """Compute FBC and DSUF for a given phase."""
+            if not mask.any() or mask.sum() < 3:
+                return np.nan, np.nan
+
+            # Phase FBC
+            phase_force_diff = np.abs(bar_force_3w[mask] - bar_force_1w[mask])
+            phase_force_max = np.maximum(bar_force_3w[mask], bar_force_1w[mask])
+            phase_force_ratio = phase_force_diff / (phase_force_max + 1e-10)
+            phase_fbc = 1.0 - np.mean(phase_force_ratio)
+
+            # Phase DSUF (R²)
+            try:
+                r, _ = pearsonr(stress_1w[mask], stress_3w[mask])
+                phase_dsuf = r**2
+            except:
+                phase_dsuf = np.nan
+
+            return float(phase_fbc), float(phase_dsuf)
+
+        windowed_FBC_loading, windowed_DSUF_loading = compute_phase_metrics(loading_mask)
+        windowed_FBC_plateau, windowed_DSUF_plateau = compute_phase_metrics(plateau_mask)
+        windowed_FBC_unloading, windowed_DSUF_unloading = compute_phase_metrics(unloading_mask)
+
+        # ===== METRIC 4: Stress Oscillation Index (SOI) =====
+        # Use plateau region (80-100% of peak stress)
+        plateau_high_mask = (stress_3w >= 0.8 * peak_stress) & valid_mask
+        if plateau_high_mask.any() and plateau_high_mask.sum() > 2:
+            plateau_stress = stress_3w[plateau_high_mask]
+            SOI = float(np.std(plateau_stress) / (np.mean(plateau_stress) + 1e-10))
+        else:
+            SOI = np.nan
+
+        # ===== METRIC 5: Dynamic Stress Uniformity Factor (DSUF) =====
+        # Overall R² between 1-wave and 3-wave stress
+        try:
+            r, _ = pearsonr(stress_1w[valid_mask], stress_3w[valid_mask])
+            DSUF = float(r**2)
+        except:
+            DSUF = np.nan
+
         return {
-            '1-wave': self.calculate(
-                incident, transmitted, reflected, time_vector, method='1-wave'
-            ),
-            '2-wave': self.calculate(
-                incident, transmitted, reflected, time_vector, method='2-wave'
-            ),
-            '3-wave': self.calculate(
-                incident, transmitted, reflected, time_vector, method='3-wave'
-            )
+            'FBC': FBC,
+            'SEQI': SEQI,
+            'SOI': SOI,
+            'DSUF': DSUF,
+            'windowed_FBC_loading': windowed_FBC_loading,
+            'windowed_FBC_plateau': windowed_FBC_plateau,
+            'windowed_FBC_unloading': windowed_FBC_unloading,
+            'windowed_DSUF_loading': windowed_DSUF_loading,
+            'windowed_DSUF_plateau': windowed_DSUF_plateau,
+            'windowed_DSUF_unloading': windowed_DSUF_unloading,
         }
+
+
+

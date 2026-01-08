@@ -16,50 +16,27 @@
 #################################################################
 
 # Incident Bar Strain Gauges
-dyn:StrainGauge_INC_SG1 rdf:type owl:NamedIndividual, dyn:StrainGauge ;
+dyn:StrainGauge_SHPB_001 rdf:type owl:NamedIndividual, dyn:StrainGauge ;
     rdfs:label "Incident Bar Strain Gauge SG1"@en ;
     dyn:hasName "Incident Bar Strain Gauge SG1"@en ;
-    dyn:hasGaugeID "INC-SG1-2024-001"@en ;
-    dyn:hasGaugeResistance 350.0 ;    # Ohms
-    dyn:hasGaugeFactor 2.12 ;
-    dyn:hasGaugeLocation "Incident Bar"@en ;
-    dyn:hasDistanceFromSpecimen 915.0 ;  # mm
+    dyn:hasGaugeResistance 120.0 ;    # Ohms
+    dyn:hasGaugeFactor 2.06 ;
+    dyn:hasCalibrationVoltage 2.0 ;
+    dyn:hasCalibrationResistance 59950.0 ;
+    dyn:hasDistanceFromSpecimen 1219.2 ;  # mm
     dyn:hasInstallationDate "2024-01-15"^^xsd:date ;
-    dyn:hasDescription "Primary strain gauge on incident bar for pulse measurement"@en .
+    dyn:hasDescription "Strain gauge on incident bar for pulse measurement"@en .
 
-dyn:StrainGauge_INC_SG2 rdf:type owl:NamedIndividual, dyn:StrainGauge ;
+dyn:StrainGauge_SHPB_002 rdf:type owl:NamedIndividual, dyn:StrainGauge ;
     rdfs:label "Incident Bar Strain Gauge SG2"@en ;
     dyn:hasName "Incident Bar Strain Gauge SG2"@en ;
-    dyn:hasGaugeID "INC-SG2-2024-001"@en ;
-    dyn:hasGaugeResistance 350.0 ;
-    dyn:hasGaugeFactor 2.12 ;
-    dyn:hasGaugeLocation "Incident Bar"@en ;
-    dyn:hasDistanceFromSpecimen 1220.0 ;  # mm - backup location
+    dyn:hasGaugeResistance 120.0 ;
+    dyn:hasGaugeFactor 2.06 ;
+    dyn:hasCalibrationVoltage 2.0 ;
+    dyn:hasCalibrationResistance 59950.0 ;
+    dyn:hasDistanceFromSpecimen 914.4 ;  # mm - backup location
     dyn:hasInstallationDate "2024-01-15"^^xsd:date ;
-    dyn:hasDescription "Backup strain gauge on incident bar"@en .
-
-# Transmission Bar Strain Gauges
-dyn:StrainGauge_TRA_SG1 rdf:type owl:NamedIndividual, dyn:StrainGauge ;
-    rdfs:label "Transmission Bar Strain Gauge SG1"@en ;
-    dyn:hasName "Transmission Bar Strain Gauge SG1"@en ;
-    dyn:hasGaugeID "TRA-SG1-2024-001"@en ;
-    dyn:hasGaugeResistance 350.0 ;
-    dyn:hasGaugeFactor 2.12 ;
-    dyn:hasGaugeLocation "Transmission Bar"@en ;
-    dyn:hasDistanceFromSpecimen 915.0 ;  # mm
-    dyn:hasInstallationDate "2024-01-15"^^xsd:date ;
-    dyn:hasDescription "Primary strain gauge on transmission bar for pulse measurement"@en .
-
-dyn:StrainGauge_TRA_SG2 rdf:type owl:NamedIndividual, dyn:StrainGauge ;
-    rdfs:label "Transmission Bar Strain Gauge SG2"@en ;
-    dyn:hasName "Transmission Bar Strain Gauge SG2"@en ;
-    dyn:hasGaugeID "TRA-SG2-2024-001"@en ;
-    dyn:hasGaugeResistance 350.0 ;
-    dyn:hasGaugeFactor 2.12 ;
-    dyn:hasGaugeLocation "Transmission Bar"@en ;
-    dyn:hasDistanceFromSpecimen 1220.0 ;  # mm - backup location
-    dyn:hasInstallationDate "2024-01-15"^^xsd:date ;
-    dyn:hasDescription "Backup strain gauge on transmission bar"@en .
+    dyn:hasDescription "Strain gauge on transmitted bar for pulse measurement"@en .
 
 #################################################################
 #    Strain Gauge Maintenance Records

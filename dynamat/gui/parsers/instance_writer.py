@@ -318,16 +318,40 @@ class InstanceWriter:
             return URIRef(self.DYN[uri_string])
 
     def _save_graph(self, graph: Graph, output_path: Path):
-        """Serialize and save graph to TTL file."""
+        """Serialize and save graph to TTL file with explicit datatypes."""
         try:
+            # Create a new graph with explicitly typed literals
+            typed_graph = Graph()
+
+            # Copy namespaces
+            for prefix, namespace in graph.namespaces():
+                typed_graph.bind(prefix, namespace)
+
+            # Copy all triples, ensuring numeric literals have explicit types
+            for s, p, o in graph:
+                if isinstance(o, Literal):
+                    # If it's a numeric literal without explicit datatype in serialization,
+                    # ensure it has one
+                    if o.datatype == XSD.double:
+                        # Force explicit typing by recreating the literal
+                        new_o = Literal(str(o), datatype=XSD.double)
+                        typed_graph.add((s, p, new_o))
+                    elif o.datatype == XSD.integer:
+                        new_o = Literal(str(o), datatype=XSD.integer)
+                        typed_graph.add((s, p, new_o))
+                    else:
+                        typed_graph.add((s, p, o))
+                else:
+                    typed_graph.add((s, p, o))
+
             # Serialize with nice formatting
-            ttl_content = graph.serialize(format='turtle')
+            ttl_content = typed_graph.serialize(format='turtle')
 
             # Write to file
             with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(ttl_content)
 
-            logger.debug(f"Graph serialized to {output_path} ({len(graph)} triples)")
+            logger.debug(f"Graph serialized to {output_path} ({len(typed_graph)} triples)")
 
         except Exception as e:
             logger.error(f"Failed to save graph to {output_path}: {e}")

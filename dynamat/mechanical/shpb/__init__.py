@@ -7,7 +7,7 @@ This module provides tools for analyzing SHPB experimental data:
 - Tukey window tapering for ML applications
 
 The module is designed to work standalone (without ontology) or
-integrated with the DynaMat ontology via bridges.
+integrated with the DynaMat ontology via IO bridges.
 """
 
 from dynamat.mechanical.shpb.core.pulse_windows import PulseDetector
