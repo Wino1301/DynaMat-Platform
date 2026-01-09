@@ -80,6 +80,14 @@ dyn:MechanicalTest rdf:type owl:Class .
 dyn:MeasurementEquipment rdf:type owl:Class .
 
 
+###  https://dynamat.utep.edu/ontology#PulseWindow
+dyn:PulseWindow rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#PulseShift
+dyn:PulseShift rdf:type owl:Class .
+
+
 #################################################################
 #    Object Properties
 #################################################################
@@ -151,6 +159,30 @@ dyn:hasProcessedDataFile rdf:type owl:ObjectProperty ,
                          gui:hasDisplayName "Processed Data File" ;
                          gui:hasDisplayOrder 2 ;
                          gui:hasFormGroup "DataFiles" .
+
+
+###  https://dynamat.utep.edu/ontology#hasDetectedWindow
+dyn:hasDetectedWindow rdf:type owl:ObjectProperty ,
+                               owl:FunctionalProperty ;
+                      rdfs:domain dyn:DataSeries ;
+                      rdfs:range dyn:PulseWindow ;
+                      rdfs:comment "Pulse window that was detected on this data series"@en ;
+                      rdfs:label "Detected Window"@en ;
+                      gui:hasDisplayName "Detected Window" ;
+                      gui:hasDisplayOrder 1 ;
+                      gui:hasFormGroup "ProcessingProvenance" .
+
+
+###  https://dynamat.utep.edu/ontology#hasAppliedShift
+dyn:hasAppliedShift rdf:type owl:ObjectProperty ,
+                             owl:FunctionalProperty ;
+                    rdfs:domain dyn:DataSeries ;
+                    rdfs:range dyn:PulseShift ;
+                    rdfs:comment "Shift that was applied to this data series during alignment"@en ;
+                    rdfs:label "Applied Shift"@en ;
+                    gui:hasDisplayName "Applied Shift" ;
+                    gui:hasDisplayOrder 2 ;
+                    gui:hasFormGroup "ProcessingProvenance" .
 
 
 #################################################################
@@ -331,11 +363,23 @@ dyn:hasTukeyFactor rdf:type owl:DatatypeProperty ,
                             owl:FunctionalProperty ;
                    rdfs:domain dyn:DataSeries ;
                    rdfs:range xsd:double ;
-                   rdfs:comment "Tukey windowing factor used for pulse processing"@en ;
+                   rdfs:comment "Tukey windowing factor used for pulse processing (deprecated, use hasTukeyAlpha)"@en ;
                    rdfs:label "Tukey Factor"@en ;
                    gui:hasDisplayName "Tukey Factor" ;
                    gui:hasDisplayOrder 5 ;
                    gui:hasFormGroup "ProcessingInfo" .
+
+
+###  https://dynamat.utep.edu/ontology#hasTukeyAlpha
+dyn:hasTukeyAlpha rdf:type owl:DatatypeProperty ,
+                           owl:FunctionalProperty ;
+                  rdfs:domain dyn:DataSeries ;
+                  rdfs:range xsd:double ;
+                  rdfs:comment "Tukey window alpha parameter (0.0-1.0). 0.0=rectangular, 0.5=half-tapered, 1.0=Hann"@en ;
+                  rdfs:label "Tukey Alpha"@en ;
+                  gui:hasDisplayName "Tukey Alpha" ;
+                  gui:hasDisplayOrder 5 ;
+                  gui:hasFormGroup "ProcessingInfo" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasTukeyWindowLength
@@ -384,6 +428,30 @@ dyn:isReferencePulse rdf:type owl:DatatypeProperty ,
                      gui:hasDisplayName "Reference Pulse" ;
                      gui:hasDisplayOrder 1 ;
                      gui:hasFormGroup "DataQuality" .
+
+
+###  https://dynamat.utep.edu/ontology#hasSegmentShift
+dyn:hasSegmentShift rdf:type owl:DatatypeProperty ,
+                             owl:FunctionalProperty ;
+                    rdfs:domain dyn:DataSeries ;
+                    rdfs:range xsd:integer ;
+                    rdfs:comment "Shift applied during segment_and_center operation to center pulse on energy median"@en ;
+                    rdfs:label "Segment Shift"@en ;
+                    gui:hasDisplayName "Segment Shift (samples)" ;
+                    gui:hasDisplayOrder 9 ;
+                    gui:hasFormGroup "ProcessingInfo" .
+
+
+###  https://dynamat.utep.edu/ontology#hasThresholdRatio
+dyn:hasThresholdRatio rdf:type owl:DatatypeProperty ,
+                               owl:FunctionalProperty ;
+                      rdfs:domain dyn:DataSeries ;
+                      rdfs:range xsd:double ;
+                      rdfs:comment "Threshold ratio for noise suppression during segmentation (samples with |ε| < ratio * max(|ε|) are zeroed)"@en ;
+                      rdfs:label "Threshold Ratio"@en ;
+                      gui:hasDisplayName "Threshold Ratio" ;
+                      gui:hasDisplayOrder 10 ;
+                      gui:hasFormGroup "ProcessingInfo" .
 
 
 #################################################################

@@ -26,7 +26,7 @@ class QUDTUnit:
     uri: str
     symbol: str
     label: str
-    quantity_kind: str
+    quantity_kinds: List[str]  # Changed from singular to support multiple quantity kinds
     conversion_multiplier: float = 1.0  # Multiplier to convert to SI base unit
     conversion_offset: float = 0.0  # Offset for interval scales (temperature, etc.)
 
@@ -35,14 +35,23 @@ class QUDTUnit:
             'uri': self.uri,
             'symbol': self.symbol,
             'label': self.label,
-            'quantity_kind': self.quantity_kind,
+            'quantity_kinds': self.quantity_kinds,
             'conversion_multiplier': self.conversion_multiplier,
             'conversion_offset': self.conversion_offset
         }
 
     @classmethod
     def from_dict(cls, data: Dict) -> 'QUDTUnit':
+        # Handle both old format (quantity_kind) and new format (quantity_kinds)
+        if 'quantity_kind' in data and 'quantity_kinds' not in data:
+            data = data.copy()
+            data['quantity_kinds'] = [data.pop('quantity_kind')]
         return cls(**data)
+
+    @property
+    def quantity_kind(self) -> str:
+        """Backwards compatibility: return first/primary quantity kind."""
+        return self.quantity_kinds[0] if self.quantity_kinds else 'unknown'
 
 
 class QUDTManager:
@@ -149,12 +158,12 @@ class QUDTManager:
             for unit_data in cache_data.get('units', []):
                 unit = QUDTUnit.from_dict(unit_data)
                 self.units_by_uri[unit.uri] = unit
-                
-                # Index by quantity kind
-                qk = unit.quantity_kind
-                if qk not in self.units_by_quantity_kind:
-                    self.units_by_quantity_kind[qk] = []
-                self.units_by_quantity_kind[qk].append(unit)
+
+                # Index by ALL quantity kinds
+                for qk in unit.quantity_kinds:
+                    if qk not in self.units_by_quantity_kind:
+                        self.units_by_quantity_kind[qk] = []
+                    self.units_by_quantity_kind[qk].append(unit)
             
             logger.info(f"Loaded {len(self.units_by_uri)} units from cache")
             return True
@@ -297,29 +306,28 @@ class QUDTManager:
             else:
                 label = symbol
             
-            # Create one QUDTUnit per unit (not per quantity kind)
-            # But index it under ALL its quantity kinds
-            quantity_kinds = data['quantity_kinds'] if data['quantity_kinds'] else {'unknown'}
+            # Create ONE QUDTUnit per unit with ALL its quantity kinds
+            quantity_kinds_list = list(data['quantity_kinds']) if data['quantity_kinds'] else ['unknown']
 
-            for qk in quantity_kinds:
-                unit = QUDTUnit(
-                    uri=unit_uri,
-                    symbol=symbol,
-                    label=label,
-                    quantity_kind=qk,
-                    conversion_multiplier=data['conversion_multiplier'],
-                    conversion_offset=data['conversion_offset']
-                )
-                
-                # Store by URI (only once)
-                if unit_uri not in self.units_by_uri:
-                    self.units_by_uri[unit_uri] = unit
-                
-                # Index by quantity kind (may appear in multiple)
+            # Create single unit instance with all quantity kinds
+            unit = QUDTUnit(
+                uri=unit_uri,
+                symbol=symbol,
+                label=label,
+                quantity_kinds=quantity_kinds_list,
+                conversion_multiplier=data['conversion_multiplier'],
+                conversion_offset=data['conversion_offset']
+            )
+
+            # Store by URI (one instance per unit)
+            self.units_by_uri[unit_uri] = unit
+
+            # Index under ALL its quantity kinds
+            for qk in quantity_kinds_list:
                 if qk not in self.units_by_quantity_kind:
                     self.units_by_quantity_kind[qk] = []
-                
-                # Check if already in this quantity kind list
+
+                # Add this unit to the quantity kind index
                 if not any(u.uri == unit_uri for u in self.units_by_quantity_kind[qk]):
                     self.units_by_quantity_kind[qk].append(unit)
         
@@ -437,11 +445,12 @@ class QUDTManager:
         if not to_unit:
             raise ValueError(f"Target unit not found in QUDT: {to_unit_uri}")
 
-        # Check if units are compatible (same quantity kind)
-        if from_unit.quantity_kind != to_unit.quantity_kind:
+        # Check if units are compatible (share at least one quantity kind)
+        common_qks = set(from_unit.quantity_kinds) & set(to_unit.quantity_kinds)
+        if not common_qks:
             logger.warning(
                 f"Unit conversion between different quantity kinds: "
-                f"{from_unit.quantity_kind} → {to_unit.quantity_kind}"
+                f"{from_unit.quantity_kinds} → {to_unit.quantity_kinds}"
             )
 
         # Perform conversion through SI base unit with full QUDT formula

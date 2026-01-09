@@ -31,7 +31,7 @@ gui:specimen_c001 a gui:Constraint ;
 
 gui:specimen_c002 a gui:Constraint ;
     rdfs:label "Populate manufacturing details from batch" ;
-    rdfs:comment "When a SpecimenBatchID is selected, automatically populate material, creation date, manufacturing method, and process-specific fields (AM: build orientation & layer thickness, Machining: tolerance, Casting: temperatures & cooling) as read-only fields." ;
+    rdfs:comment "When a SpecimenBatchID is selected, automatically populate material, manufacturing method, and process-specific fields (AM: build orientation & layer thickness, Machining: tolerance, Casting: temperatures & cooling) as read-only fields." ;
     dc:created "2025-01-15"^^xsd:date ;
     gui:forClass dyn:Specimen ;
     gui:triggers dyn:hasSpecimenBatchID ;
@@ -39,12 +39,11 @@ gui:specimen_c002 a gui:Constraint ;
     gui:whenValue gui:anyValue ;
     gui:populateFields (
         (dyn:hasMaterial "Material")
-        (dyn:hasCreationDate "Creation Date")
         (dyn:hasManufacturingMethod "Manufacturing Method")
         (dyn:hasBuildOrientation "Build Orientation")
         (dyn:hasLayerThickness "Layer Thickness")
         (dyn:hasMachiningTolerance "Machining Tolerance")
-        (dyn:hasMetalTemperature "Molten Metal Temperature")
+        (dyn:hasMoltenMetalTemperature "Molten Metal Temperature")
         (dyn:hasMoldTemperature "Mold Temperature")
         (dyn:hasCastCoolingDuration "Cast Cooling Duration")
     ) ;

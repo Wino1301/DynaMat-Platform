@@ -483,8 +483,13 @@ dyn:AMParametersConstraint a sh:NodeShape ;
         ] ;
         sh:select """
             # Query description: AM parameters should only exist when manufacturing method is 3DPrinting
+            # Only warn if at least one manufacturing method is selected (not an empty form)
             SELECT ?this WHERE {
+                # Has at least one manufacturing method selected
+                ?this dyn:hasManufacturingMethod ?anyMethod .
+                # Does NOT have 3DPrinting method
                 FILTER NOT EXISTS { ?this dyn:hasManufacturingMethod dyn:3DPrinting }
+                # But HAS AM parameters
                 {
                     ?this dyn:hasBuildOrientation ?orientation .
                 } UNION {
@@ -513,10 +518,15 @@ dyn:CastingParametersConstraint a sh:NodeShape ;
         ] ;
         sh:select """
             # Query description: Casting parameters should only exist when manufacturing method is Casting
+            # Only warn if at least one manufacturing method is selected (not an empty form)
             SELECT ?this WHERE {
+                # Has at least one manufacturing method selected
+                ?this dyn:hasManufacturingMethod ?anyMethod .
+                # Does NOT have Casting method
                 FILTER NOT EXISTS { ?this dyn:hasManufacturingMethod dyn:Casting }
+                # But HAS casting parameters
                 {
-                    ?this dyn:hasMetalTemperature ?metalTemp .
+                    ?this dyn:hasMoltenMetalTemperature ?metalTemp .
                 } UNION {
                     ?this dyn:hasMoldTemperature ?moldTemp .
                 } UNION {
@@ -543,8 +553,13 @@ dyn:MachiningParametersConstraint a sh:NodeShape ;
         ] ;
         sh:select """
             # Query description: Machining tolerance should only exist when manufacturing method is Machining
+            # Only warn if at least one manufacturing method is selected (not an empty form)
             SELECT ?this WHERE {
+                # Has at least one manufacturing method selected
+                ?this dyn:hasManufacturingMethod ?anyMethod .
+                # Has machining tolerance
                 ?this dyn:hasMachiningTolerance ?tolerance .
+                # Does NOT have Machining method
                 FILTER NOT EXISTS { ?this dyn:hasManufacturingMethod dyn:Machining }
             }
         """ ;

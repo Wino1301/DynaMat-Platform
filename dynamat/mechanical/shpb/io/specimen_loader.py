@@ -245,8 +245,8 @@ class SpecimenLoader:
         # Property categorization
         material_props = ['hasMaterial', 'hasStructure', 'hasShape']
         dimension_props = [
-            'hasOriginalLength', 'hasOriginalDiameter', 'hasOriginalCrossSection',
-            'hasFinalLength', 'hasFinalDiameter', 'hasFinalCrossSection'
+            'hasOriginalHeight', 'hasOriginalDiameter', 'hasOriginalCrossSection',
+            'hasFinalHeight', 'hasFinalDiameter', 'hasFinalCrossSection'
         ]
         manufacturing_props = [
             'hasManufacturingMethod', 'hasManufacturedDate',

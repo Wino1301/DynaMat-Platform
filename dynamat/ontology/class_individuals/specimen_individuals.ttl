@@ -173,7 +173,7 @@ dyn:VerticalOrientation rdf:type owl:NamedIndividual, dyn:BuildOrientation ;
     dyn:hasName "Vertical (90°)"@en ;
     dyn:hasDescription "Specimen built vertically on build platform, loading axis perpendicular to build platform"@en .
 
-dyn:DiagonalOrientation rdf:type owl:NamedIndividual, dyn:BuildOrientation ;
+dyn:DiagonalOrientation45 rdf:type owl:NamedIndividual, dyn:BuildOrientation ;
     rdfs:label "Diagonal (45°)"@en ;
     dyn:hasName "Diagonal (45°)"@en ;
     dyn:hasDescription "Specimen built at 45-degree angle to build platform"@en .
@@ -188,18 +188,40 @@ dyn:CustomOrientation rdf:type owl:NamedIndividual, dyn:BuildOrientation ;
 #################################################################
 
 # Multi-process batch example (demonstrates multi-select manufacturing methods)
-dyn:Batch_AL001_CastMachined rdf:type owl:NamedIndividual, dyn:SpecimenBatchID ;
-    rdfs:label "Batch AL001-2024-01 (Cast + Machined)"@en ;
-    dyn:hasName "Aluminum A356 Batch 2024-01 (Cast then Machined)"@en ;
-    dyn:hasBatchID "BATCH-AL001-2024-01"@en ;
-    dyn:hasDescription "First batch of A356 specimens cast in January 2024, then machined to final dimensions. Demonstrates sequential manufacturing processes."@en ;
+dyn:Batch_A356_001_CastMachined rdf:type owl:NamedIndividual, dyn:SpecimenBatchID ;
+    rdfs:label "Batch A356-2025-01 (Cast + Machined)"@en ;
+    dyn:hasName "Aluminum A356 Batch 2025-01 (Cast + Machined)"@en ;
+    dyn:hasBatchID "BATCH-A356-2025-01"@en ;
+    dyn:hasDescription "First batch of A356 specimens cast in January 2025, then machined to final dimensions."@en ;
     dyn:hasMaterial dyn:A356 ;
-    dyn:hasCreationDate "2024-01-15"^^xsd:date ;
+    dyn:hasCreationDate "2025-01-15"^^xsd:date ;
     dyn:hasManufacturingMethod dyn:Casting, dyn:Machining ;
-    dyn:hasMetalTemperature 700.0 ;
-    dyn:hasMoldTemperature 200.0 ;
+    dyn:hasMoltenMetalTemperature 700.0 ;
+    dyn:hasMoldTemperature 23.0 ;
     dyn:hasCastCoolingDuration 30.0 ;
-    dyn:hasMachiningTolerance 0.1 .
+    dyn:hasMachiningTolerance 0.01 .
+
+dyn:Batch_SS316_001_Machined rdf:type owl:NamedIndividual, dyn:SpecimenBatchID ;
+    rdfs:label "Batch SS316-2025-01  Machined"@en ;
+    dyn:hasName "SS316 Batch 2025-01 Machined"@en ;
+    dyn:hasBatchID "BATCH-SS316-2025-01"@en ;
+    dyn:hasDescription "First batch of SS316 specimens in January 2025, machined from rod to final dimensions."@en ;
+    dyn:hasMaterial dyn:SS316 ;
+    dyn:hasCreationDate "2025-01-15"^^xsd:date ;
+    dyn:hasManufacturingMethod dyn:Machining ;
+    dyn:hasMachiningTolerance 0.01 .
+
+dyn:Batch_SS316_002_PrintMachined rdf:type owl:NamedIndividual, dyn:SpecimenBatchID ;
+    rdfs:label "Batch SS316-2025-02 (Print + Machined)"@en ;
+    dyn:hasName "SS316 AM Batch 2025-02 (Printed + Machined)"@en ;
+    dyn:hasBatchID "BATCH-A356-2025-01"@en ;
+    dyn:hasDescription "First batch of AM SS316 specimens printed in January 2025, then machined to final dimensions."@en ;
+    dyn:hasMaterial dyn:SS316 ;
+    dyn:hasCreationDate "2025-01-15"^^xsd:date ;
+    dyn:hasManufacturingMethod dyn:3DPrinting, dyn:Machining ;
+    dyn:hasBuildAngle dyn:DiagonalOrientation45;
+    dyn:hasLayerThickness "60"^^xsd:double;
+    dyn:hasMachiningTolerance 0.01 .
 
 #################################################################
 #    Characterization Groups (Placeholder for testing)
@@ -232,14 +254,14 @@ dyn:CompositePhase_Al60_A356_40 rdf:type owl:NamedIndividual, dyn:CompositePhase
 #
 # Example format (keep one commented as reference):
 #
-# dyn:SPN_AL001_001 rdf:type owl:NamedIndividual, dyn:Specimen ;
-#     rdfs:label "SPN-AL001-001"@en ;
+# dyn:SPN_A356-001_001 rdf:type owl:NamedIndividual, dyn:Specimen ;
+#     rdfs:label "SPN-A356-001-001"@en ;
 #     dyn:hasName "Aluminum A356 Specimen #001"@en ;
-#     dyn:hasSpecimenID "SPN-AL001-001"@en ;
-#     dyn:hasMaterialID "AL001"@en ;
+#     dyn:hasSpecimenID "SPN-A356-001-001"@en ;
+#     dyn:hasMaterialID "A356-001"@en ;
 #
 #     # Batch selection (optional - populates manufacturing fields if used)
-#     dyn:hasSpecimenBatchID dyn:Batch_AL001_CastMachined ;
+#     dyn:hasSpecimenBatchID dyn:Batch_A356-001_CastMachined ;
 #
 #     # Material and manufacturing (can be set manually or populated from batch)
 #     dyn:hasMaterial dyn:A356 ;
@@ -267,6 +289,6 @@ dyn:CompositePhase_Al60_A356_40 rdf:type owl:NamedIndividual, dyn:CompositePhase
 #     dyn:hasOriginalMass 0.851 ;           # g
 #
 #     # Optional fields
-#     dyn:hasCharacterizationGroupID "AL001-Cast-Machined-Group1"@en ;
+#     dyn:hasCharacterizationGroupID "A356-001-Cast-Machined-Group1"@en ;
 #     dyn:isCharacterizationRepresentative true ;
 #     dyn:hasDescription "Cylindrical A356 specimen cast then machined to final dimensions"@en .

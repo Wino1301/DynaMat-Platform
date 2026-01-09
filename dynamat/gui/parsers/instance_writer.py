@@ -115,23 +115,8 @@ class InstanceWriter:
             graph = Graph()
             self._setup_namespaces(graph)
 
-            # Create instance URI
-            instance_uri = self._create_instance_uri(instance_id)
-            instance_ref = URIRef(instance_uri)
-
-            # Add type assertion
-            class_ref = self._resolve_uri(class_uri)
-            graph.add((instance_ref, RDF.type, class_ref))
-
-            # Process each property from form data
-            for property_uri, value in form_data.items():
-                if value is None or value == "":
-                    continue  # Skip empty values
-
-                property_ref = self._resolve_uri(property_uri)
-                rdf_value = self._convert_to_rdf_value(value)
-
-                graph.add((instance_ref, property_ref, rdf_value))
+            # Create instance using extracted method (DRY principle)
+            instance_ref = self.create_single_instance(graph, form_data, class_uri, instance_id)
 
             # Add any additional triples
             if additional_triples:
@@ -241,10 +226,22 @@ class InstanceWriter:
             # Check if it's a URI or a literal string
             if value.startswith("http") or value.startswith("dyn:") or value.startswith("unit:"):
                 return self._resolve_uri(value)
-            # Check if it's a date string (YYYY-MM-DD format)
-            elif len(value) == 10 and value.count('-') == 2:
+            # Check if it's an ISO datetime string (YYYY-MM-DDTHH:MM:SS...)
+            # Extract date part for metadata fields (hasCreatedDate, hasModifiedDate)
+            elif 'T' in value and len(value) > 10:
                 try:
-                    # Validate it's a proper date (datetime imported at top)
+                    # Try to parse as ISO datetime
+                    dt = datetime.fromisoformat(value)
+                    # Extract just the date part and store as xsd:date
+                    date_str = dt.strftime("%Y-%m-%d")
+                    return Literal(date_str, datatype=XSD.date)
+                except (ValueError, AttributeError):
+                    # Not a valid ISO datetime, check if it's a simple date
+                    pass
+            # Check if it's a date string (YYYY-MM-DD format)
+            if len(value) == 10 and value.count('-') == 2:
+                try:
+                    # Validate it's a proper date
                     datetime.strptime(value, "%Y-%m-%d")
                     return Literal(value, datatype=XSD.date)
                 except ValueError:
@@ -320,41 +317,260 @@ class InstanceWriter:
     def _save_graph(self, graph: Graph, output_path: Path):
         """Serialize and save graph to TTL file with explicit datatypes."""
         try:
-            # Create a new graph with explicitly typed literals
-            typed_graph = Graph()
+            import re
 
-            # Copy namespaces
-            for prefix, namespace in graph.namespaces():
-                typed_graph.bind(prefix, namespace)
+            # Serialize graph to Turtle format
+            ttl_content = graph.serialize(format='turtle')
 
-            # Copy all triples, ensuring numeric literals have explicit types
-            for s, p, o in graph:
-                if isinstance(o, Literal):
-                    # If it's a numeric literal without explicit datatype in serialization,
-                    # ensure it has one
-                    if o.datatype == XSD.double:
-                        # Force explicit typing by recreating the literal
-                        new_o = Literal(str(o), datatype=XSD.double)
-                        typed_graph.add((s, p, new_o))
-                    elif o.datatype == XSD.integer:
-                        new_o = Literal(str(o), datatype=XSD.integer)
-                        typed_graph.add((s, p, new_o))
+            # Post-process to add explicit ^^xsd:double datatypes
+            # RDFlib omits these annotations when using "native" Turtle number syntax
+
+            logger.debug("Post-processing TTL to add explicit numeric datatypes...")
+
+            # Pattern 1: Scientific notation numbers (e.g., 3e+01, 1.5e-03)
+            # These are ALWAYS doubles in our context
+            # Convert to decimal format for better readability
+            scientific_pattern = r'(\s)(-?\d+\.?\d*[eE][+-]?\d+)(\s*[;,.\]])'
+
+            def add_double_type(match):
+                before, number, after = match.groups()
+                # Convert scientific notation to decimal for better readability
+                try:
+                    float_val = float(number)
+                    # Format without unnecessary trailing zeros
+                    if float_val == 0:
+                        decimal_str = "0.0"
+                    elif abs(float_val) >= 1e-4 and abs(float_val) < 1e6:
+                        # Use decimal notation for reasonable range
+                        decimal_str = f"{float_val:.10f}".rstrip('0').rstrip('.')
+                        # Ensure at least one decimal place for floats
+                        if '.' not in decimal_str:
+                            decimal_str += '.0'
                     else:
-                        typed_graph.add((s, p, o))
-                else:
-                    typed_graph.add((s, p, o))
+                        # Keep scientific notation for very large/small numbers
+                        decimal_str = number
+                    result = f'{before}"{decimal_str}"^^xsd:double{after}'
+                    logger.debug(f"  Converting scientific notation: {number} -> \"{decimal_str}\"^^xsd:double")
+                    return result
+                except ValueError:
+                    # If conversion fails, keep original with type annotation
+                    result = f'{before}"{number}"^^xsd:double{after}'
+                    return result
 
-            # Serialize with nice formatting
-            ttl_content = typed_graph.serialize(format='turtle')
+            ttl_content = re.sub(scientific_pattern, add_double_type, ttl_content)
+
+            # Pattern 2: Decimal numbers (e.g., 10.5, 0.01, 6.35)
+            # Only match if NOT already followed by ^^ (already typed)
+            # And NOT inside quotes (already a string)
+            decimal_pattern = r'(\s)(-?\d+\.\d+)(?!\^\^)(?!")(\s*[;,.\]])'
+
+            def add_decimal_type(match):
+                before, number, after = match.groups()
+                # Check if this line already has xsd: annotation nearby
+                if '^^xsd:' in ttl_content[max(0, match.start()-100):match.end()+20]:
+                    return match.group(0)  # Skip if already typed
+                result = f'{before}"{number}"^^xsd:double{after}'
+                logger.debug(f"  Converting decimal: {number} -> \"{number}\"^^xsd:double")
+                return result
+
+            ttl_content = re.sub(decimal_pattern, add_decimal_type, ttl_content)
+
+            # Pattern 3: Plain integers (e.g., 30, 100) -> xsd:integer
+            # Be very careful here - don't match years in dates!
+            # Only match integers that are clearly property values
+            integer_pattern = r'(\s)(-?\d+)(?![\d.\-])(?!\^\^)(\s*[;,.\]])'
+
+            def add_integer_type(match):
+                before, number, after = match.groups()
+                # Skip if in a date context (look for xsd:date nearby)
+                context = ttl_content[max(0, match.start()-100):match.end()+50]
+                if '^^xsd:date' in context or 'xsd:dateTime' in context:
+                    return match.group(0)  # Skip dates
+                # Skip if already typed
+                if '^^xsd:' in context[match.start()-100:match.end()]:
+                    return match.group(0)
+                # Skip small numbers that might be part of URIs
+                if int(number) < 1000 and 'dyn:' in context[match.start()-20:match.start()]:
+                    return match.group(0)
+                result = f'{before}"{number}"^^xsd:integer{after}'
+                logger.debug(f"  Converting integer: {number} -> \"{number}\"^^xsd:integer")
+                return result
+
+            # Only apply integer typing to clear numeric property values
+            # ttl_content = re.sub(integer_pattern, add_integer_type, ttl_content)
 
             # Write to file
             with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(ttl_content)
 
-            logger.debug(f"Graph serialized to {output_path} ({len(typed_graph)} triples)")
+            logger.info(f"Graph serialized to {output_path} with explicit numeric datatypes")
 
         except Exception as e:
             logger.error(f"Failed to save graph to {output_path}: {e}")
+            raise
+
+    def create_single_instance(self,
+                              graph: Graph,
+                              form_data: Dict[str, Any],
+                              class_uri: str,
+                              instance_id: str) -> URIRef:
+        """
+        Add a single RDF instance to an existing graph.
+
+        This method extracts the core instance creation logic for reuse in batch operations.
+
+        Args:
+            graph: RDF graph to add instance to
+            form_data: Property dictionary (property_uri -> value)
+            class_uri: RDF class URI (e.g., "dyn:PulseWindow", "dyn:DataSeries")
+            instance_id: Instance identifier
+
+        Returns:
+            URIRef of the created instance
+
+        Example:
+            >>> graph = Graph()
+            >>> writer._setup_namespaces(graph)
+            >>> form_data = {
+            ...     'dyn:hasStartIndex': 32881,
+            ...     'dyn:hasEndIndex': 42633,
+            ...     'dyn:appliedToSeries': 'dyn:TEST_001_incident'
+            ... }
+            >>> instance_uri = writer.create_single_instance(
+            ...     graph, form_data, 'dyn:PulseWindow', 'TEST_001_incident_window'
+            ... )
+        """
+        # Create instance URI
+        instance_uri = self._create_instance_uri(instance_id)
+        instance_ref = URIRef(instance_uri)
+
+        # Add type assertion
+        class_ref = self._resolve_uri(class_uri)
+        graph.add((instance_ref, RDF.type, class_ref))
+
+        # Process each property from form data
+        for property_uri, value in form_data.items():
+            if value is None or value == "":
+                continue  # Skip empty values
+
+            property_ref = self._resolve_uri(property_uri)
+
+            # Handle multi-valued properties (lists)
+            if isinstance(value, list):
+                for item in value:
+                    if item is not None and item != "":
+                        rdf_value = self._convert_to_rdf_value(item)
+                        graph.add((instance_ref, property_ref, rdf_value))
+                logger.debug(f"Added {len(value)} values for multi-valued property {property_uri}")
+            else:
+                # Single-valued property
+                rdf_value = self._convert_to_rdf_value(value)
+                graph.add((instance_ref, property_ref, rdf_value))
+
+        logger.debug(f"Created instance {instance_id} of type {class_uri}")
+        return instance_ref
+
+    def create_instances_batch(self,
+                              instances: list,
+                              output_graph: Optional[Graph] = None) -> Graph:
+        """
+        Create multiple RDF instances in a single graph.
+
+        This enables creating related instances (test + windows + shifts + params + metrics)
+        in one graph, avoiding temporary file creation for each instance.
+
+        Args:
+            instances: List of (form_data, class_uri, instance_id) tuples
+            output_graph: Optional existing graph to add to (creates new if None)
+
+        Returns:
+            Combined RDF graph with all instances
+
+        Example:
+            >>> instances = [
+            ...     (
+            ...         {'dyn:hasStartIndex': 32881, 'dyn:hasEndIndex': 42633},
+            ...         'dyn:PulseWindow',
+            ...         'TEST_001_incident_window'
+            ...     ),
+            ...     (
+            ...         {'dyn:hasShiftValue': 1300, 'dyn:appliedToSeries': 'dyn:TEST_001_transmitted'},
+            ...         'dyn:PulseShift',
+            ...         'TEST_001_transmitted_shift'
+            ...     ),
+            ... ]
+            >>> graph = writer.create_instances_batch(instances)
+        """
+        # Create or use existing graph
+        if output_graph is None:
+            graph = Graph()
+            self._setup_namespaces(graph)
+        else:
+            graph = output_graph
+
+        # Create each instance
+        for form_data, class_uri, instance_id in instances:
+            self.create_single_instance(graph, form_data, class_uri, instance_id)
+
+        logger.info(f"Created batch of {len(instances)} instances")
+        return graph
+
+    def write_multi_instance_file(self,
+                                 instances: list,
+                                 output_path: Path,
+                                 skip_validation: bool = False) -> Tuple[Optional[str], ValidationResult]:
+        """
+        Write multiple instances to a single TTL file.
+
+        This replaces the temp file creation/merging pattern, enabling atomic batch operations
+        with a single validation pass for all related instances.
+
+        Args:
+            instances: List of (form_data, class_uri, instance_id) tuples
+            output_path: Path to output TTL file
+            skip_validation: Skip SHACL validation if True
+
+        Returns:
+            Tuple of (saved_file_path, validation_result):
+            - saved_file_path: Path to saved file, or None if save was blocked
+            - validation_result: SHACL validation result
+
+        Example:
+            >>> instances = [
+            ...     ({'dyn:hasStartIndex': 32881}, 'dyn:PulseWindow', 'TEST_001_inc_window'),
+            ...     ({'dyn:hasShiftValue': 1300}, 'dyn:PulseShift', 'TEST_001_trs_shift'),
+            ... ]
+            >>> path, validation = writer.write_multi_instance_file(
+            ...     instances, Path('test.ttl')
+            ... )
+        """
+        try:
+            # Create batch graph
+            graph = self.create_instances_batch(instances)
+
+            # Validate RDF graph with SHACL (after unit conversion, before save)
+            validation_result = self._validate_instance_graph(graph, skip_validation)
+
+            # Check validation result - return immediately if blocking violations exist
+            if validation_result.has_blocking_issues():
+                logger.warning(
+                    f"Batch validation failed with {len(validation_result.violations)} violation(s). "
+                    f"Save blocked."
+                )
+                return None, validation_result
+
+            # Ensure output directory exists
+            output_path = Path(output_path)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Serialize to TTL
+            self._save_graph(graph, output_path)
+
+            logger.info(f"Batch of {len(instances)} instances written to {output_path}")
+            return str(output_path), validation_result
+
+        except Exception as e:
+            logger.error(f"Failed to write multi-instance file to {output_path}: {e}", exc_info=True)
             raise
 
     def update_instance(self,
@@ -391,10 +607,20 @@ class InstanceWriter:
                 # Remove old triples
                 graph.remove((instance_ref, property_ref, None))
 
-                # Add new value
+                # Add new value(s)
                 if new_value is not None and new_value != "":
-                    rdf_value = self._convert_to_rdf_value(new_value)
-                    graph.add((instance_ref, property_ref, rdf_value))
+                    # Handle multi-valued properties (lists from multi-select widgets)
+                    if isinstance(new_value, list):
+                        # Add multiple triples for multi-valued properties
+                        for item in new_value:
+                            if item is not None and item != "":
+                                rdf_value = self._convert_to_rdf_value(item)
+                                graph.add((instance_ref, property_ref, rdf_value))
+                        logger.debug(f"Updated with {len(new_value)} values for multi-valued property {property_uri}")
+                    else:
+                        # Single-valued property
+                        rdf_value = self._convert_to_rdf_value(new_value)
+                        graph.add((instance_ref, property_ref, rdf_value))
 
             # Validate updated graph with SHACL
             validation_result = self._validate_instance_graph(graph, skip_validation)

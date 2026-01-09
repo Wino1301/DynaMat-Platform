@@ -241,9 +241,11 @@ class OntologyManager:
             property_uris: List of property URIs to retrieve
 
         Returns:
-            Dictionary mapping property_uri -> value
-            For object properties, returns the URI of the object
-            For datatype properties, returns the literal value
+            Dictionary mapping property_uri -> value(s)
+            For functional properties (single value): returns the value as string
+            For non-functional properties (multiple values): returns list of strings
+            For object properties, returns the URI of the object(s)
+            For datatype properties, returns the literal value(s)
         """
         # Build SPARQL query to get all requested properties
         property_values = {}
@@ -258,9 +260,16 @@ class OntologyManager:
             results = self.sparql_executor.execute_query(query)
 
             if results:
-                # Take the first value (properties should be functional)
-                value = results[0]['value']
-                property_values[prop_uri] = str(value)
+                # Check if property has multiple values
+                if len(results) == 1:
+                    # Single value - return as string
+                    value = results[0]['value']
+                    property_values[prop_uri] = str(value)
+                else:
+                    # Multiple values - return as list
+                    values = [str(result['value']) for result in results]
+                    property_values[prop_uri] = values
+                    logger.debug(f"Property {prop_uri} has {len(values)} values: {values}")
 
         return property_values
 

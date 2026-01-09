@@ -34,8 +34,8 @@ class PulseAligner:
     ----------
     bar_wave_speed : float
         Wave speed in the bar (mm/ms).
-    specimen_length : float
-        Initial specimen length (mm).
+    specimen_height : float
+        Initial specimen height (mm).
     k_linear : float, default 0.35
         Fraction of steepest slope to define linear region of incident pulse.
         Used for isolating equilibrium check region (0.25-0.40 typical).
@@ -47,7 +47,7 @@ class PulseAligner:
     --------
     >>> aligner = PulseAligner(
     ...     bar_wave_speed=4953.3,
-    ...     specimen_length=6.5,
+    ...     specimen_height=6.5,
     ...     k_linear=0.35
     ... )
     >>> inc, trs, ref, shift_t, shift_r = aligner.align(
@@ -63,12 +63,12 @@ class PulseAligner:
     def __init__(
         self,
         bar_wave_speed: float,
-        specimen_length: float,
+        specimen_height: float,
         k_linear: float = 0.35,
         weights: Dict[str, float] | None = None
     ):
         self.bar_wave_speed = bar_wave_speed
-        self.specimen_length = specimen_length
+        self.specimen_height = specimen_height
         self.k_linear = k_linear
         self.weights = weights or {
             'corr': 0.3,
@@ -98,7 +98,7 @@ class PulseAligner:
         Returns
         -------
         np.ndarray
-            Shifted signal (same length, zero-padded).
+            Shifted signal (same height, zero-padded).
         """
         n = len(signal)
         s = int(round(shift))
@@ -186,7 +186,7 @@ class PulseAligner:
         c : float
             Bar wave speed (mm/ms).
         L : float
-            Specimen length (mm).
+            Specimen height (mm).
         inc, trs, ref : np.ndarray
             Pulse arrays.
         idx : np.ndarray
@@ -221,7 +221,7 @@ class PulseAligner:
         c : float
             Bar wave speed (mm/ms).
         L : float
-            Specimen length (mm).
+            Specimen height (mm).
         inc, trs, ref : np.ndarray
             Pulse arrays.
         time : np.ndarray
@@ -275,10 +275,10 @@ class PulseAligner:
         r = self._pulse_correlation(inc, T, R, idx)
         u_rmse = self._bar_displacement_rmse(self.bar_wave_speed, inc, T, R, idx)
         sr_rmse = self._strain_rate_rmse(
-            self.bar_wave_speed, self.specimen_length, inc, T, R, idx
+            self.bar_wave_speed, self.specimen_height, inc, T, R, idx
         )
         e_rmse = self._strain_rmse(
-            self.bar_wave_speed, self.specimen_length, inc, T, R, time, idx
+            self.bar_wave_speed, self.specimen_height, inc, T, R, time, idx
         )
 
         # Convert RMSEs to similarities (0 to 1)
@@ -320,10 +320,10 @@ class PulseAligner:
         reflected : np.ndarray
             Reflected pulse to align.
         time_vector : np.ndarray
-            Time axis (ms), same length as pulses.
+            Time axis (ms), same height as pulses.
         search_bounds_t : Tuple[int, int], optional
             Search bounds for transmitted shift (min, max) in samples.
-            Defaults to ±N/2 where N is pulse length.
+            Defaults to ±N/2 where N is pulse height.
         search_bounds_r : Tuple[int, int], optional
             Search bounds for reflected shift (min, max) in samples.
             Defaults to ±N/2.
@@ -346,13 +346,13 @@ class PulseAligner:
         Raises
         ------
         ValueError
-            If input arrays have different lengths.
+            If input arrays have different heights.
         """
         # Validate inputs
         N = len(incident)
         if not (len(transmitted) == len(reflected) == len(time_vector) == N):
             raise ValueError(
-                f"All inputs must have same length. Got: "
+                f"All inputs must have same height. Got: "
                 f"incident={len(incident)}, transmitted={len(transmitted)}, "
                 f"reflected={len(reflected)}, time={len(time_vector)}"
             )

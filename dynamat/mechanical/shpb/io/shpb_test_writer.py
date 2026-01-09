@@ -1,18 +1,21 @@
 """
-SHPB Test Writer - Complete Test Ingestion Workflow
+SHPB Test Writer - Simplified Test Ingestion Workflow
 
-Orchestrates the complete workflow for ingesting SHPB test data:
-- Validates metadata and raw data
-- Creates directory structure
-- Saves CSV files
-- Creates RDF metadata instances
-- Links test to specimen
+Simplified workflow orchestrator that delegates all RDF generation to InstanceWriter.
+All metadata is contained in SHPBTestMetadata, making the workflow clean and direct.
+
+Architecture:
+- SHPBTestMetadata: Contains all data and RDF structure knowledge
+- SHPBTestWriter: Thin orchestrator for the ingestion workflow
+- InstanceWriter: Generic RDF engine (handles all TTL generation)
 """
 
 import logging
 from pathlib import Path
 from typing import Tuple, Optional, List, Dict, Any
 import pandas as pd
+import numpy as np
+from datetime import datetime
 
 from dynamat.config import config
 from dynamat.gui.parsers.instance_writer import InstanceWriter
@@ -20,41 +23,40 @@ from dynamat.gui.core.form_validator import ValidationResult
 
 from .test_metadata import SHPBTestMetadata
 from .csv_data_handler import CSVDataHandler
-from .data_series_builder import DataSeriesBuilder
 
 logger = logging.getLogger(__name__)
 
 
 class SHPBTestWriter:
     """
-    Complete workflow orchestration for SHPB test data ingestion.
+    Simplified workflow orchestrator for SHPB test data ingestion.
 
-    This class coordinates:
-    - DataFrame validation
-    - Test metadata validation
-    - File organization and saving
-    - RDF instance creation
-    - SHACL validation
-    - Specimen linking
+    All RDF generation is delegated to InstanceWriter using batch creation methods.
+    SHPBTestMetadata contains complete analysis provenance (120+ parameters).
+
+    Workflow:
+    1. Validate metadata and DataFrame
+    2. Save CSV file
+    3. Create AnalysisFile instance
+    4. Create DataSeries instances (time, incident, transmitted)
+    5. Create processing instances (windows, shifts, params, metrics) via batch
+    6. Create SHPBCompression test instance linking to all above
+    7. Save all to single TTL file
+    8. Update specimen with test link
 
     Example:
-        >>> from dynamat.ontology import OntologyManager
-        >>> from dynamat.mechanical.shpb.io import SHPBTestWriter, SHPBTestMetadata
-        >>> import pandas as pd
-        >>>
         >>> ontology_manager = OntologyManager()
-        >>> writer = SHPBTestWriter(ontology_manager)
+        >>> writer = SHPBTestWriter(ontology_manager, qudt_manager)
         >>>
-        >>> # Create metadata
-        >>> metadata = SHPBTestMetadata(...)
+        >>> # Create comprehensive metadata with all analysis parameters
+        >>> metadata = SHPBTestMetadata(
+        ...     test_id='TEST_001',
+        ...     specimen_uri='dyn:SPECIMEN_001',
+        ...     # ... (120+ parameters)
+        ... )
         >>>
-        >>> # Create DataFrame
-        >>> df = pd.DataFrame({'time': [...], 'incident': [...], 'transmitted': [...]})
-        >>>
-        >>> # Ingest test
-        >>> test_path, validation = writer.ingest_test(metadata, df)
-        >>> if test_path:
-        ...     print(f"Test saved to: {test_path}")
+        >>> # Ingest test with full provenance
+        >>> test_path, validation = writer.ingest_test(metadata, raw_df)
     """
 
     def __init__(self, ontology_manager, qudt_manager=None):
@@ -63,135 +65,103 @@ class SHPBTestWriter:
 
         Args:
             ontology_manager: OntologyManager instance
-            qudt_manager: QUDTManager for unit conversions (optional)
+            qudt_manager: QUDTManager for unit conversions
         """
         self.ontology_manager = ontology_manager
         self.qudt_manager = qudt_manager
         self.instance_writer = InstanceWriter(ontology_manager, qudt_manager)
-        self.data_series_builder = DataSeriesBuilder(ontology_manager, qudt_manager)
-        self.ns = ontology_manager.namespace_manager if hasattr(ontology_manager, 'namespace_manager') else None
 
-        logger.info("SHPBTestWriter initialized")
+        logger.info("SHPBTestWriter initialized (simplified architecture)")
 
     def ingest_test(
         self,
         test_metadata: SHPBTestMetadata,
-        raw_data_df: pd.DataFrame
+        raw_data_df: pd.DataFrame,
+        processed_results: Optional[Dict[str, np.ndarray]] = None
     ) -> Tuple[Optional[Path], ValidationResult]:
         """
-        Complete workflow for ingesting SHPB test data.
+        Ingest complete SHPB test with full analysis provenance.
 
-        Workflow:
-            1. Validate test metadata (required fields)
-            2. Validate DataFrame structure (required columns)
-            3. Determine specimen directory from specimen_uri
-            4. Create directory structure (raw/, processed/)
-            5. Save DataFrame as CSV to raw/
-            6. Create AnalysisFile instance for raw CSV
-            7. Create DataSeries instances (time, incident, transmitted)
-            8. Create SHPBCompression test instance
-            9. Link test to specimen (update specimen TTL)
-            10. Save test TTL file
-            11. Return paths and validation results
+        Simplified workflow using batch instance creation:
+        1. Validate metadata and DataFrame
+        2. Save CSV file(s) (raw, and processed if provided)
+        3. Build all instances (AnalysisFile, DataSeries, processing objects, test)
+        4. Save all instances to single TTL file using batch write
+        5. Update specimen with test link
 
         Args:
-            test_metadata: SHPBTestMetadata with test configuration
+            test_metadata: Complete SHPBTestMetadata with all 120+ parameters
             raw_data_df: DataFrame with columns 'time', 'incident', 'transmitted'
+            processed_results: Optional dict from StressStrainCalculator.calculate()
+                              If provided, creates processed DataSeries instances and saves CSV
 
         Returns:
             Tuple of (test_file_path, validation_result):
-            - test_file_path: Path to saved test TTL, or None if failed
+            - test_file_path: Path to saved test TTL, or None if validation failed
             - validation_result: SHACL validation results
 
-        Raises:
-            ValueError: If validation fails or required fields missing
-            FileNotFoundError: If specimen directory doesn't exist
-
         Example:
-            >>> metadata = SHPBTestMetadata(...)
+            >>> metadata = SHPBTestMetadata(...)  # With all analysis parameters
             >>> df = pd.DataFrame({'time': [...], 'incident': [...], 'transmitted': [...]})
-            >>> test_path, validation = writer.ingest_test(metadata, df)
+            >>> # Optional: calculate stress-strain curves
+            >>> calculator = StressStrainCalculator(...)
+            >>> results = calculator.calculate(inc, trs, ref, time)
+            >>> # Ingest with or without processed results
+            >>> test_path, validation = writer.ingest_test(metadata, df, results)
         """
         logger.info(f"Starting SHPB test ingestion for: {test_metadata.test_id}")
 
         try:
-            # Step 1: Validate test metadata
-            logger.info("Step 1/10: Validating test metadata...")
+            # Step 1: Validate
+            logger.info("Step 1/5: Validating metadata and DataFrame...")
             test_metadata.validate()
-
-            # Step 2: Validate DataFrame
-            logger.info("Step 2/10: Validating DataFrame structure...")
             csv_handler = CSVDataHandler(raw_data_df)
             csv_handler.validate_structure()
 
-            # Step 3: Determine specimen directory
-            logger.info("Step 3/10: Resolving specimen directory...")
+            # Step 2: Save CSV
+            logger.info("Step 2/5: Saving raw data CSV...")
             specimen_dir = self._get_specimen_directory(test_metadata.specimen_uri)
+            self._create_directory_structure(specimen_dir)
+            csv_path = self._save_csv(test_metadata, specimen_dir, csv_handler)
 
-            # Step 4: Create directory structure
-            logger.info("Step 4/10: Creating directory structure...")
-            dirs = self._create_directory_structure(specimen_dir)
+            # Step 2b: Save processed CSV if provided
+            processed_csv_path = None
+            if processed_results is not None:
+                logger.info("Step 2b/5: Saving processed data CSV...")
+                processed_csv_path = self._save_processed_csv(
+                    processed_results,
+                    specimen_dir,
+                    test_metadata.test_id
+                )
 
-            # Step 5: Save DataFrame as CSV
-            logger.info("Step 5/10: Saving raw data CSV...")
-            csv_path = self._save_dataframe_to_csv(
-                csv_handler,
-                specimen_dir,
-                test_metadata.test_id,
-                test_metadata.test_date
-            )
-
-            # Step 6: Create AnalysisFile instance
-            logger.info("Step 6/10: Creating AnalysisFile metadata...")
-            analysis_file_data, analysis_file_uri = self._create_analysis_file_instance(
+            # Step 3: Build all instances
+            logger.info("Step 3/5: Building all RDF instances...")
+            all_instances = self._build_all_instances(
+                test_metadata,
                 csv_path,
                 csv_handler,
-                specimen_dir,
-                test_metadata.test_id,
-                test_metadata.test_date
+                processed_results,
+                processed_csv_path
             )
 
-            # Step 7: Create DataSeries instances
-            logger.info("Step 7/10: Creating DataSeries metadata...")
-            data_series_list = self._create_data_series_instances(
-                csv_handler,
-                test_metadata.test_id,
-                test_metadata.test_date
-            )
-
-            # Step 8: Create SHPBCompression test instance
-            logger.info("Step 8/10: Creating SHPB test metadata...")
-            test_data, test_uri = self._create_test_instance(
-                test_metadata,
-                [uri for _, uri in data_series_list],
-                analysis_file_uri
-            )
-
-            # Step 9: Link test to specimen
-            logger.info("Step 9/10: Linking test to specimen...")
-            self._link_test_to_specimen(
-                test_metadata.specimen_uri,
-                test_uri,
-                specimen_dir
-            )
-
-            # Step 10: Save test file with all instances
-            logger.info("Step 10/10: Saving test file with validation...")
+            # Step 4: Save to TTL
+            logger.info("Step 4/5: Saving test file with batch validation...")
             test_file_path, validation_result = self._save_test_file(
-                test_data,
-                analysis_file_data,
-                data_series_list,
-                test_uri,
+                all_instances,
                 specimen_dir,
-                test_metadata.test_id,
-                test_metadata.test_date
+                test_metadata.test_id
             )
 
-            if test_file_path:
-                logger.info(f"Test ingestion completed successfully: {test_file_path}")
-            else:
-                logger.warning(f"Test ingestion failed validation")
+            if not test_file_path:
+                logger.warning("Test ingestion failed validation")
+                return None, validation_result
 
+            # Step 5: Link test to specimen
+            logger.info("Step 5/5: Linking test to specimen...")
+            test_uri = f"dyn:{test_metadata.test_id.replace('-', '_')}"
+            self._link_test_to_specimen(test_metadata.specimen_uri, test_uri, specimen_dir)
+
+            logger.info(f"Test ingestion completed successfully: {test_file_path}")
             return test_file_path, validation_result
 
         except Exception as e:
@@ -258,166 +228,176 @@ class SHPBTestWriter:
             'processed': processed_dir
         }
 
-    def _save_dataframe_to_csv(
+    def _save_csv(
         self,
-        csv_handler: CSVDataHandler,
+        test_metadata: SHPBTestMetadata,
         specimen_dir: Path,
-        test_id: str,
-        test_date: str
+        csv_handler: CSVDataHandler
     ) -> Path:
         """
         Save DataFrame to CSV in raw/ subdirectory.
 
         Args:
-            csv_handler: CSVDataHandler with validated DataFrame
+            test_metadata: Test metadata
             specimen_dir: Specimen directory
-            test_id: Test ID
-            test_date: Test date (YYYY-MM-DD)
+            csv_handler: CSVDataHandler with validated DataFrame
 
         Returns:
             Path to saved CSV file
         """
-        # Construct filename
-        filename = f"{test_id.replace('-', '_')}_raw.csv"
+        filename = f"{test_metadata.test_id.replace('-', '_')}_raw.csv"
         csv_path = specimen_dir / 'raw' / filename
-
-        # Save CSV
         csv_handler.save_to_csv(csv_path)
-
+        logger.debug(f"Saved CSV: {csv_path}")
         return csv_path
 
-    def _create_analysis_file_instance(
+    def _save_processed_csv(
         self,
-        csv_path: Path,
-        csv_handler: CSVDataHandler,
+        results: Dict[str, np.ndarray],
         specimen_dir: Path,
-        test_id: str,
-        test_date: str
-    ) -> Tuple[Dict[str, Any], str]:
+        test_id: str
+    ) -> Path:
         """
-        Create AnalysisFile RDF instance metadata.
+        Save processed results dictionary to CSV in processed/ subdirectory.
 
         Args:
-            csv_path: Path to CSV file
-            csv_handler: CSVDataHandler
+            results: Dictionary from StressStrainCalculator.calculate()
             specimen_dir: Specimen directory
             test_id: Test ID
-            test_date: Test date
 
         Returns:
-            Tuple of (form_data_dict, instance_uri)
+            Path to saved CSV file
         """
-        # Get file size
-        file_size = csv_path.stat().st_size
+        # Create DataFrame from results dictionary
+        processed_df = pd.DataFrame(results)
 
-        # Get file metadata
-        file_metadata = csv_handler.get_file_metadata_for_saving()
+        # Define filename and path
+        filename = f"{test_id.replace('-', '_')}_processed.csv"
+        csv_path = specimen_dir / 'processed' / filename
 
-        # Create form data
-        form_data = self.data_series_builder.create_analysis_file(
-            file_path=csv_path,
-            specimen_dir=specimen_dir,
-            file_size=file_size,
-            **file_metadata
-        )
+        # Save with scientific notation for precision
+        processed_df.to_csv(csv_path, index=False, float_format='%.6e')
 
-        # Create URI
-        uri_suffix = f"{test_id.replace('-', '_')}_raw_csv"
-        instance_uri = f"dyn:{uri_suffix}"
+        logger.debug(f"Saved processed CSV: {csv_path} ({len(processed_df)} rows, {len(results)} columns)")
+        return csv_path
 
-        return form_data, instance_uri
-
-    def _create_data_series_instances(
-        self,
-        csv_handler: CSVDataHandler,
-        test_id: str,
-        test_date: str
-    ) -> List[Tuple[Dict[str, Any], str]]:
-        """
-        Create DataSeries instances for time, incident, transmitted.
-
-        Args:
-            csv_handler: CSVDataHandler
-            test_id: Test ID
-            test_date: Test date
-
-        Returns:
-            List of (form_data, uri) tuples for each series
-        """
-        data_point_count = csv_handler.get_data_point_count()
-
-        # Build all series (no file reference in DataSeries)
-        all_series = self.data_series_builder.build_all_raw_series(
-            data_point_count=data_point_count
-        )
-
-        # Create URIs and form data list
-        result = []
-        uri_base = test_id.replace('-', '_')
-
-        for series_type, form_data in all_series.items():
-            uri = f"dyn:{uri_base}_{series_type}"
-            result.append((form_data, uri))
-
-        return result
-
-    def _expand_list_properties(self, form_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Expand list-valued properties for InstanceWriter compatibility.
-
-        InstanceWriter expects single values or specific handling for lists.
-        This helper ensures lists are properly handled.
-
-        Args:
-            form_data: Dictionary with possible list values
-
-        Returns:
-            Dictionary with lists properly formatted
-        """
-        expanded = {}
-        for key, value in form_data.items():
-            if isinstance(value, list):
-                # Keep lists as-is - InstanceWriter should handle them
-                # If not, this is where we'd expand them
-                expanded[key] = value
-                logger.debug(f"Multi-valued property {key}: {len(value)} values")
-            else:
-                expanded[key] = value
-        return expanded
-
-    def _create_test_instance(
+    def _build_all_instances(
         self,
         test_metadata: SHPBTestMetadata,
-        data_series_uris: List[str],
-        analysis_file_uri: str
-    ) -> Tuple[Dict[str, Any], str]:
+        csv_path: Path,
+        csv_handler: CSVDataHandler,
+        processed_results: Optional[Dict[str, np.ndarray]] = None,
+        processed_csv_path: Optional[Path] = None
+    ) -> List[tuple]:
         """
-        Create SHPBCompression test instance metadata.
+        Build list of ALL instances to create for this test.
+
+        This method creates instances for:
+        1. AnalysisFile (raw CSV metadata)
+        2. DataSeries (time, incident, transmitted)
+        3. PulseWindow instances (3x: incident, transmitted, reflected)
+        4. PulseShift instances (2x: transmitted, reflected)
+        5. PulseDetectionParams instances (3x)
+        6. AlignmentParams instance
+        7. EquilibriumMetrics instance
+        8. SHPBCompression test (links to all above)
 
         Args:
-            test_metadata: SHPBTestMetadata
-            data_series_uris: List of DataSeries URIs
-            analysis_file_uri: AnalysisFile URI
+            test_metadata: Complete SHPBTestMetadata
+            csv_path: Path to saved CSV file
+            csv_handler: CSVDataHandler
 
         Returns:
-            Tuple of (form_data, test_uri)
+            List of (form_data, class_uri, instance_id) tuples for batch creation
         """
-        # Get base form data from metadata
-        form_data = test_metadata.to_form_data()
+        instances = []
+        test_id_clean = test_metadata.test_id.replace('-', '_')
 
-        # Add data file and series references
-        form_data['dyn:hasRawDataFile'] = analysis_file_uri
+        # === ANALYSIS FILE ===
+        file_size = csv_path.stat().st_size
+        file_metadata = csv_handler.get_file_metadata_for_saving()
 
-        # Add all data series
-        form_data['dyn:hasDataSeries'] = data_series_uris
+        analysis_file_form = {
+            'dyn:hasFilePath': str(csv_path.relative_to(csv_path.parent.parent)),
+            'dyn:hasFileFormat': 'csv',
+            'dyn:hasFileSize': file_size,
+            'dyn:hasDataPointCount': file_metadata['data_point_count'],
+            'dyn:hasColumnCount': file_metadata['column_count'],
+            'dyn:hasCreatedDate': datetime.now().strftime('%Y-%m-%d')
+        }
+        instances.append((analysis_file_form, 'dyn:AnalysisFile', f'{test_id_clean}_raw_csv'))
 
-        # Expand list properties if needed
-        form_data = self._expand_list_properties(form_data)
+        # === DATA SERIES - RAW ===
+        gauge_params = {
+            'incident': test_metadata.incident_strain_gauge_uri,
+            'transmitted': test_metadata.transmission_strain_gauge_uri
+        }
 
-        # Create test URI
-        test_uri = f"dyn:{test_metadata.test_id.replace('-', '_')}"
+        raw_series = test_metadata.prepare_raw_data_series(
+            csv_handler.data,
+            f'dyn:{test_id_clean}_raw_csv',
+            gauge_params
+        )
+        instances.extend(raw_series)
 
-        return form_data, test_uri
+        # Store raw series URIs for processed data derivation
+        raw_series_uris = {
+            'time': f'dyn:{test_id_clean}_time',
+            'incident': f'dyn:{test_id_clean}_incident',
+            'transmitted': f'dyn:{test_id_clean}_transmitted'
+        }
+
+        # === DATA SERIES - PROCESSED (if available) ===
+        if processed_results is not None and processed_csv_path is not None:
+            # Create AnalysisFile for processed CSV
+            file_size = processed_csv_path.stat().st_size
+            processed_file_form = {
+                'dyn:hasFilePath': str(processed_csv_path.relative_to(processed_csv_path.parent.parent)),
+                'dyn:hasFileFormat': 'csv',
+                'dyn:hasFileSize': file_size,
+                'dyn:hasDataPointCount': len(next(iter(processed_results.values()))),
+                'dyn:hasColumnCount': len(processed_results),
+                'dyn:hasCreatedDate': datetime.now().strftime('%Y-%m-%d')
+            }
+            instances.append((processed_file_form, 'dyn:AnalysisFile', f'{test_id_clean}_processed_csv'))
+
+            # Create processed DataSeries instances
+            processed_series = test_metadata.prepare_processed_data_series(
+                processed_results,
+                f'dyn:{test_id_clean}_processed_csv',
+                raw_series_uris
+            )
+            instances.extend(processed_series)
+
+            # Update test form with processed file reference
+            test_metadata.processed_data_file_uri = f'dyn:{test_id_clean}_processed_csv'
+
+            logger.info(f"Added {len(processed_series)} processed DataSeries instances")
+
+        # === PROCESSING INSTANCES (from metadata) ===
+        processing_instances = test_metadata.get_processing_instances()
+        for instance_type, type_instances in processing_instances.items():
+            instances.extend(type_instances)
+
+        # === TEST INSTANCE ===
+        test_form = test_metadata.to_form_data()
+
+        # Add file references
+        test_form['dyn:hasRawDataFile'] = f'dyn:{test_id_clean}_raw_csv'
+
+        # Add all DataSeries references (raw + processed)
+        series_refs = list(raw_series_uris.values())
+        if processed_results is not None:
+            # Add processed series URIs
+            for column_name in processed_results.keys():
+                series_refs.append(f'dyn:{test_id_clean}_{column_name}')
+
+        test_form['dyn:hasDataSeries'] = series_refs
+
+        instances.append((test_form, 'dyn:SHPBCompression', test_id_clean))
+
+        logger.info(f"Built {len(instances)} instances for test {test_metadata.test_id}")
+        return instances
 
     def _link_test_to_specimen(
         self,
@@ -470,103 +450,37 @@ class SHPBTestWriter:
 
     def _save_test_file(
         self,
-        test_data: Dict[str, Any],
-        analysis_file_data: Dict[str, Any],
-        data_series_list: List[Tuple[Dict[str, Any], str]],
-        test_uri: str,
+        all_instances: List[tuple],
         specimen_dir: Path,
-        test_id: str,
-        test_date: str
+        test_id: str
     ) -> Tuple[Optional[Path], ValidationResult]:
         """
-        Save test TTL file with all instances using InstanceWriter.
+        Save test TTL file with all instances using batch write.
 
-        Strategy: Save each instance separately using InstanceWriter, then combine graphs.
-        This ensures proper unit conversion, type handling, and validation for all instances.
+        Uses InstanceWriter.write_multi_instance_file() for atomic batch operation
+        with single validation pass.
 
         Args:
-            test_data: Test instance form data
-            analysis_file_data: AnalysisFile form data
-            data_series_list: List of (form_data, uri) for DataSeries
-            test_uri: Test URI
+            all_instances: List of (form_data, class_uri, instance_id) tuples
             specimen_dir: Specimen directory
             test_id: Test ID
-            test_date: Test date
 
         Returns:
             Tuple of (file_path, validation_result)
         """
-        from rdflib import Graph
-        import tempfile
-
-        # Final output file
         test_filename = f"{test_id.replace('-', '_')}.ttl"
         test_file_path = specimen_dir / test_filename
 
-        # Create combined graph
-        combined_graph = Graph()
-
-        # Step 1: Save test instance to temp file and load into combined graph
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.ttl', delete=False) as tmp:
-            tmp_test_path = Path(tmp.name)
-
-        test_path, test_validation = self.instance_writer.write_instance(
-            form_data=test_data,
-            class_uri='dyn:SHPBCompression',
-            instance_id=test_uri.replace('dyn:', ''),
-            output_path=tmp_test_path
+        # Use batch write method
+        file_path, validation_result = self.instance_writer.write_multi_instance_file(
+            instances=all_instances,
+            output_path=test_file_path,
+            skip_validation=False
         )
 
-        if not test_path:
-            logger.error("Test instance validation failed")
-            tmp_test_path.unlink(missing_ok=True)
-            return None, test_validation
-
-        # Load test graph
-        combined_graph.parse(tmp_test_path, format='turtle')
-        tmp_test_path.unlink()
-
-        # Step 2: Save AnalysisFile instance and merge
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.ttl', delete=False) as tmp:
-            tmp_analysis_path = Path(tmp.name)
-
-        analysis_uri = f"{test_id.replace('-', '_')}_raw_csv"
-        analysis_path, analysis_validation = self.instance_writer.write_instance(
-            form_data=analysis_file_data,
-            class_uri='dyn:AnalysisFile',
-            instance_id=analysis_uri,
-            output_path=tmp_analysis_path
-        )
-
-        if analysis_path:
-            combined_graph.parse(tmp_analysis_path, format='turtle')
-            tmp_analysis_path.unlink()
+        if file_path:
+            logger.info(f"Test file saved with {len(all_instances)} instances: {test_file_path}")
         else:
-            logger.warning(f"AnalysisFile validation warnings: {analysis_validation.get_summary()}")
-            tmp_analysis_path.unlink(missing_ok=True)
+            logger.error(f"Batch validation failed: {validation_result.get_summary()}")
 
-        # Step 3: Save each DataSeries instance and merge
-        for series_data, series_uri in data_series_list:
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.ttl', delete=False) as tmp:
-                tmp_series_path = Path(tmp.name)
-
-            series_id = series_uri.replace('dyn:', '')
-            series_path, series_validation = self.instance_writer.write_instance(
-                form_data=series_data,
-                class_uri='dyn:RawSignal',
-                instance_id=series_id,
-                output_path=tmp_series_path
-            )
-
-            if series_path:
-                combined_graph.parse(tmp_series_path, format='turtle')
-                tmp_series_path.unlink()
-            else:
-                logger.warning(f"DataSeries {series_id} validation warnings: {series_validation.get_summary()}")
-                tmp_series_path.unlink(missing_ok=True)
-
-        # Step 4: Save combined graph to final location
-        combined_graph.serialize(test_file_path, format='turtle')
-
-        logger.info(f"Test file saved with all instances: {test_file_path}")
-        return Path(test_file_path), test_validation
+        return Path(file_path) if file_path else None, validation_result

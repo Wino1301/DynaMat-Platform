@@ -3,22 +3,27 @@
 
 dyn:DYNML_A356_00001 a dyn:Specimen ;
     dyn:hasAppVersion "2.0.0"^^xsd:string ;
-    dyn:hasCastCoolingDuration 3e+01 ;
+    dyn:hasCastCoolingDuration "30.0"^^xsd:double ;
     dyn:hasCreatedBy dyn:User_ErwinCazares ;
-    dyn:hasCreatedDate "2025-11-20T12:29:01.451512"^^xsd:string ;
-    dyn:hasFinalCrossSection 1.1e-01 ;
-    dyn:hasFinalLength 1e-01 ;
-    dyn:hasManufacturedDate "2025-11-21"^^xsd:date ;
-    dyn:hasManufacturingMethod dyn:Casting ;
+    dyn:hasCreatedDate "2026-01-08"^^xsd:date ;
+    dyn:hasFinalCrossSection "140.6054"^^xsd:double ;
+    dyn:hasFinalDiameter "13.38"^^xsd:double ;
+    dyn:hasFinalHeight "1.8"^^xsd:double ;
+    dyn:hasHeatTreatment dyn:AsReceivedHT ;
+    dyn:hasMachiningTolerance "0.01"^^xsd:double ;
+    dyn:hasManufacturedDate "2026-01-08"^^xsd:date ;
+    dyn:hasManufacturingMethod dyn:Casting,
+        dyn:Machining ;
     dyn:hasMaterial dyn:A356 ;
-    dyn:hasModifiedBy dyn:User_ErwinCazares ;
-    dyn:hasModifiedDate "2025-11-21T09:39:48.466619"^^xsd:string ;
-    dyn:hasMoldTemperature 2e+02 ;
-    dyn:hasOriginalCrossSection 1.1e-01 ;
-    dyn:hasOriginalLength 1e-01 ;
-    dyn:hasSHPBCompressionTest dyn:DYNML_A356_00001_SHPB_2025_01_15 ;
-    dyn:hasShape dyn:CubicShape ;
-    dyn:hasSpecimenBatchID dyn:Batch_AL001_CastMachined ;
+    dyn:hasMoldTemperature "23.0"^^xsd:double ;
+    dyn:hasMoltenMetalTemperature "700.0"^^xsd:double ;
+    dyn:hasOriginalCrossSection "31.66922"^^xsd:double ;
+    dyn:hasOriginalDiameter "6.35"^^xsd:double ;
+    dyn:hasOriginalHeight "6.34"^^xsd:double ;
+    dyn:hasShape dyn:CylindricalShape ;
+    dyn:hasSpecimenBatchID dyn:Batch_A356_001_CastMachined ;
     dyn:hasSpecimenID "DYNML-A356-00001"^^xsd:string ;
-    dyn:hasSpecimenRole dyn:CalibrationSpecimen .
+    dyn:hasSpecimenRole dyn:TestSpecimen ;
+    dyn:hasStructure dyn:MonolithicMaterial ;
+    dyn:hasSurfaceFinish dyn:AsReceivedFinish .
 

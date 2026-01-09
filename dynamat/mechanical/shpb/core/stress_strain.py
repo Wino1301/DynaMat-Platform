@@ -47,8 +47,8 @@ class StressStrainCalculator:
         Elastic / Young's modulus of bar material (GPa).
     specimen_area : float
         Specimen cross-sectional area (mm²).
-    specimen_length : float
-        Initial specimen length (mm).
+    specimen_height : float
+        Initial specimen height (mm).
     strain_scale_factor : float, default 1e4
         Scale factor to convert input strain signals to dimensionless strain.
         Default 1e4 assumes input strains are in units where 10000 = 1.0 strain
@@ -71,7 +71,7 @@ class StressStrainCalculator:
     ...     bar_wave_speed=4953.3,
     ...     bar_elastic_modulus=199.99,
     ...     specimen_area=126.68,
-    ...     specimen_length=6.5,
+    ...     specimen_height=6.5,
     ...     strain_scale_factor=1e4
     ... )
     >>> results = calculator.calculate(inc_aligned, trs_aligned, ref_aligned, time)
@@ -85,7 +85,7 @@ class StressStrainCalculator:
     ...     bar_wave_speed=4953.3,
     ...     bar_elastic_modulus=199.99,
     ...     specimen_area=126.68,
-    ...     specimen_length=6.5,
+    ...     specimen_height=6.5,
     ...     use_voltage_input=True,
     ...     incident_reflected_gauge_params={
     ...         'gauge_res': 350, 'gauge_factor': 2.1,
@@ -107,7 +107,7 @@ class StressStrainCalculator:
         bar_wave_speed: float,
         bar_elastic_modulus: float,
         specimen_area: float,
-        specimen_length: float,
+        specimen_height: float,
         strain_scale_factor: float = 1e4,
         use_voltage_input: bool = False,
         incident_reflected_gauge_params: dict = None,
@@ -116,7 +116,7 @@ class StressStrainCalculator:
 
         self.bar_wave_speed = bar_wave_speed
         self.bar_elastic_modulus = bar_elastic_modulus
-        self.specimen_length = specimen_length
+        self.specimen_height = specimen_height
         self.strain_scale_factor = strain_scale_factor
         self.use_voltage_input = use_voltage_input
 
@@ -182,7 +182,7 @@ class StressStrainCalculator:
         reflected : np.ndarray
             Reflected pulse (voltage if use_voltage_input=True, else strain).
         time_vector : np.ndarray
-            Time axis (ms), same length as pulses.
+            Time axis (ms), same height as pulses.
 
         Returns
         -------
@@ -209,7 +209,7 @@ class StressStrainCalculator:
         Raises
         ------
         ValueError
-            If input arrays have different lengths.
+            If input arrays have different heights.
 
         Examples
         --------
@@ -223,7 +223,7 @@ class StressStrainCalculator:
         N = len(time_vector)
         if not (len(incident) == len(transmitted) == len(reflected) == N):
             raise ValueError(
-                f"All inputs must have same length. Got: "
+                f"All inputs must have same height. Got: "
                 f"time={N}, incident={len(incident)}, "
                 f"transmitted={len(transmitted)}, reflected={len(reflected)}"
             )
@@ -241,7 +241,7 @@ class StressStrainCalculator:
 
         # Common parameters
         c = self.bar_wave_speed
-        L = self.specimen_length
+        L = self.specimen_height
         E_bar = self.bar_elastic_modulus  # GPa
         A_bar = self.bar_area
         A_spec = self.specimen_area

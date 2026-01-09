@@ -1,0 +1,524 @@
+@prefix dc: <http://purl.org/dc/terms/> .
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix gui: <https://dynamat.utep.edu/ontology/gui#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix qkdv: <http://qudt.org/vocab/quantitykind/> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@base <http://www.w3.org/2002/07/owl#> .
+
+[ rdf:type owl:Ontology
+ ] .
+
+#################################################################
+#    Annotation properties
+#################################################################
+
+###  http://qudt.org/schema/qudt/hasQuantityKind
+qudt:hasQuantityKind rdf:type owl:AnnotationProperty .
+
+
+###  https://dynamat.utep.edu/ontology#hasUnit
+dyn:hasUnit rdf:type owl:AnnotationProperty .
+
+
+###  https://dynamat.utep.edu/ontology/gui#hasDisplayName
+gui:hasDisplayName rdf:type owl:AnnotationProperty .
+
+
+###  https://dynamat.utep.edu/ontology/gui#hasDisplayOrder
+gui:hasDisplayOrder rdf:type owl:AnnotationProperty .
+
+
+###  https://dynamat.utep.edu/ontology/gui#hasFormGroup
+gui:hasFormGroup rdf:type owl:AnnotationProperty .
+
+
+###  https://dynamat.utep.edu/ontology/gui#hasValidValues
+gui:hasValidValues rdf:type owl:AnnotationProperty .
+
+
+#################################################################
+#    Classes
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#PulseWindow
+dyn:PulseWindow rdf:type owl:Class ;
+                rdfs:label "Pulse Window"@en ;
+                rdfs:comment "Detected pulse window boundaries from matched-filter detection. Stores start/end indices for a pulse segment identified in the raw signal."@en .
+
+
+###  https://dynamat.utep.edu/ontology#PulseShift
+dyn:PulseShift rdf:type owl:Class ;
+               rdfs:label "Pulse Shift"@en ;
+               rdfs:comment "Integer sample shift applied during pulse alignment. Positive values indicate forward (right) shift, negative values indicate backward (left) shift."@en .
+
+
+###  https://dynamat.utep.edu/ontology#PulseDetectionParams
+dyn:PulseDetectionParams rdf:type owl:Class ;
+                         rdfs:label "Pulse Detection Parameters"@en ;
+                         rdfs:comment "Configuration parameters for PulseDetector including pulse duration, detection thresholds, polarity, and search bounds. Enables reproducible pulse detection."@en .
+
+
+###  https://dynamat.utep.edu/ontology#AlignmentParams
+dyn:AlignmentParams rdf:type owl:Class ;
+                    rdfs:label "Alignment Parameters"@en ;
+                    rdfs:comment "Configuration for PulseAligner optimization including fitness weights, linear region fraction, and search bounds for transmitted and reflected pulse shifts."@en .
+
+
+###  https://dynamat.utep.edu/ontology#EquilibriumMetrics
+dyn:EquilibriumMetrics rdf:type owl:Class ;
+                       rdfs:label "Equilibrium Metrics"@en ;
+                       rdfs:comment "Force and stress equilibrium assessment metrics for SHPB tests. Includes overall metrics (FBC, SEQI, SOI, DSUF) and phase-specific metrics for loading, plateau, and unloading."@en .
+
+
+###  https://dynamat.utep.edu/ontology#DataSeries
+dyn:DataSeries rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#SHPBCompression
+dyn:SHPBCompression rdf:type owl:Class .
+
+
+#################################################################
+#    Object Properties - PulseWindow
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#appliedToSeries
+dyn:appliedToSeries rdf:type owl:ObjectProperty ;
+                    rdfs:domain dyn:PulseWindow ;
+                    rdfs:range dyn:DataSeries ;
+                    rdfs:comment "Links pulse window to the data series it was detected on"@en ;
+                    rdfs:label "Applied to Series"@en ;
+                    gui:hasDisplayName "Applied to Series" ;
+                    gui:hasDisplayOrder 4 ;
+                    gui:hasFormGroup "WindowReference" .
+
+
+#################################################################
+#    Object Properties - PulseShift
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#shiftAppliedToSeries
+dyn:shiftAppliedToSeries rdf:type owl:ObjectProperty ;
+                         rdfs:domain dyn:PulseShift ;
+                         rdfs:range dyn:DataSeries ;
+                         rdfs:comment "Links pulse shift to the data series it was applied to"@en ;
+                         rdfs:label "Shift Applied to Series"@en ;
+                         gui:hasDisplayName "Applied to Series" ;
+                         gui:hasDisplayOrder 3 ;
+                         gui:hasFormGroup "ShiftReference" .
+
+
+#################################################################
+#    Data Properties - PulseWindow
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasStartIndex
+dyn:hasStartIndex rdf:type owl:DatatypeProperty ,
+                           owl:FunctionalProperty ;
+                  rdfs:domain dyn:PulseWindow ;
+                  rdfs:range xsd:integer ;
+                  rdfs:comment "Starting sample index of detected pulse window"@en ;
+                  rdfs:label "Start Index"@en ;
+                  gui:hasDisplayName "Start Index" ;
+                  gui:hasDisplayOrder 1 ;
+                  gui:hasFormGroup "WindowBounds" .
+
+
+###  https://dynamat.utep.edu/ontology#hasEndIndex
+dyn:hasEndIndex rdf:type owl:DatatypeProperty ,
+                         owl:FunctionalProperty ;
+                rdfs:domain dyn:PulseWindow ;
+                rdfs:range xsd:integer ;
+                rdfs:comment "Ending sample index of detected pulse window"@en ;
+                rdfs:label "End Index"@en ;
+                gui:hasDisplayName "End Index" ;
+                gui:hasDisplayOrder 2 ;
+                gui:hasFormGroup "WindowBounds" .
+
+
+###  https://dynamat.utep.edu/ontology#hasWindowLength
+dyn:hasWindowLength rdf:type owl:DatatypeProperty ,
+                             owl:FunctionalProperty ;
+                    rdfs:domain dyn:PulseWindow ;
+                    rdfs:range xsd:integer ;
+                    rdfs:comment "Length of pulse window in samples (end_idx - start_idx)"@en ;
+                    rdfs:label "Window Length"@en ;
+                    gui:hasDisplayName "Window Length (samples)" ;
+                    gui:hasDisplayOrder 3 ;
+                    gui:hasFormGroup "WindowBounds" .
+
+
+#################################################################
+#    Data Properties - PulseShift
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasShiftValue
+dyn:hasShiftValue rdf:type owl:DatatypeProperty ,
+                           owl:FunctionalProperty ;
+                  rdfs:domain dyn:PulseShift ;
+                  rdfs:range xsd:integer ;
+                  rdfs:comment "Integer shift value in samples. Positive = forward/right, negative = backward/left"@en ;
+                  rdfs:label "Shift Value"@en ;
+                  gui:hasDisplayName "Shift Value (samples)" ;
+                  gui:hasDisplayOrder 1 ;
+                  gui:hasFormGroup "ShiftParameters" .
+
+
+###  https://dynamat.utep.edu/ontology#hasShiftDirection
+dyn:hasShiftDirection rdf:type owl:DatatypeProperty ,
+                               owl:FunctionalProperty ;
+                      rdfs:domain dyn:PulseShift ;
+                      rdfs:range xsd:string ;
+                      rdfs:comment "Direction of shift applied to signal"@en ;
+                      rdfs:label "Shift Direction"@en ;
+                      gui:hasDisplayName "Shift Direction" ;
+                      gui:hasDisplayOrder 2 ;
+                      gui:hasFormGroup "ShiftParameters" ;
+                      gui:hasValidValues "forward,backward" .
+
+
+#################################################################
+#    Data Properties - PulseDetectionParams
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasPulsePoints
+dyn:hasPulsePoints rdf:type owl:DatatypeProperty ,
+                            owl:FunctionalProperty ;
+                   rdfs:domain dyn:PulseDetectionParams ;
+                   rdfs:range xsd:integer ;
+                   rdfs:comment "Expected pulse duration in samples (Np) calculated from striker length and bar wave speed"@en ;
+                   rdfs:label "Pulse Points"@en ;
+                   gui:hasDisplayName "Pulse Points (samples)" ;
+                   gui:hasDisplayOrder 1 ;
+                   gui:hasFormGroup "DetectionConfig" .
+
+
+###  https://dynamat.utep.edu/ontology#hasKTrials
+dyn:hasKTrials rdf:type owl:DatatypeProperty ,
+                        owl:FunctionalProperty ;
+               rdfs:domain dyn:PulseDetectionParams ;
+               rdfs:range xsd:string ;
+               rdfs:comment "Comma-separated detection threshold values (sigma multipliers) to try, e.g., '5000,2000,1000'"@en ;
+               rdfs:label "K Trials"@en ;
+               gui:hasDisplayName "K Trials (thresholds)" ;
+               gui:hasDisplayOrder 2 ;
+               gui:hasFormGroup "DetectionConfig" .
+
+
+###  https://dynamat.utep.edu/ontology#hasDetectionPolarity
+dyn:hasDetectionPolarity rdf:type owl:DatatypeProperty ,
+                                  owl:FunctionalProperty ;
+                         rdfs:domain dyn:PulseDetectionParams ;
+                         rdfs:range xsd:string ;
+                         rdfs:comment "Sign convention for pulse detection"@en ;
+                         rdfs:label "Detection Polarity"@en ;
+                         gui:hasDisplayName "Polarity" ;
+                         gui:hasDisplayOrder 3 ;
+                         gui:hasFormGroup "DetectionConfig" ;
+                         gui:hasValidValues "compressive,tensile" .
+
+
+###  https://dynamat.utep.edu/ontology#hasMinSeparation
+dyn:hasMinSeparation rdf:type owl:DatatypeProperty ,
+                              owl:FunctionalProperty ;
+                     rdfs:domain dyn:PulseDetectionParams ;
+                     rdfs:range xsd:integer ;
+                     rdfs:comment "Minimum allowed distance between detected peaks in samples"@en ;
+                     rdfs:label "Min Separation"@en ;
+                     gui:hasDisplayName "Min Separation (samples)" ;
+                     gui:hasDisplayOrder 4 ;
+                     gui:hasFormGroup "DetectionConfig" .
+
+
+###  https://dynamat.utep.edu/ontology#hasDetectionLowerBound
+dyn:hasDetectionLowerBound rdf:type owl:DatatypeProperty ,
+                                    owl:FunctionalProperty ;
+                           rdfs:domain dyn:PulseDetectionParams ;
+                           rdfs:range xsd:integer ;
+                           rdfs:comment "Lower bound sample index for pulse search (to skip initial noise)"@en ;
+                           rdfs:label "Detection Lower Bound"@en ;
+                           gui:hasDisplayName "Lower Bound (samples)" ;
+                           gui:hasDisplayOrder 5 ;
+                           gui:hasFormGroup "SearchBounds" .
+
+
+###  https://dynamat.utep.edu/ontology#hasDetectionUpperBound
+dyn:hasDetectionUpperBound rdf:type owl:DatatypeProperty ,
+                                    owl:FunctionalProperty ;
+                           rdfs:domain dyn:PulseDetectionParams ;
+                           rdfs:range xsd:integer ;
+                           rdfs:comment "Upper bound sample index for pulse search (to skip final noise)"@en ;
+                           rdfs:label "Detection Upper Bound"@en ;
+                           gui:hasDisplayName "Upper Bound (samples)" ;
+                           gui:hasDisplayOrder 6 ;
+                           gui:hasFormGroup "SearchBounds" .
+
+
+###  https://dynamat.utep.edu/ontology#hasSelectionMetric
+dyn:hasSelectionMetric rdf:type owl:DatatypeProperty ,
+                                owl:FunctionalProperty ;
+                       rdfs:domain dyn:PulseDetectionParams ;
+                       rdfs:range xsd:string ;
+                       rdfs:comment "Amplitude measure used to select best window from candidates"@en ;
+                       rdfs:label "Selection Metric"@en ;
+                       gui:hasDisplayName "Selection Metric" ;
+                       gui:hasDisplayOrder 7 ;
+                       gui:hasFormGroup "SearchBounds" ;
+                       gui:hasValidValues "median,peak" .
+
+
+#################################################################
+#    Data Properties - AlignmentParams
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasKLinear
+dyn:hasKLinear rdf:type owl:DatatypeProperty ,
+                        owl:FunctionalProperty ;
+               rdfs:domain dyn:AlignmentParams ;
+               rdfs:range xsd:double ;
+               rdfs:comment "Fraction of steepest slope to define linear region of incident pulse (typically 0.25-0.40)"@en ;
+               rdfs:label "K Linear"@en ;
+               gui:hasDisplayName "K Linear" ;
+               gui:hasDisplayOrder 1 ;
+               gui:hasFormGroup "AlignmentConfig" .
+
+
+###  https://dynamat.utep.edu/ontology#hasCorrelationWeight
+dyn:hasCorrelationWeight rdf:type owl:DatatypeProperty ,
+                                  owl:FunctionalProperty ;
+                         rdfs:domain dyn:AlignmentParams ;
+                         rdfs:range xsd:double ;
+                         rdfs:comment "Weight for pulse correlation criterion in fitness function"@en ;
+                         rdfs:label "Correlation Weight"@en ;
+                         gui:hasDisplayName "Correlation Weight" ;
+                         gui:hasDisplayOrder 2 ;
+                         gui:hasFormGroup "FitnessWeights" .
+
+
+###  https://dynamat.utep.edu/ontology#hasDisplacementWeight
+dyn:hasDisplacementWeight rdf:type owl:DatatypeProperty ,
+                                   owl:FunctionalProperty ;
+                          rdfs:domain dyn:AlignmentParams ;
+                          rdfs:range xsd:double ;
+                          rdfs:comment "Weight for bar displacement equilibrium criterion in fitness function"@en ;
+                          rdfs:label "Displacement Weight"@en ;
+                          gui:hasDisplayName "Displacement Weight" ;
+                          gui:hasDisplayOrder 3 ;
+                          gui:hasFormGroup "FitnessWeights" .
+
+
+###  https://dynamat.utep.edu/ontology#hasStrainRateWeight
+dyn:hasStrainRateWeight rdf:type owl:DatatypeProperty ,
+                                 owl:FunctionalProperty ;
+                        rdfs:domain dyn:AlignmentParams ;
+                        rdfs:range xsd:double ;
+                        rdfs:comment "Weight for strain rate equilibrium criterion in fitness function"@en ;
+                        rdfs:label "Strain Rate Weight"@en ;
+                        gui:hasDisplayName "Strain Rate Weight" ;
+                        gui:hasDisplayOrder 4 ;
+                        gui:hasFormGroup "FitnessWeights" .
+
+
+###  https://dynamat.utep.edu/ontology#hasStrainWeight
+dyn:hasStrainWeight rdf:type owl:DatatypeProperty ,
+                             owl:FunctionalProperty ;
+                    rdfs:domain dyn:AlignmentParams ;
+                    rdfs:range xsd:double ;
+                    rdfs:comment "Weight for strain equilibrium criterion in fitness function"@en ;
+                    rdfs:label "Strain Weight"@en ;
+                    gui:hasDisplayName "Strain Weight" ;
+                    gui:hasDisplayOrder 5 ;
+                    gui:hasFormGroup "FitnessWeights" .
+
+
+###  https://dynamat.utep.edu/ontology#hasTransmittedSearchMin
+dyn:hasTransmittedSearchMin rdf:type owl:DatatypeProperty ,
+                                     owl:FunctionalProperty ;
+                            rdfs:domain dyn:AlignmentParams ;
+                            rdfs:range xsd:integer ;
+                            rdfs:comment "Minimum shift value for transmitted pulse search (samples)"@en ;
+                            rdfs:label "Transmitted Search Min"@en ;
+                            gui:hasDisplayName "Transmitted Min (samples)" ;
+                            gui:hasDisplayOrder 6 ;
+                            gui:hasFormGroup "SearchBounds" .
+
+
+###  https://dynamat.utep.edu/ontology#hasTransmittedSearchMax
+dyn:hasTransmittedSearchMax rdf:type owl:DatatypeProperty ,
+                                     owl:FunctionalProperty ;
+                            rdfs:domain dyn:AlignmentParams ;
+                            rdfs:range xsd:integer ;
+                            rdfs:comment "Maximum shift value for transmitted pulse search (samples)"@en ;
+                            rdfs:label "Transmitted Search Max"@en ;
+                            gui:hasDisplayName "Transmitted Max (samples)" ;
+                            gui:hasDisplayOrder 7 ;
+                            gui:hasFormGroup "SearchBounds" .
+
+
+###  https://dynamat.utep.edu/ontology#hasReflectedSearchMin
+dyn:hasReflectedSearchMin rdf:type owl:DatatypeProperty ,
+                                   owl:FunctionalProperty ;
+                          rdfs:domain dyn:AlignmentParams ;
+                          rdfs:range xsd:integer ;
+                          rdfs:comment "Minimum shift value for reflected pulse search (samples)"@en ;
+                          rdfs:label "Reflected Search Min"@en ;
+                          gui:hasDisplayName "Reflected Min (samples)" ;
+                          gui:hasDisplayOrder 8 ;
+                          gui:hasFormGroup "SearchBounds" .
+
+
+###  https://dynamat.utep.edu/ontology#hasReflectedSearchMax
+dyn:hasReflectedSearchMax rdf:type owl:DatatypeProperty ,
+                                   owl:FunctionalProperty ;
+                          rdfs:domain dyn:AlignmentParams ;
+                          rdfs:range xsd:integer ;
+                          rdfs:comment "Maximum shift value for reflected pulse search (samples)"@en ;
+                          rdfs:label "Reflected Search Max"@en ;
+                          gui:hasDisplayName "Reflected Max (samples)" ;
+                          gui:hasDisplayOrder 9 ;
+                          gui:hasFormGroup "SearchBounds" .
+
+
+###  https://dynamat.utep.edu/ontology#hasFrontIndex
+dyn:hasFrontIndex rdf:type owl:DatatypeProperty ,
+                           owl:FunctionalProperty ;
+                  rdfs:domain dyn:AlignmentParams ;
+                  rdfs:range xsd:integer ;
+                  rdfs:comment "Sample index where t=0 is set (typically incident pulse rise at 8% threshold)"@en ;
+                  rdfs:label "Front Index"@en ;
+                  gui:hasDisplayName "Front Index (t=0)" ;
+                  gui:hasDisplayOrder 10 ;
+                  gui:hasFormGroup "AlignmentConfig" .
+
+
+#################################################################
+#    Data Properties - EquilibriumMetrics
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasFBC
+dyn:hasFBC rdf:type owl:DatatypeProperty ,
+                    owl:FunctionalProperty ;
+           rdfs:domain dyn:EquilibriumMetrics ;
+           rdfs:range xsd:double ;
+           rdfs:comment "Force Balance Coefficient (0-1, higher is better, target >0.95)"@en ;
+           rdfs:label "FBC"@en ;
+           gui:hasDisplayName "Force Balance Coefficient" ;
+           gui:hasDisplayOrder 1 ;
+           gui:hasFormGroup "OverallMetrics" .
+
+
+###  https://dynamat.utep.edu/ontology#hasSEQI
+dyn:hasSEQI rdf:type owl:DatatypeProperty ,
+                     owl:FunctionalProperty ;
+            rdfs:domain dyn:EquilibriumMetrics ;
+            rdfs:range xsd:double ;
+            rdfs:comment "Stress Equilibrium Quality Index (0-1, higher is better, target >0.90)"@en ;
+            rdfs:label "SEQI"@en ;
+            gui:hasDisplayName "Stress Equilibrium Quality Index" ;
+            gui:hasDisplayOrder 2 ;
+            gui:hasFormGroup "OverallMetrics" .
+
+
+###  https://dynamat.utep.edu/ontology#hasSOI
+dyn:hasSOI rdf:type owl:DatatypeProperty ,
+                    owl:FunctionalProperty ;
+           rdfs:domain dyn:EquilibriumMetrics ;
+           rdfs:range xsd:double ;
+           rdfs:comment "Stress Oscillation Index (lower is better, target <0.05)"@en ;
+           rdfs:label "SOI"@en ;
+           gui:hasDisplayName "Stress Oscillation Index" ;
+           gui:hasDisplayOrder 3 ;
+           gui:hasFormGroup "OverallMetrics" .
+
+
+###  https://dynamat.utep.edu/ontology#hasDSUF
+dyn:hasDSUF rdf:type owl:DatatypeProperty ,
+                     owl:FunctionalProperty ;
+            rdfs:domain dyn:EquilibriumMetrics ;
+            rdfs:range xsd:double ;
+            rdfs:comment "Dynamic Stress Uniformity Factor / R² (0-1, higher is better, target >0.98)"@en ;
+            rdfs:label "DSUF"@en ;
+            gui:hasDisplayName "Dynamic Stress Uniformity Factor (R²)" ;
+            gui:hasDisplayOrder 4 ;
+            gui:hasFormGroup "OverallMetrics" .
+
+
+###  https://dynamat.utep.edu/ontology#hasFBCLoading
+dyn:hasFBCLoading rdf:type owl:DatatypeProperty ,
+                           owl:FunctionalProperty ;
+                  rdfs:domain dyn:EquilibriumMetrics ;
+                  rdfs:range xsd:double ;
+                  rdfs:comment "Force Balance Coefficient during loading phase (0-50% peak stress)"@en ;
+                  rdfs:label "FBC Loading"@en ;
+                  gui:hasDisplayName "FBC (Loading Phase)" ;
+                  gui:hasDisplayOrder 5 ;
+                  gui:hasFormGroup "PhaseMetrics" .
+
+
+###  https://dynamat.utep.edu/ontology#hasDSUFLoading
+dyn:hasDSUFLoading rdf:type owl:DatatypeProperty ,
+                            owl:FunctionalProperty ;
+                   rdfs:domain dyn:EquilibriumMetrics ;
+                   rdfs:range xsd:double ;
+                   rdfs:comment "R² during loading phase (0-50% peak stress)"@en ;
+                   rdfs:label "DSUF Loading"@en ;
+                   gui:hasDisplayName "DSUF (Loading Phase)" ;
+                   gui:hasDisplayOrder 6 ;
+                   gui:hasFormGroup "PhaseMetrics" .
+
+
+###  https://dynamat.utep.edu/ontology#hasFBCPlateau
+dyn:hasFBCPlateau rdf:type owl:DatatypeProperty ,
+                           owl:FunctionalProperty ;
+                  rdfs:domain dyn:EquilibriumMetrics ;
+                  rdfs:range xsd:double ;
+                  rdfs:comment "Force Balance Coefficient during plateau phase (50-100% peak stress)"@en ;
+                  rdfs:label "FBC Plateau"@en ;
+                  gui:hasDisplayName "FBC (Plateau Phase)" ;
+                  gui:hasDisplayOrder 7 ;
+                  gui:hasFormGroup "PhaseMetrics" .
+
+
+###  https://dynamat.utep.edu/ontology#hasDSUFPlateau
+dyn:hasDSUFPlateau rdf:type owl:DatatypeProperty ,
+                            owl:FunctionalProperty ;
+                   rdfs:domain dyn:EquilibriumMetrics ;
+                   rdfs:range xsd:double ;
+                   rdfs:comment "R² during plateau phase (50-100% peak stress)"@en ;
+                   rdfs:label "DSUF Plateau"@en ;
+                   gui:hasDisplayName "DSUF (Plateau Phase)" ;
+                   gui:hasDisplayOrder 8 ;
+                   gui:hasFormGroup "PhaseMetrics" .
+
+
+###  https://dynamat.utep.edu/ontology#hasFBCUnloading
+dyn:hasFBCUnloading rdf:type owl:DatatypeProperty ,
+                             owl:FunctionalProperty ;
+                    rdfs:domain dyn:EquilibriumMetrics ;
+                    rdfs:range xsd:double ;
+                    rdfs:comment "Force Balance Coefficient during unloading phase (after peak)"@en ;
+                    rdfs:label "FBC Unloading"@en ;
+                    gui:hasDisplayName "FBC (Unloading Phase)" ;
+                    gui:hasDisplayOrder 9 ;
+                    gui:hasFormGroup "PhaseMetrics" .
+
+
+###  https://dynamat.utep.edu/ontology#hasDSUFUnloading
+dyn:hasDSUFUnloading rdf:type owl:DatatypeProperty ,
+                              owl:FunctionalProperty ;
+                     rdfs:domain dyn:EquilibriumMetrics ;
+                     rdfs:range xsd:double ;
+                     rdfs:comment "R² during unloading phase (after peak)"@en ;
+                     rdfs:label "DSUF Unloading"@en ;
+                     gui:hasDisplayName "DSUF (Unloading Phase)" ;
+                     gui:hasDisplayOrder 10 ;
+                     gui:hasFormGroup "PhaseMetrics" .
+
+
+###  Generated by the OWL API (version 4.5.29.2024-05-13T12:11:03Z) https://github.com/owlcs/owlapi
