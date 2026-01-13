@@ -141,12 +141,12 @@ dyn:InvalidTest rdf:type owl:NamedIndividual, dyn:TestValidity ;
     dyn:hasDescription "Test does not meet validity criteria and should not be used for analysis"@en .
 
 # Specific validity criteria for SHPB
-dyn:ConstantStrainRate rdf:type owl:NamedIndividual, dyn:TestValidity ;
+dyn:ConstantStrainRate rdf:type owl:NamedIndividual, dyn:TestValidityCriteria ;
     rdfs:label "Constant Strain Rate"@en ;
     dyn:hasName "Constant Strain Rate Achieved"@en ;
     dyn:hasDescription "Strain rate remained constant during plastic deformation"@en .
 
-dyn:ForceEquilibrium rdf:type owl:NamedIndividual, dyn:TestValidity ;
+dyn:ForceEquilibrium rdf:type owl:NamedIndividual, dyn:TestValidityCriteria ;
     rdfs:label "Force Equilibrium"@en ;
     dyn:hasName "Force Equilibrium Achieved"@en ;
     dyn:hasDescription "Force equilibrium achieved between incident and transmission bars"@en .

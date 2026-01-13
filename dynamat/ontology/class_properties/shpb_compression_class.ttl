@@ -140,17 +140,16 @@ dyn:hasBarrelOffset rdf:type owl:DatatypeProperty ;
                     gui:hasFormGroup "TestConditions" .
 
 
-###  https://dynamat.utep.edu/ontology#hasLubricationType
-dyn:hasLubricationType rdf:type owl:DatatypeProperty ,
+###  https://dynamat.utep.edu/ontology#hasLubrication
+dyn:hasLubrication rdf:type owl:DatatypeProperty ,
                                 owl:FunctionalProperty ;
                        rdfs:domain dyn:SHPBCompression ;
-                       rdfs:range xsd:string ;
-                       rdfs:comment "Type of lubrication/grease used (if applicable)"@en ;
-                       rdfs:label "Lubrication Type"@en ;
-                       gui:hasDisplayName "Lubrication Type" ;
+                       rdfs:range xsd:boolean ;
+                       rdfs:comment "Whether lubrication/grease was used on specimen interfaces"@en ;
+                       rdfs:label "Lubrication Applied"@en ;
+                       gui:hasDisplayName "Lubrication Applied" ;
                        gui:hasDisplayOrder 15 ;
-                       gui:hasFormGroup "TestConditions" ;
-                       gui:hasValidValues "White Lithium Grease, Molybdenum Disulfide, Graphite, Other" .
+                       gui:hasFormGroup "TestConditions" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasMomentumTrapTailoredDistance
@@ -166,19 +165,6 @@ dyn:hasMomentumTrapTailoredDistance rdf:type owl:DatatypeProperty ;
                                     gui:hasDisplayName "Momentum Trap Distance (mm)" ;
                                     gui:hasDisplayOrder 16 ;
                                     gui:hasFormGroup "TestConditions" .
-
-
-###  https://dynamat.utep.edu/ontology#hasLubricationUsed
-dyn:hasLubricationUsed rdf:type owl:DatatypeProperty ;
-                       rdfs:subPropertyOf dyn:hasTestCondition ;
-                       rdf:type owl:FunctionalProperty ;
-                       rdfs:domain dyn:SHPBCompression ;
-                       rdfs:range xsd:boolean ;
-                       rdfs:comment "Whether grease or lubrication was applied during test setup"@en ;
-                       rdfs:label "Lubrication Used"@en ;
-                       gui:hasDisplayName "Grease/Lubrication Applied" ;
-                       gui:hasDisplayOrder 14 ;
-                       gui:hasFormGroup "TestConditions" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasPulseDuration
@@ -283,18 +269,18 @@ dyn:hasStrikerVelocity rdf:type owl:DatatypeProperty ;
                        gui:hasDisplayOrder 1 ;
                        gui:hasFormGroup "TestConditions" .
 
-###  https://dynamat.utep.edu/ontology#hasStrikerVelocity
+###  https://dynamat.utep.edu/ontology#hasStrikerLaunchPressure
 dyn:hasStrikerLaunchPressure rdf:type owl:DatatypeProperty ;
                        rdfs:subPropertyOf dyn:hasTestCondition ;
                        rdf:type owl:FunctionalProperty ;
                        rdfs:domain dyn:SHPBCompression ;
                        rdfs:range xsd:double ;
-                       qudt:hasQuantityKind qkdv:Velocity ;
-                       rdfs:comment "Impact velocity of striker bar"@en ;
-                       rdfs:label "Striker Velocity"@en ;
-                       dyn:hasUnit "unit:M-PER-SEC" ;
-                       gui:hasDisplayName "Striker Velocity (m/s)" ;
-                       gui:hasDisplayOrder 1 ;
+                       qudt:hasQuantityKind qkdv:Pressure ;
+                       rdfs:comment "Gas pressure used to launch striker bar"@en ;
+                       rdfs:label "Striker Launch Pressure"@en ;
+                       dyn:hasUnit "unit:PSI" ;
+                       gui:hasDisplayName "Striker Launch Pressure (psi)" ;
+                       gui:hasDisplayOrder 2 ;
                        gui:hasFormGroup "TestConditions" .
 
 #################################################################
@@ -341,17 +327,6 @@ dyn:hasTestCondition rdf:type owl:DatatypeProperty .
 #    Object Properties - Processing Parameter Links
 #################################################################
 
-###  https://dynamat.utep.edu/ontology#hasPulseDetectionParams
-dyn:hasPulseDetectionParams rdf:type owl:ObjectProperty ;
-                            rdfs:domain dyn:SHPBCompression ;
-                            rdfs:range dyn:PulseDetectionParams ;
-                            rdfs:comment "Links test to pulse detection configuration parameters"@en ;
-                            rdfs:label "Pulse Detection Parameters"@en ;
-                            gui:hasDisplayName "Pulse Detection Params" ;
-                            gui:hasDisplayOrder 1 ;
-                            gui:hasFormGroup "AnalysisParameters" .
-
-
 ###  https://dynamat.utep.edu/ontology#hasAlignmentParams
 dyn:hasAlignmentParams rdf:type owl:ObjectProperty ,
                                 owl:FunctionalProperty ;
@@ -390,18 +365,6 @@ dyn:hasAnalysisTimestamp rdf:type owl:DatatypeProperty ,
                          gui:hasDisplayName "Analysis Timestamp" ;
                          gui:hasDisplayOrder 1 ;
                          gui:hasFormGroup "AnalysisMetadata" .
-
-
-###  https://dynamat.utep.edu/ontology#hasCenteredSegmentPoints
-dyn:hasCenteredSegmentPoints rdf:type owl:DatatypeProperty ,
-                                      owl:FunctionalProperty ;
-                             rdfs:domain dyn:SHPBCompression ;
-                             rdfs:range xsd:integer ;
-                             rdfs:comment "Number of points used for centered pulse segments (n_pts parameter)"@en ;
-                             rdfs:label "Centered Segment Points"@en ;
-                             gui:hasDisplayName "Centered Segment Points" ;
-                             gui:hasDisplayOrder 2 ;
-                             gui:hasFormGroup "AnalysisMetadata" .
 
 
 ###  Generated by the OWL API (version 4.5.29.2024-05-13T12:11:03Z) https://github.com/owlcs/owlapi

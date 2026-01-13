@@ -20,6 +20,7 @@ dyn:DYNML_A356_00001 a dyn:Specimen ;
     dyn:hasOriginalCrossSection "31.66922"^^xsd:double ;
     dyn:hasOriginalDiameter "6.35"^^xsd:double ;
     dyn:hasOriginalHeight "6.34"^^xsd:double ;
+    dyn:hasSHPBCompressionTest dyn:DYNML_A356_00001_SHPBTest ;
     dyn:hasShape dyn:CylindricalShape ;
     dyn:hasSpecimenBatchID dyn:Batch_A356_001_CastMachined ;
     dyn:hasSpecimenID "DYNML-A356-00001"^^xsd:string ;

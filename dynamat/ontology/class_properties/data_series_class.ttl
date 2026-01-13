@@ -80,12 +80,18 @@ dyn:MechanicalTest rdf:type owl:Class .
 dyn:MeasurementEquipment rdf:type owl:Class .
 
 
-###  https://dynamat.utep.edu/ontology#PulseWindow
-dyn:PulseWindow rdf:type owl:Class .
-
-
 ###  https://dynamat.utep.edu/ontology#PulseShift
 dyn:PulseShift rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#PulseDetectionParams
+dyn:PulseDetectionParams rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#SeriesType
+dyn:SeriesType rdf:type owl:Class ;
+               rdfs:label "Series Type"@en ;
+               rdfs:comment "Type of physical quantity represented by a data series (e.g., stress, strain, force, displacement)"@en .
 
 
 #################################################################
@@ -137,42 +143,6 @@ dyn:measuredBy rdf:type owl:ObjectProperty ;
                gui:hasFormGroup "DataProvenance" .
 
 
-###  https://dynamat.utep.edu/ontology#hasRawDataFile
-dyn:hasRawDataFile rdf:type owl:ObjectProperty ,
-                            owl:FunctionalProperty ;
-                   rdfs:domain dyn:MechanicalTest ;
-                   rdfs:range dyn:AnalysisFile ;
-                   rdfs:comment "Raw sensor data file from data acquisition system"@en ;
-                   rdfs:label "Raw Data File"@en ;
-                   gui:hasDisplayName "Raw Data File" ;
-                   gui:hasDisplayOrder 1 ;
-                   gui:hasFormGroup "DataFiles" .
-
-
-###  https://dynamat.utep.edu/ontology#hasProcessedDataFile
-dyn:hasProcessedDataFile rdf:type owl:ObjectProperty ,
-                                  owl:FunctionalProperty ;
-                         rdfs:domain dyn:MechanicalTest ;
-                         rdfs:range dyn:AnalysisFile ;
-                         rdfs:comment "Processed/calculated results file (stress, strain, etc.)"@en ;
-                         rdfs:label "Processed Data File"@en ;
-                         gui:hasDisplayName "Processed Data File" ;
-                         gui:hasDisplayOrder 2 ;
-                         gui:hasFormGroup "DataFiles" .
-
-
-###  https://dynamat.utep.edu/ontology#hasDetectedWindow
-dyn:hasDetectedWindow rdf:type owl:ObjectProperty ,
-                               owl:FunctionalProperty ;
-                      rdfs:domain dyn:DataSeries ;
-                      rdfs:range dyn:PulseWindow ;
-                      rdfs:comment "Pulse window that was detected on this data series"@en ;
-                      rdfs:label "Detected Window"@en ;
-                      gui:hasDisplayName "Detected Window" ;
-                      gui:hasDisplayOrder 1 ;
-                      gui:hasFormGroup "ProcessingProvenance" .
-
-
 ###  https://dynamat.utep.edu/ontology#hasAppliedShift
 dyn:hasAppliedShift rdf:type owl:ObjectProperty ,
                              owl:FunctionalProperty ;
@@ -185,22 +155,32 @@ dyn:hasAppliedShift rdf:type owl:ObjectProperty ,
                     gui:hasFormGroup "ProcessingProvenance" .
 
 
-#################################################################
-#    Data Properties - Series Identification
-#################################################################
-
 ###  https://dynamat.utep.edu/ontology#hasSeriesType
-dyn:hasSeriesType rdf:type owl:DatatypeProperty ,
+dyn:hasSeriesType rdf:type owl:ObjectProperty ,
                            owl:FunctionalProperty ;
                   rdfs:domain dyn:DataSeries ;
-                  rdfs:range xsd:string ;
+                  rdfs:range dyn:SeriesType ;
                   rdfs:comment "Type of physical quantity represented by this data series"@en ;
                   rdfs:label "Series Type"@en ;
                   gui:hasDisplayName "Series Type" ;
                   gui:hasDisplayOrder 1 ;
-                  gui:hasFormGroup "SeriesMetadata" ;
-                  gui:hasValidValues "Stress, Strain, StrainRate, Force, Displacement, Time, Temperature, Hardness, Modulus, IncidentPulse, TransmittedPulse, ReflectedPulse" .
+                  gui:hasFormGroup "SeriesMetadata" .
 
+
+###  https://dynamat.utep.edu/ontology#hasPulseDetectionParams
+dyn:hasPulseDetectionParams rdf:type owl:ObjectProperty ;
+                            rdfs:domain dyn:RawSignal ;
+                            rdfs:range dyn:PulseDetectionParams ;
+                            rdfs:comment "Links raw signal to pulse detection configuration and results. Incident signal has two (for incident and reflected pulses), transmitted signal has one."@en ;
+                            rdfs:label "Pulse Detection Parameters"@en ;
+                            gui:hasDisplayName "Pulse Detection Params" ;
+                            gui:hasDisplayOrder 3 ;
+                            gui:hasFormGroup "ProcessingProvenance" .
+
+
+#################################################################
+#    Data Properties - Series Identification
+#################################################################
 
 ###  https://dynamat.utep.edu/ontology#hasAnalysisMethod
 dyn:hasAnalysisMethod rdf:type owl:DatatypeProperty ,
@@ -442,16 +422,18 @@ dyn:hasSegmentShift rdf:type owl:DatatypeProperty ,
                     gui:hasFormGroup "ProcessingInfo" .
 
 
-###  https://dynamat.utep.edu/ontology#hasThresholdRatio
-dyn:hasThresholdRatio rdf:type owl:DatatypeProperty ,
-                               owl:FunctionalProperty ;
-                      rdfs:domain dyn:DataSeries ;
-                      rdfs:range xsd:double ;
-                      rdfs:comment "Threshold ratio for noise suppression during segmentation (samples with |ε| < ratio * max(|ε|) are zeroed)"@en ;
-                      rdfs:label "Threshold Ratio"@en ;
-                      gui:hasDisplayName "Threshold Ratio" ;
-                      gui:hasDisplayOrder 10 ;
-                      gui:hasFormGroup "ProcessingInfo" .
+###  https://dynamat.utep.edu/ontology#hasSamplingInterval
+dyn:hasSamplingInterval rdf:type owl:DatatypeProperty ,
+                                 owl:FunctionalProperty ;
+                        rdfs:domain dyn:DataSeries ;
+                        rdfs:range xsd:double ;
+                        qudt:hasQuantityKind qkdv:Time ;
+                        rdfs:comment "Time interval between consecutive data points in the series"@en ;
+                        rdfs:label "Sampling Interval"@en ;
+                        dyn:hasUnit "unit:MicroSEC" ;
+                        gui:hasDisplayName "Sampling Interval (μs)" ;
+                        gui:hasDisplayOrder 8 ;
+                        gui:hasFormGroup "AcquisitionInfo" .
 
 
 #################################################################

@@ -46,12 +46,6 @@ gui:hasValidValues rdf:type owl:AnnotationProperty .
 #    Classes
 #################################################################
 
-###  https://dynamat.utep.edu/ontology#PulseWindow
-dyn:PulseWindow rdf:type owl:Class ;
-                rdfs:label "Pulse Window"@en ;
-                rdfs:comment "Detected pulse window boundaries from matched-filter detection. Stores start/end indices for a pulse segment identified in the raw signal."@en .
-
-
 ###  https://dynamat.utep.edu/ontology#PulseShift
 dyn:PulseShift rdf:type owl:Class ;
                rdfs:label "Pulse Shift"@en ;
@@ -61,7 +55,7 @@ dyn:PulseShift rdf:type owl:Class ;
 ###  https://dynamat.utep.edu/ontology#PulseDetectionParams
 dyn:PulseDetectionParams rdf:type owl:Class ;
                          rdfs:label "Pulse Detection Parameters"@en ;
-                         rdfs:comment "Configuration parameters for PulseDetector including pulse duration, detection thresholds, polarity, and search bounds. Enables reproducible pulse detection."@en .
+                         rdfs:comment "Configuration parameters for PulseDetector including pulse duration, detection thresholds, polarity, search bounds, and detected window boundaries. Enables reproducible pulse detection and stores the resulting window indices."@en .
 
 
 ###  https://dynamat.utep.edu/ontology#AlignmentParams
@@ -85,18 +79,18 @@ dyn:SHPBCompression rdf:type owl:Class .
 
 
 #################################################################
-#    Object Properties - PulseWindow
+#    Object Properties - PulseDetectionParams
 #################################################################
 
 ###  https://dynamat.utep.edu/ontology#appliedToSeries
 dyn:appliedToSeries rdf:type owl:ObjectProperty ;
-                    rdfs:domain dyn:PulseWindow ;
+                    rdfs:domain dyn:PulseDetectionParams ;
                     rdfs:range dyn:DataSeries ;
-                    rdfs:comment "Links pulse window to the data series it was detected on"@en ;
+                    rdfs:comment "Links pulse detection parameters to the data series it was applied to"@en ;
                     rdfs:label "Applied to Series"@en ;
                     gui:hasDisplayName "Applied to Series" ;
-                    gui:hasDisplayOrder 4 ;
-                    gui:hasFormGroup "WindowReference" .
+                    gui:hasDisplayOrder 8 ;
+                    gui:hasFormGroup "DetectionProvenance" .
 
 
 #################################################################
@@ -112,46 +106,6 @@ dyn:shiftAppliedToSeries rdf:type owl:ObjectProperty ;
                          gui:hasDisplayName "Applied to Series" ;
                          gui:hasDisplayOrder 3 ;
                          gui:hasFormGroup "ShiftReference" .
-
-
-#################################################################
-#    Data Properties - PulseWindow
-#################################################################
-
-###  https://dynamat.utep.edu/ontology#hasStartIndex
-dyn:hasStartIndex rdf:type owl:DatatypeProperty ,
-                           owl:FunctionalProperty ;
-                  rdfs:domain dyn:PulseWindow ;
-                  rdfs:range xsd:integer ;
-                  rdfs:comment "Starting sample index of detected pulse window"@en ;
-                  rdfs:label "Start Index"@en ;
-                  gui:hasDisplayName "Start Index" ;
-                  gui:hasDisplayOrder 1 ;
-                  gui:hasFormGroup "WindowBounds" .
-
-
-###  https://dynamat.utep.edu/ontology#hasEndIndex
-dyn:hasEndIndex rdf:type owl:DatatypeProperty ,
-                         owl:FunctionalProperty ;
-                rdfs:domain dyn:PulseWindow ;
-                rdfs:range xsd:integer ;
-                rdfs:comment "Ending sample index of detected pulse window"@en ;
-                rdfs:label "End Index"@en ;
-                gui:hasDisplayName "End Index" ;
-                gui:hasDisplayOrder 2 ;
-                gui:hasFormGroup "WindowBounds" .
-
-
-###  https://dynamat.utep.edu/ontology#hasWindowLength
-dyn:hasWindowLength rdf:type owl:DatatypeProperty ,
-                             owl:FunctionalProperty ;
-                    rdfs:domain dyn:PulseWindow ;
-                    rdfs:range xsd:integer ;
-                    rdfs:comment "Length of pulse window in samples (end_idx - start_idx)"@en ;
-                    rdfs:label "Window Length"@en ;
-                    gui:hasDisplayName "Window Length (samples)" ;
-                    gui:hasDisplayOrder 3 ;
-                    gui:hasFormGroup "WindowBounds" .
 
 
 #################################################################
@@ -273,6 +227,42 @@ dyn:hasSelectionMetric rdf:type owl:DatatypeProperty ,
                        gui:hasValidValues "median,peak" .
 
 
+###  https://dynamat.utep.edu/ontology#hasStartIndex
+dyn:hasStartIndex rdf:type owl:DatatypeProperty ,
+                           owl:FunctionalProperty ;
+                  rdfs:domain dyn:PulseDetectionParams ;
+                  rdfs:range xsd:integer ;
+                  rdfs:comment "Starting sample index of detected pulse window"@en ;
+                  rdfs:label "Start Index"@en ;
+                  gui:hasDisplayName "Start Index" ;
+                  gui:hasDisplayOrder 8 ;
+                  gui:hasFormGroup "DetectionResults" .
+
+
+###  https://dynamat.utep.edu/ontology#hasEndIndex
+dyn:hasEndIndex rdf:type owl:DatatypeProperty ,
+                         owl:FunctionalProperty ;
+                rdfs:domain dyn:PulseDetectionParams ;
+                rdfs:range xsd:integer ;
+                rdfs:comment "Ending sample index of detected pulse window"@en ;
+                rdfs:label "End Index"@en ;
+                gui:hasDisplayName "End Index" ;
+                gui:hasDisplayOrder 9 ;
+                gui:hasFormGroup "DetectionResults" .
+
+
+###  https://dynamat.utep.edu/ontology#hasWindowLength
+dyn:hasWindowLength rdf:type owl:DatatypeProperty ,
+                             owl:FunctionalProperty ;
+                    rdfs:domain dyn:PulseDetectionParams ;
+                    rdfs:range xsd:integer ;
+                    rdfs:comment "Length of pulse window in samples (end_idx - start_idx)"@en ;
+                    rdfs:label "Window Length"@en ;
+                    gui:hasDisplayName "Window Length (samples)" ;
+                    gui:hasDisplayOrder 10 ;
+                    gui:hasFormGroup "DetectionResults" .
+
+
 #################################################################
 #    Data Properties - AlignmentParams
 #################################################################
@@ -385,6 +375,54 @@ dyn:hasReflectedSearchMax rdf:type owl:DatatypeProperty ,
                           gui:hasFormGroup "SearchBounds" .
 
 
+###  https://dynamat.utep.edu/ontology#hasTransmittedShiftValue
+dyn:hasTransmittedShiftValue rdf:type owl:DatatypeProperty ,
+                                      owl:FunctionalProperty ;
+                             rdfs:domain dyn:AlignmentParams ;
+                             rdfs:range xsd:integer ;
+                             rdfs:comment "Optimized shift value applied to transmitted pulse in samples"@en ;
+                             rdfs:label "Transmitted Shift Value"@en ;
+                             gui:hasDisplayName "Transmitted Shift (samples)" ;
+                             gui:hasDisplayOrder 10 ;
+                             gui:hasFormGroup "AlignmentResults" .
+
+
+###  https://dynamat.utep.edu/ontology#hasReflectedShiftValue
+dyn:hasReflectedShiftValue rdf:type owl:DatatypeProperty ,
+                                    owl:FunctionalProperty ;
+                           rdfs:domain dyn:AlignmentParams ;
+                           rdfs:range xsd:integer ;
+                           rdfs:comment "Optimized shift value applied to reflected pulse in samples"@en ;
+                           rdfs:label "Reflected Shift Value"@en ;
+                           gui:hasDisplayName "Reflected Shift (samples)" ;
+                           gui:hasDisplayOrder 11 ;
+                           gui:hasFormGroup "AlignmentResults" .
+
+
+###  https://dynamat.utep.edu/ontology#hasCenteredSegmentPoints
+dyn:hasCenteredSegmentPoints rdf:type owl:DatatypeProperty ,
+                                      owl:FunctionalProperty ;
+                             rdfs:domain dyn:AlignmentParams ;
+                             rdfs:range xsd:integer ;
+                             rdfs:comment "Number of points used for centered pulse segments (n_pts parameter)"@en ;
+                             rdfs:label "Centered Segment Points"@en ;
+                             gui:hasDisplayName "Segment Points" ;
+                             gui:hasDisplayOrder 12 ;
+                             gui:hasFormGroup "AlignmentConfig" .
+
+
+###  https://dynamat.utep.edu/ontology#hasThresholdRatio
+dyn:hasThresholdRatio rdf:type owl:DatatypeProperty ,
+                               owl:FunctionalProperty ;
+                      rdfs:domain dyn:AlignmentParams ;
+                      rdfs:range xsd:double ;
+                      rdfs:comment "Threshold ratio for noise suppression during segmentation (samples with |ε| < ratio * max(|ε|) are zeroed)"@en ;
+                      rdfs:label "Threshold Ratio"@en ;
+                      gui:hasDisplayName "Threshold Ratio" ;
+                      gui:hasDisplayOrder 13 ;
+                      gui:hasFormGroup "AlignmentConfig" .
+
+
 ###  https://dynamat.utep.edu/ontology#hasFrontIndex
 dyn:hasFrontIndex rdf:type owl:DatatypeProperty ,
                            owl:FunctionalProperty ;
@@ -393,8 +431,8 @@ dyn:hasFrontIndex rdf:type owl:DatatypeProperty ,
                   rdfs:comment "Sample index where t=0 is set (typically incident pulse rise at 8% threshold)"@en ;
                   rdfs:label "Front Index"@en ;
                   gui:hasDisplayName "Front Index (t=0)" ;
-                  gui:hasDisplayOrder 10 ;
-                  gui:hasFormGroup "AlignmentConfig" .
+                  gui:hasDisplayOrder 14 ;
+                  gui:hasFormGroup "AlignmentResults" .
 
 
 #################################################################

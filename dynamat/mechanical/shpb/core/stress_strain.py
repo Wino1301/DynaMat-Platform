@@ -188,6 +188,10 @@ class StressStrainCalculator:
         -------
         Dict[str, np.ndarray]
             Dictionary containing all calculated series with suffixes:
+            - 'time' : Time vector (ms)
+            - 'incident' : Incident pulse (dimensionless strain)
+            - 'transmitted' : Transmitted pulse (dimensionless strain)
+            - 'reflected' : Reflected pulse (dimensionless strain)
             - 'bar_displacement_1w' : Bar displacement (mm) - 1-wave
             - 'bar_force_1w' : Bar force (N) - 1-wave
             - 'strain_rate_1w' : Engineering strain rate (1/ms) - 1-wave
@@ -204,7 +208,6 @@ class StressStrainCalculator:
             - 'true_strain_rate_3w' : True strain rate (1/ms) - 3-wave
             - 'true_strain_3w' : True strain (unitless) - 3-wave
             - 'true_stress_3w' : True stress (MPa) - 3-wave
-            - 'time' : Time vector (ms)
 
         Raises
         ------
@@ -301,7 +304,13 @@ class StressStrainCalculator:
         true_stress_3w = stress_3w * (1 + strain_3w)
 
         # Return all results in a single flat dictionary with absolute values
+        # First four columns: time, incident, transmitted, reflected (pulse windows)
+        # Then all processed quantities for 1-wave and 3-wave analyses
         return {
+            'time': time_vector,
+            'incident': incident_norm,
+            'transmitted': transmitted_norm,
+            'reflected': reflected_norm,
             'bar_displacement_1w': np.abs(bar_displacement_1w),
             'bar_force_1w': np.abs(bar_force_1w),
             'strain_rate_1w': np.abs(strain_rate_1w) * 1000,
@@ -317,8 +326,7 @@ class StressStrainCalculator:
             'stress_3w': np.abs(stress_3w),
             'true_strain_rate_3w': np.abs(true_strain_rate_3w) * 1000,
             'true_strain_3w': np.abs(true_strain_3w),
-            'true_stress_3w': np.abs(true_stress_3w),
-            'time': time_vector
+            'true_stress_3w': np.abs(true_stress_3w)
         }
 
     def voltage_to_strain(self, voltage_array: np.ndarray, gauge_params: dict) -> np.ndarray:

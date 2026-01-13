@@ -221,6 +221,12 @@ class InstanceWriter:
                 # No conversion needed (same unit, missing info, or no QUDT manager)
                 return Literal(numeric_value, datatype=XSD.double)
 
+        # === PASS THROUGH ALREADY-TYPED LITERALS ===
+        # If value is already a Literal with datatype (from test_metadata._ensure_typed_literal),
+        # pass it through unchanged to preserve the explicit typing
+        elif isinstance(value, Literal):
+            return value
+
         # === STANDARD TYPE CONVERSIONS (no units) ===
         elif isinstance(value, str):
             # Check if it's a URI or a literal string

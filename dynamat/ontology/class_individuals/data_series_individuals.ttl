@@ -1,0 +1,129 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dc: <http://purl.org/dc/terms/> .
+
+# =============================================================================
+# DynaMat Platform - Data Series Type Individual Instances
+# For ontology/class_individuals/data_series_individuals.ttl
+# Defines individual instances of dyn:SeriesType for categorizing data series
+# =============================================================================
+
+#################################################################
+#    Stress-Related Series Types
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#Stress
+dyn:Stress rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Stress"@en ;
+    rdfs:comment "Engineering stress (force per unit original cross-sectional area)"@en .
+
+###  https://dynamat.utep.edu/ontology#TrueStress
+dyn:TrueStress rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "True Stress"@en ;
+    rdfs:comment "True stress (force per unit instantaneous cross-sectional area)"@en .
+
+
+#################################################################
+#    Strain-Related Series Types
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#Strain
+dyn:Strain rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Strain"@en ;
+    rdfs:comment "Engineering strain (change in length per unit original length)"@en .
+
+###  https://dynamat.utep.edu/ontology#TrueStrain
+dyn:TrueStrain rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "True Strain"@en ;
+    rdfs:comment "True strain (logarithmic strain)"@en .
+
+###  https://dynamat.utep.edu/ontology#StrainRate
+dyn:StrainRate rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Strain Rate"@en ;
+    rdfs:comment "Rate of strain change (engineering strain rate)"@en .
+
+###  https://dynamat.utep.edu/ontology#TrueStrainRate
+dyn:TrueStrainRate rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "True Strain Rate"@en ;
+    rdfs:comment "Rate of true strain change"@en .
+
+
+#################################################################
+#    Force and Displacement Series Types
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#Force
+dyn:Force rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Force"@en ;
+    rdfs:comment "Applied force"@en .
+
+###  https://dynamat.utep.edu/ontology#BarForce
+dyn:BarForce rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Bar Force"@en ;
+    rdfs:comment "Force transmitted through SHPB bar"@en .
+
+###  https://dynamat.utep.edu/ontology#Displacement
+dyn:Displacement rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Displacement"@en ;
+    rdfs:comment "Position or displacement measurement"@en .
+
+###  https://dynamat.utep.edu/ontology#BarDisplacement
+dyn:BarDisplacement rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Bar Displacement"@en ;
+    rdfs:comment "Displacement of SHPB bar interface"@en .
+
+
+#################################################################
+#    SHPB Pulse Series Types
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#IncidentPulse
+dyn:IncidentPulse rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Incident Pulse"@en ;
+    rdfs:comment "Incident strain wave pulse in SHPB test"@en .
+
+###  https://dynamat.utep.edu/ontology#TransmittedPulse
+dyn:TransmittedPulse rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Transmitted Pulse"@en ;
+    rdfs:comment "Transmitted strain wave pulse in SHPB test"@en .
+
+###  https://dynamat.utep.edu/ontology#ReflectedPulse
+dyn:ReflectedPulse rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Reflected Pulse"@en ;
+    rdfs:comment "Reflected strain wave pulse in SHPB test"@en .
+
+
+#################################################################
+#    Time and Temperature Series Types
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#Time
+dyn:Time rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Time"@en ;
+    rdfs:comment "Time axis for data series"@en .
+
+###  https://dynamat.utep.edu/ontology#Temperature
+dyn:Temperature rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Temperature"@en ;
+    rdfs:comment "Temperature measurement"@en .
+
+
+#################################################################
+#    Material Property Series Types
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#Hardness
+dyn:Hardness rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Hardness"@en ;
+    rdfs:comment "Material hardness measurement (indentation)"@en .
+
+###  https://dynamat.utep.edu/ontology#Modulus
+dyn:Modulus rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Modulus"@en ;
+    rdfs:comment "Elastic modulus (Young's modulus, shear modulus, etc.)"@en .
+
+
+###  Generated by the OWL API (version 4.5.29.2024-05-13T12:11:03Z) https://github.com/owlcs/owlapi
