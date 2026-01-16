@@ -1,0 +1,26 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+dyn:DYNML_SS316_0034 a dyn:Specimen ;
+    dyn:hasAppVersion "2.0.0"^^xsd:string ;
+    dyn:hasCreatedBy dyn:User_ErwinCazares ;
+    dyn:hasCreatedDate "2026-01-14"^^xsd:date ;
+    dyn:hasFinalCrossSection "34.62789"^^xsd:double ;
+    dyn:hasFinalDiameter "6.64"^^xsd:double ;
+    dyn:hasFinalHeight "5.86"^^xsd:double ;
+    dyn:hasHeatTreatment dyn:AsReceivedHT ;
+    dyn:hasMachiningTolerance "0.01"^^xsd:double ;
+    dyn:hasManufacturedDate "2025-02-01"^^xsd:date ;
+    dyn:hasManufacturingMethod dyn:Machining ;
+    dyn:hasMaterial dyn:SS316 ;
+    dyn:hasOriginalCrossSection "31.27149"^^xsd:double ;
+    dyn:hasOriginalDiameter "6.31"^^xsd:double ;
+    dyn:hasOriginalHeight "6.38"^^xsd:double ;
+    dyn:hasSHPBCompressionTest dyn:DYNML_SS316_0034_SHPBTest ;
+    dyn:hasShape dyn:CylindricalShape ;
+    dyn:hasSpecimenBatchID dyn:Batch_SS316_001_Machined ;
+    dyn:hasSpecimenID "DYNML-SS316-0034"^^xsd:string ;
+    dyn:hasSpecimenRole dyn:TestSpecimen ;
+    dyn:hasStructure dyn:MonolithicMaterial ;
+    dyn:hasSurfaceFinish dyn:AsReceivedFinish .
+

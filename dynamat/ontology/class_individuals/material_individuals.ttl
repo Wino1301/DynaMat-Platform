@@ -93,8 +93,8 @@ dyn:C350_Maraging rdf:type owl:NamedIndividual, dyn:SteelAlloy ;
     dyn:hasDescription "Ultra-high strength maraging steel"@en ;
     dyn:hasPlottingLabel "C350"@en ;
     dyn:hasDensity "8.0825"^^xsd:double ;
-    dyn:hasWaveSpeed "5000.0"^^xsd:double ;
-    dyn:hasElasticModulus "200000"^^xsd:double .
+    dyn:hasWaveSpeed "4953.321"^^xsd:double ;
+    dyn:hasElasticModulus "199990"^^xsd:double .
 
 #################################################################
 #    Material Individuals - Copper Alloys

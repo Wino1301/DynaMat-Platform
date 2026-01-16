@@ -49,12 +49,15 @@ DynaMat-Platform/
 │   │
 │   └── config.py              # Configuration
 │
-├── specimens/                  # Specimen data database (SEPARATE from code)
-│   └── SPN-{MaterialID}-{XXX}/
-│       ├── SPN-*_specimen.ttl
-│       ├── SPN-*_TEST_DATE.ttl
-│       ├── raw/               # Raw data files
-│       └── processed/         # Processed results
+├── user_data/                  # User data directory (SEPARATE from code)
+│   ├── specimens/             # Specimen data database
+│   │   └── DYNML-{MaterialCode}-{XXXXX}/
+│   │       ├── DYNML-*_specimen.ttl
+│   │       ├── DYNML-*_TEST_DATE.ttl
+│   │       ├── raw/           # Raw data files
+│   │       └── processed/     # Processed results
+│   │
+│   └── individuals/           # User-defined individuals
 │
 ├── .claude/
 │   └── agents/
@@ -65,18 +68,19 @@ DynaMat-Platform/
 └── requirements.txt
 ```
 
-### Why Specimens are Separate from Code
+### Why User Data is Separate from Code
 
-The `specimens/` directory is intentionally **outside** the `dynamat/` package:
+The `user_data/` directory is intentionally **outside** the `dynamat/` package:
 
 **FAIR Data Management**:
-- **Version Control**: Specimen data evolves differently than code
-- **Data Portability**: Labs can share datasets by copying the folder
-- **Tool Independence**: Any RDF tool can read `specimens/`
+- **Version Control**: User data (specimens, custom individuals) evolves differently than code
+- **Data Portability**: Labs can share datasets by copying the `user_data/` folder
+- **Tool Independence**: Any RDF tool can read `user_data/specimens/` and `user_data/individuals/`
 - **Scalability**: Data growth doesn't bloat the code repository
 
 **File Organization**:
-Each specimen gets its own folder with TTL metadata files and CSV data files organized by processing stage.
+- `user_data/specimens/`: Each specimen gets its own folder (e.g., `DYNML-A356-00001/`) with TTL metadata files and CSV data files organized by processing stage
+- `user_data/individuals/`: User-defined individuals (custom materials, equipment configurations, etc.)
 
 ## How It Works: Ontology → GUI
 
@@ -151,7 +155,7 @@ For measurements (values with units):
 - SHACL-level: Complex constraints
 
 **Step 7**: Saves
-- System generates TTL file in `specimens/` directory
+- System generates TTL file in `user_data/specimens/` directory
 - Copies data files to appropriate subdirectories
 - All metadata is now queryable via SPARQL
 
@@ -283,9 +287,9 @@ The GUI automatically creates a UnitValueWidget when it sees `qudt:hasQuantityKi
 
 ### Don't:
 - Hard-code form fields (read from ontology)
-- Mix code and data (keep specimens/ separate)
+- Mix code and data (keep user_data/ separate)
 - Store values with units as strings (use measurement pattern)
-- Create instances in core ontology (they go in specimens/ or class_individuals/)
+- Create instances in core ontology (they go in user_data/specimens/ or class_individuals/)
 
 ### Do:
 - Use templates for consistency

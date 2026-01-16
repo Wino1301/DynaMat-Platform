@@ -715,6 +715,12 @@ dyn:Structure rdf:type owl:Class ;
               rdfs:comment "Internal structure type of a specimen"@en ;
               rdfs:label "Structure"@en .
 
+###  https://dynamat.utep.edu/ontology#LatticeType
+dyn:LatticeType rdf:type owl:Class ;
+                rdfs:subClassOf dyn:Entity ;
+                rdfs:comment "Type of lattice structure (gyroid, simple cubic, etc.)"@en ;
+                rdfs:label "Lattice Type"@en .
+
 ###  https://dynamat.utep.edu/ontology#SpecimenRole
 dyn:SpecimenRole rdf:type owl:Class ;
                  rdfs:subClassOf dyn:Entity ;

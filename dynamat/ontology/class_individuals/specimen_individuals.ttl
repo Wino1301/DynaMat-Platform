@@ -69,6 +69,20 @@ dyn:LatticeStructure rdf:type owl:NamedIndividual, dyn:Structure ;
     dyn:hasDescription "Periodic lattice or cellular structure with designed porosity"@en .
 
 #################################################################
+#    Lattice Types
+#################################################################
+
+dyn:GyroidLattice rdf:type owl:NamedIndividual, dyn:LatticeType ;
+    rdfs:label "Gyroid Lattice"@en ;
+    dyn:hasName "Gyroid"@en ;
+    dyn:hasDescription "Triply periodic minimal surface (TPMS) lattice with gyroid geometry"@en .
+
+dyn:SimpleCubicLattice rdf:type owl:NamedIndividual, dyn:LatticeType ;
+    rdfs:label "Simple Cubic Lattice"@en ;
+    dyn:hasName "Simple Cubic"@en ;
+    dyn:hasDescription "Basic cubic lattice structure with orthogonal struts"@en .
+
+#################################################################
 #    Manufacturing Methods
 #################################################################
 
@@ -214,12 +228,27 @@ dyn:Batch_SS316_001_Machined rdf:type owl:NamedIndividual, dyn:SpecimenBatchID ;
 dyn:Batch_SS316_002_PrintMachined rdf:type owl:NamedIndividual, dyn:SpecimenBatchID ;
     rdfs:label "Batch SS316-2025-02 (Print + Machined)"@en ;
     dyn:hasName "SS316 AM Batch 2025-02 (Printed + Machined)"@en ;
-    dyn:hasBatchID "BATCH-A356-2025-01"@en ;
+    dyn:hasBatchID "BATCH-SS316-2025-02"@en ;
     dyn:hasDescription "First batch of AM SS316 specimens printed in January 2025, then machined to final dimensions."@en ;
     dyn:hasMaterial dyn:SS316 ;
     dyn:hasCreationDate "2025-01-15"^^xsd:date ;
     dyn:hasManufacturingMethod dyn:3DPrinting, dyn:Machining ;
-    dyn:hasBuildAngle dyn:DiagonalOrientation45;
+    dyn:hasBuildOrientation dyn:DiagonalOrientation45;
+    dyn:hasLayerThickness "60"^^xsd:double;
+    dyn:hasMachiningTolerance 0.01 .
+
+dyn:Batch_SS316A356_2025_PrintCastedMachined rdf:type owl:NamedIndividual, dyn:SpecimenBatchID ;
+    rdfs:label "Batch SS316-A356-2025-General (PrintCasted + Machined)"@en ;
+    dyn:hasName "SS316-A356 Batch 2025-General (PrintedCasted + Machined)"@en ;
+    dyn:hasBatchID "BATCH-SS316-A356-2025-01"@en ;
+    dyn:hasDescription "First batch of PrintCasted SS316-A356 specimens printed in January 2025, then machined to final dimensions."@en ;
+    dyn:hasMaterial dyn:SS316_A356 ;
+    dyn:hasCreationDate "2025-01-15"^^xsd:date ;
+    dyn:hasManufacturingMethod dyn:3DPrinting, dyn:Machining, dyn:Casting ;
+    dyn:hasMoltenMetalTemperature 700.0 ;
+    dyn:hasMoldTemperature 23.0 ;
+    dyn:hasCastCoolingDuration 30.0 ;
+    dyn:hasBuildOrientation dyn:DiagonalOrientation45;
     dyn:hasLayerThickness "60"^^xsd:double;
     dyn:hasMachiningTolerance 0.01 .
 
@@ -236,14 +265,23 @@ dyn:CharGroup_Placeholder rdf:type owl:NamedIndividual, dyn:CharacterizationGrou
 #    Composite Phase Descriptions
 #################################################################
 
-dyn:CompositePhase_Al60_A356_40 rdf:type owl:NamedIndividual, dyn:CompositePhaseDescription ;
-    rdfs:label "Al6061 Matrix (60%) - A356 Reinforcement (40%)"@en ;
-    dyn:hasName "Aluminum 6061-T6 Matrix - A356 Reinforcement (60/40)"@en ;
-    dyn:hasDescription "Placeholder composite phase description for testing - 60% Al6061-T6 matrix with 40% A356 reinforcement. Replace with actual composite configurations."@en ;
-    dyn:hasMatrixMaterial dyn:Al6061_T6 ;
+dyn:CompositePhase_Al60_A356_33 rdf:type owl:NamedIndividual, dyn:CompositePhaseDescription ;
+    rdfs:label "SS316 Matrix (33%) - A356 Reinforcement (66%)"@en ;
+    dyn:hasName "SS316 Matrix - A356 Reinforcement (33/66)"@en ;
+    dyn:hasDescription "Composite phase description for testing - 33% Al6061-T6 matrix with 66% A356 reinforcement."@en ;
+    dyn:hasMatrixMaterial dyn:SS316 ;
     dyn:hasReinforcementMaterial dyn:A356 ;
-    dyn:hasMatrixVolumeFraction 0.60 ;
-    dyn:hasReinforcementVolumeFraction 0.40 .
+    dyn:hasMatrixVolumeFraction 0.33 ;
+    dyn:hasReinforcementVolumeFraction 0.66 .
+
+dyn:CompositePhase_Al60_A356_66 rdf:type owl:NamedIndividual, dyn:CompositePhaseDescription ;
+    rdfs:label "SS316 Matrix (66%) - A356 Reinforcement (33%)"@en ;
+    dyn:hasName "SS316 Matrix - A356 Reinforcement (66/33)"@en ;
+    dyn:hasDescription "Composite phase description for testing - 66% Al6061-T6 matrix with 33% A356 reinforcement."@en ;
+    dyn:hasMatrixMaterial dyn:SS316 ;
+    dyn:hasReinforcementMaterial dyn:A356 ;
+    dyn:hasMatrixVolumeFraction 0.66 ;
+    dyn:hasReinforcementVolumeFraction 0.33 .
 
 #################################################################
 #    EXAMPLE SPECIMEN INSTANCE (COMMENTED FOR REFERENCE)

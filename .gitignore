@@ -83,3 +83,6 @@ docs/_missing_integrations/
 *.log
 /dynamat/ontology/qudt/cache
 .claude/settings.local.json
+
+# Claude Code temporary files
+tmpclaude-*-cwd

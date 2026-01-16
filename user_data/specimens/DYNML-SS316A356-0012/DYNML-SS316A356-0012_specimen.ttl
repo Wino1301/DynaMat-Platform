@@ -1,0 +1,51 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+dyn:DYNML_SS316A356_0012 a dyn:Specimen ;
+    dyn:hasAppVersion "2.0.0"^^xsd:string ;
+    dyn:hasBuildOrientation dyn:DiagonalOrientation45 ;
+    dyn:hasCastCoolingDuration "30.0"^^xsd:double ;
+    dyn:hasCompositePhaseDescription dyn:CompositePhase_Al60_A356_33 ;
+    dyn:hasCreatedBy dyn:User_ErwinCazares ;
+    dyn:hasCreatedDate "2026-01-15"^^xsd:date ;
+    dyn:hasFinalCrossSection "49.76408"^^xsd:double ;
+    dyn:hasFinalDiameter "7.96"^^xsd:double ;
+    dyn:hasFinalHeight "4.35"^^xsd:double ;
+    dyn:hasHeatTreatment dyn:AsReceivedHT ;
+    dyn:hasLatticeCellsX 4 ;
+    dyn:hasLatticeCellsY 4 ;
+    dyn:hasLatticeCellsZ 3 ;
+    dyn:hasLatticeNx 20 ;
+    dyn:hasLatticeNy 20 ;
+    dyn:hasLatticeNz 20 ;
+    dyn:hasLatticeStrutMaxX "7.0"^^xsd:double ;
+    dyn:hasLatticeStrutMaxY "7.0"^^xsd:double ;
+    dyn:hasLatticeStrutMaxZ "7.0"^^xsd:double ;
+    dyn:hasLatticeStrutMinX "7.0"^^xsd:double ;
+    dyn:hasLatticeStrutMinY "7.0"^^xsd:double ;
+    dyn:hasLatticeStrutMinZ "7.0"^^xsd:double ;
+    dyn:hasLatticeType dyn:SimpleCubicLattice ;
+    dyn:hasLayerThickness "60.0"^^xsd:double ;
+    dyn:hasMachiningTolerance "0.01"^^xsd:double ;
+    dyn:hasManufacturedDate "2025-02-01"^^xsd:date ;
+    dyn:hasManufacturingMethod dyn:3DPrinting,
+        dyn:Casting,
+        dyn:Machining ;
+    dyn:hasMaterial dyn:SS316_A356 ;
+    dyn:hasMatrixMaterial dyn:SS316 ;
+    dyn:hasMatrixVolumeFraction "0.33"^^xsd:double ;
+    dyn:hasMoldTemperature "23.0"^^xsd:double ;
+    dyn:hasMoltenMetalTemperature "700.0"^^xsd:double ;
+    dyn:hasOriginalCrossSection "31.17245"^^xsd:double ;
+    dyn:hasOriginalDiameter "6.3"^^xsd:double ;
+    dyn:hasOriginalHeight "6.38"^^xsd:double ;
+    dyn:hasReinforcementMaterial dyn:A356 ;
+    dyn:hasReinforcementVolumeFraction "0.66"^^xsd:double ;
+    dyn:hasShape dyn:CylindricalShape ;
+    dyn:hasSpecimenBatchID dyn:Batch_SS316A356_2025_PrintCastedMachined ;
+    dyn:hasSpecimenID "DYNML-SS316A356-0012"^^xsd:string ;
+    dyn:hasSpecimenRole dyn:TestSpecimen ;
+    dyn:hasStructure dyn:LatticeStructure ;
+    dyn:hasSurfaceFinish dyn:AsReceivedFinish ;
+    dyn:hasVoxelSize "2.5"^^xsd:double .
+

@@ -551,6 +551,16 @@ dyn:hasStructure rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     gui:hasDisplayOrder 1 ;
     rdfs:comment "Structural configuration of the specimen"@en .
 
+dyn:hasLatticeType rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range dyn:LatticeType ;
+    rdfs:label "Lattice Type"@en ;
+    gui:hasDisplayName "Lattice Type" ;
+    gui:hasFormGroup "StructureParameters" ;
+    gui:hasGroupOrder 11 ;
+    gui:hasDisplayOrder 2 ;
+    rdfs:comment "Type of lattice structure (gyroid, simple cubic, etc.)"@en .
+
 dyn:hasLatticeCellsX rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
     rdfs:range xsd:integer ;
@@ -558,7 +568,7 @@ dyn:hasLatticeCellsX rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     gui:hasDisplayName "Lattice Cells X" ;
     gui:hasFormGroup "StructureParameters" ;
     gui:hasGroupOrder 11 ;
-    gui:hasDisplayOrder 2 ;
+    gui:hasDisplayOrder 3 ;
     rdfs:comment "Number of unit cells in X direction"@en .
 
 dyn:hasLatticeCellsY rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -568,7 +578,7 @@ dyn:hasLatticeCellsY rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     gui:hasDisplayName "Lattice Cells Y" ;
     gui:hasFormGroup "StructureParameters" ;
     gui:hasGroupOrder 11 ;
-    gui:hasDisplayOrder 3 ;
+    gui:hasDisplayOrder 4 ;
     rdfs:comment "Number of unit cells in Y direction"@en .
 
 dyn:hasLatticeCellsZ rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -578,7 +588,7 @@ dyn:hasLatticeCellsZ rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     gui:hasDisplayName "Lattice Cells Z" ;
     gui:hasFormGroup "StructureParameters" ;
     gui:hasGroupOrder 11 ;
-    gui:hasDisplayOrder 4 ;
+    gui:hasDisplayOrder 5 ;
     rdfs:comment "Number of unit cells in Z direction"@en .
 
 dyn:hasVoxelSize rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -589,7 +599,7 @@ dyn:hasVoxelSize rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     gui:hasDisplayName "Voxel Size " ;
     gui:hasFormGroup "StructureParameters" ;
     gui:hasGroupOrder 11 ;
-    gui:hasDisplayOrder 5 ;
+    gui:hasDisplayOrder 6 ;
     dyn:hasUnit "unit:MilliM" ;
     rdfs:comment "Physical size of each voxel/unit cell"@en .
 
@@ -601,7 +611,7 @@ dyn:hasLatticeNodeRadius rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     gui:hasDisplayName "Node Radius " ;
     gui:hasFormGroup "StructureParameters" ;
     gui:hasGroupOrder 11 ;
-    gui:hasDisplayOrder 6 ;
+    gui:hasDisplayOrder 7 ;
     dyn:hasUnit "unit:MilliM" ;
     rdfs:comment "Radius of spherical nodes in lattice structure"@en .
 
@@ -614,7 +624,7 @@ dyn:hasLatticeStrutMinX rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     gui:hasDisplayName "Min Strut Thickness X" ;
     gui:hasFormGroup "StructureParameters" ;
     gui:hasGroupOrder 11 ;
-    gui:hasDisplayOrder 7 ;
+    gui:hasDisplayOrder 8 ;
     dyn:hasUnit "unit:MilliM" ;
     rdfs:comment "Minimum strut thickness in X direction"@en .
 
@@ -626,7 +636,7 @@ dyn:hasLatticeStrutMaxX rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     gui:hasDisplayName "Max Strut Thickness X " ;
     gui:hasFormGroup "StructureParameters" ;
     gui:hasGroupOrder 11 ;
-    gui:hasDisplayOrder 8 ;
+    gui:hasDisplayOrder 9 ;
     dyn:hasUnit "unit:MilliM" ;
     rdfs:comment "Maximum strut thickness in X direction"@en .
 
@@ -638,7 +648,7 @@ dyn:hasLatticeStrutMinY rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     gui:hasDisplayName "Min Strut Thickness Y " ;
     gui:hasFormGroup "StructureParameters" ;
     gui:hasGroupOrder 11 ;
-    gui:hasDisplayOrder 9 ;
+    gui:hasDisplayOrder 10 ;
     dyn:hasUnit "unit:MilliM" ;
     rdfs:comment "Minimum strut thickness in Y direction"@en .
 
@@ -650,7 +660,7 @@ dyn:hasLatticeStrutMaxY rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     gui:hasDisplayName "Max Strut Thickness Y " ;
     gui:hasFormGroup "StructureParameters" ;
     gui:hasGroupOrder 11 ;
-    gui:hasDisplayOrder 10 ;
+    gui:hasDisplayOrder 11 ;
     dyn:hasUnit "unit:MilliM" ;
     rdfs:comment "Maximum strut thickness in Y direction"@en .
 
@@ -662,7 +672,7 @@ dyn:hasLatticeStrutMinZ rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     gui:hasDisplayName "Min Strut Thickness Z " ;
     gui:hasFormGroup "StructureParameters" ;
     gui:hasGroupOrder 11 ;
-    gui:hasDisplayOrder 11 ;
+    gui:hasDisplayOrder 12 ;
     dyn:hasUnit "unit:MilliM" ;
     rdfs:comment "Minimum strut thickness in Z direction"@en .
 
@@ -674,7 +684,7 @@ dyn:hasLatticeStrutMaxZ rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     gui:hasDisplayName "Max Strut Thickness Z " ;
     gui:hasFormGroup "StructureParameters" ;
     gui:hasGroupOrder 11 ;
-    gui:hasDisplayOrder 12 ;
+    gui:hasDisplayOrder 13 ;
     dyn:hasUnit "unit:MilliM" ;
     rdfs:comment "Maximum strut thickness in Z direction"@en .
 
@@ -686,7 +696,7 @@ dyn:hasLatticeNx rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     gui:hasDisplayName "Resolution Points X" ;
     gui:hasFormGroup "StructureParameters" ;
     gui:hasGroupOrder 11 ;
-    gui:hasDisplayOrder 13 ;
+    gui:hasDisplayOrder 14 ;
     rdfs:comment "Number of resolution points in X direction"@en .
 
 dyn:hasLatticeNy rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -696,7 +706,7 @@ dyn:hasLatticeNy rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     gui:hasDisplayName "Resolution Points Y" ;
     gui:hasFormGroup "StructureParameters" ;
     gui:hasGroupOrder 11 ;
-    gui:hasDisplayOrder 14 ;
+    gui:hasDisplayOrder 15 ;
     rdfs:comment "Number of resolution points in Y direction"@en .
 
 dyn:hasLatticeNz rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -706,7 +716,7 @@ dyn:hasLatticeNz rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     gui:hasDisplayName "Resolution Points Z" ;
     gui:hasFormGroup "StructureParameters" ;
     gui:hasGroupOrder 11 ;
-    gui:hasDisplayOrder 15 ;
+    gui:hasDisplayOrder 16 ;
     rdfs:comment "Number of resolution points in Z direction"@en .
 
 dyn:hasLatticeRingThickness rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
@@ -717,7 +727,7 @@ dyn:hasLatticeRingThickness rdf:type owl:DatatypeProperty, owl:FunctionalPropert
     gui:hasDisplayName "Lattice Ring Thickness " ;
     gui:hasFormGroup "StructureParameters" ;
     gui:hasGroupOrder 11 ;
-    gui:hasDisplayOrder 16 ;
+    gui:hasDisplayOrder 17 ;
     dyn:hasUnit "unit:MilliM" ;
     rdfs:comment "Thickness of outer ring that encapsulates the lattice structure"@en .
 

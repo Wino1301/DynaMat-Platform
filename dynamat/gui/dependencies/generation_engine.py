@@ -56,7 +56,7 @@ class GenerationEngine:
         Example:
             template = "DYNML-{materialCode}-{sequence}"
             inputs = {"materialCode": "AL001", "sequence": 5}
-            result = "DYNML-AL001-00005"
+            result = "DYNML-AL001-0005"
         """
         try:
             # Process inputs
@@ -133,7 +133,7 @@ class GenerationEngine:
             
             # Handle sequence number formatting
             elif key == "sequence" and isinstance(value, int):
-                processed[key] = f"{value:05d}"  # 5-digit padding
+                processed[key] = f"{value:04d}"  # 4-digit padding
             
             # Handle dates
             elif key == "date" and isinstance(value, datetime):
@@ -232,12 +232,12 @@ class GenerationEngine:
     def _generate_specimen_id(self, material_uri: str) -> str:
         """
         Generate a specimen ID from material.
-        
+
         Format: DYNML-{materialCode}-{sequence}
         """
         material_code = self._extract_material_code(material_uri)
         sequence = self._get_next_specimen_sequence(material_code)
-        return f"DYNML-{material_code}-{sequence:05d}"
+        return f"DYNML-{material_code}-{sequence:04d}"
     
     def _generate_material_code(self, material_name: str) -> str:
         """Generate a material code from material name."""
@@ -276,17 +276,20 @@ class GenerationEngine:
         try:
             from pathlib import Path
             import re
+            from dynamat.config import Config
 
-            # Path to specimens directory
-            specimens_dir = Path("specimens")
+            # Path to specimens directory from config
+            specimens_dir = Config.SPECIMENS_DIR
+            self.logger.debug(f"Looking for specimens in: {specimens_dir}")
 
             # Check if directory exists
             if not specimens_dir.exists():
-                self.logger.info(f"Specimens directory not found, starting sequence at 1")
+                self.logger.info(f"Specimens directory not found at {specimens_dir}, starting sequence at 1")
                 return 1
 
             max_sequence = 0
             prefix = f"DYNML-{material_code}-"
+            found_count = 0
 
             # Pattern to match specimen folders: DYNML-{materialCode}-{sequence}
             # Allow for variations in casing and hyphens
@@ -294,6 +297,8 @@ class GenerationEngine:
                 rf"DYNML-{re.escape(material_code)}-(\d+)",
                 re.IGNORECASE
             )
+
+            self.logger.debug(f"Scanning for existing specimens with pattern: DYNML-{material_code}-*")
 
             # Scan all directories in specimens/
             for folder in specimens_dir.iterdir():
@@ -308,17 +313,18 @@ class GenerationEngine:
                     try:
                         sequence_num = int(match.group(1))
                         max_sequence = max(max_sequence, sequence_num)
+                        found_count += 1
                         self.logger.debug(f"Found existing specimen: {folder_name} with sequence {sequence_num}")
                     except ValueError:
                         self.logger.warning(f"Could not parse sequence number from folder: {folder_name}")
                         continue
 
             next_sequence = max_sequence + 1
-            self.logger.info(f"Next sequence for material code '{material_code}': {next_sequence}")
+            self.logger.info(f"Found {found_count} existing specimens for material '{material_code}'. Next sequence: {next_sequence}")
             return next_sequence
 
         except Exception as e:
-            self.logger.error(f"Failed to get next sequence: {e}", exc_info=True)
+            self.logger.error(f"Failed to get next sequence for material '{material_code}': {e}", exc_info=True)
             return 1
     
     # ============================================================================

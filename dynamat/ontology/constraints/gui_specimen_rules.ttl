@@ -388,7 +388,8 @@ gui:specimen_c020 a gui:Constraint ;
     gui:triggers dyn:hasStructure ;
     gui:triggerLogic gui:ALL ;
     gui:whenValue dyn:LatticeStructure ;
-    gui:showFields (dyn:hasLatticeCellsX
+    gui:showFields (dyn:hasLatticeType
+                    dyn:hasLatticeCellsX
                     dyn:hasLatticeCellsY
                     dyn:hasLatticeCellsZ
                     dyn:hasVoxelSize

@@ -39,8 +39,8 @@ dyn:SpecimenShape a sh:NodeShape ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:datatype xsd:string ;
-        sh:pattern "^DYNML-[A-Z0-9]+-[0-9]{5}$" ;
-        sh:message "Specimen ID is required and must follow format: DYNML-<MaterialCode>-<5digits> (e.g., DYNML-AL6061-00001)" ;
+        sh:pattern "^DYNML-[A-Z0-9]+-[0-9]{4}$" ;
+        sh:message "Specimen ID is required and must follow format: DYNML-<MaterialCode>-<4digits> (e.g., DYNML-AL6061-0001)" ;
         sh:severity sh:Violation ;
     ] ;
 
@@ -70,6 +70,7 @@ dyn:SpecimenShape a sh:NodeShape ;
     # Object Properties
     sh:property [ sh:path dyn:hasCompositePhaseDescription ; sh:maxCount 1 ] ;
     sh:property [ sh:path dyn:hasStructure ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasLatticeType ; sh:maxCount 1 ] ;
     sh:property [ sh:path dyn:hasShape ; sh:maxCount 1 ] ;
     sh:property [ sh:path dyn:hasSpecimenBatchID ; sh:maxCount 1 ] ;
     sh:property [ sh:path dyn:hasCharacterizationGroupID ; sh:maxCount 1 ] ;
@@ -399,7 +400,33 @@ dyn:LatticePropertiesConstraint a sh:NodeShape ;
                     ?this dyn:hasLatticeNodeRadius ?nodeRadius .
                 } UNION {
                     ?this dyn:hasLatticeRingThickness ?ringThickness .
+                } UNION {
+                    ?this dyn:hasLatticeType ?latticeType .
                 }
+            }
+        """ ;
+    ] .
+
+# -----------------------------------------------------------------------------
+# Lattice Type Required (for lattice structures)
+# -----------------------------------------------------------------------------
+dyn:LatticeTypeRequired a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:severity sh:Violation ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Lattice structures require a lattice type to be specified (e.g., Gyroid, Simple Cubic)" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            # Query description: Specimens with lattice structure must have a lattice type specified
+            SELECT ?this WHERE {
+                ?this dyn:hasStructure dyn:LatticeStructure .
+                FILTER NOT EXISTS { ?this dyn:hasLatticeType ?latticeType }
             }
         """ ;
     ] .
