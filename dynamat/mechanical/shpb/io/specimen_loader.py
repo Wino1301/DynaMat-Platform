@@ -202,13 +202,12 @@ class SpecimenLoader:
         logger.info(f"Found {len(specimens)} specimens with filters: material={material_name}, shape={shape}, structure={structure}")
         return specimens
 
-    def get_specimen_data(self, specimen_uri: str, print_data: bool = False) -> Dict[str, Any]:
+    def get_specimen_data(self, specimen_uri: str) -> Dict[str, Any]:
         """
         Get detailed specimen data as a dictionary.
 
         Args:
             specimen_uri: URI of the specimen
-            print_data: If True, prints formatted specimen data to console
 
         Returns:
             Dictionary with all specimen properties organized by category:
@@ -307,72 +306,7 @@ class SpecimenLoader:
 
         logger.debug(f"Retrieved data for specimen: {specimen_data.get('id', specimen_uri)}")
 
-        # Print formatted data if requested
-        if print_data:
-            self._print_specimen_data(specimen_data)
-
         return specimen_data
-
-    def _print_specimen_data(self, specimen_data: Dict[str, Any]) -> None:
-        """
-        Print formatted specimen data to console.
-
-        Args:
-            specimen_data: Dictionary returned by get_specimen_data()
-        """
-        print(f"\nSpecimen ID: {specimen_data['id']}")
-        print(f"URI: {specimen_data['uri']}")
-        print("=" * 60)
-
-        # Material information
-        if specimen_data['material']:
-            print(f"\nMaterial:")
-            for key, value in specimen_data['material'].items():
-                # Clean up display
-                if key == 'hasMaterial':
-                    print(f"  Material URI: {value.split('#')[-1]}")
-                elif key == 'hasShape':
-                    print(f"  Shape: {value.split('#')[-1]}")
-                elif key == 'hasStructure':
-                    print(f"  Structure: {value.split('#')[-1]}")
-                else:
-                    print(f"  {key}: {value}")
-
-        # Dimensions
-        if specimen_data['dimensions']:
-            print(f"\nDimensions:")
-            for key, value in specimen_data['dimensions'].items():
-                display_name = key.replace('has', '').replace('Original', 'Original ').replace('Final', 'Final ')
-                print(f"  {display_name}: {value}")
-
-        # Manufacturing details
-        if specimen_data['manufacturing']:
-            print(f"\nManufacturing:")
-            for key, value in specimen_data['manufacturing'].items():
-                display_name = key.replace('has', '')
-                if key == 'hasManufacturingMethod':
-                    print(f"  {display_name}: {value.split('#')[-1]}")
-                else:
-                    print(f"  {display_name}: {value}")
-
-        # Metadata
-        if specimen_data['metadata']:
-            print(f"\nMetadata:")
-            for key, value in specimen_data['metadata'].items():
-                display_name = key.replace('has', '')
-                if 'User_' in str(value):
-                    print(f"  {display_name}: {value.split('User_')[-1]}")
-                else:
-                    print(f"  {display_name}: {value}")
-
-        # Other properties
-        if specimen_data['properties']:
-            print(f"\nOther Properties:")
-            for key, value in specimen_data['properties'].items():
-                display_name = key.replace('has', '')
-                print(f"  {display_name}: {value}")
-
-        print("=" * 60)
 
     def get_individual_property(
         self,

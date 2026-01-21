@@ -25,7 +25,15 @@ import numpy as np
 from rdflib import Literal
 from rdflib.namespace import XSD
 
+from .rdf_helpers import ensure_typed_literal, apply_type_conversion_to_dict
+from .validity_assessment import ValidityAssessor
+from .series_config import SERIES_METADATA as _SERIES_METADATA, DataSeriesBuilder
+from .form_conversion import FormDataConverter
+
 logger = logging.getLogger(__name__)
+
+# Module-level assessor instance for convenience
+_validity_assessor = ValidityAssessor()
 
 
 @dataclass
@@ -47,180 +55,8 @@ class SHPBTestMetadata:
     """
 
     # ==================== SERIES METADATA LOOKUP TABLE ====================
-    SERIES_METADATA = {
-        # ===== RAW SIGNALS =====
-        'time': {
-            'series_type': 'dyn:Time',
-            'quantity_kind': 'qkdv:Time',
-            'unit': 'unit:MilliSEC',
-            'legend_name': 'Time',
-            'class_uri': 'dyn:RawSignal'
-        },
-        'incident': {
-            'series_type': 'dyn:IncidentPulse',
-            'quantity_kind': 'qkdv:Voltage',
-            'unit': 'unit:V',
-            'legend_name': 'Incident Pulse',
-            'class_uri': 'dyn:RawSignal',
-            'requires_gauge': True
-        },
-        'transmitted': {
-            'series_type': 'dyn:TransmittedPulse',
-            'quantity_kind': 'qkdv:Voltage',
-            'unit': 'unit:V',
-            'legend_name': 'Transmitted Pulse',
-            'class_uri': 'dyn:RawSignal',
-            'requires_gauge': True
-        },
-
-        # ===== 1-WAVE PROCESSED DATA =====
-        'bar_displacement_1w': {
-            'series_type': 'dyn:BarDisplacement',
-            'quantity_kind': 'qkdv:Length',
-            'unit': 'unit:MilliM',
-            'legend_name': 'Bar Displacement (1-wave)',
-            'analysis_method': '1-wave',
-            'class_uri': 'dyn:ProcessedData',
-            'derived_from': ['transmitted']
-        },
-        'bar_force_1w': {
-            'series_type': 'dyn:BarForce',
-            'quantity_kind': 'qkdv:Force',
-            'unit': 'unit:N',
-            'legend_name': 'Bar Force (1-wave)',
-            'analysis_method': '1-wave',
-            'class_uri': 'dyn:ProcessedData',
-            'derived_from': ['transmitted']
-        },
-        'strain_rate_1w': {
-            'series_type': 'dyn:StrainRate',
-            'quantity_kind': 'qkdv:StrainRate',
-            'unit': 'unit:PER-SEC',
-            'legend_name': 'Strain Rate (1-wave)',
-            'analysis_method': '1-wave',
-            'class_uri': 'dyn:ProcessedData',
-            'derived_from': ['incident']
-        },
-        'strain_1w': {
-            'series_type': 'dyn:Strain',
-            'quantity_kind': 'qkdv:Dimensionless',
-            'unit': 'unit:UNITLESS',
-            'legend_name': 'Engineering Strain (1-wave)',
-            'analysis_method': '1-wave',
-            'class_uri': 'dyn:ProcessedData',
-            'derived_from': ['incident']
-        },
-        'stress_1w': {
-            'series_type': 'dyn:Stress',
-            'quantity_kind': 'qkdv:Stress',
-            'unit': 'unit:MegaPA',
-            'legend_name': 'Engineering Stress (1-wave)',
-            'analysis_method': '1-wave',
-            'class_uri': 'dyn:ProcessedData',
-            'derived_from': ['transmitted']
-        },
-        'true_strain_rate_1w': {
-            'series_type': 'dyn:TrueStrainRate',
-            'quantity_kind': 'qkdv:StrainRate',
-            'unit': 'unit:PER-SEC',
-            'legend_name': 'True Strain Rate (1-wave)',
-            'analysis_method': '1-wave',
-            'class_uri': 'dyn:ProcessedData',
-            'derived_from': ['incident']
-        },
-        'true_strain_1w': {
-            'series_type': 'dyn:TrueStrain',
-            'quantity_kind': 'qkdv:Dimensionless',
-            'unit': 'unit:UNITLESS',
-            'legend_name': 'True Strain (1-wave)',
-            'analysis_method': '1-wave',
-            'class_uri': 'dyn:ProcessedData',
-            'derived_from': ['incident']
-        },
-        'true_stress_1w': {
-            'series_type': 'dyn:TrueStress',
-            'quantity_kind': 'qkdv:Stress',
-            'unit': 'unit:MegaPA',
-            'legend_name': 'True Stress (1-wave)',
-            'analysis_method': '1-wave',
-            'class_uri': 'dyn:ProcessedData',
-            'derived_from': ['transmitted']
-        },
-
-        # ===== 3-WAVE PROCESSED DATA =====
-        'bar_displacement_3w': {
-            'series_type': 'dyn:BarDisplacement',
-            'quantity_kind': 'qkdv:Length',
-            'unit': 'unit:MilliM',
-            'legend_name': 'Bar Displacement (3-wave)',
-            'analysis_method': '3-wave',
-            'class_uri': 'dyn:ProcessedData',
-            'derived_from': ['incident', 'transmitted']
-        },
-        'bar_force_3w': {
-            'series_type': 'dyn:BarForce',
-            'quantity_kind': 'qkdv:Force',
-            'unit': 'unit:N',
-            'legend_name': 'Bar Force (3-wave)',
-            'analysis_method': '3-wave',
-            'class_uri': 'dyn:ProcessedData',
-            'derived_from': ['incident', 'transmitted']
-        },
-        'strain_rate_3w': {
-            'series_type': 'dyn:StrainRate',
-            'quantity_kind': 'qkdv:StrainRate',
-            'unit': 'unit:PER-SEC',
-            'legend_name': 'Strain Rate (3-wave)',
-            'analysis_method': '3-wave',
-            'class_uri': 'dyn:ProcessedData',
-            'derived_from': ['incident', 'transmitted']
-        },
-        'strain_3w': {
-            'series_type': 'dyn:Strain',
-            'quantity_kind': 'qkdv:Dimensionless',
-            'unit': 'unit:UNITLESS',
-            'legend_name': 'Engineering Strain (3-wave)',
-            'analysis_method': '3-wave',
-            'class_uri': 'dyn:ProcessedData',
-            'derived_from': ['incident', 'transmitted']
-        },
-        'stress_3w': {
-            'series_type': 'dyn:Stress',
-            'quantity_kind': 'qkdv:Stress',
-            'unit': 'unit:MegaPA',
-            'legend_name': 'Engineering Stress (3-wave)',
-            'analysis_method': '3-wave',
-            'class_uri': 'dyn:ProcessedData',
-            'derived_from': ['incident', 'transmitted']
-        },
-        'true_strain_rate_3w': {
-            'series_type': 'dyn:TrueStrainRate',
-            'quantity_kind': 'qkdv:StrainRate',
-            'unit': 'unit:PER-SEC',
-            'legend_name': 'True Strain Rate (3-wave)',
-            'analysis_method': '3-wave',
-            'class_uri': 'dyn:ProcessedData',
-            'derived_from': ['incident', 'transmitted']
-        },
-        'true_strain_3w': {
-            'series_type': 'dyn:TrueStrain',
-            'quantity_kind': 'qkdv:Dimensionless',
-            'unit': 'unit:UNITLESS',
-            'legend_name': 'True Strain (3-wave)',
-            'analysis_method': '3-wave',
-            'class_uri': 'dyn:ProcessedData',
-            'derived_from': ['incident', 'transmitted']
-        },
-        'true_stress_3w': {
-            'series_type': 'dyn:TrueStress',
-            'quantity_kind': 'qkdv:Stress',
-            'unit': 'unit:MegaPA',
-            'legend_name': 'True Stress (3-wave)',
-            'analysis_method': '3-wave',
-            'class_uri': 'dyn:ProcessedData',
-            'derived_from': ['incident', 'transmitted']
-        }
-    }
+    # Re-exported from series_config for backwards compatibility
+    SERIES_METADATA = _SERIES_METADATA
 
     # ==================== CORE IDENTIFICATION ====================
     test_id: str  # Unique test identifier
@@ -525,347 +361,50 @@ class SHPBTestMetadata:
         """
         Convert Python types to RDF Literals with explicit XSD datatypes.
 
-        Ensures all numeric values are saved with proper ^^xsd:datatype flags in TTL.
-        Non-numeric types (strings, URIs, dicts) are passed through unchanged.
+        Delegates to rdf_helpers.ensure_typed_literal() for implementation.
+        Retained for backwards compatibility.
 
-        Args:
-            value: Python value to convert
-
-        Returns:
-            RDF Literal with explicit datatype, or original value if not a simple numeric type
-
-        Examples:
-            >>> _ensure_typed_literal(25000)           # Literal(25000, datatype=XSD.integer)
-            >>> _ensure_typed_literal(0.35)            # Literal(0.35, datatype=XSD.double)
-            >>> _ensure_typed_literal("TEST_001")      # "TEST_001" (unchanged)
-            >>> _ensure_typed_literal(np.int64(100))   # Literal(100, datatype=XSD.integer)
-            >>> _ensure_typed_literal("12345")         # "12345" (unchanged - strings stay strings)
+        See Also:
+            rdf_helpers.ensure_typed_literal: Full implementation and documentation
         """
-        # Handle None (pass through)
-        if value is None:
-            return value
-
-        # Handle NumPy types (convert to native Python types first)
-        if isinstance(value, (np.integer, np.int32, np.int64)):
-            return Literal(int(value), datatype=XSD.integer)
-        if isinstance(value, (np.floating, np.float32, np.float64)):
-            return Literal(float(value), datatype=XSD.double)
-
-        # Handle native Python numeric types
-        if isinstance(value, bool):
-            # Handle bool before int (bool is subclass of int in Python)
-            return Literal(value, datatype=XSD.boolean)
-        if isinstance(value, int):
-            return Literal(value, datatype=XSD.integer)
-        if isinstance(value, float):
-            return Literal(value, datatype=XSD.double)
-
-        # Pass through everything else (strings, URIs, dicts, lists, etc.)
-        # These have their own handling in InstanceWriter
-        # NOTE: We do NOT convert string representations of numbers (e.g., "123") to integers here.
-        # Values should be properly typed before reaching this method.
-        return value
+        return ensure_typed_literal(value)
 
     @classmethod
     def _apply_type_conversion_to_dict(cls, form_dict: Dict[str, Any]) -> Dict[str, Any]:
         """
         Apply type conversion to all values in a form dictionary.
 
-        Recursively processes dictionary values to ensure numeric types have explicit XSD datatypes.
+        Delegates to rdf_helpers.apply_type_conversion_to_dict() for implementation.
+        Retained for backwards compatibility.
 
-        Args:
-            form_dict: Dictionary with property URIs as keys
-
-        Returns:
-            New dictionary with typed literals for all numeric values
-
-        Examples:
-            >>> form = {'dyn:hasStartIndex': 7079, 'dyn:hasEndIndex': 81301}
-            >>> typed_form = _apply_type_conversion_to_dict(form)
-            # Returns: {'dyn:hasStartIndex': Literal(7079, datatype=XSD.integer), ...}
+        See Also:
+            rdf_helpers.apply_type_conversion_to_dict: Full implementation and documentation
         """
-        typed_dict = {}
-        for key, value in form_dict.items():
-            if value is not None:
-                typed_dict[key] = cls._ensure_typed_literal(value)
-            else:
-                typed_dict[key] = value
-        return typed_dict
+        return apply_type_conversion_to_dict(form_dict)
 
     def to_form_data(self) -> Dict[str, Any]:
         """
-        Convert all metadata fields to form data dictionary for InstanceWriter.
+        Convert metadata fields to form data dictionary for InstanceWriter.
 
-        Maps field names → RDF property URIs, following widget factory format.
-        Only includes non-None values (skips optional fields that weren't set).
-        All numeric values are converted to typed RDF Literals with explicit XSD datatypes.
+        Delegates to FormDataConverter for implementation.
 
-        Returns:
-            Dict with property URIs as keys, values in widget format:
-            {
-                'dyn:hasTestID': 'TEST_001',
-                'dyn:hasStrikerVelocity': {'value': 10.0, 'unit': '...', 'reference_unit': '...'},
-                'dyn:hasIncidentBar': 'dyn:IncidentBar_...',
-                'dyn:hasCenteredSegmentPoints': Literal(25000, datatype=XSD.integer),
-                ...
-            }
-
-        Example:
-            >>> form_data = metadata.to_form_data()
-            >>> # Pass directly to InstanceWriter
-            >>> writer.write_instance(form_data, 'dyn:SHPBCompression', test_id, output_path)
+        See Also:
+            form_conversion.FormDataConverter.to_form_data: Full implementation
         """
-        # Build comprehensive field → property URI mapping
-        field_mapping = {
-            # Core identification
-            'test_id': 'dyn:hasTestID',
-            'specimen_uri': 'dyn:performedOn',
-            'test_date': 'dyn:hasTestDate',
-            'user': 'dyn:hasUser',  # Will be converted to User URI below
-            'test_type': 'dyn:hasTestType',
-            'test_validity': 'dyn:hasTestValidity',
-            'validity_notes': 'dyn:hasValidityNotes',
-            # Note: validity_criteria handled separately as multi-valued property below
-
-            # Equipment configuration
-            'striker_bar_uri': 'dyn:hasStrikerBar',
-            'incident_bar_uri': 'dyn:hasIncidentBar',
-            'transmission_bar_uri': 'dyn:hasTransmissionBar',
-            'momentum_trap_uri': 'dyn:hasMomentumTrap',
-            'pulse_shaper_uri': 'dyn:hasPulseShaper',
-            # Note: strain gauges handled separately as multi-valued property
-
-            # Initial test conditions
-            'striker_velocity': 'dyn:hasStrikerVelocity',
-            'striker_launch_pressure': 'dyn:hasStrikerLaunchPressure',
-            'momentum_trap_distance': 'dyn:hasMomentumTrapTailoredDistance',
-            'barrel_offset': 'dyn:hasBarrelOffset',
-            'lubrication_applied': 'dyn:hasLubrication',
-
-            # Note: Window references are now associated with DataSeries, not the test instance
-            # - incident_window_uri and reflected_window_uri → incident DataSeries
-            # - transmitted_window_uri → transmitted DataSeries
-
-            # Segmentation
-            # Note: segment_n_points moved to AlignmentParams
-            # Note: segment_thresh_ratio moved to AlignmentParams
-
-            # Pulse shifts - stored as values in AlignmentParams, not as separate objects
-            # No longer: 'transmitted_shift_uri': 'dyn:hasAppliedShift'
-            # No longer: 'reflected_shift_uri': 'dyn:hasAppliedShift'
-
-            # Alignment configuration (reference to AlignmentParams instance only)
-            'alignment_params_uri': 'dyn:hasAlignmentParams',
-            # Note: k_linear, weights, search bounds, shifts, segment params are in AlignmentParams
-
-            # Alignment results (can stay on test for quick access)
-            # Note: alignment_front_idx moved to AlignmentParams
-            'linear_region_start': 'dyn:hasLinearRegionStart',
-            'linear_region_end': 'dyn:hasLinearRegionEnd',
-
-            # Processing parameters (references to instances)
-            # Note: hasPulseDetectionParams moved to RawSignal (DataSeries level)
-            # Each RawSignal has one or more detection params associated with it
-
-            # Equilibrium metrics (reference to instance only)
-            'equilibrium_metrics_uri': 'dyn:hasEquilibriumMetrics',
-            # Note: FBC, SEQI, SOI, DSUF are ONLY in EquilibriumMetrics, not here
-
-            # Tukey window
-            'tukey_alpha': 'dyn:hasTukeyAlpha',
-
-            # Calculated characteristics
-            'pulse_duration': 'dyn:hasPulseDuration',
-            'pulse_length': 'dyn:hasPulseLength',
-            'pulse_stress_amplitude': 'dyn:hasPulseStressAmplitude',
-            'pulse_strain_amplitude': 'dyn:hasPulseStrainAmplitude',
-            'incident_rise_time': 'dyn:hasPulseRiseTime',
-
-            # Analysis metadata
-            'analysis_timestamp': 'dyn:hasAnalysisTimestamp',
-            # Note: sampling_interval moved to DataSeries (not test level)
-            # Note: Data file references (raw/processed) removed - files are linked via DataSeries
-
-            # Data series references
-            'data_series_time_uri': 'dyn:hasDataSeries',
-            'data_series_incident_uri': 'dyn:hasDataSeries',
-            'data_series_transmitted_uri': 'dyn:hasDataSeries',
-        }
-
-        form_data = {}
-
-        # Process all fields using mapping
-        for field_name, property_uri in field_mapping.items():
-            value = getattr(self, field_name, None)
-            if value is not None:
-                # Special handling for user field (convert to User URI)
-                if field_name == 'user':
-                    if value.startswith('dyn:User_'):
-                        form_data[property_uri] = value
-                    else:
-                        form_data[property_uri] = f"dyn:User_{value}"
-                # test_type is now an ObjectProperty that expects URI format
-                elif field_name == 'test_type':
-                    # Keep URI format (e.g., dyn:SpecimenTest)
-                    form_data[property_uri] = value
-                else:
-                    # Apply type conversion to ensure proper XSD datatypes
-                    form_data[property_uri] = self._ensure_typed_literal(value)
-
-        # Handle strain gauges as multi-valued property
-        gauges = []
-        if self.incident_strain_gauge_uri:
-            gauges.append(self.incident_strain_gauge_uri)
-        if self.transmission_strain_gauge_uri:
-            gauges.append(self.transmission_strain_gauge_uri)
-        if gauges:
-            form_data['dyn:hasStrainGauge'] = gauges
-
-        # Handle validity criteria as multi-valued property
-        if self.validity_criteria:
-            # Already a list of URIs
-            form_data['dyn:hasValidityCriteria'] = self.validity_criteria
-
-        logger.debug(f"Created form_data with {len(form_data)} properties (with typed literals)")
-        return form_data
+        converter = FormDataConverter(self)
+        return converter.to_form_data()
 
     def get_processing_instances(self) -> Dict[str, List[tuple]]:
         """
         Extract all processing object instances for batch creation.
 
-        Returns instances grouped by type:
-        - windows: DEPRECATED - merged into detection_params
-        - shifts: DEPRECATED - values now stored in AlignmentParams
-        - detection_params: PulseDetectionParams instances (incident, transmitted, reflected)
-                           Now includes window boundaries (start, end, length)
-        - alignment_params: AlignmentParams instance
-        - equilibrium_metrics: EquilibriumMetrics instance
+        Delegates to FormDataConverter for implementation.
 
-        Returns:
-            Dict with instance type as key, list of (form_data, class_uri, instance_id) tuples as value
-
-        Example:
-            >>> processing_instances = metadata.get_processing_instances()
-            >>> windows = processing_instances['windows']
-            >>> # Pass to InstanceWriter.create_instances_batch()
+        See Also:
+            form_conversion.FormDataConverter.get_processing_instances: Full implementation
         """
-        instances = {
-            'windows': [],
-            'shifts': [],
-            'detection_params': [],
-            'alignment_params': [],
-            'equilibrium_metrics': []
-        }
-
-        # ===== PULSE DETECTION PARAMS (includes window boundaries) =====
-        # Note: PulseWindow has been merged into PulseDetectionParams
-        # Each detection params instance includes both configuration and results (window boundaries)
-
-        if self.incident_detection_params_uri and self.incident_pulse_points is not None:
-            incident_detect_form = self._apply_type_conversion_to_dict({
-                # Detection configuration (ensure integers are int type, not strings)
-                'dyn:hasPulsePoints': int(self.incident_pulse_points) if self.incident_pulse_points is not None else None,
-                'dyn:hasKTrials': self.incident_k_trials,  # Stays string (comma-separated list)
-                'dyn:hasDetectionPolarity': self.incident_polarity,
-                'dyn:hasMinSeparation': int(self.incident_min_separation) if self.incident_min_separation is not None else None,
-                'dyn:hasDetectionLowerBound': int(self.incident_lower_bound) if self.incident_lower_bound is not None else None,
-                'dyn:hasDetectionUpperBound': int(self.incident_upper_bound) if self.incident_upper_bound is not None else None,
-                'dyn:hasSelectionMetric': self.incident_detection_metric,
-                # Detected window boundaries (merged from PulseWindow)
-                'dyn:hasStartIndex': int(self.incident_window_start) if self.incident_window_start is not None else None,
-                'dyn:hasEndIndex': int(self.incident_window_end) if self.incident_window_end is not None else None,
-                'dyn:hasWindowLength': int(self.incident_window_length) if self.incident_window_length is not None else None,
-                'dyn:appliedToSeries': self.data_series_incident_uri
-            })
-            instance_id = self.incident_detection_params_uri.replace('dyn:', '')
-            instances['detection_params'].append((incident_detect_form, 'dyn:PulseDetectionParams', instance_id))
-
-        if self.transmitted_detection_params_uri and self.transmitted_pulse_points is not None:
-            transmitted_detect_form = self._apply_type_conversion_to_dict({
-                # Detection configuration (ensure integers are int type, not strings)
-                'dyn:hasPulsePoints': int(self.transmitted_pulse_points) if self.transmitted_pulse_points is not None else None,
-                'dyn:hasKTrials': self.transmitted_k_trials,  # Stays string (comma-separated list)
-                'dyn:hasDetectionPolarity': self.transmitted_polarity,
-                'dyn:hasMinSeparation': int(self.transmitted_min_separation) if self.transmitted_min_separation is not None else None,
-                'dyn:hasDetectionLowerBound': int(self.transmitted_lower_bound) if self.transmitted_lower_bound is not None else None,
-                'dyn:hasDetectionUpperBound': int(self.transmitted_upper_bound) if self.transmitted_upper_bound is not None else None,
-                'dyn:hasSelectionMetric': self.transmitted_detection_metric,
-                # Detected window boundaries (merged from PulseWindow)
-                'dyn:hasStartIndex': int(self.transmitted_window_start) if self.transmitted_window_start is not None else None,
-                'dyn:hasEndIndex': int(self.transmitted_window_end) if self.transmitted_window_end is not None else None,
-                'dyn:hasWindowLength': int(self.transmitted_window_length) if self.transmitted_window_length is not None else None,
-                'dyn:appliedToSeries': self.data_series_transmitted_uri
-            })
-            instance_id = self.transmitted_detection_params_uri.replace('dyn:', '')
-            instances['detection_params'].append((transmitted_detect_form, 'dyn:PulseDetectionParams', instance_id))
-
-        if self.reflected_detection_params_uri and self.reflected_pulse_points is not None:
-            reflected_detect_form = self._apply_type_conversion_to_dict({
-                # Detection configuration (ensure integers are int type, not strings)
-                'dyn:hasPulsePoints': int(self.reflected_pulse_points) if self.reflected_pulse_points is not None else None,
-                'dyn:hasKTrials': self.reflected_k_trials,  # Stays string (comma-separated list)
-                'dyn:hasDetectionPolarity': self.reflected_polarity,
-                'dyn:hasMinSeparation': int(self.reflected_min_separation) if self.reflected_min_separation is not None else None,
-                'dyn:hasDetectionLowerBound': int(self.reflected_lower_bound) if self.reflected_lower_bound is not None else None,
-                'dyn:hasDetectionUpperBound': int(self.reflected_upper_bound) if self.reflected_upper_bound is not None else None,
-                'dyn:hasSelectionMetric': self.reflected_detection_metric,
-                # Detected window boundaries (merged from PulseWindow)
-                'dyn:hasStartIndex': int(self.reflected_window_start) if self.reflected_window_start is not None else None,
-                'dyn:hasEndIndex': int(self.reflected_window_end) if self.reflected_window_end is not None else None,
-                'dyn:hasWindowLength': int(self.reflected_window_length) if self.reflected_window_length is not None else None,
-                'dyn:appliedToSeries': self.data_series_incident_uri  # Reflected is on incident bar
-            })
-            instance_id = self.reflected_detection_params_uri.replace('dyn:', '')
-            instances['detection_params'].append((reflected_detect_form, 'dyn:PulseDetectionParams', instance_id))
-
-        # ===== PULSE SHIFTS =====
-        # Note: Pulse shift values are now stored directly in AlignmentParams
-        # as hasTransmittedShiftValue and hasReflectedShiftValue, not as separate PulseShift objects
-
-        # ===== ALIGNMENT PARAMS =====
-        if self.alignment_params_uri and self.k_linear is not None:
-            alignment_form = self._apply_type_conversion_to_dict({
-                'dyn:hasKLinear': self.k_linear,  # Float
-                'dyn:hasCorrelationWeight': self.alignment_weight_corr,  # Float
-                'dyn:hasDisplacementWeight': self.alignment_weight_u,  # Float
-                'dyn:hasStrainRateWeight': self.alignment_weight_sr,  # Float
-                'dyn:hasStrainWeight': self.alignment_weight_e,  # Float
-                # Search bounds (ensure integers)
-                'dyn:hasTransmittedSearchMin': int(self.search_bounds_t_min) if self.search_bounds_t_min is not None else None,
-                'dyn:hasTransmittedSearchMax': int(self.search_bounds_t_max) if self.search_bounds_t_max is not None else None,
-                'dyn:hasReflectedSearchMin': int(self.search_bounds_r_min) if self.search_bounds_r_min is not None else None,
-                'dyn:hasReflectedSearchMax': int(self.search_bounds_r_max) if self.search_bounds_r_max is not None else None,
-                # Shift values (ensure integers)
-                'dyn:hasTransmittedShiftValue': int(self.shift_transmitted) if self.shift_transmitted is not None else None,
-                'dyn:hasReflectedShiftValue': int(self.shift_reflected) if self.shift_reflected is not None else None,
-                # Segmentation parameters
-                'dyn:hasCenteredSegmentPoints': int(self.segment_n_points) if self.segment_n_points is not None else None,
-                'dyn:hasThresholdRatio': self.segment_thresh_ratio,  # Float
-                'dyn:hasFrontIndex': int(self.alignment_front_idx) if self.alignment_front_idx is not None else None,
-            })
-            instance_id = self.alignment_params_uri.replace('dyn:', '')
-            instances['alignment_params'].append((alignment_form, 'dyn:AlignmentParams', instance_id))
-
-        # ===== EQUILIBRIUM METRICS =====
-        if self.equilibrium_metrics_uri and self.fbc is not None:
-            equilibrium_form = self._apply_type_conversion_to_dict({
-                'dyn:hasFBC': self.fbc,
-                'dyn:hasSEQI': self.seqi,
-                'dyn:hasSOI': self.soi,
-                'dyn:hasDSUF': self.dsuf,
-                'dyn:hasFBCLoading': self.fbc_loading,
-                'dyn:hasDSUFLoading': self.dsuf_loading,
-                'dyn:hasFBCPlateau': self.fbc_plateau,
-                'dyn:hasDSUFPlateau': self.dsuf_plateau,
-                'dyn:hasFBCUnloading': self.fbc_unloading,
-                'dyn:hasDSUFUnloading': self.dsuf_unloading,
-            })
-            instance_id = self.equilibrium_metrics_uri.replace('dyn:', '')
-            instances['equilibrium_metrics'].append((equilibrium_form, 'dyn:EquilibriumMetrics', instance_id))
-
-        total_instances = sum(len(v) for v in instances.values())
-        logger.debug(f"Extracted {total_instances} processing instances")
-        return instances
+        converter = FormDataConverter(self)
+        return converter.get_processing_instances()
 
     def prepare_raw_data_series(
         self,
@@ -876,102 +415,13 @@ class SHPBTestMetadata:
         """
         Convert raw DataFrame columns to DataSeries instances.
 
-        Creates 3 RawSignal instances (time, incident, transmitted) with full metadata:
-        - Column name and index
-        - QUDT unit and quantity kind
-        - Equipment reference (measuredBy)
-        - Data point count
-        - Processing metadata (Tukey, alignment flags)
+        Delegates to DataSeriesBuilder for implementation.
 
-        Args:
-            raw_df: DataFrame with columns ['time', 'incident', 'transmitted']
-            file_uri: URI of the AnalysisFile instance (e.g., 'dyn:TEST_001_raw_csv')
-            gauge_params: Dict mapping column names to equipment URIs:
-                {
-                    'incident': 'dyn:StrainGauge_SHPB_001',
-                    'transmitted': 'dyn:StrainGauge_SHPB_002'
-                }
-
-        Returns:
-            List of (form_data, class_uri, instance_id) tuples for InstanceWriter.
-            Each tuple represents one DataSeries instance.
-
-        Example:
-            >>> gauge_params = {
-            ...     'incident': metadata.incident_strain_gauge_uri,
-            ...     'transmitted': metadata.transmission_strain_gauge_uri
-            ... }
-            >>> raw_series = metadata.prepare_raw_data_series(
-            ...     raw_df, 'dyn:TEST_001_raw_csv', gauge_params
-            ... )
-            >>> # Returns 3 instances: time, incident, transmitted
+        See Also:
+            series_config.DataSeriesBuilder.prepare_raw_data_series: Full implementation
         """
-        instances = []
-        data_point_count = len(raw_df)
-
-        for column_name in ['time', 'incident', 'transmitted']:
-            # Get metadata from lookup table
-            metadata = self.SERIES_METADATA[column_name]
-
-            # Build form data
-            form_data = {
-                # Explicit type declaration for SHACL validation (parent class)
-                'rdf:type': 'dyn:DataSeries',
-
-                # File reference
-                'dyn:hasDataFile': file_uri,
-                'dyn:hasColumnName': column_name,
-                'dyn:hasColumnIndex': raw_df.columns.get_loc(column_name),
-                'dyn:hasLegendName': metadata['legend_name'],
-
-                # Series metadata
-                'dyn:hasSeriesType': metadata['series_type'],
-                'dyn:hasDataPointCount': data_point_count,
-            }
-
-            # Add unit and quantity kind if specified
-            if metadata['unit']:
-                form_data['dyn:hasSeriesUnit'] = metadata['unit']
-            if metadata['quantity_kind']:
-                form_data['dyn:hasQuantityKind'] = metadata['quantity_kind']
-
-            # Add equipment reference for signals that require it
-            if metadata.get('requires_gauge', False) and column_name in gauge_params:
-                form_data['dyn:measuredBy'] = gauge_params[column_name]
-
-            # Add sampling interval (series-level metadata)
-            if self.sampling_interval is not None:
-                form_data['dyn:hasSamplingInterval'] = self.sampling_interval
-
-            # Note: tukey_alpha is test-level parameter (in SHPBCompression), not series-level
-            # Note: segment_thresh_ratio is now in AlignmentParams, not DataSeries
-
-            # Add pulse detection params references (associate detection params with their RawSignal)
-            if column_name == 'incident':
-                # Incident bar has TWO detection params: incident pulse and reflected pulse
-                detection_params = []
-                if self.incident_detection_params_uri:
-                    detection_params.append(self.incident_detection_params_uri)
-                if self.reflected_detection_params_uri:
-                    detection_params.append(self.reflected_detection_params_uri)
-                if detection_params:
-                    form_data['dyn:hasPulseDetectionParams'] = detection_params
-            elif column_name == 'transmitted':
-                # Transmitted bar has ONE detection params: transmitted pulse
-                if self.transmitted_detection_params_uri:
-                    form_data['dyn:hasPulseDetectionParams'] = self.transmitted_detection_params_uri
-
-            # Apply type conversion to ensure proper XSD datatypes
-            form_data = self._apply_type_conversion_to_dict(form_data)
-
-            # Create instance tuple
-            instance_id = f"{self.test_id.replace('-', '_')}_{column_name}"
-            instances.append((form_data, metadata['class_uri'], instance_id))
-
-            logger.debug(f"Prepared {column_name} DataSeries: {instance_id}")
-
-        logger.info(f"Prepared {len(instances)} raw DataSeries instances")
-        return instances
+        builder = DataSeriesBuilder(self)
+        return builder.prepare_raw_data_series(raw_df, file_uri, gauge_params)
 
     def prepare_processed_data_series(
         self,
@@ -982,138 +432,13 @@ class SHPBTestMetadata:
         """
         Convert processed results dictionary to DataSeries instances.
 
-        Creates 17 ProcessedData instances (1 time + 16 calculated quantities) with:
-        - Analysis method (1-wave, 3-wave)
-        - Derivation chain (derivedFrom links to WINDOWED signals)
-        - QUDT units and quantity kinds
-        - Processing method
+        Delegates to DataSeriesBuilder for implementation.
 
-        Args:
-            results: Dictionary from StressStrainCalculator.calculate() with keys:
-                - 'time' (ms)
-                - '1-wave': bar_displacement_1w, bar_force_1w, strain_rate_1w,
-                           strain_1w, stress_1w, true_strain_rate_1w,
-                           true_strain_1w, true_stress_1w
-                - '3-wave': bar_displacement_3w, bar_force_3w, strain_rate_3w,
-                           strain_3w, stress_3w, true_strain_rate_3w,
-                           true_strain_3w, true_stress_3w
-            file_uri: URI of processed data AnalysisFile
-            windowed_series_uris: URIs of windowed DataSeries for derivation chain:
-                {
-                    'time_windowed': 'dyn:TEST_001_time_windowed',
-                    'incident_windowed': 'dyn:TEST_001_incident_windowed',
-                    'transmitted_windowed': 'dyn:TEST_001_transmitted_windowed',
-                    'reflected_windowed': 'dyn:TEST_001_reflected_windowed'
-                }
-
-        Returns:
-            List of (form_data, class_uri, instance_id) tuples.
-            Returns 17 instances (1 time + 16 processed quantities).
-
-        Example:
-            >>> calculator = StressStrainCalculator(...)
-            >>> results = calculator.calculate(inc, trs, ref, time)
-            >>> windowed_uris = {
-            ...     'time_windowed': 'dyn:TEST_001_time_windowed',
-            ...     'incident_windowed': 'dyn:TEST_001_incident_windowed',
-            ...     'transmitted_windowed': 'dyn:TEST_001_transmitted_windowed',
-            ...     'reflected_windowed': 'dyn:TEST_001_reflected_windowed'
-            ... }
-            >>> processed_series = metadata.prepare_processed_data_series(
-            ...     results, 'dyn:TEST_001_processed_csv', windowed_uris
-            ... )
+        See Also:
+            series_config.DataSeriesBuilder.prepare_processed_data_series: Full implementation
         """
-        instances = []
-
-        # Create temporary DataFrame to get column indices
-        processed_df = pd.DataFrame(results)
-        data_point_count = len(processed_df)
-
-        for column_name in results.keys():
-            # Skip time column - we already have raw time and windowed time series
-            # The processed CSV time column doesn't need its own DataSeries
-            if column_name == 'time':
-                logger.debug("Skipping 'time' column - using windowed time series instead")
-                continue
-
-            # Skip pulse window columns - these are the windowed/normalized pulses
-            # They are already represented by the windowed series (incident_windowed, etc.)
-            # These first 4 columns (time, incident, transmitted, reflected) are intermediate data
-            if column_name in ['incident', 'transmitted', 'reflected']:
-                logger.debug(f"Skipping '{column_name}' pulse window - already represented by windowed series")
-                continue
-
-            # Skip if not in metadata (shouldn't happen)
-            if column_name not in self.SERIES_METADATA:
-                logger.warning(f"Column '{column_name}' not in SERIES_METADATA, skipping")
-                continue
-
-            # Get metadata from lookup table
-            metadata = self.SERIES_METADATA[column_name]
-
-            # Build form data
-            form_data = {
-                # Explicit type declaration for SHACL validation (parent class)
-                'rdf:type': 'dyn:DataSeries',
-
-                # File reference
-                'dyn:hasDataFile': file_uri,
-                'dyn:hasColumnName': column_name,
-                'dyn:hasColumnIndex': processed_df.columns.get_loc(column_name),
-                'dyn:hasLegendName': metadata['legend_name'],
-
-                # Series metadata
-                'dyn:hasSeriesType': metadata['series_type'],
-                'dyn:hasDataPointCount': data_point_count,
-
-                # Processing info
-                'dyn:hasProcessingMethod': 'SHPB stress-strain calculation',
-                'dyn:hasFilterApplied': False,
-            }
-
-            # Add unit and quantity kind if specified
-            if metadata['unit']:
-                form_data['dyn:hasSeriesUnit'] = metadata['unit']
-            if metadata['quantity_kind']:
-                form_data['dyn:hasQuantityKind'] = metadata['quantity_kind']
-
-            # Add analysis method for processed data
-            if 'analysis_method' in metadata:
-                form_data['dyn:hasAnalysisMethod'] = metadata['analysis_method']
-
-            # Add derivation chain (link to source windowed signals)
-            if 'derived_from' in metadata:
-                # Map from metadata keys (incident/transmitted/reflected) to windowed series URIs
-                source_mapping = {
-                    'incident': 'incident_windowed',
-                    'transmitted': 'transmitted_windowed',
-                    'reflected': 'reflected_windowed'
-                }
-
-                # Collect all valid source URIs
-                derived_sources = []
-                for source_column in metadata['derived_from']:
-                    windowed_key = source_mapping.get(source_column, source_column)
-                    if windowed_key in windowed_series_uris:
-                        derived_sources.append(windowed_series_uris[windowed_key])
-
-                # Add as single value or list depending on count
-                if len(derived_sources) == 1:
-                    form_data['dyn:derivedFrom'] = derived_sources[0]
-                elif len(derived_sources) > 1:
-                    form_data['dyn:derivedFrom'] = derived_sources
-
-            # Apply type conversion to ensure proper XSD datatypes
-            form_data = self._apply_type_conversion_to_dict(form_data)
-
-            # Create instance tuple
-            instance_id = f"{self.test_id.replace('-', '_')}_{column_name}"
-            instances.append((form_data, metadata['class_uri'], instance_id))
-
-            logger.debug(f"Prepared {column_name} DataSeries: {instance_id}")
-
-        logger.info(f"Prepared {len(instances)} processed DataSeries instances")
-        return instances
+        builder = DataSeriesBuilder(self)
+        return builder.prepare_processed_data_series(results, file_uri, windowed_series_uris)
 
     def prepare_windowed_data_series(
         self,
@@ -1124,122 +449,13 @@ class SHPBTestMetadata:
         """
         Create DataSeries instances for windowed/segmented signals.
 
-        These are the intermediate signals between raw and processed:
-        - Raw signals (full length) are captured from the oscilloscope
-        - Windowed signals are extracted pulses (after pulse detection)
-        - Processed signals are calculated stress-strain curves
+        Delegates to DataSeriesBuilder for implementation.
 
-        Creates 4 windowed DataSeries:
-        1. time_windowed - time vector for the aligned window
-        2. incident_windowed - extracted incident pulse
-        3. transmitted_windowed - extracted transmitted pulse
-        4. reflected_windowed - extracted reflected pulse (from incident bar)
-
-        Args:
-            raw_series_uris: URIs of raw DataSeries for derivation:
-                {
-                    'time': 'dyn:TEST_001_time',
-                    'incident': 'dyn:TEST_001_incident',
-                    'transmitted': 'dyn:TEST_001_transmitted'
-                }
-            window_length: Number of data points in windowed signals (from segment_n_points)
-            file_uri: URI of windowed data file (processed CSV containing windowed pulses)
-
-        Returns:
-            List of (form_data, class_uri, instance_id) tuples for windowed series
-
-        Example:
-            >>> windowed_series = metadata.prepare_windowed_data_series(
-            ...     raw_uris, window_length=25000, file_uri='dyn:TEST_001_windowed_csv'
-            ... )
-            >>> # Returns 4 instances: time_windowed, incident_windowed, transmitted_windowed, reflected_windowed
+        See Also:
+            series_config.DataSeriesBuilder.prepare_windowed_data_series: Full implementation
         """
-        instances = []
-
-        # Windowed series metadata
-        # Note: window_uri removed - windows are now part of PulseDetectionParams on raw signals
-        windowed_metadata = {
-            'time_windowed': {
-                'series_type': 'dyn:Time',
-                'quantity_kind': 'qkdv:Time',
-                'unit': 'unit:MilliSEC',
-                'legend_name': 'Time (Windowed)',
-                'derived_from': 'time'
-            },
-            'incident_windowed': {
-                'series_type': 'dyn:IncidentPulse',
-                'quantity_kind': 'qkdv:Dimensionless',
-                'unit': 'unit:UNITLESS',
-                'legend_name': 'Incident Pulse (Windowed & Normalized)',
-                'derived_from': 'incident',
-                'gauge_uri': self.incident_strain_gauge_uri
-            },
-            'transmitted_windowed': {
-                'series_type': 'dyn:TransmittedPulse',
-                'quantity_kind': 'qkdv:Dimensionless',
-                'unit': 'unit:UNITLESS',
-                'legend_name': 'Transmitted Pulse (Windowed & Normalized)',
-                'derived_from': 'transmitted',
-                'gauge_uri': self.transmission_strain_gauge_uri
-            },
-            'reflected_windowed': {
-                'series_type': 'dyn:ReflectedPulse',
-                'quantity_kind': 'qkdv:Dimensionless',
-                'unit': 'unit:UNITLESS',
-                'legend_name': 'Reflected Pulse (Windowed & Normalized)',
-                'derived_from': 'incident',  # Reflected pulse is on incident bar
-                'gauge_uri': self.incident_strain_gauge_uri
-            }
-        }
-
-        for series_name, metadata in windowed_metadata.items():
-            # Build form data
-            form_data = {
-                # Explicit type declaration
-                'rdf:type': 'dyn:DataSeries',
-
-                # File reference (windowed data CSV)
-                'dyn:hasDataFile': file_uri,
-
-                # Series metadata
-                'dyn:hasLegendName': metadata['legend_name'],
-                'dyn:hasSeriesType': metadata['series_type'],
-                'dyn:hasDataPointCount': window_length,
-
-                # Processing info
-                'dyn:hasProcessingMethod': 'Pulse windowing and segmentation',
-                'dyn:hasFilterApplied': False,
-
-                # Derivation (from raw signal)
-                'dyn:derivedFrom': raw_series_uris[metadata['derived_from']],
-            }
-
-            # Add unit and quantity kind if specified
-            if metadata['unit']:
-                form_data['dyn:hasSeriesUnit'] = metadata['unit']
-            if metadata['quantity_kind']:
-                form_data['dyn:hasQuantityKind'] = metadata['quantity_kind']
-
-            # Note: window references removed - windows are now in PulseDetectionParams on raw signals
-
-            # Add gauge reference for signal series
-            if 'gauge_uri' in metadata and metadata['gauge_uri']:
-                form_data['dyn:measuredBy'] = metadata['gauge_uri']
-
-            # Note: tukey_alpha is test-level parameter (in SHPBCompression), not series-level
-            # Note: segment_thresh_ratio is now in AlignmentParams, not ProcessedData
-
-            # Apply type conversion
-            form_data = self._apply_type_conversion_to_dict(form_data)
-
-            # Create instance tuple
-            instance_id = f"{self.test_id.replace('-', '_')}_{series_name}"
-            instances.append((form_data, 'dyn:ProcessedData', instance_id))
-
-            logger.debug(f"Prepared windowed DataSeries: {instance_id}")
-
-        logger.info(f"Prepared {len(instances)} windowed DataSeries instances")
-        return instances
+        builder = DataSeriesBuilder(self)
+        return builder.prepare_windowed_data_series(raw_series_uris, window_length, file_uri)
 
     def validate(self):
         """
@@ -1357,9 +573,7 @@ class SHPBTestMetadata:
         """
         Automatically assess test validity based on equilibrium metrics.
 
-        Sets test_validity and validity_notes based on FBC, SEQI, SOI, and DSUF values.
-        Uses multi-level criteria to determine if force equilibrium and constant strain rate
-        were achieved.
+        Delegates to ValidityAssessor for implementation.
 
         Args:
             metrics: Dictionary from StressStrainCalculator.calculate_equilibrium_metrics()
@@ -1367,261 +581,63 @@ class SHPBTestMetadata:
 
         Sets:
             test_validity: URI of validity status
-                - "dyn:ValidTest": 3+ metrics meet strict standards
-                - "dyn:QuestionableTest": 3+ metrics meet relaxed standards
-                - "dyn:InvalidTest": fewer than 3 metrics meet relaxed standards
-            validity_notes: Human-readable description of validity assessment
+            validity_notes: Human-readable description
+            validity_criteria: List of criteria URIs achieved
 
-        Example:
-            >>> metrics = calculator.calculate_equilibrium_metrics(results)
-            >>> metadata.assess_validity_from_metrics(metrics)
-            >>> print(metadata.test_validity)  # "dyn:ValidTest", "dyn:QuestionableTest", or "dyn:InvalidTest"
-            >>> print(metadata.validity_notes)
+        See Also:
+            validity_assessment.ValidityAssessor: Full implementation and thresholds
         """
-        # Extract metrics
-        fbc = metrics.get('FBC', 0.0)
-        seqi = metrics.get('SEQI', 0.0)
-        soi = metrics.get('SOI', 1.0)
-        dsuf = metrics.get('DSUF', 0.0)
-
-        # Assess force equilibrium
-        force_equilibrium = self._assess_force_equilibrium(fbc, dsuf)
-
-        # Assess constant strain rate
-        constant_strain_rate = self._assess_strain_rate(soi)
-
-        # Determine overall validity
-        validity = self._determine_overall_validity(fbc, seqi, soi, dsuf)
-
-        # Generate validity notes
-        notes = self._generate_validity_notes(
-            fbc, seqi, soi, dsuf,
-            force_equilibrium, constant_strain_rate
-        )
-
-        # Get specific criteria URIs that were met
-        criteria = self.get_validity_criteria(metrics)
-
-        # Set metadata fields
-        self.test_validity = validity
-        self.validity_notes = notes
-        self.validity_criteria = criteria if criteria else None
-
-        logger.info(f"Validity assessment complete: {validity}")
-        if criteria:
-            logger.info(f"Specific criteria met: {', '.join(criteria)}")
-        logger.debug(f"Validity notes: {notes}")
+        result = _validity_assessor.assess_validity_from_metrics(metrics)
+        self.test_validity = result['test_validity']
+        self.validity_notes = result['validity_notes']
+        self.validity_criteria = result['validity_criteria']
 
     def get_validity_criteria(self, metrics: Dict[str, float]) -> List[str]:
         """
         Get list of specific validity criteria URIs that were achieved.
 
-        Returns URIs for specific criteria based on the metrics:
-        - "dyn:ForceEquilibrium" if force equilibrium was achieved
-        - "dyn:ConstantStrainRate" if constant strain rate was achieved
+        Delegates to ValidityAssessor for implementation.
 
-        Args:
-            metrics: Dictionary with keys: 'FBC', 'SEQI', 'SOI', 'DSUF'
-
-        Returns:
-            List of criteria URIs that were achieved
-
-        Example:
-            >>> metrics = calculator.calculate_equilibrium_metrics(results)
-            >>> criteria = metadata.get_validity_criteria(metrics)
-            >>> print(criteria)  # ['dyn:ForceEquilibrium', 'dyn:ConstantStrainRate']
+        See Also:
+            validity_assessment.ValidityAssessor.get_validity_criteria: Full implementation
         """
-        criteria = []
-
-        fbc = metrics.get('FBC', 0.0)
-        dsuf = metrics.get('DSUF', 0.0)
-        soi = metrics.get('SOI', 1.0)
-
-        # Check force equilibrium (strict criteria)
-        if fbc >= 0.90 and dsuf >= 0.90:
-            criteria.append('dyn:ForceEquilibrium')
-
-        # Check constant strain rate (strict criteria)
-        if soi <= 0.10:
-            criteria.append('dyn:ConstantStrainRate')
-
-        return criteria
+        return _validity_assessor.get_validity_criteria(metrics)
 
     def is_valid(self) -> bool:
-        """
-        Convenience method to check if test is valid.
-
-        Returns:
-            True if test_validity is "dyn:ValidTest", False otherwise
-        """
+        """Check if test is valid. Returns True if test_validity is 'dyn:ValidTest'."""
         return self.test_validity == 'dyn:ValidTest'
 
     def is_questionable(self) -> bool:
-        """
-        Convenience method to check if test is questionable.
-
-        Returns:
-            True if test_validity is "dyn:QuestionableTest", False otherwise
-        """
+        """Check if test is questionable. Returns True if test_validity is 'dyn:QuestionableTest'."""
         return self.test_validity == 'dyn:QuestionableTest'
 
     def is_invalid(self) -> bool:
-        """
-        Convenience method to check if test is invalid.
-
-        Returns:
-            True if test_validity is "dyn:InvalidTest", False otherwise
-        """
+        """Check if test is invalid. Returns True if test_validity is 'dyn:InvalidTest'."""
         return self.test_validity == 'dyn:InvalidTest'
 
     @staticmethod
     def _assess_force_equilibrium(fbc: float, dsuf: float) -> str:
-        """
-        Assess if force equilibrium was achieved.
-
-        Args:
-            fbc: Force Balance Coefficient (0-1)
-            dsuf: Dynamic Stress Uniformity Factor (0-1)
-
-        Returns:
-            "achieved", "partially_achieved", or "not_achieved"
-        """
-        if fbc >= 0.90 and dsuf >= 0.90:
-            return "achieved"
-        elif fbc >= 0.75 or dsuf >= 0.75:
-            return "partially_achieved"
-        else:
-            return "not_achieved"
+        """Assess force equilibrium. Delegates to ValidityAssessor."""
+        return _validity_assessor.assess_force_equilibrium(fbc, dsuf)
 
     @staticmethod
     def _assess_strain_rate(soi: float) -> str:
-        """
-        Assess if constant strain rate was maintained.
-
-        Args:
-            soi: Strain Offset Index (0-1), measures strain rate oscillations
-
-        Returns:
-            "achieved", "partially_achieved", or "not_achieved"
-        """
-        if soi <= 0.10:
-            return "achieved"
-        elif soi <= 0.20:
-            return "partially_achieved"
-        else:
-            return "not_achieved"
+        """Assess strain rate. Delegates to ValidityAssessor."""
+        return _validity_assessor.assess_strain_rate(soi)
 
     @staticmethod
     def _determine_overall_validity(fbc: float, seqi: float, soi: float, dsuf: float) -> str:
-        """
-        Determine overall test validity based on all equilibrium metrics.
-
-        Uses a multi-level approach:
-        - "dyn:ValidTest": ALL 4 metrics meet strict standards
-        - "dyn:QuestionableTest": At least half (2/4) of relaxed standards met
-        - "dyn:InvalidTest": Less than half of relaxed standards met
-
-        Strict standards (all must pass for valid):
-        - FBC ≥ 0.95
-        - SEQI ≥ 0.90
-        - SOI ≤ 0.05
-        - DSUF ≥ 0.98
-
-        Relaxed standards (at least 2 must pass for questionable):
-        - FBC ≥ 0.85
-        - SEQI ≥ 0.80
-        - SOI ≤ 0.10
-        - DSUF ≥ 0.90
-
-        Args:
-            fbc: Force Balance Coefficient
-            seqi: Stress Equilibrium Quality Index
-            soi: Strain Offset Index
-            dsuf: Dynamic Stress Uniformity Factor
-
-        Returns:
-            URI of validity status: "dyn:ValidTest", "dyn:QuestionableTest", or "dyn:InvalidTest"
-        """
-        # Count criteria meeting strict standards
-        strict_pass = 0
-        if fbc >= 0.95:
-            strict_pass += 1
-        if seqi >= 0.90:
-            strict_pass += 1
-        if soi <= 0.05:
-            strict_pass += 1
-        if dsuf >= 0.98:
-            strict_pass += 1
-
-        # Count criteria meeting relaxed standards
-        relaxed_pass = 0
-        if fbc >= 0.85:
-            relaxed_pass += 1
-        if seqi >= 0.80:
-            relaxed_pass += 1
-        if soi <= 0.10:
-            relaxed_pass += 1
-        if dsuf >= 0.90:
-            relaxed_pass += 1
-
-        # Decision logic - return ontology URIs
-        if strict_pass == 4:
-            # ALL strict criteria pass → VALID
-            return "dyn:ValidTest"
-        elif relaxed_pass >= 2:
-            # At least half of relaxed criteria pass → QUESTIONABLE
-            return "dyn:QuestionableTest"
-        else:
-            # Less than half of relaxed criteria pass → INVALID
-            return "dyn:InvalidTest"
+        """Determine overall validity. Delegates to ValidityAssessor."""
+        return _validity_assessor.determine_overall_validity(
+            {'FBC': fbc, 'SEQI': seqi, 'SOI': soi, 'DSUF': dsuf}
+        )
 
     @staticmethod
     def _generate_validity_notes(
-        fbc: float,
-        seqi: float,
-        soi: float,
-        dsuf: float,
-        force_eq: str,
-        const_sr: str
+        fbc: float, seqi: float, soi: float, dsuf: float,
+        force_eq: str, const_sr: str
     ) -> str:
-        """
-        Generate human-readable validity notes based on metrics.
-
-        Args:
-            fbc: Force Balance Coefficient
-            seqi: Stress Equilibrium Quality Index
-            soi: Strain Offset Index
-            dsuf: Dynamic Stress Uniformity Factor
-            force_eq: Force equilibrium assessment ("achieved", "partially_achieved", "not_achieved")
-            const_sr: Constant strain rate assessment
-
-        Returns:
-            Human-readable string describing test validity
-        """
-        notes = []
-
-        # Force equilibrium assessment
-        if force_eq == "achieved":
-            notes.append(f"Force equilibrium achieved (FBC={fbc:.3f}, DSUF={dsuf:.3f})")
-        elif force_eq == "partially_achieved":
-            notes.append(f"Force equilibrium partially achieved (FBC={fbc:.3f}, DSUF={dsuf:.3f})")
-        else:
-            notes.append(f"Force equilibrium NOT achieved (FBC={fbc:.3f}, DSUF={dsuf:.3f})")
-
-        # Strain rate assessment
-        if const_sr == "achieved":
-            notes.append(f"Constant strain rate maintained (SOI={soi:.3f})")
-        elif const_sr == "partially_achieved":
-            notes.append(f"Strain rate oscillations detected (SOI={soi:.3f})")
-        else:
-            notes.append(f"Significant strain rate oscillations (SOI={soi:.3f})")
-
-        # Stress equilibrium assessment
-        if seqi >= 0.90:
-            notes.append(f"Good stress equilibrium (SEQI={seqi:.3f})")
-        elif seqi >= 0.80:
-            notes.append(f"Acceptable stress equilibrium (SEQI={seqi:.3f})")
-        else:
-            notes.append(f"Poor stress equilibrium (SEQI={seqi:.3f})")
-
-        return "; ".join(notes)
+        """Generate validity notes. Delegates to ValidityAssessor."""
+        return _validity_assessor.generate_validity_notes(
+            fbc, seqi, soi, dsuf, force_eq, const_sr
+        )
