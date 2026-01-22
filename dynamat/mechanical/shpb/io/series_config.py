@@ -4,6 +4,10 @@ SHPB Data Series Configuration and Builder
 Contains the SERIES_METADATA lookup table and DataSeriesBuilder class for creating
 DataSeries instances from DataFrames. Extracted from SHPBTestMetadata for
 single responsibility and reusability.
+
+SERIES_METADATA is now loaded from the ontology when available, with a fallback
+to the hardcoded dictionary for robustness. The proxy class ensures backwards
+compatibility with existing code.
 """
 
 import logging
@@ -16,9 +20,9 @@ from .rdf_helpers import apply_type_conversion_to_dict
 logger = logging.getLogger(__name__)
 
 
-# ==================== SERIES METADATA LOOKUP TABLE ====================
-# Maps column names to their RDF metadata for DataSeries creation
-SERIES_METADATA = {
+# ==================== FALLBACK SERIES METADATA ====================
+# Hardcoded fallback used when ontology is unavailable
+_FALLBACK_SERIES_METADATA = {
     # ===== RAW SIGNALS =====
     'time': {
         'series_type': 'dyn:Time',
@@ -194,6 +198,77 @@ SERIES_METADATA = {
 }
 
 
+# ==================== LAZY-LOADED ONTOLOGY METADATA ====================
+_series_metadata_cache = None
+
+
+def get_series_metadata() -> Dict[str, Dict[str, Any]]:
+    """
+    Load series metadata from ontology, with fallback to hardcoded dict.
+
+    Returns:
+        Dict mapping column names to their RDF metadata for DataSeries creation.
+        Tries ontology first, falls back to _FALLBACK_SERIES_METADATA.
+    """
+    global _series_metadata_cache
+
+    if _series_metadata_cache is None:
+        try:
+            from dynamat.ontology import OntologyManager
+            manager = OntologyManager()
+            _series_metadata_cache = manager.domain_queries.get_series_metadata_for_shpb()
+            logger.info(f"Loaded {len(_series_metadata_cache)} series metadata entries from ontology")
+        except Exception as e:
+            logger.warning(f"Ontology load failed: {e}, using fallback SERIES_METADATA")
+            _series_metadata_cache = _FALLBACK_SERIES_METADATA
+
+    return _series_metadata_cache
+
+
+def clear_series_metadata_cache():
+    """Clear the cached metadata, forcing reload on next access."""
+    global _series_metadata_cache
+    _series_metadata_cache = None
+    logger.debug("Cleared series metadata cache")
+
+
+class _SeriesMetadataProxy:
+    """
+    Proxy class for backwards-compatible SERIES_METADATA access.
+
+    Provides dict-like interface that loads from ontology on first access.
+    Existing code using SERIES_METADATA['stress_1w'] continues to work.
+    """
+
+    def __getitem__(self, key: str) -> Dict[str, Any]:
+        return get_series_metadata()[key]
+
+    def __contains__(self, key: str) -> bool:
+        return key in get_series_metadata()
+
+    def __len__(self) -> int:
+        return len(get_series_metadata())
+
+    def __iter__(self):
+        return iter(get_series_metadata())
+
+    def keys(self):
+        return get_series_metadata().keys()
+
+    def values(self):
+        return get_series_metadata().values()
+
+    def items(self):
+        return get_series_metadata().items()
+
+    def get(self, key: str, default=None):
+        return get_series_metadata().get(key, default)
+
+
+# Backwards-compatible module-level export
+SERIES_METADATA = _SeriesMetadataProxy()
+
+
 class DataSeriesBuilder:
     """
     Builds DataSeries instances from DataFrames using SERIES_METADATA.
@@ -245,10 +320,11 @@ class DataSeriesBuilder:
         """
         instances = []
         data_point_count = len(raw_df)
+        series_meta_dict = get_series_metadata()
 
         for column_name in ['time', 'incident', 'transmitted']:
             # Get metadata from lookup table
-            series_meta = SERIES_METADATA[column_name]
+            series_meta = series_meta_dict[column_name]
 
             # Build form data
             form_data = {
@@ -332,6 +408,7 @@ class DataSeriesBuilder:
             prepare_raw_data_series: Full parameter documentation
         """
         instances = []
+        series_meta_dict = get_series_metadata()
 
         # Create temporary DataFrame to get column indices
         processed_df = pd.DataFrame(results)
@@ -345,12 +422,12 @@ class DataSeriesBuilder:
             if column_name in ['incident', 'transmitted', 'reflected']:
                 logger.debug(f"Skipping '{column_name}' pulse window - already represented by windowed series")
                 continue
-            if column_name not in SERIES_METADATA:
+            if column_name not in series_meta_dict:
                 logger.warning(f"Column '{column_name}' not in SERIES_METADATA, skipping")
                 continue
 
             # Get metadata from lookup table
-            series_meta = SERIES_METADATA[column_name]
+            series_meta = series_meta_dict[column_name]
 
             # Build form data
             form_data = {

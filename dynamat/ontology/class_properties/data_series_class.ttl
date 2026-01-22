@@ -95,6 +95,66 @@ dyn:SeriesType rdf:type owl:Class ;
 
 
 #################################################################
+#    Properties for SeriesType Metadata (CSV-to-RDF Mapping)
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasDefaultColumnName
+dyn:hasDefaultColumnName rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:SeriesType ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Default CSV column name for this series type"@en ;
+    rdfs:label "Default Column Name"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasDefaultUnit
+dyn:hasDefaultUnit rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:SeriesType ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Default QUDT unit URI (e.g., 'unit:MegaPA')"@en ;
+    rdfs:label "Default Unit"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasDefaultQuantityKind
+dyn:hasDefaultQuantityKind rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:SeriesType ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Default QUDT quantity kind URI (e.g., 'qkdv:Stress')"@en ;
+    rdfs:label "Default Quantity Kind"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasLegendTemplate
+dyn:hasLegendTemplate rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:SeriesType ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Legend template with {analysis_method} placeholder"@en ;
+    rdfs:label "Legend Template"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasDefaultSeriesClass
+dyn:hasDefaultSeriesClass rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:SeriesType ;
+    rdfs:range owl:Class ;
+    rdfs:comment "Default class (dyn:RawSignal or dyn:ProcessedData)"@en ;
+    rdfs:label "Default Series Class"@en .
+
+
+###  https://dynamat.utep.edu/ontology#derivesFromSeriesType
+dyn:derivesFromSeriesType rdf:type owl:ObjectProperty ;
+    rdfs:domain dyn:SeriesType ;
+    rdfs:range dyn:SeriesType ;
+    rdfs:comment "Source series type(s) for derivation chain"@en ;
+    rdfs:label "Derives From Series Type"@en .
+
+
+###  https://dynamat.utep.edu/ontology#requiresStrainGauge
+dyn:requiresStrainGauge rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:SeriesType ;
+    rdfs:range xsd:boolean ;
+    rdfs:comment "Whether this type requires strain gauge data"@en ;
+    rdfs:label "Requires Strain Gauge"@en .
+
+
+#################################################################
 #    Object Properties
 #################################################################
 

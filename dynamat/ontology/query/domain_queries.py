@@ -474,5 +474,180 @@ class DomainQueries:
                     'date': result.get('testDate')
                 })
                 seen_tests.add(result['test'])
-        
+
         return history
+
+    # ============================================================================
+    # SERIES TYPE QUERIES (CSV-to-RDF Metadata)
+    # ============================================================================
+
+    def get_series_type_metadata(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Get all SeriesType individuals with CSV mapping metadata.
+
+        Returns:
+            Dict mapping column names to metadata dict with keys:
+                - series_type: URI of the SeriesType individual
+                - quantity_kind: QUDT quantity kind URI
+                - unit: QUDT unit URI
+                - legend_template: Legend template string
+                - class_uri: Default series class (RawSignal/ProcessedData)
+                - requires_gauge: Whether strain gauge data is required
+                - derived_from: List of source column names (for derivation chain)
+        """
+        query = """
+        SELECT ?seriesType ?columnName ?quantityKind ?unit ?legendTemplate
+               ?seriesClass ?requiresGauge ?derivesFrom ?derivesFromColumn
+        WHERE {
+            ?seriesType rdf:type dyn:SeriesType .
+
+            OPTIONAL { ?seriesType dyn:hasDefaultColumnName ?columnName }
+            OPTIONAL { ?seriesType dyn:hasDefaultQuantityKind ?quantityKind }
+            OPTIONAL { ?seriesType dyn:hasDefaultUnit ?unit }
+            OPTIONAL { ?seriesType dyn:hasLegendTemplate ?legendTemplate }
+            OPTIONAL { ?seriesType dyn:hasDefaultSeriesClass ?seriesClass }
+            OPTIONAL { ?seriesType dyn:requiresStrainGauge ?requiresGauge }
+            OPTIONAL {
+                ?seriesType dyn:derivesFromSeriesType ?derivesFrom .
+                ?derivesFrom dyn:hasDefaultColumnName ?derivesFromColumn
+            }
+        }
+        ORDER BY ?seriesType
+        """
+
+        results = self.sparql.execute_query(query)
+
+        # Process results into a dict keyed by column name
+        metadata = {}
+        for result in results:
+            column_name = result.get('columnName')
+            if not column_name:
+                continue
+
+            column_name = str(column_name)
+
+            # Initialize entry if not exists
+            if column_name not in metadata:
+                # Extract local name from series type URI (e.g., dyn:Stress -> Stress)
+                series_type_uri = str(result.get('seriesType', ''))
+                series_type_local = series_type_uri.split('#')[-1] if '#' in series_type_uri else series_type_uri.split('/')[-1]
+
+                # Extract local name from class URI
+                class_uri = str(result.get('seriesClass', ''))
+                class_local = class_uri.split('#')[-1] if '#' in class_uri else class_uri.split('/')[-1]
+
+                # Convert requires_gauge to boolean
+                requires_gauge = result.get('requiresGauge')
+                if isinstance(requires_gauge, str):
+                    requires_gauge = requires_gauge.lower() == 'true'
+                elif requires_gauge is None:
+                    requires_gauge = False
+
+                metadata[column_name] = {
+                    'series_type': f'dyn:{series_type_local}',
+                    'quantity_kind': str(result.get('quantityKind', '')),
+                    'unit': str(result.get('unit', '')),
+                    'legend_template': str(result.get('legendTemplate', '')),
+                    'class_uri': f'dyn:{class_local}' if class_local else 'dyn:DataSeries',
+                    'requires_gauge': requires_gauge,
+                    'derived_from': []
+                }
+
+            # Add derived_from column if present
+            derived_from_column = result.get('derivesFromColumn')
+            if derived_from_column:
+                derived_from_str = str(derived_from_column)
+                if derived_from_str not in metadata[column_name]['derived_from']:
+                    metadata[column_name]['derived_from'].append(derived_from_str)
+
+        logger.debug(f"Retrieved metadata for {len(metadata)} series types from ontology")
+        return metadata
+
+    def get_series_metadata_for_shpb(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Get SERIES_METADATA dict for SHPB, expanding templates to method-specific entries.
+
+        This method transforms ontology SeriesType metadata into the format expected
+        by the SHPB io module. It expands series with {analysis_method} placeholder
+        in their legend template into multiple entries (e.g., stress -> stress_1w, stress_3w).
+
+        Returns:
+            Dict compatible with SERIES_METADATA format:
+                - series_type: dyn:SeriesType URI
+                - quantity_kind: QUDT quantity kind
+                - unit: QUDT unit
+                - legend_name: Formatted legend string
+                - analysis_method: '1-wave' or '3-wave' (for processed data)
+                - class_uri: dyn:RawSignal or dyn:ProcessedData
+                - requires_gauge: bool (for raw signals)
+                - derived_from: list of source column names
+        """
+        base_metadata = self.get_series_type_metadata()
+        expanded = {}
+
+        # Analysis methods with their suffixes and derived_from mappings
+        analysis_methods = [
+            ('1-wave', '_1w', {'incident': ['incident'], 'transmitted': ['transmitted']}),
+            ('3-wave', '_3w', {'incident': ['incident', 'transmitted'], 'transmitted': ['incident', 'transmitted']})
+        ]
+
+        for column_name, meta in base_metadata.items():
+            legend_template = meta.get('legend_template', '')
+
+            if '{analysis_method}' in legend_template:
+                # Expand to method-specific entries
+                for method_name, suffix, derived_mapping in analysis_methods:
+                    new_column = f"{column_name}{suffix}"
+
+                    # Determine derived_from based on the original derivation
+                    derived_from = []
+                    for orig_derived in meta.get('derived_from', []):
+                        if orig_derived in derived_mapping:
+                            derived_from = derived_mapping[orig_derived]
+                            break
+
+                    # If no mapping found, use original or default based on series type
+                    if not derived_from:
+                        # Default mappings based on what the series derives from
+                        if meta.get('derived_from'):
+                            if suffix == '_1w':
+                                # 1-wave: strain from incident, stress from transmitted
+                                if 'incident' in meta['derived_from']:
+                                    derived_from = ['incident']
+                                else:
+                                    derived_from = ['transmitted']
+                            else:
+                                # 3-wave: both incident and transmitted
+                                derived_from = ['incident', 'transmitted']
+
+                    expanded[new_column] = {
+                        'series_type': meta['series_type'],
+                        'quantity_kind': meta['quantity_kind'],
+                        'unit': meta['unit'],
+                        'legend_name': legend_template.format(analysis_method=method_name),
+                        'analysis_method': method_name,
+                        'class_uri': meta['class_uri'],
+                        'derived_from': derived_from
+                    }
+            else:
+                # No expansion needed - raw signals or non-method-specific series
+                entry = {
+                    'series_type': meta['series_type'],
+                    'quantity_kind': meta['quantity_kind'],
+                    'unit': meta['unit'],
+                    'legend_name': legend_template,
+                    'class_uri': meta['class_uri'],
+                }
+
+                # Add requires_gauge for raw signals
+                if meta.get('requires_gauge'):
+                    entry['requires_gauge'] = True
+
+                # Add derived_from if present
+                if meta.get('derived_from'):
+                    entry['derived_from'] = meta['derived_from']
+
+                expanded[column_name] = entry
+
+        logger.debug(f"Expanded series metadata to {len(expanded)} entries for SHPB")
+        return expanded
