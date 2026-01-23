@@ -230,7 +230,7 @@ class InstanceWriter:
         # === STANDARD TYPE CONVERSIONS (no units) ===
         elif isinstance(value, str):
             # Check if it's a URI or a literal string
-            if value.startswith("http") or value.startswith("dyn:") or value.startswith("unit:"):
+            if value.startswith("http") or value.startswith("dyn:") or value.startswith("unit:") or value.startswith("qkdv:"):
                 return self._resolve_uri(value)
             # Check if it's an ISO datetime string (YYYY-MM-DDTHH:MM:SS...)
             # Extract date part for metadata fields (hasCreatedDate, hasModifiedDate)

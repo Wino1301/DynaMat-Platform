@@ -4,6 +4,9 @@
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix dc: <http://purl.org/dc/terms/> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@prefix qkdv: <http://qudt.org/vocab/quantitykind/> .
 
 # =============================================================================
 # DynaMat Platform - Data Series Type Individual Instances
@@ -12,11 +15,12 @@
 #
 # Each SeriesType individual includes CSV-to-RDF mapping metadata:
 #   - dyn:hasDefaultColumnName - default column name in CSV files
-#   - dyn:hasDefaultUnit - QUDT unit URI
-#   - dyn:hasDefaultQuantityKind - QUDT quantity kind URI
+#   - dyn:hasUnit - QUDT unit (URIRef, aligned with Specimen pattern)
+#   - qudt:hasQuantityKind - QUDT quantity kind (URIRef, aligned with Specimen pattern)
 #   - dyn:hasLegendTemplate - legend template (with {analysis_method} placeholder)
 #   - dyn:hasDefaultSeriesClass - dyn:RawSignal or dyn:ProcessedData
-#   - dyn:derivesFromSeriesType - source series type for derivation chain
+#   NOTE: Derivation chains are handled at the instance level via dyn:derivedFrom
+#   The SHPB module uses Python-based derivation mapping (SHPB_DERIVATION_MAP)
 #   - dyn:requiresStrainGauge - whether strain gauge data is required
 # =============================================================================
 
@@ -29,8 +33,8 @@ dyn:Time rdf:type owl:NamedIndividual, dyn:SeriesType ;
     rdfs:label "Time"@en ;
     rdfs:comment "Time axis for data series"@en ;
     dyn:hasDefaultColumnName "time" ;
-    dyn:hasDefaultQuantityKind "qkdv:Time" ;
-    dyn:hasDefaultUnit "unit:MilliSEC" ;
+    qudt:hasQuantityKind qkdv:Time ;
+    dyn:hasUnit unit:MilliSEC ;
     dyn:hasLegendTemplate "Time" ;
     dyn:hasDefaultSeriesClass dyn:RawSignal ;
     dyn:requiresStrainGauge false .
@@ -45,8 +49,8 @@ dyn:IncidentPulse rdf:type owl:NamedIndividual, dyn:SeriesType ;
     rdfs:label "Incident Pulse"@en ;
     rdfs:comment "Incident strain wave pulse in SHPB test"@en ;
     dyn:hasDefaultColumnName "incident" ;
-    dyn:hasDefaultQuantityKind "qkdv:Voltage" ;
-    dyn:hasDefaultUnit "unit:V" ;
+    qudt:hasQuantityKind qkdv:Voltage ;
+    dyn:hasUnit unit:V ;
     dyn:hasLegendTemplate "Incident Pulse" ;
     dyn:hasDefaultSeriesClass dyn:RawSignal ;
     dyn:requiresStrainGauge true .
@@ -57,8 +61,8 @@ dyn:TransmittedPulse rdf:type owl:NamedIndividual, dyn:SeriesType ;
     rdfs:label "Transmitted Pulse"@en ;
     rdfs:comment "Transmitted strain wave pulse in SHPB test"@en ;
     dyn:hasDefaultColumnName "transmitted" ;
-    dyn:hasDefaultQuantityKind "qkdv:Voltage" ;
-    dyn:hasDefaultUnit "unit:V" ;
+    qudt:hasQuantityKind qkdv:Voltage ;
+    dyn:hasUnit unit:V ;
     dyn:hasLegendTemplate "Transmitted Pulse" ;
     dyn:hasDefaultSeriesClass dyn:RawSignal ;
     dyn:requiresStrainGauge true .
@@ -69,11 +73,10 @@ dyn:ReflectedPulse rdf:type owl:NamedIndividual, dyn:SeriesType ;
     rdfs:label "Reflected Pulse"@en ;
     rdfs:comment "Reflected strain wave pulse in SHPB test"@en ;
     dyn:hasDefaultColumnName "reflected" ;
-    dyn:hasDefaultQuantityKind "qkdv:Voltage" ;
-    dyn:hasDefaultUnit "unit:V" ;
+    qudt:hasQuantityKind qkdv:Voltage ;
+    dyn:hasUnit unit:V ;
     dyn:hasLegendTemplate "Reflected Pulse" ;
     dyn:hasDefaultSeriesClass dyn:RawSignal ;
-    dyn:derivesFromSeriesType dyn:IncidentPulse ;
     dyn:requiresStrainGauge true .
 
 
@@ -86,11 +89,10 @@ dyn:Stress rdf:type owl:NamedIndividual, dyn:SeriesType ;
     rdfs:label "Stress"@en ;
     rdfs:comment "Engineering stress (force per unit original cross-sectional area)"@en ;
     dyn:hasDefaultColumnName "stress" ;
-    dyn:hasDefaultQuantityKind "qkdv:Stress" ;
-    dyn:hasDefaultUnit "unit:MegaPA" ;
+    qudt:hasQuantityKind qkdv:Stress ;
+    dyn:hasUnit unit:MegaPA ;
     dyn:hasLegendTemplate "Engineering Stress ({analysis_method})" ;
     dyn:hasDefaultSeriesClass dyn:ProcessedData ;
-    dyn:derivesFromSeriesType dyn:TransmittedPulse ;
     dyn:requiresStrainGauge false .
 
 
@@ -99,11 +101,10 @@ dyn:TrueStress rdf:type owl:NamedIndividual, dyn:SeriesType ;
     rdfs:label "True Stress"@en ;
     rdfs:comment "True stress (force per unit instantaneous cross-sectional area)"@en ;
     dyn:hasDefaultColumnName "true_stress" ;
-    dyn:hasDefaultQuantityKind "qkdv:Stress" ;
-    dyn:hasDefaultUnit "unit:MegaPA" ;
+    qudt:hasQuantityKind qkdv:Stress ;
+    dyn:hasUnit unit:MegaPA ;
     dyn:hasLegendTemplate "True Stress ({analysis_method})" ;
     dyn:hasDefaultSeriesClass dyn:ProcessedData ;
-    dyn:derivesFromSeriesType dyn:TransmittedPulse ;
     dyn:requiresStrainGauge false .
 
 
@@ -116,11 +117,10 @@ dyn:Strain rdf:type owl:NamedIndividual, dyn:SeriesType ;
     rdfs:label "Strain"@en ;
     rdfs:comment "Engineering strain (change in length per unit original length)"@en ;
     dyn:hasDefaultColumnName "strain" ;
-    dyn:hasDefaultQuantityKind "qkdv:Dimensionless" ;
-    dyn:hasDefaultUnit "unit:UNITLESS" ;
+    qudt:hasQuantityKind qkdv:Dimensionless ;
+    dyn:hasUnit unit:UNITLESS ;
     dyn:hasLegendTemplate "Engineering Strain ({analysis_method})" ;
     dyn:hasDefaultSeriesClass dyn:ProcessedData ;
-    dyn:derivesFromSeriesType dyn:IncidentPulse ;
     dyn:requiresStrainGauge false .
 
 
@@ -129,11 +129,10 @@ dyn:TrueStrain rdf:type owl:NamedIndividual, dyn:SeriesType ;
     rdfs:label "True Strain"@en ;
     rdfs:comment "True strain (logarithmic strain)"@en ;
     dyn:hasDefaultColumnName "true_strain" ;
-    dyn:hasDefaultQuantityKind "qkdv:Dimensionless" ;
-    dyn:hasDefaultUnit "unit:UNITLESS" ;
+    qudt:hasQuantityKind qkdv:Dimensionless ;
+    dyn:hasUnit unit:UNITLESS ;
     dyn:hasLegendTemplate "True Strain ({analysis_method})" ;
     dyn:hasDefaultSeriesClass dyn:ProcessedData ;
-    dyn:derivesFromSeriesType dyn:IncidentPulse ;
     dyn:requiresStrainGauge false .
 
 
@@ -142,11 +141,10 @@ dyn:StrainRate rdf:type owl:NamedIndividual, dyn:SeriesType ;
     rdfs:label "Strain Rate"@en ;
     rdfs:comment "Rate of strain change (engineering strain rate)"@en ;
     dyn:hasDefaultColumnName "strain_rate" ;
-    dyn:hasDefaultQuantityKind "qkdv:StrainRate" ;
-    dyn:hasDefaultUnit "unit:PER-SEC" ;
+    qudt:hasQuantityKind qkdv:StrainRate ;
+    dyn:hasUnit unit:PER-SEC ;
     dyn:hasLegendTemplate "Strain Rate ({analysis_method})" ;
     dyn:hasDefaultSeriesClass dyn:ProcessedData ;
-    dyn:derivesFromSeriesType dyn:IncidentPulse ;
     dyn:requiresStrainGauge false .
 
 
@@ -155,11 +153,10 @@ dyn:TrueStrainRate rdf:type owl:NamedIndividual, dyn:SeriesType ;
     rdfs:label "True Strain Rate"@en ;
     rdfs:comment "Rate of true strain change"@en ;
     dyn:hasDefaultColumnName "true_strain_rate" ;
-    dyn:hasDefaultQuantityKind "qkdv:StrainRate" ;
-    dyn:hasDefaultUnit "unit:PER-SEC" ;
+    qudt:hasQuantityKind qkdv:StrainRate ;
+    dyn:hasUnit unit:PER-SEC ;
     dyn:hasLegendTemplate "True Strain Rate ({analysis_method})" ;
     dyn:hasDefaultSeriesClass dyn:ProcessedData ;
-    dyn:derivesFromSeriesType dyn:IncidentPulse ;
     dyn:requiresStrainGauge false .
 
 
@@ -172,8 +169,8 @@ dyn:Force rdf:type owl:NamedIndividual, dyn:SeriesType ;
     rdfs:label "Force"@en ;
     rdfs:comment "Applied force"@en ;
     dyn:hasDefaultColumnName "force" ;
-    dyn:hasDefaultQuantityKind "qkdv:Force" ;
-    dyn:hasDefaultUnit "unit:N" ;
+    qudt:hasQuantityKind qkdv:Force ;
+    dyn:hasUnit unit:N ;
     dyn:hasLegendTemplate "Force" ;
     dyn:hasDefaultSeriesClass dyn:ProcessedData ;
     dyn:requiresStrainGauge false .
@@ -184,11 +181,10 @@ dyn:BarForce rdf:type owl:NamedIndividual, dyn:SeriesType ;
     rdfs:label "Bar Force"@en ;
     rdfs:comment "Force transmitted through SHPB bar"@en ;
     dyn:hasDefaultColumnName "bar_force" ;
-    dyn:hasDefaultQuantityKind "qkdv:Force" ;
-    dyn:hasDefaultUnit "unit:N" ;
+    qudt:hasQuantityKind qkdv:Force ;
+    dyn:hasUnit unit:N ;
     dyn:hasLegendTemplate "Bar Force ({analysis_method})" ;
     dyn:hasDefaultSeriesClass dyn:ProcessedData ;
-    dyn:derivesFromSeriesType dyn:TransmittedPulse ;
     dyn:requiresStrainGauge false .
 
 
@@ -197,8 +193,8 @@ dyn:Displacement rdf:type owl:NamedIndividual, dyn:SeriesType ;
     rdfs:label "Displacement"@en ;
     rdfs:comment "Position or displacement measurement"@en ;
     dyn:hasDefaultColumnName "displacement" ;
-    dyn:hasDefaultQuantityKind "qkdv:Length" ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
+    qudt:hasQuantityKind qkdv:Length ;
+    dyn:hasUnit unit:MilliM ;
     dyn:hasLegendTemplate "Displacement" ;
     dyn:hasDefaultSeriesClass dyn:ProcessedData ;
     dyn:requiresStrainGauge false .
@@ -209,12 +205,67 @@ dyn:BarDisplacement rdf:type owl:NamedIndividual, dyn:SeriesType ;
     rdfs:label "Bar Displacement"@en ;
     rdfs:comment "Displacement of SHPB bar interface"@en ;
     dyn:hasDefaultColumnName "bar_displacement" ;
-    dyn:hasDefaultQuantityKind "qkdv:Length" ;
-    dyn:hasDefaultUnit "unit:MilliM" ;
+    qudt:hasQuantityKind qkdv:Length ;
+    dyn:hasUnit unit:MilliM ;
     dyn:hasLegendTemplate "Bar Displacement ({analysis_method})" ;
     dyn:hasDefaultSeriesClass dyn:ProcessedData ;
-    dyn:derivesFromSeriesType dyn:TransmittedPulse ;
     dyn:requiresStrainGauge false .
+
+
+#################################################################
+#    Temperature Series Type
+#################################################################
+
+#################################################################
+#    Windowed Series Types (Intermediate Processed Data)
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#WindowedTime
+dyn:WindowedTime rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Windowed Time"@en ;
+    rdfs:comment "Time axis for windowed/segmented pulse data"@en ;
+    dyn:hasDefaultColumnName "time_windowed" ;
+    qudt:hasQuantityKind qkdv:Time ;
+    dyn:hasUnit unit:MilliSEC ;
+    dyn:hasLegendTemplate "Time (Windowed)" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge false .
+
+
+###  https://dynamat.utep.edu/ontology#WindowedIncidentPulse
+dyn:WindowedIncidentPulse rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Windowed Incident Pulse"@en ;
+    rdfs:comment "Incident pulse extracted and normalized from raw oscilloscope data"@en ;
+    dyn:hasDefaultColumnName "incident_windowed" ;
+    qudt:hasQuantityKind qkdv:Dimensionless ;
+    dyn:hasUnit unit:UNITLESS ;
+    dyn:hasLegendTemplate "Incident Pulse (Windowed)" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge true .
+
+
+###  https://dynamat.utep.edu/ontology#WindowedTransmittedPulse
+dyn:WindowedTransmittedPulse rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Windowed Transmitted Pulse"@en ;
+    rdfs:comment "Transmitted pulse extracted and normalized from raw oscilloscope data"@en ;
+    dyn:hasDefaultColumnName "transmitted_windowed" ;
+    qudt:hasQuantityKind qkdv:Dimensionless ;
+    dyn:hasUnit unit:UNITLESS ;
+    dyn:hasLegendTemplate "Transmitted Pulse (Windowed)" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge true .
+
+
+###  https://dynamat.utep.edu/ontology#WindowedReflectedPulse
+dyn:WindowedReflectedPulse rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Windowed Reflected Pulse"@en ;
+    rdfs:comment "Reflected pulse extracted and normalized from raw oscilloscope data (measured on incident bar)"@en ;
+    dyn:hasDefaultColumnName "reflected_windowed" ;
+    qudt:hasQuantityKind qkdv:Dimensionless ;
+    dyn:hasUnit unit:UNITLESS ;
+    dyn:hasLegendTemplate "Reflected Pulse (Windowed)" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge true .
 
 
 #################################################################
@@ -226,8 +277,8 @@ dyn:Temperature rdf:type owl:NamedIndividual, dyn:SeriesType ;
     rdfs:label "Temperature"@en ;
     rdfs:comment "Temperature measurement"@en ;
     dyn:hasDefaultColumnName "temperature" ;
-    dyn:hasDefaultQuantityKind "qkdv:Temperature" ;
-    dyn:hasDefaultUnit "unit:DEG_C" ;
+    qudt:hasQuantityKind qkdv:Temperature ;
+    dyn:hasUnit unit:DEG_C ;
     dyn:hasLegendTemplate "Temperature" ;
     dyn:hasDefaultSeriesClass dyn:RawSignal ;
     dyn:requiresStrainGauge false .
@@ -242,8 +293,8 @@ dyn:Hardness rdf:type owl:NamedIndividual, dyn:SeriesType ;
     rdfs:label "Hardness"@en ;
     rdfs:comment "Material hardness measurement (indentation)"@en ;
     dyn:hasDefaultColumnName "hardness" ;
-    dyn:hasDefaultQuantityKind "qkdv:Dimensionless" ;
-    dyn:hasDefaultUnit "unit:UNITLESS" ;
+    qudt:hasQuantityKind qkdv:Dimensionless ;
+    dyn:hasUnit unit:UNITLESS ;
     dyn:hasLegendTemplate "Hardness" ;
     dyn:hasDefaultSeriesClass dyn:ProcessedData ;
     dyn:requiresStrainGauge false .
@@ -254,8 +305,8 @@ dyn:Modulus rdf:type owl:NamedIndividual, dyn:SeriesType ;
     rdfs:label "Modulus"@en ;
     rdfs:comment "Elastic modulus (Young's modulus, shear modulus, etc.)"@en ;
     dyn:hasDefaultColumnName "modulus" ;
-    dyn:hasDefaultQuantityKind "qkdv:ModulusOfElasticity" ;
-    dyn:hasDefaultUnit "unit:GigaPA" ;
+    qudt:hasQuantityKind qkdv:ModulusOfElasticity ;
+    dyn:hasUnit unit:GigaPA ;
     dyn:hasLegendTemplate "Modulus" ;
     dyn:hasDefaultSeriesClass dyn:ProcessedData ;
     dyn:requiresStrainGauge false .

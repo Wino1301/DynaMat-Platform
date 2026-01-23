@@ -106,20 +106,6 @@ dyn:hasDefaultColumnName rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:label "Default Column Name"@en .
 
 
-###  https://dynamat.utep.edu/ontology#hasDefaultUnit
-dyn:hasDefaultUnit rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:SeriesType ;
-    rdfs:range xsd:string ;
-    rdfs:comment "Default QUDT unit URI (e.g., 'unit:MegaPA')"@en ;
-    rdfs:label "Default Unit"@en .
-
-
-###  https://dynamat.utep.edu/ontology#hasDefaultQuantityKind
-dyn:hasDefaultQuantityKind rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:SeriesType ;
-    rdfs:range xsd:string ;
-    rdfs:comment "Default QUDT quantity kind URI (e.g., 'qkdv:Stress')"@en ;
-    rdfs:label "Default Quantity Kind"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasLegendTemplate
