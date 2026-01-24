@@ -1,6 +1,18 @@
 """
 DynaMat Platform - Calculation Engine
-Mathematical calculations for form dependencies
+
+Performs mathematical calculations for form dependencies. Provides a centralized
+registry of calculation functions for area, volume, density, stress calculations,
+and unit conversions.
+
+Calculations accept property URIs as kwargs keys, extracting values by matching
+known patterns (e.g., 'Diameter', 'Width', 'Length').
+
+Example:
+    >>> from dynamat.gui.dependencies import CalculationEngine
+    >>> engine = CalculationEngine()
+    >>> area = engine.calculate("circular_area_from_diameter",
+    ...                         **{"dyn:hasOriginalDiameter": 10.0})
 """
 
 import logging
@@ -12,7 +24,20 @@ logger = logging.getLogger(__name__)
 
 
 class CalculationType(Enum):
-    """Types of calculations supported by the engine."""
+    """
+    Categories of calculations supported by the engine.
+
+    Used for categorizing and filtering available calculation functions.
+
+    Attributes:
+        AREA: Area calculations (circular, rectangular, square)
+        VOLUME: Volume calculations (cylinder, cube, rectangular, sphere)
+        DENSITY: Density from mass and volume
+        MASS: Mass from density and volume
+        STRAIN_RATE: Strain rate from velocity and length
+        STRESS: Stress from force and area
+        CUSTOM: User-defined calculations
+    """
     AREA = "area"
     VOLUME = "volume"
     DENSITY = "density"
@@ -31,7 +56,12 @@ class CalculationEngine:
     """
     
     def __init__(self):
-        """Initialize the calculation engine."""
+        """
+        Initialize the calculation engine with built-in functions.
+
+        Registers all standard calculation functions and unit conversion factors.
+        Custom functions can be added by extending the calculation_functions dict.
+        """
         self.logger = logging.getLogger(__name__)
         
         # Registry of calculation functions

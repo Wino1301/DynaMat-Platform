@@ -1,6 +1,21 @@
 """
 DynaMat Platform - Constraint Manager
-Loads and manages UI constraints from ontology TTL files
+
+Loads and manages UI constraints from ontology TTL files. Parses constraint
+definitions from TTL format into structured Constraint dataclass objects for
+use by the DependencyManager.
+
+Supports constraint types:
+- Visibility: Show/hide fields based on trigger values
+- Calculation: Compute derived values from inputs
+- Generation: Generate IDs/codes from templates
+- Population: Populate fields from selected individuals
+- Filtering: Filter dropdown choices by class membership
+
+Example:
+    >>> from dynamat.gui.dependencies import ConstraintManager
+    >>> manager = ConstraintManager(Path("ontology/constraints"))
+    >>> constraints = manager.get_constraints_for_class("dyn:Specimen")
 """
 
 import logging
@@ -16,7 +31,17 @@ logger = logging.getLogger(__name__)
 
 
 class TriggerLogic(Enum):
-    """Logic gates for multiple triggers."""
+    """
+    Logic gates for evaluating multiple trigger conditions.
+
+    Used when a constraint has multiple trigger properties to determine
+    how their values should be combined.
+
+    Attributes:
+        ANY: Condition met if ANY trigger matches its expected value
+        ALL: Condition met if ALL triggers match their expected values
+        XOR: Condition met if exactly ONE trigger matches
+    """
     ANY = "ANY"
     ALL = "ALL"
     XOR = "XOR"
@@ -121,7 +146,10 @@ class ConstraintManager:
         # Load constraints
         self._load_constraints()
         
-        self.logger.info(f"Constraint manager initialized with {len(self.constraints_by_uri)} constraints")
+        self.logger.info(
+            f"ConstraintManager initialized: {len(self.constraints_by_uri)} constraints "
+            f"loaded for {len(self.constraints_by_class)} classes"
+        )
     
     def _get_default_constraint_dir(self) -> Path:
         """Get default constraint directory."""

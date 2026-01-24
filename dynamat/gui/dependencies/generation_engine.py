@@ -1,6 +1,20 @@
 """
 DynaMat Platform - Generation Engine
-Template-based value generation for form fields
+
+Template-based value generation for form fields. Generates formatted values
+such as specimen IDs, batch IDs, and timestamps from templates with placeholders.
+
+Supports automatic sequence numbering by scanning existing specimens in the
+user_data directory, and material code extraction from ontology individuals.
+
+Example:
+    >>> from dynamat.gui.dependencies import GenerationEngine
+    >>> engine = GenerationEngine(ontology_manager)
+    >>> specimen_id = engine.generate(
+    ...     template="DYNML-{materialCode}-{sequence}",
+    ...     inputs={"materialCode": "AL6061", "sequence": 42}
+    ... )
+    >>> print(specimen_id)  # "DYNML-AL6061-0042"
 """
 
 import logging
@@ -36,7 +50,9 @@ class GenerationEngine:
             'timestamp': self._generate_timestamp,
         }
         
-        self.logger.info("Generation engine initialized")
+        self.logger.info(
+            f"GenerationEngine initialized: {len(self._generators)} generators available"
+        )
     
     # ============================================================================
     # PUBLIC API

@@ -1,6 +1,20 @@
 """
-DynaMat Platform - Dependency Manager 
-Manages form widget dependencies using TTL-based constraints
+DynaMat Platform - Dependency Manager
+
+Manages form widget dependencies using TTL-based constraints. Acts as the main
+orchestrator that connects form widgets to constraints defined in TTL files,
+handling signal connections, constraint evaluation, and operation execution.
+
+Key responsibilities:
+- Connect Qt widget signals to constraint triggers
+- Evaluate constraint conditions when trigger values change
+- Execute operations (visibility, calculation, generation, population, filtering)
+- Track statistics for debugging and testing
+
+Example:
+    >>> from dynamat.gui.dependencies import DependencyManager
+    >>> dep_manager = DependencyManager(ontology_manager, constraint_dir)
+    >>> dep_manager.setup_dependencies(form_widget, "dyn:Specimen")
 """
 
 import logging
@@ -77,7 +91,11 @@ class DependencyManager(QObject):
         # Loading mode flag - when True, generation constraints are suppressed
         self._loading_mode = False
 
-        self.logger.info("Dependency manager initialized with constraint-based system")
+        self.logger.info(
+            f"DependencyManager initialized: "
+            f"{len(self.calculation_engine.get_available_calculations())} calculations, "
+            f"{len(self.generation_engine.get_available_generators())} generators available"
+        )
 
     # ============================================================================
     # LOADING MODE CONTROL
@@ -141,7 +159,10 @@ class DependencyManager(QObject):
             # Initialize form state (evaluate all constraints once)
             self._evaluate_all_constraints()
             
-            self.logger.info(f"Dependencies set up successfully")
+            self.logger.info(
+                f"Dependencies setup complete for {class_uri}: "
+                f"{len(self.constraints_by_trigger)} trigger properties connected"
+            )
             
         except Exception as e:
             self.logger.error(f"Failed to setup dependencies: {e}", exc_info=True)
@@ -699,17 +720,35 @@ class DependencyManager(QObject):
         return operations_performed
     
     def _action_show_fields(self, field_uris: List[str]):
-        """Show fields."""
+        """
+        Show specified fields in the form.
+
+        Args:
+            field_uris: List of property URIs to show
+        """
         for field_uri in field_uris:
             self._set_field_visibility(field_uri, True)
-    
+        self.logger.debug(f"Showing {len(field_uris)} fields")
+
     def _action_hide_fields(self, field_uris: List[str]):
-        """Hide fields."""
+        """
+        Hide specified fields in the form.
+
+        Args:
+            field_uris: List of property URIs to hide
+        """
         for field_uri in field_uris:
             self._set_field_visibility(field_uri, False)
-    
+        self.logger.debug(f"Hiding {len(field_uris)} fields")
+
     def _action_require_fields(self, field_uris: List[str], required: bool):
-        """Set fields as required or optional."""
+        """
+        Set fields as required or optional.
+
+        Args:
+            field_uris: List of property URIs to update
+            required: True to mark as required, False for optional
+        """
         for field_uri in field_uris:
             if field_uri in self.active_form.form_fields:
                 field = self.active_form.form_fields[field_uri]
