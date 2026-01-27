@@ -38,6 +38,9 @@ class Config:
     WINDOW_TITLE = "DynaMat Platform"
     DEFAULT_THEME = "fusion"
 
+    # Plotting settings
+    PLOT_BACKEND = "matplotlib"  # Options: "plotly", "matplotlib"
+
     # Version
     VERSION = "2.0.0"
 

@@ -1,7 +1,40 @@
+"""Form manager for ontology-driven form creation.
+
+This module provides the main coordinator for creating dynamic forms from
+ontology metadata. It brings together widget creation, layout management,
+and data handling into a unified interface.
+
+Classes
+-------
+FormStyle
+    Enumeration of available form layout styles (grouped, simple, tabbed, etc.).
+
+FormField
+    Dataclass representing a form field with its widget and metadata.
+
+FormManager
+    Main coordinator that orchestrates form creation from ontology classes.
+
+Example
+-------
+::
+
+    from dynamat.ontology import OntologyManager
+    from dynamat.gui.core import FormManager, FormStyle
+
+    ontology = OntologyManager()
+    manager = FormManager(ontology)
+
+    # Create a grouped form for Specimen class
+    form = manager.create_form("dyn:Specimen", style=FormStyle.GROUPED)
+
+    # Extract data from form
+    data = manager.get_form_data(form)
+
+    # Validate form
+    errors = manager.validate_form(form)
 """
-DynaMat Platform - Form Manager
-Coordinates form creation using specialized components
-"""
+from __future__ import annotations
 
 import logging
 from typing import Dict, List, Optional, Any
@@ -13,8 +46,8 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QScrollArea, QFormLayout
 
 from PyQt6.QtWidgets import (
-    QWidget, QLabel, QLineEdit, QTextEdit, QComboBox, 
-    QSpinBox, QDoubleSpinBox, QDateEdit, QCheckBox, 
+    QWidget, QLabel, QLineEdit, QTextEdit, QComboBox,
+    QSpinBox, QDoubleSpinBox, QDateEdit, QCheckBox,
     QHBoxLayout, QFrame
 )
 
@@ -26,90 +59,166 @@ from ..builders.layout_manager import LayoutManager
 logger = logging.getLogger(__name__)
 
 class FormStyle(Enum):
-    """Available form layout styles."""
+    """Available form layout styles.
+
+    Attributes
+    ----------
+    GROUPED : str
+        Fields organized into collapsible group boxes by ontology form groups.
+    SIMPLE : str
+        Single-column layout without grouping.
+    TWO_COLUMN : str
+        Two-column layout for wider displays.
+    TABBED : str
+        Groups displayed as tabs in a tab widget.
+    """
+
     GROUPED = "grouped"
     SIMPLE = "simple"
     TWO_COLUMN = "two_column"
     TABBED = "tabbed"
 
+
 @dataclass
 class FormField:
-    """Represents a form field with its widget and metadata."""
+    """Represents a form field with its widget and metadata.
+
+    Attributes
+    ----------
+    widget : QWidget
+        The PyQt6 widget for this field.
+    property_uri : str
+        Full URI of the ontology property.
+    property_metadata : PropertyMetadata
+        Metadata from the ontology for this property.
+    group_name : str
+        Name of the form group this field belongs to.
+    required : bool
+        Whether this field is required for form submission.
+    label : str, optional
+        Display label for the field.
+    label_widget : QWidget, optional
+        Reference to the QLabel widget for visibility control.
+    """
+
     widget: QWidget
     property_uri: str
     property_metadata: PropertyMetadata
     group_name: str
     required: bool = False
     label: Optional[str] = None
-    label_widget: Optional[QWidget] = None  # Reference to the QLabel widget for visibility control
+    label_widget: Optional[QWidget] = None
 
 class FormManager:
+    """Coordinates form creation using specialized components.
+
+    This is the main coordinator that brings together widget creation,
+    layout management, data handling, and ontology queries into a unified
+    form creation interface.
+
+    Parameters
+    ----------
+    ontology_manager : OntologyManager
+        The ontology manager instance for querying class metadata.
+
+    Attributes
+    ----------
+    ontology_manager : OntologyManager
+        Reference to the ontology manager.
+    widget_factory : WidgetFactory
+        Factory for creating widgets from property metadata.
+    layout_manager : LayoutManager
+        Manager for arranging widgets into layouts.
+    data_handler : FormDataHandler
+        Handler for form data extraction and population.
+
+    Raises
+    ------
+    ValueError
+        If ontology_manager is None.
+
+    Example
+    -------
+    ::
+
+        manager = FormManager(ontology)
+        form = manager.create_form("dyn:Specimen")
+        data = manager.get_form_data(form)
     """
-    Coordinates form creation using specialized components.
-    
-    This is the main coordinator that brings together:
-    - Widget creation (WidgetFactory)
-    - Layout management (LayoutManager)  
-    - Data handling (FormDataHandler)
-    - Ontology queries (OntologyManager)
-    """
-    
+
     def __init__(self, ontology_manager: OntologyManager):
-        """
-        Initialize the form manager.
-        
-        Args:
-            ontology_manager: Ontology manager instance
-        """
         if ontology_manager is None:
-            raise ValueError("OntologyManager cannot be None")
-        
+            msg = "OntologyManager cannot be None"
+            logger.error(msg)
+            raise ValueError(msg)
+
         self.ontology_manager = ontology_manager
-        self.logger = logging.getLogger(__name__)
-        
+
         # Initialize specialized components
         self.widget_factory = WidgetFactory(ontology_manager)
         self.layout_manager = LayoutManager()
         self.data_handler = FormDataHandler()
-        
+
         # Form cache for performance
-        self._form_cache = {}
-        self._metadata_cache = {}
-        
-        self.logger.info("Form manager initialized")
+        self._form_cache: Dict[str, QWidget] = {}
+        self._metadata_cache: Dict[str, ClassMetadata] = {}
+
+        logger.info("Form manager initialized")
     
     # ============================================================================
     # MAIN FORM CREATION INTERFACE
     # ============================================================================
     
-    def create_form(self, class_uri: str, 
-                   style: FormStyle = FormStyle.GROUPED,
-                   parent: Optional[QWidget] = None,
-                   use_cache: bool = True) -> QWidget:
-        """
-        Create a complete form for the given class.
-        
-        Args:
-            class_uri: URI of the ontology class
-            style: Form layout style
-            parent: Parent widget
-            use_cache: Whether to use cached forms
-            
-        Returns:
-            Complete form widget
+    def create_form(
+        self,
+        class_uri: str,
+        style: FormStyle = FormStyle.GROUPED,
+        parent: Optional[QWidget] = None,
+        use_cache: bool = True
+    ) -> QWidget:
+        """Create a complete form for the given class.
+
+        Parameters
+        ----------
+        class_uri : str
+            URI of the ontology class (e.g., "dyn:Specimen").
+        style : FormStyle, optional
+            Form layout style. Defaults to GROUPED.
+        parent : QWidget, optional
+            Parent widget for the form.
+        use_cache : bool, optional
+            Whether to use cached forms for performance.
+
+        Returns
+        -------
+        QWidget
+            Complete form widget with all fields, or error widget on failure.
+
+        Notes
+        -----
+        The returned widget has these attributes attached:
+        - ``class_uri``: The class URI used to create the form
+        - ``class_metadata``: ClassMetadata from the ontology
+        - ``form_style``: The FormStyle used
+        - ``form_fields``: Dict mapping property URIs to FormField objects
         """
         try:
-            self.logger.info(f"Creating form for class: {class_uri} with style: {style.value}")
-    
+            logger.info(f"Creating form for class: {class_uri} with style: {style.value}")
+
             if self.ontology_manager is None:
-                raise ValueError("OntologyManager is None")
-    
+                msg = "OntologyManager is None"
+                logger.error(msg)
+                raise ValueError(msg)
+
             # Get class metadata from ontology
             try:
                 class_metadata = self.ontology_manager.get_class_metadata_for_form(class_uri)
-                self.logger.info(f"Retrieved metadata for {class_metadata.name}: {len(class_metadata.properties)} properties")
+                logger.info(
+                    f"Retrieved metadata for {class_metadata.name}: "
+                    f"{len(class_metadata.properties)} properties"
+                )
             except Exception as e:
-                self.logger.error(f"Ontology error for {class_uri}: {str(e)}")
+                logger.error(f"Ontology error for {class_uri}: {str(e)}")
                 return self._create_error_form(f"Ontology error: {str(e)}")
                 
             # Check cache if requested (controlled by global config)
@@ -117,7 +226,7 @@ class FormManager:
 
             cache_key = f"{class_uri}_{style.value}"
             if use_cache and Config.USE_FORM_CACHE and cache_key in self._form_cache:
-                self.logger.debug(f"Returning cached form for {class_uri}")
+                logger.debug(f"Returning cached form for {class_uri}")
                 cached_form = self._form_cache[cache_key]
                 return self._clone_form(cached_form, parent)
             
@@ -128,10 +237,10 @@ class FormManager:
             
             # Create widgets for all properties
             widgets = self._create_widgets(metadata)
-            self.logger.info(f"Created {len(widgets)} widgets")
+            logger.info(f"Created {len(widgets)} widgets")
         
             if not widgets:
-                self.logger.warning(f"No widgets created for {class_uri}")
+                logger.warning(f"No widgets created for {class_uri}")
                 widgets = {}
             
             # Create form based on style
@@ -139,10 +248,10 @@ class FormManager:
 
             # VERIFY that widgets were actually added to the form
             actual_widget_count = self._count_widgets_in_form(form_widget)
-            self.logger.info(f"Widgets in form after layout: {actual_widget_count}")
+            logger.info(f"Widgets in form after layout: {actual_widget_count}")
             
             if actual_widget_count == 0 and len(widgets) > 0:
-                self.logger.error("CRITICAL: Widgets created but not added to form layout!")
+                logger.error("CRITICAL: Widgets created but not added to form layout!")
                 # Create fallback simple layout
                 form_widget = self._create_fallback_form(metadata, widgets, parent)
             
@@ -165,12 +274,12 @@ class FormManager:
 
             # FINAL VERIFICATION
             final_widget_count = self._count_widgets_in_form(form_widget)
-            self.logger.info(f"FINAL: Form for {class_uri} has {final_widget_count} active widgets")
+            logger.info(f"FINAL: Form for {class_uri} has {final_widget_count} active widgets")
             
             return form_widget
             
         except Exception as e:
-            self.logger.error(f"Failed to create form for {class_uri}: {e}", exc_info=True)
+            logger.error(f"Failed to create form for {class_uri}: {e}", exc_info=True)
             return self._create_error_widget(f"Error creating form: {str(e)}")
     
     def create_form_from_metadata(self, metadata: ClassMetadata,
@@ -188,7 +297,7 @@ class FormManager:
             Complete form widget
         """
         try:
-            self.logger.info(f"Creating form from metadata: {metadata.name}")
+            logger.info(f"Creating form from metadata: {metadata.name}")
             
             # Create widgets
             widgets = self._create_widgets(metadata)
@@ -206,7 +315,7 @@ class FormManager:
             return form_widget
             
         except Exception as e:
-            self.logger.error(f"Failed to create form from metadata: {e}", exc_info=True)
+            logger.error(f"Failed to create form from metadata: {e}", exc_info=True)
             return self._create_error_widget(f"Error creating form: {str(e)}")
     
     # ============================================================================
@@ -226,7 +335,7 @@ class FormManager:
         try:
             return self.data_handler.extract_form_data(form_widget)
         except Exception as e:
-            self.logger.error(f"Error getting form data: {e}")
+            logger.error(f"Error getting form data: {e}")
             return {}
     
     def set_form_data(self, form_widget: QWidget, data: Dict[str, Any]) -> bool:
@@ -243,7 +352,7 @@ class FormManager:
         try:
             return self.data_handler.populate_form_data(form_widget, data)
         except Exception as e:
-            self.logger.error(f"Error setting form data: {e}")
+            logger.error(f"Error setting form data: {e}")
             return False
     
     def validate_form(self, form_widget: QWidget) -> Dict[str, List[str]]:
@@ -259,7 +368,7 @@ class FormManager:
         try:
             return self.data_handler.validate_form_data(form_widget)
         except Exception as e:
-            self.logger.error(f"Error validating form: {e}")
+            logger.error(f"Error validating form: {e}")
             return {"form": [f"Validation error: {e}"]}
     
     def clear_form(self, form_widget: QWidget) -> bool:
@@ -279,7 +388,7 @@ class FormManager:
                 return True
             return False
         except Exception as e:
-            self.logger.error(f"Error clearing form: {e}")
+            logger.error(f"Error clearing form: {e}")
             return False
     
     # ============================================================================
@@ -299,17 +408,17 @@ class FormManager:
                 self._metadata_cache[class_uri] = metadata
             return metadata
         except Exception as e:
-            self.logger.error(f"Error getting metadata for {class_uri}: {e}")
+            logger.error(f"Error getting metadata for {class_uri}: {e}")
             return None
     
     def _create_widgets(self, metadata: ClassMetadata) -> Dict[str, QWidget]:
         """Create widgets for all properties in metadata."""
         try:
             widgets = self.widget_factory.create_widgets_for_properties(metadata.properties)
-            self.logger.debug(f"Created {len(widgets)} widgets for {metadata.name}")
+            logger.debug(f"Created {len(widgets)} widgets for {metadata.name}")
             return widgets
         except Exception as e:
-            self.logger.error(f"Error creating widgets: {e}")
+            logger.error(f"Error creating widgets: {e}")
             return {}
     
     def _create_form_by_style(self, metadata: ClassMetadata, 
@@ -335,7 +444,7 @@ class FormManager:
                 metadata.form_groups, widgets, parent
             )
         else:
-            self.logger.warning(f"Unknown form style: {style}, using grouped")
+            logger.warning(f"Unknown form style: {style}, using grouped")
             return self.layout_manager.create_grouped_form(
                 metadata.form_groups, widgets, parent
             )
@@ -398,10 +507,10 @@ class FormManager:
                     use_cache=False
                 )
             else:
-                self.logger.warning("Cannot clone form without class_uri")
+                logger.warning("Cannot clone form without class_uri")
                 return original_form
         except Exception as e:
-            self.logger.error(f"Error cloning form: {e}")
+            logger.error(f"Error cloning form: {e}")
             return original_form
 
     def _count_widgets_in_form(self, form_widget: QWidget) -> int:
@@ -418,12 +527,12 @@ class FormManager:
             count_children(form_widget)
             return count
         except Exception as e:
-            self.logger.error(f"Error counting widgets: {e}")
+            logger.error(f"Error counting widgets: {e}")
             return 0
 
     def _create_fallback_form(self, metadata: ClassMetadata, widgets: Dict, parent: Optional[QWidget]) -> QWidget:
         """Create a simple fallback form when layout manager fails."""
-        self.logger.warning("Creating fallback form due to layout failure")
+        logger.warning("Creating fallback form due to layout failure")
         
         form_widget = QWidget(parent)
         layout = QVBoxLayout(form_widget)
@@ -447,7 +556,7 @@ class FormManager:
         scroll_area.setWidget(content_widget)
         layout.addWidget(scroll_area)
         
-        self.logger.info(f"Fallback form created with {len(widgets)} widgets")
+        logger.info(f"Fallback form created with {len(widgets)} widgets")
         return form_widget   
 
     # ============================================================================
@@ -458,7 +567,7 @@ class FormManager:
         """Clear all cached forms and metadata."""
         self._form_cache.clear()
         self._metadata_cache.clear()
-        self.logger.info("Form manager cache cleared")
+        logger.info("Form manager cache cleared")
     
     def get_cache_info(self) -> Dict[str, Any]:
         """Get information about cached items."""
@@ -507,7 +616,7 @@ class FormManager:
         """
         try:
             if not hasattr(form_widget, 'class_uri'):
-                self.logger.error("Cannot reload form without class_uri")
+                logger.error("Cannot reload form without class_uri")
                 return form_widget
             
             class_uri = form_widget.class_uri
@@ -522,9 +631,9 @@ class FormManager:
             # Create new form
             new_form = self.create_form(class_uri, style, parent, use_cache=False)
             
-            self.logger.info(f"Reloaded form for {class_uri}")
+            logger.info(f"Reloaded form for {class_uri}")
             return new_form
             
         except Exception as e:
-            self.logger.error(f"Error reloading form: {e}")
+            logger.error(f"Error reloading form: {e}")
             return form_widget

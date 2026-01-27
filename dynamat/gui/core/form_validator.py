@@ -1,7 +1,57 @@
+"""SHACL-based validation for RDF instance data.
+
+This module provides SHACL (Shapes Constraint Language) validation for
+RDF instance data created from forms. It validates data against SHACL
+shapes and categorizes results by severity.
+
+Classes
+-------
+ValidationSeverity
+    Enumeration of SHACL validation severity levels.
+
+ValidationIssue
+    Represents a single validation issue with context.
+
+ValidationResult
+    Container for validation results categorized by severity.
+
+SHACLValidator
+    Main validator class that runs SHACL validation.
+
+Severity Levels
+---------------
+Violation
+    Critical errors that block save operations.
+
+Warning
+    Contextual issues that allow save with confirmation.
+
+Info
+    Informational suggestions that don't block operations.
+
+Example
+-------
+::
+
+    from dynamat.gui.core import SHACLValidator
+
+    validator = SHACLValidator(ontology_manager)
+
+    # Validate an RDF graph
+    result = validator.validate(data_graph)
+
+    if result.has_blocking_issues():
+        for issue in result.violations:
+            print(issue.get_display_message())
+    else:
+        print("Validation passed")
+
+References
+----------
+SHACL Specification: https://www.w3.org/TR/shacl/
+pySHACL: https://github.com/RDFLib/pySHACL
 """
-DynaMat Platform - Form Validator
-SHACL-based validation for RDF instance data
-"""
+from __future__ import annotations
 
 import logging
 from pathlib import Path
@@ -23,10 +73,21 @@ logger = logging.getLogger(__name__)
 
 
 class ValidationSeverity(Enum):
-    """SHACL validation severity levels"""
-    VIOLATION = "Violation"  # Critical errors - blocks save
-    WARNING = "Warning"      # Contextual issues - allows save with confirmation
-    INFO = "Info"           # Suggestions - informational only
+    """SHACL validation severity levels.
+
+    Attributes
+    ----------
+    VIOLATION : str
+        Critical errors that block save operations.
+    WARNING : str
+        Contextual issues that allow save with user confirmation.
+    INFO : str
+        Informational suggestions that don't block operations.
+    """
+
+    VIOLATION = "Violation"
+    WARNING = "Warning"
+    INFO = "Info"
 
 
 @dataclass
@@ -122,25 +183,46 @@ class ValidationResult:
 
 
 class SHACLValidator:
-    """
-    SHACL validator for RDF instance data.
+    """SHACL validator for RDF instance data.
 
-    Validates RDF graphs against SHACL shapes and categorizes
-    results by severity (Violation, Warning, Info).
+    Validates RDF graphs against SHACL shapes loaded from the ontology
+    shapes directory. Categorizes results by severity (Violation, Warning, Info).
+
+    Parameters
+    ----------
+    ontology_manager : OntologyManager, optional
+        Ontology manager to access shapes directory. If None, uses
+        relative path from this module.
+
+    Attributes
+    ----------
+    ontology_manager : OntologyManager
+        Reference to the ontology manager.
+    shapes_graph : Graph
+        RDF graph containing loaded SHACL shapes.
+
+    Notes
+    -----
+    Requires the ``pyshacl`` package for validation. If not installed,
+    validation is skipped and a warning is logged.
+
+    Example
+    -------
+    ::
+
+        validator = SHACLValidator(ontology_manager)
+        result = validator.validate(data_graph)
+
+        if not result.conforms:
+            print(f"Found {len(result.violations)} violations")
     """
 
     def __init__(self, ontology_manager=None):
-        """
-        Initialize the SHACL validator.
-
-        Args:
-            ontology_manager: Optional ontology manager to access shapes
-        """
         self.ontology_manager = ontology_manager
         self.shapes_graph = None
 
         if not PYSHACL_AVAILABLE:
-            logger.error("pyshacl is not installed - validation will not work!")
+            logger.error("pyshacl is not installed - validation will not work")
             logger.error("Install with: pip install pyshacl")
 
         # Load SHACL shapes

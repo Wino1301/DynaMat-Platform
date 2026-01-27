@@ -1,7 +1,49 @@
+"""Layout manager for form widget organization.
+
+This module provides layout management for ontology-driven forms. It handles
+organizing widgets into logical groups, applying layout styles, and creating
+scrollable form containers.
+
+Classes
+-------
+LayoutStyle
+    Enumeration of available layout styles for forms.
+
+LayoutManager
+    Manages form layout creation and widget organization.
+
+Layout Styles
+-------------
+GROUPED_FORM
+    Fields organized into collapsible QGroupBox containers (default).
+
+TABBED_FORM
+    Each group becomes a tab in a QTabWidget.
+
+SINGLE_COLUMN
+    Simple single-column layout without grouping.
+
+TWO_COLUMN
+    Groups split across two columns for wider displays.
+
+GRID_LAYOUT
+    Grid-based layout for compact forms.
+
+Example
+-------
+::
+
+    from dynamat.gui.builders import LayoutManager, LayoutStyle
+
+    layout_manager = LayoutManager()
+
+    # Create grouped form
+    form = layout_manager.create_grouped_form(form_groups, widgets)
+
+    # Create tabbed form
+    form = layout_manager.create_tabbed_form(form_groups, widgets)
 """
-DynaMat Platform - Layout Manager
-Handles form layout creation and widget grouping
-"""
+from __future__ import annotations
 
 import logging
 from typing import Dict, List, Optional, Any, Tuple
@@ -18,29 +60,53 @@ from ...ontology import PropertyMetadata
 
 logger = logging.getLogger(__name__)
 
+
 class LayoutStyle(Enum):
-    """Available layout styles for forms."""
-    GROUPED_FORM = "grouped_form"       # Groups with form layouts (default)
-    TABBED_FORM = "tabbed_form"         # Groups as tabs
-    SINGLE_COLUMN = "single_column"     # Single column, no groups
-    TWO_COLUMN = "two_column"           # Two columns with groups
-    GRID_LAYOUT = "grid_layout"         # Grid-based layout
-    
+    """Available layout styles for forms.
+
+    Attributes
+    ----------
+    GROUPED_FORM : str
+        Groups with form layouts inside QGroupBox (default style).
+    TABBED_FORM : str
+        Each group becomes a tab in a QTabWidget.
+    SINGLE_COLUMN : str
+        Single column layout without grouping.
+    TWO_COLUMN : str
+        Two columns with groups split between them.
+    GRID_LAYOUT : str
+        Grid-based layout for compact display.
+    """
+
+    GROUPED_FORM = "grouped_form"
+    TABBED_FORM = "tabbed_form"
+    SINGLE_COLUMN = "single_column"
+    TWO_COLUMN = "two_column"
+    GRID_LAYOUT = "grid_layout"
+
 
 class LayoutManager:
+    """Manages form layout creation and widget organization.
+
+    Handles creating grouped forms from property metadata, organizing
+    widgets into logical groups, and applying consistent styling.
+
+    Attributes
+    ----------
+    group_style : str
+        CSS stylesheet for QGroupBox styling.
+    required_field_style : str
+        CSS stylesheet for required field indicators.
+
+    Example
+    -------
+    ::
+
+        manager = LayoutManager()
+        form = manager.create_grouped_form(form_groups, widgets)
     """
-    Manages form layout creation and widget organization.
-    
-    Handles:
-    - Creating grouped forms from property metadata
-    - Organizing widgets into logical groups
-    - Managing form layouts and styling
-    - Creating scrollable and resizable forms
-    """
-    
+
     def __init__(self):
-        """Initialize the layout manager."""
-        self.logger = logging.getLogger(__name__)
         
         # Default styling
         self.group_style = """
@@ -81,7 +147,7 @@ class LayoutManager:
             Complete form widget with all groups and widgets
         """
         try:
-            self.logger.info(f"Creating grouped form with {len(form_groups)} groups")
+            logger.info(f"Creating grouped form with {len(form_groups)} groups")
             
             # Import FormField here to avoid import issues
             from ..core.form_manager import FormField
@@ -135,12 +201,12 @@ class LayoutManager:
                             if field.widget and field.widget.parent():
                                 widgets_added += 1
                         
-                        self.logger.info(f"Successfully created group '{group_name}' with {len(group_fields)} fields")
+                        logger.info(f"Successfully created group '{group_name}' with {len(group_fields)} fields")
                     else:
-                        self.logger.error(f"Failed to create group widget for '{group_name}'")
+                        logger.error(f"Failed to create group widget for '{group_name}'")
                         
                 except Exception as e:
-                    self.logger.error(f"Error creating group '{group_name}': {e}", exc_info=True)
+                    logger.error(f"Error creating group '{group_name}': {e}", exc_info=True)
                     continue
             
             # Add stretch to push groups to top
@@ -155,16 +221,16 @@ class LayoutManager:
             form_widget.groups_created = groups_created
             form_widget.widgets_added = widgets_added
             
-            self.logger.info(f"Created form with {groups_created} groups, {total_fields} fields, and {widgets_added} widgets properly added")
+            logger.info(f"Created form with {groups_created} groups, {total_fields} fields, and {widgets_added} widgets properly added")
             
             # VERIFICATION: Check that widgets are actually in the form
             if widgets_added == 0 and total_fields > 0:
-                self.logger.error("CRITICAL: Fields created but no widgets properly added to form!")
+                logger.error("CRITICAL: Fields created but no widgets properly added to form!")
             
             return form_widget
             
         except Exception as e:
-            self.logger.error(f"Failed to create grouped form: {e}", exc_info=True)
+            logger.error(f"Failed to create grouped form: {e}", exc_info=True)
             # Return a minimal error form
             error_widget = QLabel(f"Layout Error: {str(e)}")
             error_widget.setStyleSheet("color: red; padding: 20px;")
@@ -190,7 +256,7 @@ class LayoutManager:
             return self.create_grouped_form(form_groups, widgets, parent)
             
         except Exception as e:
-            self.logger.error(f"Failed to create simple form: {e}")
+            logger.error(f"Failed to create simple form: {e}")
             error_widget = QLabel(f"Error creating form: {str(e)}")
             error_widget.setStyleSheet("color: red; padding: 20px;")
             return error_widget
@@ -235,7 +301,7 @@ class LayoutManager:
             
             for prop in sorted_properties:
                 if prop.uri not in widgets:
-                    self.logger.warning(f"No widget available for property: {prop.uri}")
+                    logger.warning(f"No widget available for property: {prop.uri}")
                     continue
                 
                 widget = widgets[prop.uri]
@@ -268,14 +334,14 @@ class LayoutManager:
                 fields_added += 1
             
             if fields_added == 0:
-                self.logger.warning(f"No fields added to group: {group_name}")
+                logger.warning(f"No fields added to group: {group_name}")
                 return None, {}
             
-            self.logger.debug(f"Created group '{group_name}' with {fields_added} fields")
+            logger.debug(f"Created group '{group_name}' with {fields_added} fields")
             return group_box, form_fields
             
         except Exception as e:
-            self.logger.error(f"Error creating group '{group_name}': {e}")
+            logger.error(f"Error creating group '{group_name}': {e}")
             return None, {}
     
     # ============================================================================
@@ -450,7 +516,7 @@ class LayoutManager:
             return form_widget
             
         except Exception as e:
-            self.logger.error(f"Error creating two-column form: {e}")
+            logger.error(f"Error creating two-column form: {e}")
             # Fallback to single column
             return self.create_grouped_form(form_groups, widgets, parent)
     
@@ -499,7 +565,7 @@ class LayoutManager:
             return tab_widget
             
         except Exception as e:
-            self.logger.error(f"Error creating tabbed form: {e}")
+            logger.error(f"Error creating tabbed form: {e}")
             # Fallback to grouped form
             return self.create_grouped_form(form_groups, widgets, parent)
             

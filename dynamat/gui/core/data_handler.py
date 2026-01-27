@@ -1,7 +1,43 @@
+"""Form data handler for widget value operations.
+
+This module provides centralized logic for extracting and populating data
+from/to form widgets. It handles type-safe value operations across all
+supported PyQt6 widget types.
+
+Classes
+-------
+FormDataHandler
+    Handles data extraction and population for form widgets.
+
+Supported Widget Types
+----------------------
+- QLabel (read-only display)
+- QLineEdit (single-line text)
+- QTextEdit (multi-line text)
+- QComboBox (dropdown selection)
+- QListWidget (multi-select list)
+- QSpinBox (integer values)
+- QDoubleSpinBox (floating-point values)
+- QDateEdit (date values)
+- QCheckBox (boolean values)
+- UnitValueWidget (measurement with units)
+
+Example
+-------
+::
+
+    handler = FormDataHandler()
+
+    # Extract data from form
+    data = handler.extract_form_data(form_widget)
+
+    # Populate form with data
+    handler.populate_form_data(form_widget, data)
+
+    # Validate form data
+    errors = handler.validate_form_data(form_widget)
 """
-DynaMat Platform - Form Data Handler
-Handles extracting and setting data from/to form widgets
-"""
+from __future__ import annotations
 
 import logging
 from typing import Dict, List, Optional, Any, Union
@@ -18,16 +54,34 @@ logger = logging.getLogger(__name__)
 
 
 class FormDataHandler:
+    """Handles data extraction and population for form widgets.
+
+    Provides centralized logic for getting/setting values from various
+    widget types while maintaining type safety and proper error handling.
+    Supports visibility-based filtering to exclude hidden fields from
+    data extraction.
+
+    Attributes
+    ----------
+    value_extractors : dict
+        Mapping of widget types to extractor functions.
+    value_setters : dict
+        Mapping of widget types to setter functions.
+
+    Example
+    -------
+    ::
+
+        handler = FormDataHandler()
+
+        # Get value from any widget
+        value = handler.get_widget_value(widget)
+
+        # Set value on any widget
+        success = handler.set_widget_value(widget, new_value)
     """
-    Handles data extraction and population for form widgets.
-    
-    Provides centralized logic for getting/setting values from various widget types
-    while maintaining type safety and proper error handling.
-    """
-    
+
     def __init__(self):
-        """Initialize the form data handler."""
-        self.logger = logging.getLogger(__name__)
         
         # Value extractors by widget type
         self.value_extractors = {
@@ -85,7 +139,7 @@ class FormDataHandler:
 
                         # VISIBILITY CHECK: Skip if widget or its parent is hidden
                         if not self._is_widget_visible(widget):
-                            self.logger.debug(f"Skipping {property_uri}: widget not visible")
+                            logger.debug(f"Skipping {property_uri}: widget not visible")
                             continue
 
                         # Extract value from visible widget
@@ -95,18 +149,18 @@ class FormDataHandler:
                         if value is not None and value != "" and not self._is_placeholder_value(value, widget):
                             data[property_uri] = value
                         else:
-                            self.logger.debug(f"Skipping {property_uri}: placeholder/empty value")
+                            logger.debug(f"Skipping {property_uri}: placeholder/empty value")
 
                     except Exception as e:
-                        self.logger.error(f"Error extracting value for {property_uri}: {e}")
+                        logger.error(f"Error extracting value for {property_uri}: {e}")
 
             else:
-                self.logger.warning("Form widget has no form_fields attribute")
+                logger.warning("Form widget has no form_fields attribute")
 
         except Exception as e:
-            self.logger.error(f"Error extracting form data: {e}")
+            logger.error(f"Error extracting form data: {e}")
 
-        self.logger.info(f"Extracted data for {len(data)} properties (visibility-filtered)")
+        logger.info(f"Extracted data for {len(data)} properties (visibility-filtered)")
         return data
     
     def populate_form_data(self, form_widget: QWidget, data: Dict[str, Any]) -> bool:
@@ -122,7 +176,7 @@ class FormDataHandler:
         """
         try:
             if not hasattr(form_widget, 'form_fields'):
-                self.logger.error("Form widget has no form_fields attribute")
+                logger.error("Form widget has no form_fields attribute")
                 return False
             
             form_fields = form_widget.form_fields
@@ -134,22 +188,22 @@ class FormDataHandler:
                         widget = form_fields[property_uri].widget
                         widget_type = type(widget).__name__
                         if self.set_widget_value(widget, value):
-                            self.logger.debug(f"SUCCESS: Set {property_uri} = '{value}' (widget: {widget_type})")
+                            logger.debug(f"SUCCESS: Set {property_uri} = '{value}' (widget: {widget_type})")
                             populated_count += 1
                         else:
-                            self.logger.warning(f"FAILED: Could not set {property_uri} = '{value}' (widget: {widget_type})")
+                            logger.warning(f"FAILED: Could not set {property_uri} = '{value}' (widget: {widget_type})")
                     except Exception as e:
-                        self.logger.error(f"Error setting value for {property_uri}: {e}")
+                        logger.error(f"Error setting value for {property_uri}: {e}")
                 else:
                     # Extract short name for logging
                     short_name = property_uri.split('#')[-1].split('/')[-1] if '#' in property_uri or '/' in property_uri else property_uri
-                    self.logger.warning(f"Property {short_name} not found in form (full URI: {property_uri})")
+                    logger.warning(f"Property {short_name} not found in form (full URI: {property_uri})")
 
-            self.logger.info(f"Populated {populated_count}/{len(data)} fields successfully")
+            logger.info(f"Populated {populated_count}/{len(data)} fields successfully")
             return populated_count > 0
             
         except Exception as e:
-            self.logger.error(f"Error populating form data: {e}")
+            logger.error(f"Error populating form data: {e}")
             return False
     
     def validate_form_data(self, form_widget: QWidget) -> Dict[str, List[str]]:
@@ -315,11 +369,11 @@ class FormDataHandler:
             if hasattr(widget, 'layout') and widget.layout():
                 return self._extract_compound_widget_value(widget)
             
-            self.logger.warning(f"No value extractor for widget type: {widget_type}")
+            logger.warning(f"No value extractor for widget type: {widget_type}")
             return None
             
         except Exception as e:
-            self.logger.error(f"Error extracting value from {type(widget)}: {e}")
+            logger.error(f"Error extracting value from {type(widget)}: {e}")
             return None
     
     def set_widget_value(self, widget: QWidget, value: Any) -> bool:
@@ -351,11 +405,11 @@ class FormDataHandler:
             if hasattr(widget, 'layout') and widget.layout():
                 return self._set_compound_widget_value(widget, value)
             
-            self.logger.warning(f"No value setter for widget type: {widget_type}")
+            logger.warning(f"No value setter for widget type: {widget_type}")
             return False
             
         except Exception as e:
-            self.logger.error(f"Error setting value for {type(widget)}: {e}")
+            logger.error(f"Error setting value for {type(widget)}: {e}")
             return False
     
     # ============================================================================
@@ -440,7 +494,7 @@ class FormDataHandler:
 
             return data
         except Exception as e:
-            self.logger.error(f"Error extracting unit value widget: {e}")
+            logger.error(f"Error extracting unit value widget: {e}")
             return None
     
     def _extract_compound_widget_value(self, widget: QWidget) -> Any:
@@ -582,7 +636,7 @@ class FormDataHandler:
                 widget.setValue(float(value))
                 return True
         except Exception as e:
-            self.logger.error(f"Error setting unit value widget: {e}")
+            logger.error(f"Error setting unit value widget: {e}")
             return False
     
     def _set_compound_widget_value(self, widget: QWidget, value: Any) -> bool:

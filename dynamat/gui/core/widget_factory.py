@@ -1,7 +1,43 @@
+"""Widget factory for ontology-driven form creation.
+
+This module provides centralized widget creation from ontology metadata.
+It maps ontology property types and annotations to appropriate PyQt6 widgets.
+
+Classes
+-------
+WidgetFactory
+    Factory for creating form widgets from property metadata.
+
+Widget Type Mapping
+-------------------
+The factory determines widget types based on property metadata:
+
+1. Read-only string properties -> QLabel
+2. Measurement properties (has compatible_units) -> UnitValueWidget
+3. Object properties (data_type=object) -> QComboBox or QListWidget
+4. Boolean properties -> QCheckBox
+5. Integer properties -> QSpinBox
+6. Double properties -> QDoubleSpinBox
+7. Date properties -> QDateEdit
+8. String properties -> QLineEdit (default)
+
+Example
+-------
+::
+
+    from dynamat.ontology import OntologyManager
+    from dynamat.gui.core import WidgetFactory
+
+    ontology = OntologyManager()
+    factory = WidgetFactory(ontology)
+
+    # Create single widget
+    widget = factory.create_widget(property_metadata)
+
+    # Create widgets for all properties
+    widgets = factory.create_widgets_for_properties(properties)
 """
-DynaMat Platform - Widget Factory
-Centralized widget creation from ontology metadata
-"""
+from __future__ import annotations
 
 import logging
 from typing import Dict, List, Optional, Any
@@ -22,22 +58,38 @@ logger = logging.getLogger(__name__)
 
 
 class WidgetFactory:
-    """
-    Centralized factory for creating form widgets from ontology metadata.
-    
-    Handles all widget creation logic, including specialized widgets like
-    unit-value combinations and ontology-based combo boxes.
-    """
-    
-    def __init__(self, ontology_manager: OntologyManager):
-        """
-        Initialize the widget factory.
+    """Centralized factory for creating form widgets from ontology metadata.
 
-        Args:
-            ontology_manager: The ontology manager instance
-        """
+    Handles all widget creation logic, including specialized widgets like
+    unit-value combinations and ontology-based combo boxes. The factory
+    determines the appropriate widget type based on property metadata
+    including data type, compatible units, and suggested widget hints.
+
+    Parameters
+    ----------
+    ontology_manager : OntologyManager
+        The ontology manager instance for querying individuals.
+
+    Attributes
+    ----------
+    ontology_manager : OntologyManager
+        Reference to the ontology manager.
+    widget_creators : dict
+        Mapping of widget type names to creator functions.
+
+    Example
+    -------
+    ::
+
+        factory = WidgetFactory(ontology_manager)
+        widget = factory.create_widget(property_metadata)
+
+        # Get creation statistics
+        stats = factory.get_statistics()
+    """
+
+    def __init__(self, ontology_manager: OntologyManager):
         self.ontology_manager = ontology_manager
-        self.logger = logging.getLogger(__name__)
 
         # Widget type mapping
         self.widget_creators = {
@@ -72,7 +124,7 @@ class WidgetFactory:
             # Determine widget type using systematic approach
             widget_type = self._determine_widget_type(property_metadata)
 
-            self.logger.debug(
+            logger.debug(
                 f"Creating widget for {property_metadata.name}: "
                 f"type={widget_type}, data_type={property_metadata.data_type}, "
                 f"is_read_only={property_metadata.is_read_only}"
@@ -93,7 +145,7 @@ class WidgetFactory:
             return widget
 
         except Exception as e:
-            self.logger.error(f"Failed to create widget for {property_metadata.name}: {e}")
+            logger.error(f"Failed to create widget for {property_metadata.name}: {e}")
             # Track error
             self._creation_errors.append((property_metadata.name, str(e)))
             return self._create_error_widget(f"Error: {str(e)}")
@@ -117,14 +169,14 @@ class WidgetFactory:
         """
         # Priority 1: Read-only string properties should use labels
         if prop.is_read_only and prop.data_type == 'string':
-            self.logger.debug(f"{prop.name}: Read-only string property -> label widget")
+            logger.debug(f"{prop.name}: Read-only string property -> label widget")
             decision_path = "read_only_string->label"
             self._widget_type_determinations[decision_path] = self._widget_type_determinations.get(decision_path, 0) + 1
             return 'label'
 
         # Priority 2: Measurement properties with units (e.g., length, mass, temperature)
         if hasattr(prop, 'compatible_units') and prop.compatible_units:
-            self.logger.debug(f"{prop.name}: Measurement property -> unit_value widget")
+            logger.debug(f"{prop.name}: Measurement property -> unit_value widget")
             decision_path = "has_compatible_units->unit_value"
             self._widget_type_determinations[decision_path] = self._widget_type_determinations.get(decision_path, 0) + 1
             return 'unit_value'
@@ -135,24 +187,24 @@ class WidgetFactory:
             if hasattr(prop, 'range_class') and prop.range_class:
                 # Check if property is functional (single-select) or not (multi-select)
                 if hasattr(prop, 'is_functional') and not prop.is_functional:
-                    self.logger.debug(f"{prop.name}: Non-functional object property (range: {prop.range_class}) -> object_multi_select widget")
+                    logger.debug(f"{prop.name}: Non-functional object property (range: {prop.range_class}) -> object_multi_select widget")
                     decision_path = "object_property_non_functional->object_multi_select"
                     self._widget_type_determinations[decision_path] = self._widget_type_determinations.get(decision_path, 0) + 1
                     return 'object_multi_select'
                 else:
-                    self.logger.debug(f"{prop.name}: Functional object property (range: {prop.range_class}) -> object_combo widget")
+                    logger.debug(f"{prop.name}: Functional object property (range: {prop.range_class}) -> object_combo widget")
                     decision_path = "object_property_functional->object_combo"
                     self._widget_type_determinations[decision_path] = self._widget_type_determinations.get(decision_path, 0) + 1
                     return 'object_combo'
             else:
-                self.logger.debug(f"{prop.name}: Object property (no range) -> combo widget")
+                logger.debug(f"{prop.name}: Object property (no range) -> combo widget")
                 decision_path = "object_no_range->combo"
                 self._widget_type_determinations[decision_path] = self._widget_type_determinations.get(decision_path, 0) + 1
                 return 'combo'
 
         # Priority 4: Use suggested widget type from metadata
         if prop.suggested_widget_type:
-            self.logger.debug(f"{prop.name}: Using suggested type -> {prop.suggested_widget_type}")
+            logger.debug(f"{prop.name}: Using suggested type -> {prop.suggested_widget_type}")
             decision_path = f"suggested->{prop.suggested_widget_type}"
             self._widget_type_determinations[decision_path] = self._widget_type_determinations.get(decision_path, 0) + 1
             return prop.suggested_widget_type
@@ -167,7 +219,7 @@ class WidgetFactory:
         }
 
         fallback_type = type_mapping.get(prop.data_type, 'line_edit')
-        self.logger.debug(f"{prop.name}: Fallback based on data_type={prop.data_type} -> {fallback_type}")
+        logger.debug(f"{prop.name}: Fallback based on data_type={prop.data_type} -> {fallback_type}")
         decision_path = f"fallback_{prop.data_type}->{fallback_type}"
         self._widget_type_determinations[decision_path] = self._widget_type_determinations.get(decision_path, 0) + 1
         return fallback_type
@@ -194,17 +246,17 @@ class WidgetFactory:
                     widget.setParent(parent)
                 
                 widgets[prop.uri] = widget
-                self.logger.debug(f"Created widget for {prop.name} (parent: {widget.parent() is not None})")
+                logger.debug(f"Created widget for {prop.name} (parent: {widget.parent() is not None})")
                 
             except Exception as e:
-                self.logger.error(f"Failed to create widget for {prop.name}: {e}")
+                logger.error(f"Failed to create widget for {prop.name}: {e}")
                 # Create error widget with parent
                 error_widget = self._create_error_widget(f"Error: {prop.name}")
                 if parent:
                     error_widget.setParent(parent)
                 widgets[prop.uri] = error_widget
         
-        self.logger.info(f"Created {len(widgets)} widgets (all with proper parents)")
+        logger.info(f"Created {len(widgets)} widgets (all with proper parents)")
         return widgets
     
     # ============================================================================
@@ -284,7 +336,7 @@ class WidgetFactory:
         try:
             # Query for objects of this type from ontology
             if hasattr(prop, 'range_class') and prop.range_class:
-                self.logger.info(f"Creating object combo for {prop.name}, range_class={prop.range_class}")
+                logger.info(f"Creating object combo for {prop.name}, range_class={prop.range_class}")
 
                 # Get all individuals - should return URIs with names
                 result = self.ontology_manager.domain_queries.get_instances_of_class(
@@ -292,7 +344,7 @@ class WidgetFactory:
                     include_subclasses=True
                 )
 
-                self.logger.info(f"Retrieved {len(result)} instances for {prop.range_class}")
+                logger.info(f"Retrieved {len(result)} instances for {prop.range_class}")
 
                 for instance in result:
                     # instance is a dict with 'uri' and 'name'
@@ -301,9 +353,9 @@ class WidgetFactory:
 
                     # Store URI in data, display name in text
                     widget.addItem(display_name, uri)
-                    self.logger.info(f"  Added: '{display_name}' -> '{uri}'")
+                    logger.info(f"  Added: '{display_name}' -> '{uri}'")
 
-                self.logger.info(f"Loaded {widget.count() - 1} items for {prop.name}")
+                logger.info(f"Loaded {widget.count() - 1} items for {prop.name}")
 
                 # Track combo population success
                 if len(result) > 0:
@@ -312,7 +364,7 @@ class WidgetFactory:
                     self._combo_population_stats['empty'] += 1
 
         except Exception as e:
-            self.logger.error(f"Could not load objects for {prop.name} ({prop.range_class}): {e}", exc_info=True)
+            logger.error(f"Could not load objects for {prop.name} ({prop.range_class}): {e}", exc_info=True)
             widget.addItem("(Error loading data)", "")
             # Track combo population failure
             self._combo_population_stats['failed'] += 1
@@ -331,7 +383,7 @@ class WidgetFactory:
         try:
             # Query for objects of this type from ontology
             if hasattr(prop, 'range_class') and prop.range_class:
-                self.logger.info(f"Creating multi-select list for {prop.name}, range_class={prop.range_class}")
+                logger.info(f"Creating multi-select list for {prop.name}, range_class={prop.range_class}")
 
                 # Get all individuals - should return URIs with names
                 result = self.ontology_manager.domain_queries.get_instances_of_class(
@@ -339,7 +391,7 @@ class WidgetFactory:
                     include_subclasses=True
                 )
 
-                self.logger.info(f"Retrieved {len(result)} instances for {prop.range_class}")
+                logger.info(f"Retrieved {len(result)} instances for {prop.range_class}")
 
                 for instance in result:
                     # instance is a dict with 'uri' and 'name'
@@ -350,9 +402,9 @@ class WidgetFactory:
                     item = QListWidgetItem(display_name)
                     item.setData(Qt.ItemDataRole.UserRole, uri)
                     widget.addItem(item)
-                    self.logger.info(f"  Added: '{display_name}' -> '{uri}'")
+                    logger.info(f"  Added: '{display_name}' -> '{uri}'")
 
-                self.logger.info(f"Loaded {widget.count()} items for {prop.name}")
+                logger.info(f"Loaded {widget.count()} items for {prop.name}")
 
                 # Track combo population success
                 if len(result) > 0:
@@ -361,7 +413,7 @@ class WidgetFactory:
                     self._combo_population_stats['empty'] += 1
 
         except Exception as e:
-            self.logger.error(f"Could not load objects for {prop.name} ({prop.range_class}): {e}", exc_info=True)
+            logger.error(f"Could not load objects for {prop.name} ({prop.range_class}): {e}", exc_info=True)
             error_item = QListWidgetItem("(Error loading data)")
             error_item.setData(Qt.ItemDataRole.UserRole, "")
             widget.addItem(error_item)
@@ -448,7 +500,7 @@ class WidgetFactory:
             default_unit = getattr(prop, 'default_unit', None)
             
             if not compatible_units:
-                self.logger.warning(f"No compatible units for {prop.name}, falling back to double spinbox")
+                logger.warning(f"No compatible units for {prop.name}, falling back to double spinbox")
                 return self._create_double_spinbox_widget(prop)
             
             # Create unit value widget
@@ -472,7 +524,7 @@ class WidgetFactory:
             return widget
             
         except Exception as e:
-            self.logger.error(f"Failed to create unit value widget for {prop.name}: {e}")
+            logger.error(f"Failed to create unit value widget for {prop.name}: {e}")
             return self._create_double_spinbox_widget(prop)
     
     def _create_error_widget(self, error_message: str) -> QLabel:
@@ -497,29 +549,29 @@ class WidgetFactory:
 
         # Apply read-only mode if specified
         if prop.is_read_only:
-            self.logger.info(f"Applying read-only mode to {prop.name} (widget type: {type(widget).__name__})")
+            logger.info(f"Applying read-only mode to {prop.name} (widget type: {type(widget).__name__})")
 
             # Different widgets have different methods for read-only
             if isinstance(widget, QLabel):
                 # QLabel is naturally read-only, no action needed
-                self.logger.info(f"QLabel {prop.name} is naturally read-only")
+                logger.info(f"QLabel {prop.name} is naturally read-only")
             elif hasattr(widget, 'setReadOnly'):
                 # Best option: proper read-only mode (allows programmatic updates)
                 widget.setReadOnly(True)
-                self.logger.info(f"Set {prop.name} to read-only using setReadOnly()")
+                logger.info(f"Set {prop.name} to read-only using setReadOnly()")
             elif isinstance(widget, QComboBox):
                 # QComboBox doesn't have setReadOnly, but we can make it non-editable
                 # and prevent user interaction while still allowing programmatic updates
                 widget.setEditable(False)
                 widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-                self.logger.info(f"Set QComboBox {prop.name} to non-interactive mode")
+                logger.info(f"Set QComboBox {prop.name} to non-interactive mode")
             else:
-                self.logger.warning(f"Widget {type(widget).__name__} doesn't support read-only mode directly")
+                logger.warning(f"Widget {type(widget).__name__} doesn't support read-only mode directly")
         
     def _get_objects_for_class(self, class_uri: str) -> List[Dict[str, Any]]:
         """Get instances of a class from the ontology."""
         try:
-            self.logger.debug(f"Getting objects for class: {class_uri}")
+            logger.debug(f"Getting objects for class: {class_uri}")
             
             # Use domain_queries for ALL classes (including Material)
             if hasattr(self.ontology_manager, 'domain_queries'):
@@ -527,16 +579,16 @@ class WidgetFactory:
                     class_uri, 
                     include_subclasses=True
                 )
-                self.logger.debug(f"  Received {len(instances)} instances")
+                logger.debug(f"  Received {len(instances)} instances")
                 
                 for i, inst in enumerate(instances[:3]):
-                    self.logger.debug(f"    Instance {i}: {inst}")
+                    logger.debug(f"    Instance {i}: {inst}")
                 
                 return instances
             
             # FALLBACK: Use legacy get_all_individuals (returns list of URI strings)
             elif hasattr(self.ontology_manager, 'get_all_individuals'):
-                self.logger.debug("  Using legacy get_all_individuals")
+                logger.debug("  Using legacy get_all_individuals")
                 uri_list = self.ontology_manager.get_all_individuals(class_uri, include_subclasses=True)
                 
                 # Convert URI strings to dict format
@@ -549,14 +601,14 @@ class WidgetFactory:
                         'label': ''
                     })
                 
-                self.logger.debug(f"  Converted {len(instances)} URIs to instances")
+                logger.debug(f"  Converted {len(instances)} URIs to instances")
                 return instances
             else:
-                self.logger.error("OntologyManager has no domain_queries or get_all_individuals")
+                logger.error("OntologyManager has no domain_queries or get_all_individuals")
                 return []
                 
         except Exception as e:
-            self.logger.error(f"Failed to get objects for class {class_uri}: {e}", exc_info=True)
+            logger.error(f"Failed to get objects for class {class_uri}: {e}", exc_info=True)
             return []
     
     def _extract_local_name(self, uri: str) -> str:

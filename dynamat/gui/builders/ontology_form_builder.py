@@ -1,7 +1,43 @@
+"""Ontology form builder facade for simplified form creation.
+
+This module provides a high-level facade that orchestrates form building
+using specialized components. It coordinates the FormManager, LayoutManager,
+and DependencyManager to create complete ontology-driven forms.
+
+Classes
+-------
+OntologyFormBuilder
+    Simplified facade for building forms from ontology definitions.
+
+Signals
+-------
+form_created : pyqtSignal(str)
+    Emitted when a form is successfully created. Carries class_uri.
+
+form_error : pyqtSignal(str, str)
+    Emitted when form creation fails. Carries (class_uri, error_message).
+
+Example
+-------
+::
+
+    from dynamat.ontology import OntologyManager
+    from dynamat.gui.builders import OntologyFormBuilder, LayoutStyle
+
+    ontology = OntologyManager()
+    builder = OntologyFormBuilder(ontology)
+
+    # Connect to signals
+    builder.form_created.connect(lambda uri: print(f"Created: {uri}"))
+    builder.form_error.connect(lambda uri, err: print(f"Error: {err}"))
+
+    # Build form
+    form = builder.build_form("dyn:Specimen")
+
+    # Get form data
+    data = builder.get_form_data(form)
 """
-DynaMat Platform - Ontology Form Builder (Refactored)
-Simplified facade that orchestrates form building using specialized components
-"""
+from __future__ import annotations
 
 import logging
 from typing import Dict, List, Optional, Any
@@ -18,29 +54,62 @@ logger = logging.getLogger(__name__)
 
 
 class OntologyFormBuilder(QObject):
+    """Simplified facade for building forms from ontology definitions.
+
+    This class coordinates the specialized components (FormManager,
+    LayoutManager, DependencyManager) to provide a clean, simple interface
+    for creating ontology-based forms.
+
+    Parameters
+    ----------
+    ontology_manager : OntologyManager
+        The ontology manager instance for querying class metadata.
+    default_layout : LayoutStyle, optional
+        Default layout style to use. Defaults to GROUPED_FORM.
+    constraint_dir : Path, optional
+        Directory containing constraint TTL files for dependencies.
+
+    Attributes
+    ----------
+    ontology_manager : OntologyManager
+        Reference to the ontology manager.
+    form_manager : FormManager
+        Component for creating form widgets.
+    layout_manager : LayoutManager
+        Component for organizing form layouts.
+    dependency_manager : DependencyManager
+        Component for field dependencies (if enabled).
+
+    Signals
+    -------
+    form_created : pyqtSignal(str)
+        Emitted when a form is successfully created.
+    form_error : pyqtSignal(str, str)
+        Emitted when form creation fails.
+
+    Example
+    -------
+    ::
+
+        builder = OntologyFormBuilder(ontology_manager)
+        form = builder.build_form("dyn:Specimen")
+        data = builder.get_form_data(form)
     """
-    Simplified facade for building forms from ontology definitions.
-    
-    This class coordinates the specialized components to provide a clean,
-    simple interface for creating ontology-based forms.
-    """
-    
+
     # Define signals
     form_error = pyqtSignal(str, str)  # class_uri, error_message
-    form_created = pyqtSignal(str)     # class_uri    
-    
-    def __init__(self, ontology_manager, default_layout=LayoutStyle.GROUPED_FORM, constraint_dir: Optional[Path] = None):
-        super().__init__() 
-        """
-        Initialize the form builder.
-        
-        Args:
-            ontology_manager: The ontology manager instance
-            default_layout: Default layout style to use
-        """
+    form_created = pyqtSignal(str)     # class_uri
+
+    def __init__(
+        self,
+        ontology_manager: OntologyManager,
+        default_layout: LayoutStyle = LayoutStyle.GROUPED_FORM,
+        constraint_dir: Optional[Path] = None
+    ):
+        super().__init__()
+
         self.ontology_manager = ontology_manager
         self.default_layout = default_layout
-        self.logger = logging.getLogger(__name__)
         
         # Initialize specialized components
         self.form_manager = FormManager(ontology_manager)
@@ -62,11 +131,11 @@ class OntologyFormBuilder(QObject):
                     ontology_manager,
                     constraint_dir
                 )
-                self.logger.info("Constraint-based dependency manager initialized")
+                logger.info("Constraint-based dependency manager initialized")
             except Exception as e:
-                self.logger.warning(f"Failed to initialize dependency manager: {e}")
+                logger.warning(f"Failed to initialize dependency manager: {e}")
         
-        self.logger.info("Ontology form builder initialized")
+        logger.info("Ontology form builder initialized")
     
     def build_form(self, class_uri: str, parent: Optional[QWidget] = None, 
                    layout_style: Optional[LayoutStyle] = None) -> QWidget:
@@ -85,25 +154,31 @@ class OntologyFormBuilder(QObject):
         """
         
         try:
-            self.logger.info(f"Building form for class: {class_uri}")
+            logger.info(f"Building form for class: {class_uri}")
             
             # Validate inputs
             if not class_uri:
-                raise ValueError("class_uri cannot be empty")
-            
+                msg = "class_uri cannot be empty"
+                logger.error(msg)
+                raise ValueError(msg)
+
             if not isinstance(class_uri, str):
-                raise ValueError("class_uri must be a string")
-            
+                msg = "class_uri must be a string"
+                logger.error(msg)
+                raise ValueError(msg)
+
             # Use FormManager to create the base form
             form_widget = self.form_manager.create_form(class_uri)
-            
+
             if not form_widget:
-                raise RuntimeError("FormManager returned None")
+                msg = "FormManager returned None"
+                logger.error(msg)
+                raise RuntimeError(msg)
             
             # Ensure form widget has expected attributes for compatibility
             if not hasattr(form_widget, 'form_fields'):
                 form_widget.form_fields = {}
-                self.logger.warning(f"Form widget missing form_fields attribute, added empty dict")
+                logger.warning(f"Form widget missing form_fields attribute, added empty dict")
             
             if not hasattr(form_widget, 'class_uri'):
                 form_widget.class_uri = class_uri
@@ -112,9 +187,9 @@ class OntologyFormBuilder(QObject):
             if self.dependency_manager:
                 try:
                     self.dependency_manager.setup_dependencies(form_widget, class_uri)
-                    self.logger.info("TTL-based constraints configured successfully")
+                    logger.info("TTL-based constraints configured successfully")
                 except Exception as e:
-                    self.logger.error(f"Failed to setup constraints: {e}")
+                    logger.error(f"Failed to setup constraints: {e}")
                     # Don't fail entire form creation for constraint issues
             
             # Set parent if provided
@@ -130,12 +205,12 @@ class OntologyFormBuilder(QObject):
             # Emit success signal
             self.form_created.emit(class_uri)
 
-            self.logger.info(f"Form built successfully for {class_uri}")
+            logger.info(f"Form built successfully for {class_uri}")
             return form_widget
 
         except Exception as e:
             error_msg = f"Failed to build form for {class_uri}: {e}"
-            self.logger.error(error_msg, exc_info=True)
+            logger.error(error_msg, exc_info=True)
 
             # Track error
             self._form_errors[class_uri] = self._form_errors.get(class_uri, 0) + 1
@@ -169,25 +244,25 @@ class OntologyFormBuilder(QObject):
             config_path: Path to dependency configuration file
         """
         try:
-            from pathlib import Path  # ✅ ADD THIS
+            from pathlib import Path
             from ..dependencies.dependency_manager import DependencyManager
-            
+
             # Initialize dependency manager
             if config_path:
-                # ✅ Convert string to Path object
+                # Convert string to Path object
                 config_path_obj = Path(config_path) if isinstance(config_path, str) else config_path
                 self.dependency_manager = DependencyManager(self.ontology_manager, config_path_obj)
             
-            self.logger.info("Dependency management enabled")
+            logger.info("Dependency management enabled")
             
         except Exception as e:
-            self.logger.error(f"Failed to enable dependencies: {e}")
+            logger.error(f"Failed to enable dependencies: {e}")
             self.dependency_manager = None
     
     def disable_dependencies(self):
         """Disable dependency management."""
         self.dependency_manager = None
-        self.logger.info("Dependency management disabled")
+        logger.info("Dependency management disabled")
 
     def set_loading_mode(self, enabled: bool):
         """
@@ -202,7 +277,7 @@ class OntologyFormBuilder(QObject):
         """
         if self.dependency_manager:
             self.dependency_manager.set_loading_mode(enabled)
-            self.logger.debug(f"Loading mode set to: {enabled}")
+            logger.debug(f"Loading mode set to: {enabled}")
 
     # ============================================================================
     # FORM DATA METHODS (Delegated to FormManager)
@@ -298,7 +373,7 @@ class OntologyFormBuilder(QObject):
             return self.layout_manager.suggest_layout_style(class_metadata.form_groups)
             
         except Exception as e:
-            self.logger.error(f"Failed to get layout suggestion for {class_uri}: {e}")
+            logger.error(f"Failed to get layout suggestion for {class_uri}: {e}")
             return LayoutStyle.GROUPED_FORM
     
     def analyze_form_complexity(self, class_uri: str) -> Dict[str, Any]:
@@ -316,7 +391,7 @@ class OntologyFormBuilder(QObject):
             return self.layout_manager.analyze_form_complexity(class_metadata.form_groups)
             
         except Exception as e:
-            self.logger.error(f"Failed to analyze form complexity for {class_uri}: {e}")
+            logger.error(f"Failed to analyze form complexity for {class_uri}: {e}")
             return {}
     
     # ============================================================================
@@ -354,7 +429,7 @@ class OntologyFormBuilder(QObject):
         try:
             return self.ontology_manager.get_all_classes()
         except Exception as e:
-            self.logger.error(f"Failed to get available classes: {e}")
+            logger.error(f"Failed to get available classes: {e}")
             return []
     
     def get_class_info(self, class_uri: str) -> Dict[str, Any]:
@@ -379,21 +454,21 @@ class OntologyFormBuilder(QObject):
                 'is_abstract': class_metadata.is_abstract
             }
         except Exception as e:
-            self.logger.error(f"Failed to get class info for {class_uri}: {e}")
+            logger.error(f"Failed to get class info for {class_uri}: {e}")
             return {}
     
     def refresh_ontology(self):
         """Refresh the underlying ontology data."""
         try:
             self.ontology_manager.clear_caches()
-            self.logger.info("Ontology data refreshed")
+            logger.info("Ontology data refreshed")
         except Exception as e:
-            self.logger.error(f"Failed to refresh ontology: {e}")
+            logger.error(f"Failed to refresh ontology: {e}")
     
     def refresh_ontology(self):
         """Refresh ontology and clear caches."""
         try:
-            self.logger.info("Refreshing ontology and clearing caches")
+            logger.info("Refreshing ontology and clearing caches")
             self.form_manager.clear_cache()
             # Also clear ontology manager caches if available
             if hasattr(self.ontology_manager, 'classes_cache'):
@@ -401,7 +476,7 @@ class OntologyFormBuilder(QObject):
             if hasattr(self.ontology_manager, 'properties_cache'):
                 self.ontology_manager.properties_cache.clear()
         except Exception as e:
-            self.logger.error(f"Failed to refresh ontology: {e}")
+            logger.error(f"Failed to refresh ontology: {e}")
 
     def get_statistics(self) -> Dict[str, Any]:
         """
@@ -455,7 +530,7 @@ class OntologyFormBuilder(QObject):
                 }
             }
         except Exception as e:
-            self.logger.error(f"Failed to get statistics: {e}")
+            logger.error(f"Failed to get statistics: {e}")
             return {'error': str(e)}
 
     def get_form_statistics(self) -> Dict[str, Any]:
@@ -476,7 +551,7 @@ class OntologyFormBuilder(QObject):
                 }
             }
         except Exception as e:
-            self.logger.error(f"Failed to get form statistics: {e}")
+            logger.error(f"Failed to get form statistics: {e}")
             return {'error': str(e)}
     
     def analyze_form_complexity(self, class_uri: str) -> Dict[str, Any]:
@@ -497,7 +572,7 @@ class OntologyFormBuilder(QObject):
             
             return complexity_analysis
         except Exception as e:
-            self.logger.error(f"Failed to analyze form complexity: {e}")
+            logger.error(f"Failed to analyze form complexity: {e}")
             return {'error': str(e), 'class_uri': class_uri}
     
     def _calculate_complexity_score(self, metadata) -> str:
@@ -519,7 +594,7 @@ class OntologyFormBuilder(QObject):
         """Reload constraints from TTL files."""
         if self.dependency_manager:
             self.dependency_manager.reload_constraints()
-            self.logger.info("Constraints reloaded")
+            logger.info("Constraints reloaded")
     
     def get_constraint_statistics(self):
         """Get statistics about loaded constraints."""
