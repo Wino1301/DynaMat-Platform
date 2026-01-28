@@ -14,9 +14,13 @@ from .terminal_widget import TerminalWidget
 from .action_panel import ActionPanelWidget
 from .validation_results_dialog import ValidationResultsDialog
 
+# Import SHPB wizard
+from .shpb import SHPBAnalysisWizard
+
 # Import submodules for organized access
 from . import base
 from . import forms
+from . import shpb
 
 __all__ = [
     # Form widgets
@@ -32,7 +36,11 @@ __all__ = [
     'TerminalWidget',
     'ActionPanelWidget',
 
+    # SHPB
+    'SHPBAnalysisWizard',
+
     # Submodules
     'base',
-    'forms'
+    'forms',
+    'shpb',
 ]

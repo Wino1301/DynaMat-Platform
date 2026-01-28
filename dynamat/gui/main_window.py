@@ -21,6 +21,7 @@ from .widgets.forms.specimen_form import SpecimenFormWidget
 from .widgets.forms.individual_manager import IndividualManagerWidget
 from .widgets.terminal_widget import TerminalWidget
 from .widgets.action_panel import ActionPanelWidget
+from .widgets.shpb import SHPBAnalysisWizard
 
 logger = logging.getLogger(__name__)
 
@@ -371,19 +372,46 @@ class MainWindow(QMainWindow):
         self.content_layout.addWidget(self.content_widget)
 
     def _show_mechanical_activity(self):
-        """Show mechanical test interface"""
-        self.content_title.setText("Mechanical Testing")
-        
-        # Create or reuse mechanical test widget
+        """Show mechanical test interface - SHPB Analysis Wizard"""
+        self.content_title.setText("Mechanical Testing - SHPB Analysis")
+
+        # Create or reuse SHPB wizard
         if "mechanical" not in self.activity_widgets:
-            # Placeholder for mechanical test widget
-            self.activity_widgets["mechanical"] = QLabel("Mechanical Testing Interface\n(Coming Soon)")
-            self.activity_widgets["mechanical"].setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.activity_widgets["mechanical"].setStyleSheet("font-size: 16px; color: gray;")
-        
+            try:
+                logger.info("Creating SHPB Analysis Wizard")
+                wizard = SHPBAnalysisWizard(
+                    self.ontology_manager,
+                    main_window=self,
+                    parent=None
+                )
+
+                # Connect signals
+                wizard.analysis_completed.connect(self._on_analysis_completed)
+                wizard.analysis_cancelled.connect(self._on_analysis_cancelled)
+
+                self.activity_widgets["mechanical"] = wizard
+                logger.info("SHPB Analysis Wizard created successfully")
+
+            except Exception as e:
+                logger.error(f"Failed to create SHPB Analysis Wizard: {e}", exc_info=True)
+                error_label = QLabel(f"Error loading SHPB Analysis:\n{str(e)}")
+                error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                error_label.setStyleSheet("color: red; font-size: 12px;")
+                self.activity_widgets["mechanical"] = error_label
+
         self.content_widget = self.activity_widgets["mechanical"]
         self.content_widget.show()
         self.content_layout.addWidget(self.content_widget)
+
+    def _on_analysis_completed(self, file_path):
+        """Handle SHPB analysis completion"""
+        self.log_message(f"SHPB analysis saved: {file_path}")
+        self.status_bar.showMessage(f"Analysis completed: {file_path}")
+
+    def _on_analysis_cancelled(self):
+        """Handle SHPB analysis cancellation"""
+        self.log_message("SHPB analysis cancelled by user")
+        self.status_bar.showMessage("Analysis cancelled")
     
     def _show_visualize_activity(self):
         """Show visualization interface"""
