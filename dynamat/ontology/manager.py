@@ -361,6 +361,10 @@ class OntologyManager:
         return SHACLValidator(self.namespace_manager, self.sparql_executor, shapes_dir)
     
     def create_query_builder(self):
-        """Create a DynaMatQueryBuilder with proper dependencies."""
-        from .query_builder import DynaMatQueryBuilder
-        return DynaMatQueryBuilder(self.sparql_executor, self.namespace_manager)
+        """
+        Create a query builder with proper dependencies.
+
+        Returns DomainQueries for backward compatibility with code that used
+        create_query_builder(). For direct access, use self.domain_queries instead.
+        """
+        return self.domain_queries

@@ -6,12 +6,12 @@ Provides ontology management and querying capabilities for the DynaMat platform.
 # Main manager class
 from .manager import OntologyManager, QueryMode
 
-# Data classes used by GUI components  
+# Data classes used by GUI components
 from .schema.gui_schema_builder import (
-    PropertyMetadata, 
+    PropertyMetadata,
     ClassMetadata,
-    UnitInfo,          
-    CacheStatus        
+    UnitInfo,
+    CacheStatus
 )
 
 # Specialized components for advanced users
@@ -21,13 +21,6 @@ from .query.sparql_executor import SPARQLExecutor
 from .query.domain_queries import DomainQueries
 from .cache.metadata_cache import MetadataCache
 from .schema.gui_schema_builder import GUISchemaBuilder
-
-# Additional components (refactored)
-from .query_builder import (
-    DynaMatQueryBuilder,
-    TestSearchCriteria,
-    SpecimenSearchCriteria
-)
 
 from .template_manager import TemplateManager, TemplateMetadata
 from .validator import SHACLValidator, ValidationReport, ValidationResult, ValidationSeverity
@@ -49,12 +42,17 @@ def create_validator(ontology_manager: 'OntologyManager', shapes_dir=None) -> SH
         shapes_dir
     )
 
-def create_query_builder(ontology_manager: 'OntologyManager') -> DynaMatQueryBuilder:
-    """Create a DynaMatQueryBuilder with proper dependencies."""
-    return DynaMatQueryBuilder(
-        ontology_manager.sparql_executor,
-        ontology_manager.namespace_manager
-    )
+def create_query_builder(ontology_manager: 'OntologyManager') -> DomainQueries:
+    """
+    Create a query builder with proper dependencies.
+
+    Returns DomainQueries for backward compatibility with code that used
+    create_query_builder(). The DomainQueries class provides all domain
+    query methods previously available in DynaMatQueryBuilder.
+
+    For direct access, use ontology_manager.domain_queries instead.
+    """
+    return ontology_manager.domain_queries
 
 def create_instance_query_builder(ontology_manager: 'OntologyManager') -> InstanceQueryBuilder:
     """Create an InstanceQueryBuilder with proper dependencies."""
@@ -64,25 +62,22 @@ __all__ = [
     # Main interface
     'OntologyManager',
     'QueryMode',
-    
+
     # Data classes
-    'PropertyMetadata', 
+    'PropertyMetadata',
     'ClassMetadata',
-    'UnitInfo',         
+    'UnitInfo',
     'CacheStatus',
-    
+
     # Specialized components
     'OntologyLoader',
-    'NamespaceManager', 
+    'NamespaceManager',
     'SPARQLExecutor',
     'DomainQueries',
     'MetadataCache',
     'GUISchemaBuilder',
-    
+
     # Additional components
-    'DynaMatQueryBuilder',
-    'TestSearchCriteria',
-    'SpecimenSearchCriteria',
     'TemplateManager',
     'TemplateMetadata',
     'SHACLValidator',

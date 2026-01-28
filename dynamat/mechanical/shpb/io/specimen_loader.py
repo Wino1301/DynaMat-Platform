@@ -44,10 +44,8 @@ class SpecimenLoader:
         Args:
             ontology_manager: OntologyManager instance
         """
-        from dynamat.ontology import create_query_builder
-
         self.ontology_manager = ontology_manager
-        self.query_builder = create_query_builder(ontology_manager)
+        self.sparql = ontology_manager.sparql_executor
         self.ns = ontology_manager.namespace_manager
 
         logger.info("SpecimenLoader initialized")
@@ -182,7 +180,7 @@ class SpecimenLoader:
         ORDER BY DESC(?date) ?specimenId
         """
 
-        results = self.query_builder.sparql.execute_query(query)
+        results = self.sparql.execute_query(query)
 
         # Format results into clean dictionaries
         specimens = []
@@ -228,7 +226,7 @@ class SpecimenLoader:
         }}
         """
 
-        results = self.query_builder.sparql.execute_query(query)
+        results = self.sparql.execute_query(query)
 
         # Organize properties into categories
         specimen_data = {
@@ -385,7 +383,7 @@ class SpecimenLoader:
         }}
         """
 
-        results = self.query_builder.sparql.execute_query(query)
+        results = self.sparql.execute_query(query)
 
         if not results:
             logger.warning(f"Property '{property_name}' not found for individual '{individual_uri}'")

@@ -12,17 +12,20 @@ Architecture:
 
 import logging
 from pathlib import Path
-from typing import Tuple, Optional, List, Dict, Any
+from typing import Tuple, Optional, List, Dict, Any, TYPE_CHECKING
 import pandas as pd
 import numpy as np
 from datetime import datetime
 
 from dynamat.config import config
-from dynamat.gui.parsers.instance_writer import InstanceWriter
-from dynamat.gui.core.form_validator import ValidationResult
 
 from .test_metadata import SHPBTestMetadata
 from .csv_data_handler import CSVDataHandler
+
+# Type hints only - avoid circular import at runtime
+if TYPE_CHECKING:
+    from dynamat.gui.parsers.instance_writer import InstanceWriter
+    from dynamat.gui.core.form_validator import ValidationResult
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +70,9 @@ class SHPBTestWriter:
             ontology_manager: OntologyManager instance
             qudt_manager: QUDTManager for unit conversions
         """
+        # Lazy import to avoid circular dependency
+        from dynamat.gui.parsers.instance_writer import InstanceWriter
+
         self.ontology_manager = ontology_manager
         self.qudt_manager = qudt_manager
         self.instance_writer = InstanceWriter(ontology_manager, qudt_manager)
@@ -78,7 +84,7 @@ class SHPBTestWriter:
         test_metadata: SHPBTestMetadata,
         raw_data_df: pd.DataFrame,
         processed_results: Optional[Dict[str, np.ndarray]] = None
-    ) -> Tuple[Optional[Path], ValidationResult]:
+    ) -> Tuple[Optional[Path], "ValidationResult"]:
         """
         Ingest complete SHPB test with full analysis provenance.
 
@@ -493,7 +499,7 @@ class SHPBTestWriter:
         all_instances: List[tuple],
         specimen_dir: Path,
         test_id: str
-    ) -> Tuple[Optional[Path], ValidationResult]:
+    ) -> Tuple[Optional[Path], "ValidationResult"]:
         """
         Save test TTL file with all instances using batch write.
 
