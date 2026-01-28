@@ -1,10 +1,4 @@
-"""
-DynaMat Platform - Instance Writer
-Converts GUI form data to TTL files with automatic unit conversion
-
-This is the SINGLE point where unit conversion happens during save operations.
-Converts values from user-selected units to ontology-defined storage units (dyn:hasUnit).
-"""
+"""Converts GUI form data to TTL files with automatic unit conversion and SHACL validation."""
 
 import logging
 from pathlib import Path
@@ -21,34 +15,15 @@ logger = logging.getLogger(__name__)
 
 class InstanceWriter:
     """
-    Writes GUI form data to TTL files with automatic QUDT unit conversion and SHACL validation.
-
-    Responsibilities:
-    - Convert form data dictionary to RDF graph
-    - Handle unit conversion using QUDT for measurement properties
-    - Validate RDF graph using SHACL shapes before saving
-    - Serialize graph to TTL format
-    - Save to specified file path
-
-    Unit Conversion Strategy:
-    - UnitValueWidget provides: {'value': X, 'unit': user_unit, 'reference_unit': storage_unit}
-    - If user_unit != storage_unit, convert using QUDTManager
-    - Store ONLY the converted numeric value (float) in TTL
-    - Unit information preserved in ontology via dyn:hasUnit
-
-    Validation Strategy:
-    - After creating RDF graph (with unit conversion), validate using SHACL shapes
-    - If blocking violations exist, return None (save aborted)
-    - If only warnings/infos, return path and validation_result (caller handles user confirmation)
+    Writes GUI form data to TTL files with QUDT unit conversion and SHACL validation.
+    Converts values from user-selected units to ontology-defined storage units.
     """
 
     def __init__(self, ontology_manager, qudt_manager=None):
         """
-        Initialize instance writer.
-
         Args:
             ontology_manager: OntologyManager for namespace access
-            qudt_manager: QUDTManager for unit conversions (optional but recommended)
+            qudt_manager: QUDTManager for unit conversions (optional)
         """
         self.ontology = ontology_manager
         self.qudt = qudt_manager
@@ -80,35 +55,14 @@ class InstanceWriter:
 
         Args:
             form_data: Dictionary from FormDataHandler (property_uri -> widget_value)
-            class_uri: RDF class URI (e.g., "dyn:Specimen", "dyn:MechanicalTest")
+            class_uri: RDF class URI (e.g., "dyn:Specimen")
             instance_id: Instance identifier (e.g., "DYNML-AL6061-001")
             output_path: Path where TTL file will be saved
-            additional_triples: Optional list of (subject, predicate, object) tuples to add
-            skip_validation: If True, skip SHACL validation (for testing)
+            additional_triples: Optional list of (subject, predicate, object) tuples
+            skip_validation: If True, skip SHACL validation
 
         Returns:
-            Tuple of (saved_file_path, validation_result):
-            - saved_file_path: Path to saved file, or None if save was blocked by validation
-            - validation_result: SHACL validation result with violations/warnings/infos
-
-        Example:
-            >>> writer = InstanceWriter(ontology_manager, qudt_manager)
-            >>> data = {
-            ...     'dyn:hasOriginalLength': {'value': 10.0, 'unit': 'unit:IN', 'reference_unit': 'unit:MilliM'},
-            ...     'dyn:hasSpecimenID': 'DYNML-AL6061-001',
-            ...     'dyn:hasMaterial': 'dyn:Al6061_T6'
-            ... }
-            >>> path, validation_result = writer.write_instance(
-            ...     form_data=data,
-            ...     class_uri='dyn:Specimen',
-            ...     instance_id='DYNML_AL6061_001',
-            ...     output_path=Path('specimens/DYNML-AL6061-001/DYNML-AL6061-001_specimen.ttl')
-            ... )
-            >>> if path:
-            ...     print(f"Saved to {path}")
-            >>> if validation_result.has_any_issues():
-            ...     # Caller can display ValidationResultsDialog here
-            ...     pass
+            Tuple of (saved_file_path or None if blocked, ValidationResult)
         """
         try:
             # Create RDF graph
@@ -149,16 +103,7 @@ class InstanceWriter:
             raise
 
     def _validate_instance_graph(self, graph: Graph, skip_validation: bool = False) -> ValidationResult:
-        """
-        Validate RDF instance graph with SHACL shapes.
-
-        Args:
-            graph: RDF graph containing the instance data
-            skip_validation: If True, skip validation (for testing)
-
-        Returns:
-            ValidationResult with violations, warnings, and infos
-        """
+        """Validate RDF instance graph with SHACL shapes."""
         if skip_validation:
             logger.debug("SHACL validation skipped (skip_validation=True)")
             return ValidationResult(conforms=True, raw_report="Validation skipped")
@@ -175,19 +120,8 @@ class InstanceWriter:
         return validation_result
 
     def _convert_to_rdf_value(self, value: Any) -> Union[URIRef, Literal]:
-        """
-        Convert Python/form value to RDF value with unit conversion.
-
-        This is the CORE method where unit conversion happens!
-
-        Args:
-            value: Value from form widget (could be dict with units, string, number, etc.)
-
-        Returns:
-            RDF URIRef or Literal ready for graph insertion
-        """
-        # === UNIT CONVERSION LOGIC ===
-        # Check if this is a unit-value dictionary from UnitValueWidget
+        """Convert Python/form value to RDF value, performing unit conversion if needed."""
+        # Unit-value dictionary from UnitValueWidget
         if isinstance(value, dict) and 'value' in value:
             numeric_value = value['value']
             user_unit = value.get('unit')  # Unit selected by user in dropdown
@@ -215,25 +149,20 @@ class InstanceWriter:
                         f"Unit conversion failed ({user_unit} → {reference_unit}): {e}. "
                         f"Storing original value."
                     )
-                    # Fallback: store original value if conversion fails
                     return Literal(numeric_value, datatype=XSD.double)
             else:
-                # No conversion needed (same unit, missing info, or no QUDT manager)
                 return Literal(numeric_value, datatype=XSD.double)
 
-        # === PASS THROUGH ALREADY-TYPED LITERALS ===
-        # If value is already a Literal with datatype (from test_metadata._ensure_typed_literal),
-        # pass it through unchanged to preserve the explicit typing
+        # Pass through already-typed literals unchanged
         elif isinstance(value, Literal):
             return value
 
-        # === STANDARD TYPE CONVERSIONS (no units) ===
+        # Standard type conversions
         elif isinstance(value, str):
-            # Check if it's a URI or a literal string
+            # Check if it's a URI
             if value.startswith("http") or value.startswith("dyn:") or value.startswith("unit:") or value.startswith("qkdv:"):
                 return self._resolve_uri(value)
-            # Check if it's an ISO datetime string (YYYY-MM-DDTHH:MM:SS...)
-            # Extract date part for metadata fields (hasCreatedDate, hasModifiedDate)
+            # ISO datetime string - extract date part
             elif 'T' in value and len(value) > 10:
                 try:
                     # Try to parse as ISO datetime
@@ -242,16 +171,14 @@ class InstanceWriter:
                     date_str = dt.strftime("%Y-%m-%d")
                     return Literal(date_str, datatype=XSD.date)
                 except (ValueError, AttributeError):
-                    # Not a valid ISO datetime, check if it's a simple date
                     pass
-            # Check if it's a date string (YYYY-MM-DD format)
+            # Date string (YYYY-MM-DD format)
             if len(value) == 10 and value.count('-') == 2:
                 try:
                     # Validate it's a proper date
                     datetime.strptime(value, "%Y-%m-%d")
                     return Literal(value, datatype=XSD.date)
                 except ValueError:
-                    # Not a valid date, treat as string
                     return Literal(value, datatype=XSD.string)
             else:
                 return Literal(value, datatype=XSD.string)
@@ -268,21 +195,18 @@ class InstanceWriter:
         elif isinstance(value, datetime):
             return Literal(value.isoformat(), datatype=XSD.dateTime)
 
-        elif hasattr(value, 'isoformat'):  # date objects
+        elif hasattr(value, 'isoformat'):
             return Literal(value.isoformat(), datatype=XSD.date)
 
         else:
-            # Default: convert to string
             logger.warning(f"Unknown value type {type(value)}, converting to string")
             return Literal(str(value))
 
     def _setup_namespaces(self, graph: Graph):
         """Setup standard namespaces for the graph."""
         if self.ns_manager:
-            # Use namespace manager if available
             self.ns_manager.setup_graph_namespaces(graph)
         else:
-            # Fallback: manually bind common namespaces
             graph.bind("dyn", self.DYN)
             graph.bind("gui", self.GUI)
             graph.bind("rdf", RDF)
@@ -294,13 +218,12 @@ class InstanceWriter:
             graph.bind("qkdv", self.QKDV)
 
     def _create_instance_uri(self, instance_id: str) -> str:
-        """Create full URI for instance."""
-        # Clean instance ID (remove special characters if needed)
+        """Create full URI for instance from ID."""
         clean_id = instance_id.replace(" ", "_").replace("-", "_")
         return str(self.DYN[clean_id])
 
     def _resolve_uri(self, uri_string: str) -> URIRef:
-        """Resolve prefixed URI to full URI."""
+        """Resolve prefixed URI to full URIRef."""
         if uri_string.startswith("http"):
             return URIRef(uri_string)
         elif ":" in uri_string:
@@ -314,10 +237,8 @@ class InstanceWriter:
             elif prefix == "gui":
                 return URIRef(self.GUI[local])
             else:
-                # Unknown prefix, return as-is
                 return URIRef(uri_string)
         else:
-            # No prefix, assume dyn namespace
             return URIRef(self.DYN[uri_string])
 
     def _save_graph(self, graph: Graph, output_path: Path):
@@ -325,87 +246,47 @@ class InstanceWriter:
         try:
             import re
 
-            # Serialize graph to Turtle format
             ttl_content = graph.serialize(format='turtle')
-
-            # Post-process to add explicit ^^xsd:double datatypes
-            # RDFlib omits these annotations when using "native" Turtle number syntax
 
             logger.debug("Post-processing TTL to add explicit numeric datatypes...")
 
-            # Pattern 1: Scientific notation numbers (e.g., 3e+01, 1.5e-03)
-            # These are ALWAYS doubles in our context
-            # Convert to decimal format for better readability
+            # Scientific notation numbers -> xsd:double
             scientific_pattern = r'(\s)(-?\d+\.?\d*[eE][+-]?\d+)(\s*[;,.\]])'
 
             def add_double_type(match):
                 before, number, after = match.groups()
-                # Convert scientific notation to decimal for better readability
                 try:
                     float_val = float(number)
-                    # Format without unnecessary trailing zeros
                     if float_val == 0:
                         decimal_str = "0.0"
                     elif abs(float_val) >= 1e-4 and abs(float_val) < 1e6:
-                        # Use decimal notation for reasonable range
                         decimal_str = f"{float_val:.10f}".rstrip('0').rstrip('.')
-                        # Ensure at least one decimal place for floats
                         if '.' not in decimal_str:
                             decimal_str += '.0'
                     else:
-                        # Keep scientific notation for very large/small numbers
                         decimal_str = number
                     result = f'{before}"{decimal_str}"^^xsd:double{after}'
                     logger.debug(f"  Converting scientific notation: {number} -> \"{decimal_str}\"^^xsd:double")
                     return result
                 except ValueError:
-                    # If conversion fails, keep original with type annotation
                     result = f'{before}"{number}"^^xsd:double{after}'
                     return result
 
             ttl_content = re.sub(scientific_pattern, add_double_type, ttl_content)
 
-            # Pattern 2: Decimal numbers (e.g., 10.5, 0.01, 6.35)
-            # Only match if NOT already followed by ^^ (already typed)
-            # And NOT inside quotes (already a string)
+            # Decimal numbers -> xsd:double (if not already typed)
             decimal_pattern = r'(\s)(-?\d+\.\d+)(?!\^\^)(?!")(\s*[;,.\]])'
 
             def add_decimal_type(match):
                 before, number, after = match.groups()
-                # Check if this line already has xsd: annotation nearby
                 if '^^xsd:' in ttl_content[max(0, match.start()-100):match.end()+20]:
-                    return match.group(0)  # Skip if already typed
+                    return match.group(0)
                 result = f'{before}"{number}"^^xsd:double{after}'
                 logger.debug(f"  Converting decimal: {number} -> \"{number}\"^^xsd:double")
                 return result
 
             ttl_content = re.sub(decimal_pattern, add_decimal_type, ttl_content)
 
-            # Pattern 3: Plain integers (e.g., 30, 100) -> xsd:integer
-            # Be very careful here - don't match years in dates!
-            # Only match integers that are clearly property values
-            integer_pattern = r'(\s)(-?\d+)(?![\d.\-])(?!\^\^)(\s*[;,.\]])'
-
-            def add_integer_type(match):
-                before, number, after = match.groups()
-                # Skip if in a date context (look for xsd:date nearby)
-                context = ttl_content[max(0, match.start()-100):match.end()+50]
-                if '^^xsd:date' in context or 'xsd:dateTime' in context:
-                    return match.group(0)  # Skip dates
-                # Skip if already typed
-                if '^^xsd:' in context[match.start()-100:match.end()]:
-                    return match.group(0)
-                # Skip small numbers that might be part of URIs
-                if int(number) < 1000 and 'dyn:' in context[match.start()-20:match.start()]:
-                    return match.group(0)
-                result = f'{before}"{number}"^^xsd:integer{after}'
-                logger.debug(f"  Converting integer: {number} -> \"{number}\"^^xsd:integer")
-                return result
-
-            # Only apply integer typing to clear numeric property values
-            # ttl_content = re.sub(integer_pattern, add_integer_type, ttl_content)
-
-            # Write to file
             with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(ttl_content)
 
@@ -423,28 +304,14 @@ class InstanceWriter:
         """
         Add a single RDF instance to an existing graph.
 
-        This method extracts the core instance creation logic for reuse in batch operations.
-
         Args:
             graph: RDF graph to add instance to
             form_data: Property dictionary (property_uri -> value)
-            class_uri: RDF class URI (e.g., "dyn:PulseWindow", "dyn:DataSeries")
+            class_uri: RDF class URI (e.g., "dyn:PulseWindow")
             instance_id: Instance identifier
 
         Returns:
             URIRef of the created instance
-
-        Example:
-            >>> graph = Graph()
-            >>> writer._setup_namespaces(graph)
-            >>> form_data = {
-            ...     'dyn:hasStartIndex': 32881,
-            ...     'dyn:hasEndIndex': 42633,
-            ...     'dyn:appliedToSeries': 'dyn:TEST_001_incident'
-            ... }
-            >>> instance_uri = writer.create_single_instance(
-            ...     graph, form_data, 'dyn:PulseWindow', 'TEST_001_incident_window'
-            ... )
         """
         # Create instance URI
         instance_uri = self._create_instance_uri(instance_id)
@@ -482,32 +349,13 @@ class InstanceWriter:
         """
         Create multiple RDF instances in a single graph.
 
-        This enables creating related instances (test + windows + shifts + params + metrics)
-        in one graph, avoiding temporary file creation for each instance.
-
         Args:
             instances: List of (form_data, class_uri, instance_id) tuples
             output_graph: Optional existing graph to add to (creates new if None)
 
         Returns:
             Combined RDF graph with all instances
-
-        Example:
-            >>> instances = [
-            ...     (
-            ...         {'dyn:hasStartIndex': 32881, 'dyn:hasEndIndex': 42633},
-            ...         'dyn:PulseWindow',
-            ...         'TEST_001_incident_window'
-            ...     ),
-            ...     (
-            ...         {'dyn:hasShiftValue': 1300, 'dyn:appliedToSeries': 'dyn:TEST_001_transmitted'},
-            ...         'dyn:PulseShift',
-            ...         'TEST_001_transmitted_shift'
-            ...     ),
-            ... ]
-            >>> graph = writer.create_instances_batch(instances)
         """
-        # Create or use existing graph
         if output_graph is None:
             graph = Graph()
             self._setup_namespaces(graph)
@@ -526,10 +374,7 @@ class InstanceWriter:
                                  output_path: Path,
                                  skip_validation: bool = False) -> Tuple[Optional[str], ValidationResult]:
         """
-        Write multiple instances to a single TTL file.
-
-        This replaces the temp file creation/merging pattern, enabling atomic batch operations
-        with a single validation pass for all related instances.
+        Write multiple instances to a single TTL file with validation.
 
         Args:
             instances: List of (form_data, class_uri, instance_id) tuples
@@ -537,18 +382,7 @@ class InstanceWriter:
             skip_validation: Skip SHACL validation if True
 
         Returns:
-            Tuple of (saved_file_path, validation_result):
-            - saved_file_path: Path to saved file, or None if save was blocked
-            - validation_result: SHACL validation result
-
-        Example:
-            >>> instances = [
-            ...     ({'dyn:hasStartIndex': 32881}, 'dyn:PulseWindow', 'TEST_001_inc_window'),
-            ...     ({'dyn:hasShiftValue': 1300}, 'dyn:PulseShift', 'TEST_001_trs_shift'),
-            ... ]
-            >>> path, validation = writer.write_multi_instance_file(
-            ...     instances, Path('test.ttl')
-            ... )
+            Tuple of (saved_file_path or None if blocked, ValidationResult)
         """
         try:
             # Create batch graph
@@ -585,18 +419,16 @@ class InstanceWriter:
                        ttl_file: Path,
                        skip_validation: bool = False) -> Tuple[Optional[str], ValidationResult]:
         """
-        Update existing instance by loading TTL, modifying, and re-saving with validation.
+        Update existing instance by loading TTL, modifying, and re-saving.
 
         Args:
             instance_uri: URI of instance to update
             updates: Dictionary of property_uri -> new_value
             ttl_file: Path to existing TTL file
-            skip_validation: If True, skip SHACL validation (for testing)
+            skip_validation: If True, skip SHACL validation
 
         Returns:
-            Tuple of (saved_file_path, validation_result):
-            - saved_file_path: Path to saved file, or None if save was blocked by validation
-            - validation_result: SHACL validation result
+            Tuple of (saved_file_path or None if blocked, ValidationResult)
         """
         try:
             # Load existing graph

@@ -1,7 +1,4 @@
-"""
-DynaMat Platform - Individual Writer
-Writes class individuals (User, Material, Equipment, etc.) to TTL files
-"""
+"""Writes class individuals (User, Material, Equipment, etc.) to TTL files."""
 
 import logging
 from pathlib import Path
@@ -18,21 +15,16 @@ logger = logging.getLogger(__name__)
 
 class IndividualWriter:
     """
-    Generic writer for class individuals (not instances).
-
-    Handles writing NamedIndividuals to TTL files with proper RDF structure.
+    Writes NamedIndividuals to TTL files with proper RDF structure.
     Unlike InstanceWriter (which overwrites), this appends to existing files.
     """
 
     def __init__(self, ontology_manager: OntologyManager):
         """
-        Initialize individual writer.
-
         Args:
             ontology_manager: OntologyManager instance
         """
         self.ontology_manager = ontology_manager
-        self.logger = logging.getLogger(__name__)
 
         # Define namespaces
         self.DYN = Namespace("https://dynamat.utep.edu/ontology#")
@@ -58,11 +50,11 @@ class IndividualWriter:
             Path to saved file
 
         Raises:
-            ValueError: If required data is missing
+            ValueError: If individual already exists in file
             IOError: If file write fails
         """
         try:
-            self.logger.info(f"Writing individual {individual_uri} to {output_path}")
+            logger.info(f"Writing individual {individual_uri} to {output_path}")
 
             # Create RDF graph for new individual
             new_graph = Graph()
@@ -76,7 +68,7 @@ class IndividualWriter:
             new_graph.add((individual_ref, RDF.type, OWL.NamedIndividual))
             new_graph.add((individual_ref, RDF.type, class_ref))
 
-            self.logger.debug(f"Adding {len(form_data)} properties to individual")
+            logger.debug(f"Adding {len(form_data)} properties to individual")
 
             # Add properties from form data
             for prop_uri, value in form_data.items():
@@ -86,13 +78,13 @@ class IndividualWriter:
                 try:
                     self._add_property_triple(new_graph, individual_ref, prop_uri, value)
                 except Exception as e:
-                    self.logger.warning(f"Failed to add property {prop_uri}: {e}")
+                    logger.warning(f"Failed to add property {prop_uri}: {e}")
                     continue
 
             # Load existing file if it exists
             existing_graph = Graph()
             if output_path.exists():
-                self.logger.debug(f"Loading existing file: {output_path}")
+                logger.debug(f"Loading existing file: {output_path}")
                 existing_graph.parse(output_path, format='turtle')
 
                 # Check for duplicate URI
@@ -110,18 +102,18 @@ class IndividualWriter:
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
             # Serialize entire graph back to file
-            self.logger.debug(f"Serializing graph with {len(existing_graph)} triples")
+            logger.debug(f"Serializing graph with {len(existing_graph)} triples")
             existing_graph.serialize(output_path, format='turtle')
 
-            self.logger.info(f"Successfully wrote individual to {output_path}")
+            logger.info(f"Successfully wrote individual to {output_path}")
             return output_path
 
         except Exception as e:
-            self.logger.error(f"Failed to write individual: {e}", exc_info=True)
+            logger.error(f"Failed to write individual: {e}", exc_info=True)
             raise
 
     def _bind_namespaces(self, graph: Graph):
-        """Bind common namespaces to graph"""
+        """Bind common namespaces to graph."""
         graph.bind("dyn", self.DYN)
         graph.bind("gui", self.GUI)
         graph.bind("rdf", RDF)
@@ -130,11 +122,7 @@ class IndividualWriter:
         graph.bind("xsd", XSD)
 
     def _uri_to_ref(self, uri: str) -> URIRef:
-        """
-        Convert URI string to RDFLib URIRef.
-
-        Handles prefixed URIs (dyn:User) and full URIs.
-        """
+        """Convert URI string (prefixed or full) to RDFLib URIRef."""
         if uri.startswith("dyn:"):
             local_name = uri.replace("dyn:", "")
             return self.DYN[local_name]
@@ -159,44 +147,33 @@ class IndividualWriter:
         prop_uri: str,
         value: Any
     ):
-        """
-        Add a property triple to the graph.
-
-        Handles different value types (literals, URIs, objects).
-        """
+        """Add a property triple to the graph, handling different value types."""
         prop_ref = self._uri_to_ref(prop_uri)
 
-        # Determine if value is an object reference or literal
         if isinstance(value, str) and (value.startswith("dyn:") or value.startswith("http")):
-            # Object property (reference to another individual)
             value_ref = self._uri_to_ref(value)
             graph.add((subject, prop_ref, value_ref))
-            self.logger.debug(f"Added object property: {prop_uri} -> {value}")
+            logger.debug(f"Added object property: {prop_uri} -> {value}")
 
         elif isinstance(value, bool):
-            # Boolean literal
             graph.add((subject, prop_ref, Literal(value, datatype=XSD.boolean)))
-            self.logger.debug(f"Added boolean property: {prop_uri} -> {value}")
+            logger.debug(f"Added boolean property: {prop_uri} -> {value}")
 
         elif isinstance(value, int):
-            # Integer literal
             graph.add((subject, prop_ref, Literal(value, datatype=XSD.integer)))
-            self.logger.debug(f"Added integer property: {prop_uri} -> {value}")
+            logger.debug(f"Added integer property: {prop_uri} -> {value}")
 
         elif isinstance(value, float):
-            # Double literal
             graph.add((subject, prop_ref, Literal(value, datatype=XSD.double)))
-            self.logger.debug(f"Added double property: {prop_uri} -> {value}")
+            logger.debug(f"Added double property: {prop_uri} -> {value}")
 
         elif isinstance(value, datetime):
-            # DateTime literal
             graph.add((subject, prop_ref, Literal(value.isoformat(), datatype=XSD.dateTime)))
-            self.logger.debug(f"Added dateTime property: {prop_uri} -> {value}")
+            logger.debug(f"Added dateTime property: {prop_uri} -> {value}")
 
         else:
-            # String literal (default)
             graph.add((subject, prop_ref, Literal(str(value), datatype=XSD.string)))
-            self.logger.debug(f"Added string property: {prop_uri} -> {value}")
+            logger.debug(f"Added string property: {prop_uri} -> {value}")
 
     def update_individual(
         self,
@@ -205,9 +182,7 @@ class IndividualWriter:
         output_path: Path
     ) -> Path:
         """
-        Update an existing individual in place.
-
-        Removes old triples for the individual and replaces with new data.
+        Update an existing individual by replacing its property triples.
 
         Args:
             individual_uri: URI of individual to update
@@ -218,7 +193,7 @@ class IndividualWriter:
             Path to saved file
         """
         try:
-            self.logger.info(f"Updating individual {individual_uri}")
+            logger.info(f"Updating individual {individual_uri}")
 
             if not output_path.exists():
                 raise FileNotFoundError(f"File not found: {output_path}")
@@ -239,7 +214,7 @@ class IndividualWriter:
             for triple in triples_to_remove:
                 graph.remove(triple)
 
-            self.logger.debug(f"Removed {len(triples_to_remove)} old triples")
+            logger.debug(f"Removed {len(triples_to_remove)} old triples")
 
             # Add new properties
             for prop_uri, value in form_data.items():
@@ -249,16 +224,15 @@ class IndividualWriter:
                 try:
                     self._add_property_triple(graph, individual_ref, prop_uri, value)
                 except Exception as e:
-                    self.logger.warning(f"Failed to add property {prop_uri}: {e}")
+                    logger.warning(f"Failed to add property {prop_uri}: {e}")
 
-            # Save updated graph
             graph.serialize(output_path, format='turtle')
 
-            self.logger.info(f"Successfully updated individual {individual_uri}")
+            logger.info(f"Successfully updated individual {individual_uri}")
             return output_path
 
         except Exception as e:
-            self.logger.error(f"Failed to update individual: {e}", exc_info=True)
+            logger.error(f"Failed to update individual: {e}", exc_info=True)
             raise
 
     def delete_individual(
@@ -274,10 +248,10 @@ class IndividualWriter:
             output_path: Path to TTL file
 
         Returns:
-            True if deleted successfully
+            True if deleted, False if individual not found
         """
         try:
-            self.logger.info(f"Deleting individual {individual_uri}")
+            logger.info(f"Deleting individual {individual_uri}")
 
             if not output_path.exists():
                 raise FileNotFoundError(f"File not found: {output_path}")
@@ -292,20 +266,19 @@ class IndividualWriter:
             triples_to_remove = list(graph.triples((individual_ref, None, None)))
 
             if not triples_to_remove:
-                self.logger.warning(f"Individual {individual_uri} not found in file")
+                logger.warning(f"Individual {individual_uri} not found in file")
                 return False
 
             for triple in triples_to_remove:
                 graph.remove(triple)
 
-            self.logger.debug(f"Removed {len(triples_to_remove)} triples")
+            logger.debug(f"Removed {len(triples_to_remove)} triples")
 
-            # Save updated graph
             graph.serialize(output_path, format='turtle')
 
-            self.logger.info(f"Successfully deleted individual {individual_uri}")
+            logger.info(f"Successfully deleted individual {individual_uri}")
             return True
 
         except Exception as e:
-            self.logger.error(f"Failed to delete individual: {e}", exc_info=True)
+            logger.error(f"Failed to delete individual: {e}", exc_info=True)
             raise
