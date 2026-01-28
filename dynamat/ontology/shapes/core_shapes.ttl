@@ -12,6 +12,10 @@
 # =============================================================================
 # DynaMat Platform - Core SHACL Shapes
 # Base shapes for fundamental ontology classes
+#
+# NOTE: These shapes validate against properties ACTUALLY DEFINED in the
+# DynaMat ontology. Properties that were referenced but undefined have been
+# either removed or replaced with existing equivalents.
 # =============================================================================
 
 #################################################################
@@ -21,11 +25,11 @@
 dyn:EntityShape a sh:NodeShape ;
     sh:targetClass dyn:Entity ;
     sh:property [
-        sh:path dyn:hasLabel ;
+        sh:path rdfs:label ;
         sh:datatype xsd:string ;
         sh:maxCount 1 ;
         sh:name "Label" ;
-        sh:description "Human-readable label for the entity" ;
+        sh:description "Human-readable label for the entity (using standard rdfs:label)" ;
     ] ;
     sh:property [
         sh:path dyn:hasDescription ;
@@ -35,25 +39,25 @@ dyn:EntityShape a sh:NodeShape ;
         sh:description "Detailed description of the entity" ;
     ] ;
     sh:property [
-        sh:path dyn:hasIdentifier ;
+        sh:path dyn:hasName ;
         sh:datatype xsd:string ;
         sh:maxCount 1 ;
-        sh:name "Identifier" ;
-        sh:description "Unique identifier for the entity" ;
+        sh:name "Name" ;
+        sh:description "Primary name or identifier for the entity" ;
     ] ;
     sh:property [
-        sh:path dc:created ;
+        sh:path dyn:hasCreatedDate ;
         sh:datatype xsd:dateTime ;
         sh:maxCount 1 ;
-        sh:name "Created" ;
-        sh:description "Creation date and time" ;
+        sh:name "Created Date" ;
+        sh:description "Date and time when this entity was created" ;
     ] ;
     sh:property [
-        sh:path dc:creator ;
-        sh:datatype xsd:string ;
+        sh:path dyn:hasCreatedBy ;
+        sh:class dyn:User ;
         sh:maxCount 1 ;
-        sh:name "Creator" ;
-        sh:description "Person or system that created this entity" ;
+        sh:name "Created By" ;
+        sh:description "User who created this entity" ;
     ] .
 
 #################################################################
@@ -62,34 +66,14 @@ dyn:EntityShape a sh:NodeShape ;
 
 dyn:PhysicalObjectShape a sh:NodeShape ;
     sh:targetClass dyn:PhysicalObject ;
+    # NOTE: Properties hasSerial, hasManufacturer, hasModel, hasCondition
+    # are not currently defined in the core ontology. Add them to
+    # core/DynaMat_core.ttl if this validation is needed.
     sh:property [
-        sh:path dyn:hasSerial ;
-        sh:datatype xsd:string ;
-        sh:maxCount 1 ;
-        sh:name "Serial Number" ;
-        sh:description "Serial number or unique physical identifier" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasManufacturer ;
-        sh:datatype xsd:string ;
-        sh:maxCount 1 ;
-        sh:name "Manufacturer" ;
-        sh:description "Manufacturer of the physical object" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasModel ;
-        sh:datatype xsd:string ;
-        sh:maxCount 1 ;
-        sh:name "Model" ;
-        sh:description "Model designation of the physical object" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasCondition ;
-        sh:datatype xsd:string ;
-        sh:maxCount 1 ;
-        sh:name "Condition" ;
-        sh:description "Current condition of the physical object" ;
-        sh:in ("New" "Used" "Damaged" "Calibrated" "Needs Calibration") ;
+        sh:path dyn:hasDimension ;
+        sh:datatype xsd:double ;
+        sh:name "Dimension" ;
+        sh:description "Physical dimension measurement" ;
     ] .
 
 #################################################################
@@ -98,33 +82,27 @@ dyn:PhysicalObjectShape a sh:NodeShape ;
 
 dyn:InformationObjectShape a sh:NodeShape ;
     sh:targetClass dyn:InformationObject ;
-    sh:property [
-        sh:path dyn:hasFormat ;
-        sh:datatype xsd:string ;
-        sh:maxCount 1 ;
-        sh:name "Format" ;
-        sh:description "File format or data format" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasSize ;
-        sh:datatype xsd:long ;
-        sh:maxCount 1 ;
-        sh:name "Size" ;
-        sh:description "Size in bytes" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasChecksum ;
-        sh:datatype xsd:string ;
-        sh:maxCount 1 ;
-        sh:name "Checksum" ;
-        sh:description "File checksum for integrity verification" ;
-    ] ;
+    # NOTE: Using actual AnalysisFile properties where applicable
     sh:property [
         sh:path dyn:hasFilePath ;
         sh:datatype xsd:string ;
         sh:maxCount 1 ;
         sh:name "File Path" ;
         sh:description "Path to the file on the file system" ;
+    ] ;
+    sh:property [
+        sh:path dyn:hasFileSize ;
+        sh:datatype xsd:integer ;
+        sh:maxCount 1 ;
+        sh:name "File Size" ;
+        sh:description "Size in bytes" ;
+    ] ;
+    sh:property [
+        sh:path dyn:hasFileFormat ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "File Format" ;
+        sh:description "File format or data format" ;
     ] .
 
 #################################################################
@@ -134,40 +112,89 @@ dyn:InformationObjectShape a sh:NodeShape ;
 dyn:ActivityShape a sh:NodeShape ;
     sh:targetClass dyn:Activity ;
     sh:property [
-        sh:path dyn:hasStartTime ;
-        sh:datatype xsd:dateTime ;
-        sh:maxCount 1 ;
-        sh:name "Start Time" ;
-        sh:description "Start time of the activity" ;
+        sh:path dyn:hasUser ;
+        sh:class dyn:User ;
+        sh:name "User" ;
+        sh:description "User(s) who performed the activity" ;
     ] ;
     sh:property [
-        sh:path dyn:hasEndTime ;
-        sh:datatype xsd:dateTime ;
+        sh:path dyn:hasDate ;
+        sh:datatype xsd:date ;
         sh:maxCount 1 ;
-        sh:name "End Time" ;
-        sh:description "End time of the activity" ;
-    ] ;
+        sh:name "Date" ;
+        sh:description "Date of the activity" ;
+    ] .
+
+#################################################################
+#    Mechanical Test Shape
+#################################################################
+
+dyn:MechanicalTestShape a sh:NodeShape ;
+    sh:targetClass dyn:MechanicalTest ;
     sh:property [
-        sh:path dyn:hasDuration ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Duration" ;
-        sh:description "Duration of the activity" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasStatus ;
+        sh:path dyn:hasTestID ;
         sh:datatype xsd:string ;
         sh:maxCount 1 ;
-        sh:name "Status" ;
-        sh:description "Current status of the activity" ;
-        sh:in ("Planned" "In Progress" "Completed" "Failed" "Cancelled") ;
+        sh:minCount 1 ;
+        sh:name "Test ID" ;
+        sh:description "Unique test identifier" ;
     ] ;
     sh:property [
-        sh:path dyn:hasOperator ;
-        sh:class dyn:User ;
+        sh:path dyn:hasTestDate ;
+        sh:datatype xsd:date ;
         sh:maxCount 1 ;
-        sh:name "Operator" ;
-        sh:description "User who performed the activity" ;
+        sh:name "Test Date" ;
+        sh:description "Date when the test was performed" ;
+    ] ;
+    sh:property [
+        sh:path dyn:performedOn ;
+        sh:class dyn:Specimen ;
+        sh:maxCount 1 ;
+        sh:name "Performed On" ;
+        sh:description "Specimen that the test was performed on" ;
+    ] ;
+    sh:property [
+        sh:path dyn:hasTestCondition ;
+        sh:datatype xsd:double ;
+        sh:name "Test Condition" ;
+        sh:description "Test condition parameters" ;
+    ] .
+
+#################################################################
+#    Specimen Shape
+#################################################################
+
+dyn:SpecimenShape a sh:NodeShape ;
+    sh:targetClass dyn:Specimen ;
+    sh:property [
+        sh:path dyn:hasSpecimenID ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:minCount 1 ;
+        sh:name "Specimen ID" ;
+        sh:description "Unique specimen identifier (format: DYNML-MaterialCode-Number)" ;
+        sh:pattern "^DYNML-[A-Z0-9]+-[0-9]+$" ;
+    ] ;
+    sh:property [
+        sh:path dyn:hasMaterial ;
+        sh:class dyn:Material ;
+        sh:maxCount 1 ;
+        sh:name "Material" ;
+        sh:description "Material composition of the specimen" ;
+    ] ;
+    sh:property [
+        sh:path dyn:hasOriginalLength ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Original Length" ;
+        sh:description "Initial length of specimen before testing (mm)" ;
+    ] ;
+    sh:property [
+        sh:path dyn:hasOriginalDiameter ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:name "Original Diameter" ;
+        sh:description "Initial diameter for cylindrical specimens (mm)" ;
     ] .
 
 #################################################################
@@ -176,44 +203,15 @@ dyn:ActivityShape a sh:NodeShape ;
 
 dyn:UserShape a sh:NodeShape ;
     sh:targetClass dyn:User ;
+    # NOTE: User properties (hasFirstName, hasLastName, hasEmail, etc.)
+    # are not currently defined in the core ontology. These should be
+    # added to a user_class.ttl file if needed.
     sh:property [
-        sh:path dyn:hasFirstName ;
+        sh:path dyn:hasName ;
         sh:datatype xsd:string ;
         sh:maxCount 1 ;
-        sh:minCount 1 ;
-        sh:name "First Name" ;
-        sh:description "First name of the user" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasLastName ;
-        sh:datatype xsd:string ;
-        sh:maxCount 1 ;
-        sh:minCount 1 ;
-        sh:name "Last Name" ;
-        sh:description "Last name of the user" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasEmail ;
-        sh:datatype xsd:string ;
-        sh:maxCount 1 ;
-        sh:name "Email" ;
-        sh:description "Email address of the user" ;
-        sh:pattern "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasAffiliation ;
-        sh:datatype xsd:string ;
-        sh:maxCount 1 ;
-        sh:name "Affiliation" ;
-        sh:description "Institutional affiliation" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasRole ;
-        sh:datatype xsd:string ;
-        sh:maxCount 1 ;
-        sh:name "Role" ;
-        sh:description "Role in the laboratory" ;
-        sh:in ("Graduate Student" "Undergraduate Student" "Research Assistant" "Postdoc" "Faculty" "Technician" "Administrator") ;
+        sh:name "Name" ;
+        sh:description "Name of the user" ;
     ] .
 
 #################################################################
@@ -222,44 +220,13 @@ dyn:UserShape a sh:NodeShape ;
 
 dyn:PropertyValueShape a sh:NodeShape ;
     sh:targetClass dyn:PropertyValue ;
+    # NOTE: PropertyValue uses hasProperty from Material domain.
+    # Add specific value/uncertainty properties if needed.
     sh:property [
-        sh:path dyn:hasValue ;
+        sh:path dyn:hasProperty ;
         sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:minCount 1 ;
-        sh:name "Value" ;
+        sh:name "Property Value" ;
         sh:description "Numerical value of the property" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasUnit ;
-        sh:datatype xsd:string ;
-        sh:maxCount 1 ;
-        sh:minCount 1 ;
-        sh:name "Unit" ;
-        sh:description "Unit of measurement" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasUncertainty ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Uncertainty" ;
-        sh:description "Measurement uncertainty" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasMethod ;
-        sh:datatype xsd:string ;
-        sh:maxCount 1 ;
-        sh:name "Method" ;
-        sh:description "Method used to obtain this value" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasConfidence ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Confidence Level" ;
-        sh:description "Confidence level (0-1)" ;
-        sh:minInclusive 0.0 ;
-        sh:maxInclusive 1.0 ;
     ] .
 
 #################################################################
@@ -276,56 +243,69 @@ dyn:TemplateShape a sh:NodeShape ;
         sh:description "Template version" ;
     ] ;
     sh:property [
-        sh:path dyn:hasTemplateType ;
+        sh:path dyn:hasCategory ;
         sh:datatype xsd:string ;
         sh:maxCount 1 ;
-        sh:name "Template Type" ;
-        sh:description "Type of template" ;
-        sh:in ("Material" "Specimen" "Equipment" "Test" "Simulation") ;
+        sh:name "Category" ;
+        sh:description "Category classification for the template" ;
     ] ;
     sh:property [
-        sh:path dyn:isDefault ;
-        sh:datatype xsd:boolean ;
+        sh:path dyn:hasTargetClass ;
+        sh:class owl:Class ;
         sh:maxCount 1 ;
-        sh:name "Is Default" ;
-        sh:description "Whether this is the default template" ;
+        sh:name "Target Class" ;
+        sh:description "Class that this template applies to" ;
     ] ;
     sh:property [
         sh:path dyn:hasLastModified ;
-        sh:datatype xsd:dateTime ;
+        sh:datatype xsd:date ;
         sh:maxCount 1 ;
         sh:name "Last Modified" ;
         sh:description "Last modification date" ;
     ] .
 
 #################################################################
-#    DataFile Shape
+#    AnalysisFile Shape
 #################################################################
 
-dyn:DataFileShape a sh:NodeShape ;
-    sh:targetClass dyn:DataFile ;
+dyn:AnalysisFileShape a sh:NodeShape ;
+    sh:targetClass dyn:AnalysisFile ;
     sh:property [
-        sh:path dyn:hasFileName ;
+        sh:path dyn:hasFilePath ;
         sh:datatype xsd:string ;
         sh:maxCount 1 ;
         sh:minCount 1 ;
-        sh:name "File Name" ;
-        sh:description "Name of the data file" ;
+        sh:name "File Path" ;
+        sh:description "Relative path to the data file" ;
     ] ;
     sh:property [
-        sh:path dyn:hasDataType ;
+        sh:path dyn:hasFileFormat ;
         sh:datatype xsd:string ;
         sh:maxCount 1 ;
-        sh:name "Data Type" ;
-        sh:description "Type of data contained in the file" ;
-        sh:in ("Raw" "Processed" "Calibrated" "Filtered" "Analyzed") ;
+        sh:name "File Format" ;
+        sh:description "Format of the data file (CSV, HDF5, JSON)" ;
+        sh:in ("csv" "CSV" "hdf5" "HDF5" "json" "JSON") ;
     ] ;
     sh:property [
-        sh:path dyn:hasEncoding ;
-        sh:datatype xsd:string ;
+        sh:path dyn:hasFileSize ;
+        sh:datatype xsd:integer ;
         sh:maxCount 1 ;
-        sh:name "Encoding" ;
-        sh:description "File encoding format" ;
+        sh:name "File Size" ;
+        sh:description "Size of file in bytes" ;
+    ] ;
+    sh:property [
+        sh:path dyn:hasColumnCount ;
+        sh:datatype xsd:integer ;
+        sh:maxCount 1 ;
+        sh:name "Column Count" ;
+        sh:description "Number of columns in the data file" ;
+    ] ;
+    sh:property [
+        sh:path dyn:hasDataPointCount ;
+        sh:datatype xsd:integer ;
+        sh:maxCount 1 ;
+        sh:name "Data Point Count" ;
+        sh:description "Number of data points/rows in the file" ;
     ] .
 
 #################################################################
@@ -335,24 +315,58 @@ dyn:DataFileShape a sh:NodeShape ;
 dyn:DataSeriesShape a sh:NodeShape ;
     sh:targetClass dyn:DataSeries ;
     sh:property [
-        sh:path dyn:hasSeriesName ;
-        sh:datatype xsd:string ;
+        sh:path dyn:hasSeriesType ;
+        sh:class dyn:SeriesType ;
         sh:maxCount 1 ;
-        sh:minCount 1 ;
-        sh:name "Series Name" ;
-        sh:description "Name of the data series" ;
+        sh:name "Series Type" ;
+        sh:description "Type of physical quantity represented by this data series" ;
     ] ;
     sh:property [
-        sh:path dyn:hasDataPoints ;
+        sh:path dyn:hasColumnName ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:name "Column Name" ;
+        sh:description "Name of the column in the CSV file" ;
+    ] ;
+    sh:property [
+        sh:path dyn:hasDataPointCount ;
         sh:datatype xsd:integer ;
         sh:maxCount 1 ;
-        sh:name "Data Points" ;
+        sh:name "Data Point Count" ;
         sh:description "Number of data points in the series" ;
     ] ;
     sh:property [
-        sh:path dyn:hasSamplingRate ;
-        sh:datatype xsd:double ;
+        sh:path dyn:hasSeriesUnit ;
+        sh:datatype xsd:string ;
         sh:maxCount 1 ;
-        sh:name "Sampling Rate" ;
-        sh:description "Sampling rate in Hz" ;
+        sh:name "Unit" ;
+        sh:description "QUDT unit URI for this series" ;
+    ] ;
+    sh:property [
+        sh:path dyn:hasDataFile ;
+        sh:class dyn:AnalysisFile ;
+        sh:maxCount 1 ;
+        sh:name "Data File" ;
+        sh:description "File containing this data series" ;
+    ] .
+
+#################################################################
+#    Material Shape
+#################################################################
+
+dyn:MaterialShape a sh:NodeShape ;
+    sh:targetClass dyn:Material ;
+    sh:property [
+        sh:path rdfs:label ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:minCount 1 ;
+        sh:name "Material Name" ;
+        sh:description "Name of the material" ;
+    ] ;
+    sh:property [
+        sh:path dyn:hasProperty ;
+        sh:datatype xsd:double ;
+        sh:name "Material Property" ;
+        sh:description "Measured or specified material properties" ;
     ] .

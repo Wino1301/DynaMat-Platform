@@ -765,11 +765,8 @@ dyn:hasAuthor rdf:type owl:AnnotationProperty ;
               rdfs:label "Author"@en ;
               rdfs:range xsd:string .
 
-###  https://dynamat.utep.edu/ontology#hasCreatedDate
-dyn:hasCreatedDate rdf:type owl:AnnotationProperty ;
-                   rdfs:comment "Date when the template or entity was created"@en ;
-                   rdfs:label "Created Date"@en ;
-                   rdfs:range xsd:date .
+# NOTE: dyn:hasCreatedDate is defined as owl:DatatypeProperty with xsd:dateTime range
+# at lines 184-190. Do not redeclare as AnnotationProperty here.
 
 ###  https://dynamat.utep.edu/ontology#hasLastModified
 dyn:hasLastModified rdf:type owl:AnnotationProperty ;

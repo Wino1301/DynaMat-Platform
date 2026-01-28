@@ -1,0 +1,150 @@
+@prefix : <https://dynamat.utep.edu/ontology#> .
+@prefix dc: <http://purl.org/dc/terms/> .
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix gui: <https://dynamat.utep.edu/ontology/gui#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@base <https://dynamat.utep.edu/ontology#> .
+
+# =============================================================================
+# DynaMat Platform - Annotation Vocabulary
+# Centralized definitions for all annotation properties used across the ontology
+# =============================================================================
+#
+# This file is the SINGLE SOURCE OF TRUTH for annotation property definitions.
+# Other ontology files should NOT redeclare these properties - they should only
+# USE them as annotations on data/object properties and classes.
+#
+# Categories:
+#   1. Dublin Core - Standard metadata annotations
+#   2. GUI Annotations - Form rendering and display hints
+#   3. Measurement Annotations - Unit and quantity kind metadata
+#   4. Template Annotations - Configuration and versioning metadata
+# =============================================================================
+
+[ rdf:type owl:Ontology ;
+  rdfs:label "DynaMat Annotation Vocabulary"@en ;
+  rdfs:comment "Centralized annotation property definitions for the DynaMat Platform ontology"@en
+] .
+
+#################################################################
+#    1. Dublin Core Annotations
+#################################################################
+
+###  http://purl.org/dc/terms/creator
+dc:creator rdf:type owl:AnnotationProperty ;
+           rdfs:comment "Person or organization responsible for creating the resource"@en ;
+           rdfs:label "Creator"@en .
+
+###  http://purl.org/dc/terms/license
+dc:license rdf:type owl:AnnotationProperty ;
+           rdfs:comment "License under which the resource is made available"@en ;
+           rdfs:label "License"@en .
+
+#################################################################
+#    2. GUI Annotations - Form Rendering
+#################################################################
+
+###  https://dynamat.utep.edu/ontology/gui#hasDisplayName
+gui:hasDisplayName rdf:type owl:AnnotationProperty ;
+                   rdfs:comment "Human-readable display name for GUI forms. Used as the label shown to users in form fields."@en ;
+                   rdfs:label "Display Name"@en ;
+                   rdfs:range xsd:string .
+
+###  https://dynamat.utep.edu/ontology/gui#hasDisplayOrder
+gui:hasDisplayOrder rdf:type owl:AnnotationProperty ;
+                    rdfs:comment "Display order within a form group (lower numbers first). Controls vertical ordering of fields within a section."@en ;
+                    rdfs:label "Display Order"@en ;
+                    rdfs:range xsd:integer .
+
+###  https://dynamat.utep.edu/ontology/gui#hasFormGroup
+gui:hasFormGroup rdf:type owl:AnnotationProperty ;
+                 rdfs:comment "Form group identifier for organizing properties into GUI sections. Properties with the same form group are displayed together."@en ;
+                 rdfs:label "Form Group"@en ;
+                 rdfs:range xsd:string .
+
+###  https://dynamat.utep.edu/ontology/gui#hasGroupOrder
+gui:hasGroupOrder rdf:type owl:AnnotationProperty ;
+                  rdfs:comment "Display order for form groups within a class (lower numbers first). Controls vertical ordering of sections."@en ;
+                  rdfs:label "Group Order"@en ;
+                  rdfs:domain owl:Class ;
+                  rdfs:range xsd:integer .
+
+###  https://dynamat.utep.edu/ontology/gui#hasValidValues
+gui:hasValidValues rdf:type owl:AnnotationProperty ;
+                   rdfs:comment "Comma-separated list of valid values for dropdown selections. Used to constrain input options in forms."@en ;
+                   rdfs:label "Valid Values"@en ;
+                   rdfs:range xsd:string .
+
+###  https://dynamat.utep.edu/ontology/gui#isReadOnly
+gui:isReadOnly rdf:type owl:AnnotationProperty ;
+               rdfs:comment "Indicates if a property should be read-only in GUI forms. Read-only fields are displayed but cannot be edited."@en ;
+               rdfs:label "Read Only"@en ;
+               rdfs:range xsd:boolean .
+
+###  https://dynamat.utep.edu/ontology/gui#allowsUserCreation
+gui:allowsUserCreation rdf:type owl:AnnotationProperty ;
+                       rdfs:comment "Indicates whether users can create new individuals of this class through the GUI. Classes without this annotation or with false value have fixed individuals defined in the ontology."@en ;
+                       rdfs:label "Allows User Creation"@en ;
+                       rdfs:domain owl:Class ;
+                       rdfs:range xsd:boolean .
+
+#################################################################
+#    3. Measurement Annotations - Units and Quantities
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasUnit
+dyn:hasUnit rdf:type owl:AnnotationProperty ;
+            rdfs:comment "QUDT unit identifier for measurement properties (e.g., 'unit:MilliM', 'unit:MegaPA'). Used by GUI to display appropriate units."@en ;
+            rdfs:label "Unit"@en ;
+            rdfs:range xsd:string .
+
+###  http://qudt.org/schema/qudt/hasQuantityKind
+qudt:hasQuantityKind rdf:type owl:AnnotationProperty ;
+                     rdfs:comment "QUDT quantity kind for measurement properties (e.g., qkdv:Length, qkdv:Stress). Used to categorize physical quantities and enable unit conversions."@en ;
+                     rdfs:label "Quantity Kind"@en .
+
+#################################################################
+#    4. Template and Metadata Annotations
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasCategory
+dyn:hasCategory rdf:type owl:AnnotationProperty ;
+                rdfs:comment "Category classification for templates and entities"@en ;
+                rdfs:label "Category"@en ;
+                rdfs:range xsd:string .
+
+###  https://dynamat.utep.edu/ontology#hasVersion
+dyn:hasVersion rdf:type owl:AnnotationProperty ;
+               rdfs:comment "Version identifier for templates and configurations (e.g., '1.0.0')"@en ;
+               rdfs:label "Version"@en ;
+               rdfs:range xsd:string .
+
+###  https://dynamat.utep.edu/ontology#hasTargetClass
+dyn:hasTargetClass rdf:type owl:AnnotationProperty ;
+                   rdfs:comment "Target class that a template applies to"@en ;
+                   rdfs:label "Target Class"@en ;
+                   rdfs:range owl:Class .
+
+###  https://dynamat.utep.edu/ontology#hasAuthor
+dyn:hasAuthor rdf:type owl:AnnotationProperty ;
+              rdfs:comment "Author or creator of the template or entity"@en ;
+              rdfs:label "Author"@en ;
+              rdfs:range xsd:string .
+
+###  https://dynamat.utep.edu/ontology#hasLastModified
+dyn:hasLastModified rdf:type owl:AnnotationProperty ;
+                    rdfs:comment "Date when the template or entity was last modified"@en ;
+                    rdfs:label "Last Modified"@en ;
+                    rdfs:range xsd:date .
+
+###  https://dynamat.utep.edu/ontology#hasTags
+dyn:hasTags rdf:type owl:AnnotationProperty ;
+            rdfs:comment "Comma-separated tags for categorization and search"@en ;
+            rdfs:label "Tags"@en ;
+            rdfs:range xsd:string .
+
+###  Generated by DynaMat Platform Ontology Cleanup

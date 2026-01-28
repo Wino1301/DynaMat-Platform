@@ -14,41 +14,8 @@
 [ rdf:type owl:Ontology
  ] .
 
-#################################################################
-#    Annotation properties
-#################################################################
-
-###  http://qudt.org/schema/qudt/hasQuantityKind
-qudt:hasQuantityKind rdf:type owl:AnnotationProperty .
-
-
-###  https://dynamat.utep.edu/ontology#hasUnit
-dyn:hasUnit rdf:type owl:AnnotationProperty .
-
-
-###  https://dynamat.utep.edu/ontology/gui#hasDisplayName
-gui:hasDisplayName rdf:type owl:AnnotationProperty .
-
-
-###  https://dynamat.utep.edu/ontology/gui#hasDisplayOrder
-gui:hasDisplayOrder rdf:type owl:AnnotationProperty .
-
-
-###  https://dynamat.utep.edu/ontology/gui#hasFormGroup
-gui:hasFormGroup rdf:type owl:AnnotationProperty .
-
-
-###  https://dynamat.utep.edu/ontology/gui#hasValidValues
-gui:hasValidValues rdf:type owl:AnnotationProperty .
-
-
-###  https://dynamat.utep.edu/ontology/gui#hasGroupOrder
-gui:hasGroupOrder rdf:type owl:AnnotationProperty .
-
-
-###  https://dynamat.utep.edu/ontology/gui#isReadOnly
-gui:isReadOnly rdf:type owl:AnnotationProperty .
-
+# NOTE: Annotation properties (gui:*, qudt:hasQuantityKind, dyn:hasUnit) are
+# defined in core/annotation_vocabulary.ttl - do not redeclare here.
 
 #################################################################
 #    Classes

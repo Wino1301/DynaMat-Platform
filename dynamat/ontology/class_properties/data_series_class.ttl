@@ -14,33 +14,8 @@
 [ rdf:type owl:Ontology
  ] .
 
-#################################################################
-#    Annotation properties
-#################################################################
-
-###  http://qudt.org/schema/qudt/hasQuantityKind
-qudt:hasQuantityKind rdf:type owl:AnnotationProperty .
-
-
-###  https://dynamat.utep.edu/ontology#hasUnit
-dyn:hasUnit rdf:type owl:AnnotationProperty .
-
-
-###  https://dynamat.utep.edu/ontology/gui#hasDisplayName
-gui:hasDisplayName rdf:type owl:AnnotationProperty .
-
-
-###  https://dynamat.utep.edu/ontology/gui#hasDisplayOrder
-gui:hasDisplayOrder rdf:type owl:AnnotationProperty .
-
-
-###  https://dynamat.utep.edu/ontology/gui#hasFormGroup
-gui:hasFormGroup rdf:type owl:AnnotationProperty .
-
-
-###  https://dynamat.utep.edu/ontology/gui#hasValidValues
-gui:hasValidValues rdf:type owl:AnnotationProperty .
-
+# NOTE: Annotation properties (gui:*, qudt:hasQuantityKind, dyn:hasUnit) are
+# defined in core/annotation_vocabulary.ttl - do not redeclare here.
 
 #################################################################
 #    Classes
@@ -314,11 +289,14 @@ dyn:hasQuantityKind rdf:type owl:DatatypeProperty ,
 #################################################################
 
 ###  https://dynamat.utep.edu/ontology#hasDataPointCount
+# NOTE: This property is used on both DataSeries (for series stats) and
+# AnalysisFile (for file stats). Both domains are valid.
 dyn:hasDataPointCount rdf:type owl:DatatypeProperty ,
                                owl:FunctionalProperty ;
                       rdfs:domain dyn:DataSeries ;
+                      rdfs:domain dyn:AnalysisFile ;
                       rdfs:range xsd:integer ;
-                      rdfs:comment "Number of data points in the series"@en ;
+                      rdfs:comment "Number of data points in the series or file"@en ;
                       rdfs:label "Data Point Count"@en ;
                       gui:hasDisplayName "Data Point Count" ;
                       gui:hasDisplayOrder 5 ;
@@ -515,11 +493,14 @@ dyn:hasFilePath rdf:type owl:DatatypeProperty ,
 
 
 ###  https://dynamat.utep.edu/ontology#hasFileName
+# DEPRECATED: File name is redundant - can be extracted from hasFilePath.
+# Kept for backwards compatibility with existing data.
 dyn:hasFileName rdf:type owl:DatatypeProperty ,
                          owl:FunctionalProperty ;
+                owl:deprecated true ;
                 rdfs:domain dyn:AnalysisFile ;
                 rdfs:range xsd:string ;
-                rdfs:comment "Name of the data file (e.g., raw_data.csv)"@en ;
+                rdfs:comment "DEPRECATED: Name of the data file. Use hasFilePath instead."@en ;
                 rdfs:label "File Name"@en ;
                 gui:hasDisplayName "File Name" ;
                 gui:hasDisplayOrder 2 ;
@@ -551,12 +532,27 @@ dyn:hasFileFormat rdf:type owl:DatatypeProperty ,
                   gui:hasValidValues "CSV, HDF5, JSON" .
 
 
+###  https://dynamat.utep.edu/ontology#hasColumnCount
+dyn:hasColumnCount rdf:type owl:DatatypeProperty ,
+                            owl:FunctionalProperty ;
+                   rdfs:domain dyn:AnalysisFile ;
+                   rdfs:range xsd:integer ;
+                   rdfs:comment "Number of columns in the data file"@en ;
+                   rdfs:label "Column Count"@en ;
+                   gui:hasDisplayName "Column Count" ;
+                   gui:hasDisplayOrder 5 ;
+                   gui:hasFormGroup "FileMetadata" .
+
+
 ###  https://dynamat.utep.edu/ontology#hasFileEncoding
+# DEPRECATED: File encoding metadata was defined but never populated in practice.
+# Most files are UTF-8. Kept for backwards compatibility.
 dyn:hasFileEncoding rdf:type owl:DatatypeProperty ,
                              owl:FunctionalProperty ;
+                    owl:deprecated true ;
                     rdfs:domain dyn:AnalysisFile ;
                     rdfs:range xsd:string ;
-                    rdfs:comment "Character encoding of the file (e.g., UTF-8)"@en ;
+                    rdfs:comment "DEPRECATED: Character encoding of the file. Rarely used - assume UTF-8."@en ;
                     rdfs:label "File Encoding"@en ;
                     gui:hasDisplayName "File Encoding" ;
                     gui:hasDisplayOrder 5 ;
@@ -565,11 +561,14 @@ dyn:hasFileEncoding rdf:type owl:DatatypeProperty ,
 
 
 ###  https://dynamat.utep.edu/ontology#hasProcessingDate
+# DEPRECATED: Use dyn:hasCreatedDate instead for consistency.
+# hasCreatedDate is defined in DynaMat_core.ttl with xsd:dateTime range.
 dyn:hasProcessingDate rdf:type owl:DatatypeProperty ,
                                owl:FunctionalProperty ;
+                      owl:deprecated true ;
                       rdfs:domain dyn:AnalysisFile ;
                       rdfs:range xsd:dateTime ;
-                      rdfs:comment "Timestamp when analysis was performed and file was created"@en ;
+                      rdfs:comment "DEPRECATED: Use hasCreatedDate instead."@en ;
                       rdfs:label "Processing Date"@en ;
                       gui:hasDisplayName "Processing Date" ;
                       gui:hasDisplayOrder 6 ;
@@ -577,11 +576,14 @@ dyn:hasProcessingDate rdf:type owl:DatatypeProperty ,
 
 
 ###  https://dynamat.utep.edu/ontology#hasDelimiter
+# DEPRECATED: Delimiter metadata was defined but never populated.
+# Use hasColumnSeparator on SHPBCompression for test-specific delimiter.
 dyn:hasDelimiter rdf:type owl:DatatypeProperty ,
                           owl:FunctionalProperty ;
+                 owl:deprecated true ;
                  rdfs:domain dyn:AnalysisFile ;
                  rdfs:range xsd:string ;
-                 rdfs:comment "CSV delimiter character (comma, semicolon, tab, pipe)"@en ;
+                 rdfs:comment "DEPRECATED: CSV delimiter. Use hasColumnSeparator on test class."@en ;
                  rdfs:label "Delimiter"@en ;
                  gui:hasDisplayName "CSV Delimiter" ;
                  gui:hasDisplayOrder 1 ;
@@ -590,23 +592,29 @@ dyn:hasDelimiter rdf:type owl:DatatypeProperty ,
 
 
 ###  https://dynamat.utep.edu/ontology#hasHeaderRow
+# NOTE: Changed from xsd:boolean to xsd:integer for consistency with
+# shpb_compression_class.ttl definition. Value represents 0-based row index
+# of the header row, or -1 if no header exists.
 dyn:hasHeaderRow rdf:type owl:DatatypeProperty ,
                           owl:FunctionalProperty ;
                  rdfs:domain dyn:AnalysisFile ;
-                 rdfs:range xsd:boolean ;
-                 rdfs:comment "Whether CSV file contains column headers"@en ;
+                 rdfs:range xsd:integer ;
+                 rdfs:comment "Row index containing column headers (0-based). Use -1 if no header row exists."@en ;
                  rdfs:label "Header Row"@en ;
-                 gui:hasDisplayName "Has Header Row" ;
+                 gui:hasDisplayName "Header Row Index" ;
                  gui:hasDisplayOrder 2 ;
                  gui:hasFormGroup "FileFormat" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasSkipRows
+# DEPRECATED: Skip rows metadata was defined but never populated.
+# hasHeaderRow (integer) provides sufficient information for reading files.
 dyn:hasSkipRows rdf:type owl:DatatypeProperty ,
                          owl:FunctionalProperty ;
+                owl:deprecated true ;
                 rdfs:domain dyn:AnalysisFile ;
                 rdfs:range xsd:integer ;
-                rdfs:comment "Number of initial rows to skip when reading"@en ;
+                rdfs:comment "DEPRECATED: Use hasHeaderRow instead."@en ;
                 rdfs:label "Skip Rows"@en ;
                 gui:hasDisplayName "Rows to Skip" ;
                 gui:hasDisplayOrder 3 ;
