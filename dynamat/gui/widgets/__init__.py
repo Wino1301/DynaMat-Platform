@@ -8,6 +8,11 @@ from .forms.specimen_form import SpecimenFormWidget
 
 # Import from base
 from .base.unit_value_widget import UnitValueWidget
+from .base.entity_selector import (
+    EntitySelectorConfig,
+    EntitySelectorWidget,
+    EntitySelectorDialog,
+)
 
 # Import from root widgets (maintaining compatibility)
 from .terminal_widget import TerminalWidget
@@ -28,6 +33,11 @@ __all__ = [
 
     # Base widgets
     'UnitValueWidget',
+
+    # Entity selector
+    'EntitySelectorConfig',
+    'EntitySelectorWidget',
+    'EntitySelectorDialog',
 
     # Dialogs
     'ValidationResultsDialog',

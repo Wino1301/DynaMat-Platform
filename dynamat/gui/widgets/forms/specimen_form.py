@@ -22,7 +22,7 @@ from ...builders.ontology_form_builder import OntologyFormBuilder
 from ...builders.layout_manager import LayoutStyle
 from ...parsers.instance_writer import InstanceWriter
 from ...widgets.validation_results_dialog import ValidationResultsDialog
-from ...widgets.load_entity_dialog import LoadEntityDialog
+from ...widgets.base.entity_selector import EntitySelectorConfig, EntitySelectorDialog
 from ...core.form_validator import ValidationResult
 from ....config import config
 
@@ -413,7 +413,7 @@ class SpecimenFormWidget(QWidget):
             QMessageBox.critical(self, "Error", f"Failed to create new specimen: {str(e)}")
 
     def load_existing_specimen(self):
-        """Open dialog to load existing specimen using SPARQL query"""
+        """Open dialog to load existing specimen using EntitySelectorDialog"""
         if self.is_modified:
             reply = QMessageBox.question(
                 self, "Unsaved Changes",
@@ -424,43 +424,66 @@ class SpecimenFormWidget(QWidget):
                 return
 
         try:
-            # Create dialog with specimen-specific display properties
-            dialog = LoadEntityDialog(
-                query_builder=self.instance_query_builder,
-                class_uri="https://dynamat.utep.edu/ontology#Specimen",
-                display_properties=["hasSpecimenID", "hasMaterial", "hasShape", "hasStructure"],
+            # DynaMat namespace
+            DYN_NS = "https://dynamat.utep.edu/ontology#"
+
+            # Configure entity selector
+            selector_config = EntitySelectorConfig(
+                class_uri=f"{DYN_NS}Specimen",
+                display_properties=[
+                    f"{DYN_NS}hasSpecimenID",
+                    f"{DYN_NS}hasMaterial",
+                    f"{DYN_NS}hasShape",
+                    f"{DYN_NS}hasStructure",
+                ],
                 property_labels={
-                    "hasSpecimenID": "Specimen ID",
-                    "hasMaterial": "Material",
-                    "hasShape": "Shape",
-                    "hasStructure": "Structure"
+                    f"{DYN_NS}hasSpecimenID": "Specimen ID",
+                    f"{DYN_NS}hasMaterial": "Material",
+                    f"{DYN_NS}hasShape": "Shape",
+                    f"{DYN_NS}hasStructure": "Structure",
                 },
+                filter_properties=[f"{DYN_NS}hasMaterial"],
+                filter_labels={
+                    f"{DYN_NS}hasMaterial": "Material",
+                },
+                details_properties=[
+                    f"{DYN_NS}hasSpecimenID",
+                    f"{DYN_NS}hasMaterial",
+                    f"{DYN_NS}hasShape",
+                    f"{DYN_NS}hasStructure",
+                    f"{DYN_NS}hasOriginalHeight",
+                    f"{DYN_NS}hasOriginalDiameter",
+                ],
+                show_details_panel=True,
+            )
+
+            # Use static method for convenience
+            data = EntitySelectorDialog.select_entity(
+                config=selector_config,
+                query_builder=self.instance_query_builder,
+                ontology_manager=self.ontology_manager,
                 title="Load Existing Specimen",
                 parent=self
             )
 
-            # Show dialog and handle result
-            if dialog.exec() == QDialog.DialogCode.Accepted:
-                data = dialog.get_selected_data()
+            if data:
+                # Debug logging
+                self.logger.info(f"Dialog returned {len(data)} properties")
+                self.logger.debug(f"Data keys: {list(data.keys())[:10]}")  # First 10 keys
 
-                if data:
-                    # Debug logging
-                    self.logger.info(f"Dialog returned {len(data)} properties")
-                    self.logger.debug(f"Data keys: {list(data.keys())[:10]}")  # First 10 keys
+                # Load data into form
+                self.logger.info("Calling load_specimen_data...")
+                self.load_specimen_data(data)
 
-                    # Load data into form
-                    self.logger.info("Calling load_specimen_data...")
-                    self.load_specimen_data(data)
+                # Update current specimen URI
+                self.current_specimen_uri = data.get('uri')
 
-                    # Update current specimen URI
-                    self.current_specimen_uri = data.get('uri')
-
-                    # Update status
-                    specimen_id = data.get('https://dynamat.utep.edu/ontology#hasSpecimenID', 'Unknown')
-                    self.status_label.setText(f"Loaded specimen: {specimen_id}")
-                    self.logger.info(f"Loaded existing specimen: {specimen_id}")
-                else:
-                    self.logger.warning("Dialog returned no data")
+                # Update status
+                specimen_id = data.get(f'{DYN_NS}hasSpecimenID', 'Unknown')
+                self.status_label.setText(f"Loaded specimen: {specimen_id}")
+                self.logger.info(f"Loaded existing specimen: {specimen_id}")
+            else:
+                self.logger.debug("Dialog was cancelled or returned no data")
 
         except Exception as e:
             self.logger.error(f"Failed to load existing specimen: {e}", exc_info=True)
