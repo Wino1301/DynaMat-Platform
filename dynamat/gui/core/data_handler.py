@@ -627,11 +627,18 @@ class FormDataHandler:
             if isinstance(value, dict):
                 # Set value and unit separately
                 if 'value' in value:
-                    widget.setValue(float(value['value']))
+                    val = value['value']
+                    # Handle empty strings and None
+                    if val is None or val == '':
+                        return False
+                    widget.setValue(float(val))
                 if 'unit' in value:
                     widget.setUnit(value['unit'])
                 return True
             else:
+                # Handle empty strings and None
+                if value is None or value == '':
+                    return False
                 # Set just the numeric value
                 widget.setValue(float(value))
                 return True
