@@ -4,6 +4,7 @@ Core embeddable widget for selecting entities using SPARQL queries
 """
 
 import logging
+import re
 from typing import Dict, List, Optional, Any
 
 from PyQt6.QtWidgets import (
@@ -97,6 +98,10 @@ class EntitySelectorWidget(QWidget):
         self._status_label: Optional[QLabel] = None
 
         self._setup_ui()
+
+        # Load filter options if ontology manager available
+        if self.ontology_manager and self._filter_panel:
+            self._filter_panel.load_filter_options_from_ontology()
 
         # Load data if query builder available
         if self.query_builder:
@@ -218,9 +223,21 @@ class EntitySelectorWidget(QWidget):
             row = selected_rows[0].row()
             instance = self._get_instance_at_row(row)
             if instance:
-                if self._details_panel:
+                # Load full data for details panel (cached data only has display properties)
+                instance_data = instance
+                if self._details_panel and self.query_builder:
+                    uri = instance.get('uri')
+                    if uri:
+                        full_data = self._load_full_data_for_details(uri, instance)
+                        if full_data:
+                            instance_data = full_data
+                            self._details_panel.update_details(full_data)
+                        else:
+                            self._details_panel.update_details(instance)
+                elif self._details_panel:
                     self._details_panel.update_details(instance)
-                self.selection_changed.emit(instance)
+
+                self.selection_changed.emit(instance_data)
         else:
             # Multiple selection - emit list
             instances = [
@@ -270,6 +287,36 @@ class EntitySelectorWidget(QWidget):
             return first_item.data(Qt.ItemDataRole.UserRole)
         return None
 
+    def _load_full_data_for_details(self, uri: str, cached_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Load full instance data for details panel.
+
+        Merges cached data with full data from query builder.
+
+        Args:
+            uri: Instance URI
+            cached_data: Cached data from table
+
+        Returns:
+            Full instance data or None
+        """
+        if not self.query_builder:
+            return None
+
+        try:
+            full_data = self.query_builder.load_full_instance_data(uri)
+            if full_data:
+                # Merge with cached data (preserve file_path, uri)
+                merged = {**cached_data, **full_data}
+                merged['uri'] = uri
+                if 'file_path' in cached_data:
+                    merged['file_path'] = cached_data['file_path']
+                return merged
+        except Exception as e:
+            self.logger.debug(f"Could not load full data for {uri}: {e}")
+
+        return None
+
     def _populate_table(self, instances: List[Dict[str, Any]]):
         """
         Populate table with instance data.
@@ -304,12 +351,23 @@ class EntitySelectorWidget(QWidget):
             return ""
 
         if isinstance(value, str):
-            # Extract local name from URIs
+            # Extract local name from URIs and format for display
             if value.startswith('http://') or value.startswith('https://'):
+                # Try to get label from ontology
+                label = self._get_label_for_uri(value)
+                if label:
+                    return label
+
+                # Fall back to extracting and formatting local name
                 if '#' in value:
-                    return value.split('#')[-1]
+                    local_name = value.split('#')[-1]
                 elif '/' in value:
-                    return value.split('/')[-1]
+                    local_name = value.split('/')[-1]
+                else:
+                    local_name = value
+
+                # Format local name for readability (replace underscores with spaces)
+                return self._format_local_name(local_name)
             return value
 
         if isinstance(value, dict) and 'value' in value:
@@ -321,6 +379,60 @@ class EntitySelectorWidget(QWidget):
             return str(val)
 
         return str(value)
+
+    def _get_label_for_uri(self, uri: str) -> Optional[str]:
+        """
+        Get rdfs:label for a URI from ontology.
+
+        Args:
+            uri: URI to look up
+
+        Returns:
+            Label string or None if not found
+        """
+        if not self.ontology_manager:
+            return None
+
+        try:
+            # Query for rdfs:label
+            query = f"""
+                SELECT ?label WHERE {{
+                    <{uri}> rdfs:label ?label .
+                }}
+                LIMIT 1
+            """
+            results = self.ontology_manager.sparql_executor.execute_query(query)
+            for row in results:
+                return str(row['label'])
+        except Exception:
+            pass
+
+        return None
+
+    def _format_local_name(self, local_name: str) -> str:
+        """
+        Format a URI local name for human-readable display.
+
+        Handles patterns like:
+        - "SS316_A356" -> "SS316 A356"
+        - "CylindricalShape" -> "Cylindrical Shape"
+        - "LatticeStructure" -> "Lattice Structure"
+
+        Args:
+            local_name: Local name from URI
+
+        Returns:
+            Formatted display string
+        """
+        # Replace underscores with spaces
+        result = local_name.replace('_', ' ')
+
+        # Insert spaces before capitals in CamelCase (but not for consecutive caps like "SS316")
+        # Pattern: lowercase followed by uppercase, or uppercase followed by uppercase+lowercase
+        result = re.sub(r'([a-z])([A-Z])', r'\1 \2', result)
+        result = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1 \2', result)
+
+        return result
 
     # ============================================================================
     # PUBLIC METHODS

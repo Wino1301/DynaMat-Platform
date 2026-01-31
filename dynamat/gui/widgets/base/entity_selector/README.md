@@ -262,6 +262,8 @@ panel.populate_filter_options(
 )
 
 # Load options from ontology individuals
+# Uses get_instances_of_class() with include_subclasses=True
+# Automatically called when ontology_manager is provided at construction
 panel.load_filter_options_from_ontology()
 
 # Search text
@@ -327,14 +329,22 @@ panel.set_properties([
 
 ### Value Formatting
 
-DetailsPanel automatically formats different value types:
+Both DetailsPanel and the table automatically format values for human-readable display:
 
 | Value Type | Example Input | Displayed As |
 |------------|---------------|--------------|
 | String | `"SPN-001"` | `SPN-001` |
-| URI | `"https://...#SS316"` | `SS316` |
+| URI | `"https://...#SS316_A356"` | `SS316 A356` |
+| URI (CamelCase) | `"https://...#CylindricalShape"` | `Cylindrical Shape` |
 | Measurement dict | `{"value": 10.5, "unit": "unit:MilliM"}` | `10.5 MilliM` |
 | Empty/None | `None` or `""` | `--` |
+
+**URI Formatting Rules:**
+1. First tries to get `rdfs:label` from ontology (if available)
+2. Falls back to extracting and formatting the local name:
+   - Underscores replaced with spaces: `SS316_A356` → `SS316 A356`
+   - CamelCase spaced: `CylindricalShape` → `Cylindrical Shape`
+   - Mixed patterns: `LatticeStructure` → `Lattice Structure`
 
 ---
 
@@ -358,12 +368,14 @@ EntitySelectorWidget(QWidget)
 
 | Signal | Parameters | Description |
 |--------|------------|-------------|
-| `selection_changed` | dict | Emitted when selection changes (preview data) |
+| `selection_changed` | dict | Emitted when selection changes (full data loaded for details) |
 | `entity_selected` | dict | Emitted on double-click (full data loaded) |
 | `filter_changed` | dict | Emitted when filter values change |
 | `loading_started` | - | Emitted when data loading begins |
 | `loading_finished` | int | Emitted when loading completes (item count) |
 | `error_occurred` | str | Emitted on errors |
+
+> **Note:** When a row is selected, the widget automatically loads the full instance data (not just the display properties) to populate the details panel. This ensures properties like `hasOriginalHeight` and `hasOriginalDiameter` are shown even if they weren't in the table's display_properties.
 
 ### Constructor
 
@@ -375,6 +387,8 @@ EntitySelectorWidget(
     parent=None
 )
 ```
+
+> **Automatic Initialization:** When `ontology_manager` is provided, filter dropdowns are automatically populated with individuals from the ontology (including subclasses). When `query_builder` is provided, the table is automatically populated with instances.
 
 ### Methods
 
@@ -673,8 +687,10 @@ User types in search      -->  FilterPanel.search_changed.emit(text)
 
 User clicks table row     -->  _on_selection_changed()
                                |
-                               +-> DetailsPanel.update_details(preview_data)
-                               +-> selection_changed.emit(preview_data)
+                               +-> _load_full_data_for_details(uri)
+                               |   (loads all properties, not just display props)
+                               +-> DetailsPanel.update_details(full_data)
+                               +-> selection_changed.emit(full_data)
 
 User double-clicks row    -->  _on_double_click()
                                |
@@ -750,60 +766,6 @@ logging.getLogger('dynamat.gui.widgets.base.entity_selector').setLevel(logging.D
 # - Selection changes
 # - Error details
 ```
-
----
-
-## Migration from LoadEntityDialog
-
-The old `LoadEntityDialog` has been replaced. Here's how to migrate:
-
-### Before
-
-```python
-from dynamat.gui.widgets.load_entity_dialog import LoadEntityDialog
-
-dialog = LoadEntityDialog(
-    query_builder=self.query_builder,
-    class_uri="https://dynamat.utep.edu/ontology#Specimen",
-    display_properties=["hasSpecimenID", "hasMaterial"],
-    property_labels={"hasSpecimenID": "Specimen ID"},
-    title="Load Specimen",
-    parent=self
-)
-
-if dialog.exec() == QDialog.DialogCode.Accepted:
-    data = dialog.get_selected_data()
-```
-
-### After
-
-```python
-from dynamat.gui.widgets.base.entity_selector import (
-    EntitySelectorConfig, EntitySelectorDialog
-)
-
-data = EntitySelectorDialog.select_entity(
-    config=EntitySelectorConfig(
-        class_uri="https://dynamat.utep.edu/ontology#Specimen",
-        display_properties=["dyn:hasSpecimenID", "dyn:hasMaterial"],
-        property_labels={"dyn:hasSpecimenID": "Specimen ID"},
-        filter_properties=["dyn:hasMaterial"],  # NEW: SPARQL filtering
-        show_details_panel=True,                 # NEW: Details panel
-    ),
-    query_builder=self.query_builder,
-    title="Load Specimen",
-    parent=self
-)
-```
-
-### Key Improvements
-
-1. **SPARQL Filtering**: Filter dropdowns query at database level (efficient)
-2. **Composable**: FilterPanel and DetailsPanel can be used independently
-3. **Embeddable**: EntitySelectorWidget works in any layout, not just dialogs
-4. **Configurable**: All behavior controlled via EntitySelectorConfig
-5. **Better UX**: Details panel shows preview, search filters visible rows
-
 ---
 
 ## References

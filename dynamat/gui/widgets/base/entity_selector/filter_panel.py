@@ -178,6 +178,8 @@ class FilterPanel(QWidget):
         Load filter options from ontology individuals.
 
         Requires ontology_manager to be set.
+        Uses the same approach as widget_factory to properly query
+        subclasses and get display names.
         """
         if not self.ontology_manager:
             self.logger.warning("No ontology manager available for loading filter options")
@@ -193,25 +195,66 @@ class FilterPanel(QWidget):
 
             if range_class:
                 try:
-                    individuals = self.ontology_manager.get_available_individuals(range_class)
+                    # Use domain_queries.get_instances_of_class directly
+                    # This returns dicts with 'uri' and 'name' already extracted
+                    # and properly handles subclass hierarchy with include_subclasses=True
+                    instances = self.ontology_manager.domain_queries.get_instances_of_class(
+                        range_class,
+                        include_subclasses=True
+                    )
+
+                    self.logger.info(f"Found {len(instances)} individuals for filter {prop_uri} (class: {range_class})")
 
                     # Convert to (uri, label) tuples
                     options = []
-                    for ind_uri, ind_label in individuals:
-                        # Use label if available, otherwise extract from URI
-                        if ind_label:
-                            display = ind_label
-                        elif '#' in ind_uri:
-                            display = ind_uri.split('#')[-1]
-                        else:
-                            display = ind_uri.split('/')[-1]
+                    for instance in instances:
+                        uri = instance['uri']
+                        # Use 'name' from the query result (already has fallback logic)
+                        label = instance.get('name', uri.split('#')[-1] if '#' in uri else uri)
+                        options.append((uri, label))
 
-                        options.append((ind_uri, display))
+                    # Sort by label for user-friendly display
+                    options.sort(key=lambda x: x[1])
 
                     self.populate_filter_options(prop_uri, options)
 
                 except Exception as e:
-                    self.logger.error(f"Failed to load individuals for {prop_uri}: {e}")
+                    self.logger.error(f"Failed to load individuals for {prop_uri}: {e}", exc_info=True)
+
+    def _get_individual_label(self, uri: str) -> str:
+        """
+        Get a display label for an individual URI.
+
+        Tries to get rdfs:label from ontology, falls back to local name.
+
+        Args:
+            uri: Individual URI
+
+        Returns:
+            Display label
+        """
+        # Try to get label from ontology
+        if self.ontology_manager:
+            try:
+                # Query for rdfs:label
+                query = f"""
+                    SELECT ?label WHERE {{
+                        <{uri}> rdfs:label ?label .
+                    }}
+                    LIMIT 1
+                """
+                results = self.ontology_manager.sparql_executor.execute_query(query)
+                for row in results:
+                    return str(row['label'])
+            except Exception:
+                pass
+
+        # Fall back to extracting local name from URI
+        if '#' in uri:
+            return uri.split('#')[-1]
+        elif '/' in uri:
+            return uri.split('/')[-1]
+        return uri
 
     def _infer_range_class(self, prop_uri: str) -> Optional[str]:
         """

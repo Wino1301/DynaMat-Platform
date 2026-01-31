@@ -439,14 +439,20 @@ class InstanceQueryBuilder:
                     prop_uri = f"{self.DYN}{prop_uri}"
 
                 # Build filter based on value type
-                if isinstance(value, str):
-                    filter_clauses.append(f'?instance <{prop_uri}> "{value}"^^xsd:string')
+                # IMPORTANT: Check for URI strings BEFORE generic strings
+                # since URIs are also strings
+                if isinstance(value, URIRef):
+                    filter_clauses.append(f'?instance <{prop_uri}> <{value}>')
+                elif isinstance(value, str) and (value.startswith('http://') or value.startswith('https://')):
+                    # String that looks like a URI - treat as URI reference
+                    filter_clauses.append(f'?instance <{prop_uri}> <{value}>')
                 elif isinstance(value, bool):
                     filter_clauses.append(f'?instance <{prop_uri}> "{str(value).lower()}"^^xsd:boolean')
                 elif isinstance(value, (int, float)):
                     filter_clauses.append(f'?instance <{prop_uri}> {value}')
-                elif isinstance(value, URIRef) or (isinstance(value, str) and value.startswith('http')):
-                    filter_clauses.append(f'?instance <{prop_uri}> <{value}>')
+                elif isinstance(value, str):
+                    # Regular string literal
+                    filter_clauses.append(f'?instance <{prop_uri}> "{value}"^^xsd:string')
 
             query = f"""
                 SELECT ?instance ?filePath ?property ?value
@@ -459,6 +465,7 @@ class InstanceQueryBuilder:
                 ORDER BY ?instance
             """
 
+            self.logger.debug(f"Filter query: {query}")
             results = self.index_graph.query(query)
 
             # Group by instance
