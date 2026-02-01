@@ -60,6 +60,8 @@ class SHPBAnalysisState:
     # Test conditions
     striker_velocity: Optional[Dict[str, Any]] = None  # {'value': X, 'unit': '...'}
     striker_launch_pressure: Optional[Dict[str, Any]] = None
+    barrel_offset: Optional[Dict[str, Any]] = None
+    momentum_trap_distance: Optional[Dict[str, Any]] = None
     test_date: Optional[str] = None  # YYYY-MM-DD
     user_uri: Optional[str] = None
 
@@ -305,6 +307,8 @@ class SHPBAnalysisState:
             # Test conditions
             'striker_velocity': self.striker_velocity,
             'striker_launch_pressure': self.striker_launch_pressure,
+            'barrel_offset': self.barrel_offset,
+            'momentum_trap_distance': self.momentum_trap_distance,
 
             # Detection params - incident
             'incident_pulse_points': self.detection_params.get('incident', {}).get('pulse_points'),
