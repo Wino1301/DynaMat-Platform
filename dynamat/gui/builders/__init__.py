@@ -68,9 +68,15 @@ PyQt6 Layouts: https://doc.qt.io/qtforpython-6/
 
 from .ontology_form_builder import OntologyFormBuilder
 from .layout_manager import LayoutManager, LayoutStyle
+from .group_builder import GroupBuilder
+from .default_group_builder import DefaultGroupBuilder
+from .customizable_form_builder import CustomizableFormBuilder
 
 __all__ = [
     'OntologyFormBuilder',
     'LayoutManager',
     'LayoutStyle',
+    'GroupBuilder',
+    'DefaultGroupBuilder',
+    'CustomizableFormBuilder',
 ]

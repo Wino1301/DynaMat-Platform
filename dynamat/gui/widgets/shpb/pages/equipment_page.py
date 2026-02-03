@@ -1,34 +1,195 @@
-"""Equipment Configuration Page - Configure bars and gauges for SHPB analysis."""
+"""Equipment Configuration Page - Ontology-driven form for SHPB analysis.
+
+This page uses CustomizableFormBuilder to automatically generate the equipment
+configuration form from the SHPBTestingConfiguration class definition in the ontology.
+
+Form structure comes from gui:hasFormGroup annotations:
+- EquipmentConfiguration: Bars, gauges, momentum trap, pulse shaper (custom builder)
+- TestConditions: Velocity, pressure, date, lubrication, etc. (default builder)
+
+Widget types and constraints are automatically inferred from ontology metadata.
+
+The EquipmentConfiguration group uses a custom GroupBuilder that includes an
+intermediate display widget showing derived properties from selected equipment
+(bar wave speed, gauge factors, etc.).
+"""
 
 import logging
+import re
 from typing import Optional, Dict, Any, List, Tuple
-from datetime import date
 
 from PyQt6.QtWidgets import (
-    QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QGroupBox, QGridLayout, QComboBox, QLineEdit,
-    QDateEdit, QCheckBox, QScrollArea,
-    QWidget, QFrame
+    QVBoxLayout, QHBoxLayout, QLabel,
+    QGroupBox, QGridLayout, QScrollArea,
+    QWidget, QFrame, QFormLayout
 )
-from PyQt6.QtCore import Qt, QDate
+from PyQt6.QtCore import Qt
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.io.specimen_loader import SpecimenLoader
 from .....config import config
-from ....base.unit_value_widget import UnitValueWidget
+from .....ontology import PropertyMetadata
+from ....builders.customizable_form_builder import CustomizableFormBuilder
+from ....builders.group_builder import GroupBuilder
+from ....core.form_manager import FormField
 
 logger = logging.getLogger(__name__)
 
 
 class EquipmentPage(BaseSHPBPage):
-    """Equipment configuration page for SHPB analysis.
+    """Equipment configuration page for SHPB analysis (ontology-driven with custom groups).
 
     Features:
-    - Bar selection (striker, incident, transmission)
-    - Gauge selection (incident, transmission)
-    - Test conditions (velocity, pressure)
-    - Equipment property display
+    - Auto-generated form from SHPBTestingConfiguration ontology class
+    - Automatic widget type inference (combos for equipment, unit widgets for measurements)
+    - Constraint-based visibility (momentum trap distance only for TailoredGap)
+    - Equipment property display (derived values from selected equipment via custom group builder)
+
+    The form structure is entirely driven by GUI annotations in:
+    - dynamat/ontology/class_properties/shpb_compression_class.ttl
+    - dynamat/ontology/constraints/gui_shpb_rules.ttl
+
+    Custom group rendering:
+    - EquipmentConfiguration group uses nested _EquipmentPropertiesBuilder
+    - Other groups use default QGroupBox + QFormLayout rendering
     """
+
+    class _EquipmentPropertiesBuilder(GroupBuilder):
+        """Custom builder for equipment configuration with derived properties display.
+
+        This builder creates two sections:
+        1. Standard form group for equipment selection (bars, gauges, etc.)
+        2. Intermediate display showing derived properties from selected equipment
+        """
+
+        def build_group(
+            self,
+            group_name: str,
+            properties: List[PropertyMetadata],
+            parent: Optional[QWidget] = None
+        ) -> Tuple[QWidget, Dict[str, FormField]]:
+            """Build equipment group with standard form and properties display."""
+            # Create container with vertical layout
+            container = QWidget(parent)
+            layout = QVBoxLayout(container)
+            layout.setContentsMargins(0, 0, 0, 0)
+
+            # 1. Create standard form group for equipment selection
+            equipment_group, form_fields = self._create_equipment_form(
+                group_name, properties, container
+            )
+            layout.addWidget(equipment_group)
+
+            # 2. Create intermediate display widget for derived properties
+            properties_display = self._create_properties_display(container)
+            layout.addWidget(properties_display)
+
+            # Store references to display labels on container for external access
+            container.wave_speed_label = self.wave_speed_label
+            container.cross_section_label = self.cross_section_label
+            container.elastic_modulus_label = self.elastic_modulus_label
+            container.inc_gauge_factor_label = self.inc_gauge_factor_label
+            container.inc_gauge_distance_label = self.inc_gauge_distance_label
+            container.trans_gauge_factor_label = self.trans_gauge_factor_label
+            container.trans_gauge_distance_label = self.trans_gauge_distance_label
+            container.momentum_trap_distance_label = self.momentum_trap_distance_label
+
+            return container, form_fields
+
+        def _create_equipment_form(
+            self,
+            group_name: str,
+            properties: List[PropertyMetadata],
+            parent: QWidget
+        ) -> Tuple[QGroupBox, Dict[str, FormField]]:
+            """Create standard form group for equipment selection."""
+            # Create QGroupBox with formatted title
+            group_box = QGroupBox(self._format_group_name(group_name), parent)
+            form_layout = QFormLayout(group_box)
+
+            # Create widgets for all properties
+            widgets = self.create_widgets_for_group(properties)
+
+            # Add label-widget pairs
+            form_fields = {}
+            sorted_properties = sorted(properties, key=lambda p: p.display_order or 0)
+
+            for prop in sorted_properties:
+                if prop.uri not in widgets:
+                    continue
+
+                widget = widgets[prop.uri]
+
+                # Create label
+                label_text = prop.display_name or prop.name
+                if prop.is_required:
+                    label_text += " *"
+
+                label = QLabel(label_text)
+
+                # Add to form layout
+                form_layout.addRow(label, widget)
+
+                # Create FormField
+                form_fields[prop.uri] = FormField(
+                    widget=widget,
+                    property_uri=prop.uri,
+                    property_metadata=prop,
+                    group_name=group_name,
+                    required=prop.is_required,
+                    label=label_text,
+                    label_widget=label
+                )
+
+            return group_box, form_fields
+
+        def _create_properties_display(self, parent: QWidget) -> QGroupBox:
+            """Create intermediate display widget for derived equipment properties."""
+            props_group = QGroupBox("Equipment Properties", parent)
+            props_layout = QGridLayout(props_group)
+
+            # Bar properties (derived from selected bar equipment)
+            props_layout.addWidget(QLabel("Bar Wave Speed:"), 0, 0)
+            self.wave_speed_label = QLabel("--")
+            props_layout.addWidget(self.wave_speed_label, 0, 1)
+
+            props_layout.addWidget(QLabel("Bar Cross Section:"), 1, 0)
+            self.cross_section_label = QLabel("--")
+            props_layout.addWidget(self.cross_section_label, 1, 1)
+
+            props_layout.addWidget(QLabel("Bar Elastic Modulus:"), 2, 0)
+            self.elastic_modulus_label = QLabel("--")
+            props_layout.addWidget(self.elastic_modulus_label, 2, 1)
+
+            # Strain gauge properties (derived from selected gauge equipment)
+            props_layout.addWidget(QLabel("Incident Gauge Factor:"), 3, 0)
+            self.inc_gauge_factor_label = QLabel("--")
+            props_layout.addWidget(self.inc_gauge_factor_label, 3, 1)
+
+            props_layout.addWidget(QLabel("Incident Gauge Distance:"), 4, 0)
+            self.inc_gauge_distance_label = QLabel("--")
+            props_layout.addWidget(self.inc_gauge_distance_label, 4, 1)
+
+            props_layout.addWidget(QLabel("Transmission Gauge Factor:"), 5, 0)
+            self.trans_gauge_factor_label = QLabel("--")
+            props_layout.addWidget(self.trans_gauge_factor_label, 5, 1)
+
+            props_layout.addWidget(QLabel("Transmission Gauge Distance:"), 6, 0)
+            self.trans_gauge_distance_label = QLabel("--")
+            props_layout.addWidget(self.trans_gauge_distance_label, 6, 1)
+
+            # Momentum trap distance (from test conditions)
+            props_layout.addWidget(QLabel("Momentum Trap Distance:"), 7, 0)
+            self.momentum_trap_distance_label = QLabel("--")
+            props_layout.addWidget(self.momentum_trap_distance_label, 7, 1)
+
+            return props_group
+
+        def _format_group_name(self, group_name: str) -> str:
+            """Format group name for display (camelCase/snake_case to Title Case)."""
+            formatted = re.sub(r'([a-z])([A-Z])', r'\1 \2', group_name)
+            formatted = formatted.replace('_', ' ')
+            return formatted.title()
 
     def __init__(self, state, ontology_manager, qudt_manager=None, parent=None):
         super().__init__(state, ontology_manager, qudt_manager, parent)
@@ -37,13 +198,12 @@ class EquipmentPage(BaseSHPBPage):
         self.setSubTitle("Select the SHPB equipment and test conditions.")
 
         self.specimen_loader: Optional[SpecimenLoader] = None
-
-        # Property metadata cache
-        self._property_metadata: Dict[str, Any] = {}
-        self._class_metadata = None
+        self.form_widget: Optional[QWidget] = None
+        self.form_builder: Optional[CustomizableFormBuilder] = None
+        self.equipment_container: Optional[QWidget] = None
 
     def _setup_ui(self) -> None:
-        """Setup page UI."""
+        """Setup page UI using customizable form builder with equipment group builder."""
         layout = self._create_base_layout()
 
         # Create scrollable content
@@ -54,214 +214,121 @@ class EquipmentPage(BaseSHPBPage):
         content = QWidget()
         content_layout = QVBoxLayout(content)
 
-        # Bars section - ontology-driven
-        bars_group = self._create_group_box("Pressure Bars")
-        bars_layout = QGridLayout(bars_group)
+        # Initialize customizable form builder
+        self.form_builder = CustomizableFormBuilder(self.ontology_manager)
 
-        # Striker Bar
-        prop = self._get_property_metadata("https://dynamat.utep.edu/ontology#hasStrikerBar")
-        bars_layout.addWidget(QLabel(f"{prop.display_name}:" if prop else "Striker Bar:"), 0, 0)
-        self.striker_combo = self._create_equipment_combo(
-            "https://dynamat.utep.edu/ontology#hasStrikerBar"
+        # Register custom builder for EquipmentConfiguration group
+        # This will automatically include the equipment properties display
+        equipment_builder = self._EquipmentPropertiesBuilder(
+            self.form_builder.widget_factory
         )
-        self.striker_combo.currentIndexChanged.connect(self._on_equipment_changed)
-        bars_layout.addWidget(self.striker_combo, 0, 1)
-
-        # Incident Bar
-        prop = self._get_property_metadata("https://dynamat.utep.edu/ontology#hasIncidentBar")
-        bars_layout.addWidget(QLabel(f"{prop.display_name}:" if prop else "Incident Bar:"), 1, 0)
-        self.incident_bar_combo = self._create_equipment_combo(
-            "https://dynamat.utep.edu/ontology#hasIncidentBar"
+        self.form_builder.register_group_builder(
+            "EquipmentConfiguration",
+            equipment_builder
         )
-        self.incident_bar_combo.currentIndexChanged.connect(self._on_equipment_changed)
-        bars_layout.addWidget(self.incident_bar_combo, 1, 1)
 
-        # Transmission Bar
-        prop = self._get_property_metadata("https://dynamat.utep.edu/ontology#hasTransmissionBar")
-        bars_layout.addWidget(QLabel(f"{prop.display_name}:" if prop else "Transmission Bar:"), 2, 0)
-        self.transmission_bar_combo = self._create_equipment_combo(
-            "https://dynamat.utep.edu/ontology#hasTransmissionBar"
-        )
-        self.transmission_bar_combo.currentIndexChanged.connect(self._on_equipment_changed)
-        bars_layout.addWidget(self.transmission_bar_combo, 2, 1)
+        # Build form from ontology for SHPBTestingConfiguration class
+        try:
+            self.form_widget = self.form_builder.build_form(
+                "https://dynamat.utep.edu/ontology#SHPBTestingConfiguration",
+                parent=content
+            )
 
-        content_layout.addWidget(bars_group)
+            if self.form_widget:
+                content_layout.addWidget(self.form_widget)
+                self.logger.info("Equipment form created from ontology with custom group builder")
 
-        # Gauges section - ontology-driven
-        gauges_group = self._create_group_box("Strain Gauges")
-        gauges_layout = QGridLayout(gauges_group)
+                # Find the equipment container for property updates
+                self._find_equipment_container()
 
-        # Incident Strain Gauge
-        prop = self._get_property_metadata("https://dynamat.utep.edu/ontology#hasIncidentStrainGauge")
-        gauges_layout.addWidget(QLabel(f"{prop.display_name}:" if prop else "Incident Gauge:"), 0, 0)
-        self.incident_gauge_combo = self._create_equipment_combo(
-            "https://dynamat.utep.edu/ontology#hasIncidentStrainGauge"
-        )
-        self.incident_gauge_combo.currentIndexChanged.connect(self._on_equipment_changed)
-        gauges_layout.addWidget(self.incident_gauge_combo, 0, 1)
+            else:
+                self.logger.error("Form builder returned None")
+                error_label = QLabel("Error: Could not create form from ontology")
+                error_label.setStyleSheet("color: red;")
+                content_layout.addWidget(error_label)
 
-        # Transmission Strain Gauge
-        prop = self._get_property_metadata("https://dynamat.utep.edu/ontology#hasTransmissionStrainGauge")
-        gauges_layout.addWidget(QLabel(f"{prop.display_name}:" if prop else "Transmission Gauge:"), 1, 0)
-        self.transmission_gauge_combo = self._create_equipment_combo(
-            "https://dynamat.utep.edu/ontology#hasTransmissionStrainGauge"
-        )
-        self.transmission_gauge_combo.currentIndexChanged.connect(self._on_equipment_changed)
-        gauges_layout.addWidget(self.transmission_gauge_combo, 1, 1)
+        except Exception as e:
+            self.logger.error(f"Failed to build form from ontology: {e}", exc_info=True)
+            error_label = QLabel(f"Error creating form: {str(e)}")
+            error_label.setStyleSheet("color: red;")
+            content_layout.addWidget(error_label)
 
-        content_layout.addWidget(gauges_group)
-
-        # Optional equipment section - ontology-driven
-        optional_group = self._create_group_box("Optional Equipment")
-        optional_layout = QGridLayout(optional_group)
-
-        # Momentum Trap
-        prop = self._get_property_metadata("https://dynamat.utep.edu/ontology#hasMomentumTrap")
-        optional_layout.addWidget(QLabel(f"{prop.display_name}:" if prop else "Momentum Trap:"), 0, 0)
-        self.momentum_trap_combo = self._create_equipment_combo(
-            "https://dynamat.utep.edu/ontology#hasMomentumTrap",
-            placeholder="-- None --"
-        )
-        optional_layout.addWidget(self.momentum_trap_combo, 0, 1)
-
-        # Pulse Shaper
-        prop = self._get_property_metadata("https://dynamat.utep.edu/ontology#hasPulseShaper")
-        optional_layout.addWidget(QLabel(f"{prop.display_name}:" if prop else "Pulse Shaper:"), 1, 0)
-        self.pulse_shaper_combo = self._create_equipment_combo(
-            "https://dynamat.utep.edu/ontology#hasPulseShaper",
-            placeholder="-- None --"
-        )
-        optional_layout.addWidget(self.pulse_shaper_combo, 1, 1)
-
-        content_layout.addWidget(optional_group)
-
-        # Test conditions section - ontology-driven
-        conditions_group = self._create_group_box("Test Conditions")
-        conditions_layout = QGridLayout(conditions_group)
-
-        # Test Date (no ontology unit)
-        conditions_layout.addWidget(QLabel("Test Date:"), 0, 0)
-        self.date_edit = QDateEdit()
-        self.date_edit.setCalendarPopup(True)
-        self.date_edit.setDate(QDate.currentDate())
-        conditions_layout.addWidget(self.date_edit, 0, 1)
-
-        # Striker Velocity - UnitValueWidget from ontology
-        prop = self._get_property_metadata("https://dynamat.utep.edu/ontology#hasStrikerVelocity")
-        conditions_layout.addWidget(QLabel(f"{prop.display_name}:" if prop else "Striker Velocity:"), 1, 0)
-        self.velocity_widget = self._create_measurement_widget(
-            "https://dynamat.utep.edu/ontology#hasStrikerVelocity"
-        )
-        self.velocity_widget.setRange(0, 100)
-        self.velocity_widget.setDecimals(2)
-        conditions_layout.addWidget(self.velocity_widget, 1, 1)
-
-        # Launch Pressure - UnitValueWidget from ontology
-        prop = self._get_property_metadata("https://dynamat.utep.edu/ontology#hasStrikerLaunchPressure")
-        conditions_layout.addWidget(QLabel(f"{prop.display_name}:" if prop else "Launch Pressure:"), 2, 0)
-        self.pressure_widget = self._create_measurement_widget(
-            "https://dynamat.utep.edu/ontology#hasStrikerLaunchPressure"
-        )
-        self.pressure_widget.setRange(0, 5000000)
-        self.pressure_widget.setDecimals(1)
-        conditions_layout.addWidget(self.pressure_widget, 2, 1)
-
-        # Barrel Offset - UnitValueWidget from ontology (NEW FIELD)
-        prop = self._get_property_metadata("https://dynamat.utep.edu/ontology#hasBarrelOffset")
-        conditions_layout.addWidget(QLabel(f"{prop.display_name}:" if prop else "Barrel Offset:"), 3, 0)
-        self.barrel_offset_widget = self._create_measurement_widget(
-            "https://dynamat.utep.edu/ontology#hasBarrelOffset"
-        )
-        self.barrel_offset_widget.setRange(0, 500)
-        self.barrel_offset_widget.setDecimals(1)
-        conditions_layout.addWidget(self.barrel_offset_widget, 3, 1)
-
-        # Momentum Trap Distance - UnitValueWidget from ontology (NEW FIELD)
-        prop = self._get_property_metadata("https://dynamat.utep.edu/ontology#hasMomentumTrapTailoredDistance")
-        conditions_layout.addWidget(QLabel(f"{prop.display_name}:" if prop else "Momentum Trap Distance:"), 4, 0)
-        self.momentum_trap_distance_widget = self._create_measurement_widget(
-            "https://dynamat.utep.edu/ontology#hasMomentumTrapTailoredDistance"
-        )
-        self.momentum_trap_distance_widget.setRange(0, 1000)
-        self.momentum_trap_distance_widget.setDecimals(1)
-        conditions_layout.addWidget(self.momentum_trap_distance_widget, 4, 1)
-
-        # Lubrication checkbox (boolean property)
-        self.lubrication_check = QCheckBox("Lubrication Applied")
-        conditions_layout.addWidget(self.lubrication_check, 5, 0, 1, 2)
-
-        content_layout.addWidget(conditions_group)
-
-        # Equipment properties display
-        props_group = self._create_group_box("Equipment Properties")
-        props_layout = QGridLayout(props_group)
-
-        # Bar properties
-        props_layout.addWidget(QLabel("Bar Wave Speed:"), 0, 0)
-        self.wave_speed_label = QLabel("--")
-        props_layout.addWidget(self.wave_speed_label, 0, 1)
-
-        props_layout.addWidget(QLabel("Bar Cross Section:"), 1, 0)
-        self.cross_section_label = QLabel("--")
-        props_layout.addWidget(self.cross_section_label, 1, 1)
-
-        props_layout.addWidget(QLabel("Bar Elastic Modulus:"), 2, 0)
-        self.elastic_modulus_label = QLabel("--")
-        props_layout.addWidget(self.elastic_modulus_label, 2, 1)
-
-        props_layout.addWidget(QLabel("Incident Gauge Factor:"), 3, 0)
-        self.inc_gauge_factor_label = QLabel("--")
-        props_layout.addWidget(self.inc_gauge_factor_label, 3, 1)
-
-        props_layout.addWidget(QLabel("Transmission Gauge Factor:"), 4, 0)
-        self.trans_gauge_factor_label = QLabel("--")
-        props_layout.addWidget(self.trans_gauge_factor_label, 4, 1)
-
-        content_layout.addWidget(props_group)
         content_layout.addStretch()
-
         scroll.setWidget(content)
         layout.addWidget(scroll)
 
         self._add_status_area()
 
+    def _find_equipment_container(self) -> None:
+        """Find the equipment container widget created by EquipmentPropertiesGroupBuilder.
+
+        The custom group builder creates a container widget with references to the
+        display labels. This method finds that container so we can update the displays
+        when equipment selections change.
+        """
+        if not self.form_widget:
+            return
+
+        # The equipment container is the widget for one of the equipment properties
+        # We'll search through form_fields to find it
+        if hasattr(self.form_widget, 'form_fields'):
+            for field in self.form_widget.form_fields.values():
+                if field.group_name == "EquipmentConfiguration":
+                    # Walk up the widget tree to find the container
+                    widget = field.widget
+                    while widget and widget != self.form_widget:
+                        if hasattr(widget, 'wave_speed_label'):
+                            # Found the equipment container
+                            self.equipment_container = widget
+                            # Store label references for convenience
+                            self.wave_speed_label = widget.wave_speed_label
+                            self.cross_section_label = widget.cross_section_label
+                            self.elastic_modulus_label = widget.elastic_modulus_label
+                            self.inc_gauge_factor_label = widget.inc_gauge_factor_label
+                            self.inc_gauge_distance_label = widget.inc_gauge_distance_label
+                            self.trans_gauge_factor_label = widget.trans_gauge_factor_label
+                            self.trans_gauge_distance_label = widget.trans_gauge_distance_label
+                            self.momentum_trap_distance_label = widget.momentum_trap_distance_label
+                            self.logger.debug("Found equipment container with display labels")
+                            return
+                        widget = widget.parentWidget()
+
+        self.logger.warning("Could not find equipment container widget")
+
     def initializePage(self) -> None:
         """Initialize page when it becomes current."""
         super().initializePage()
 
-        # Initialize specimen loader
+        # Initialize specimen loader for equipment property queries
         if self.specimen_loader is None:
             self._initialize_specimen_loader()
 
         # Restore previous selections if any
         self._restore_selections()
 
+        # Connect equipment combo change handlers to update properties display
+        self._connect_equipment_handlers()
+
         # Update properties display
         self._update_properties_display()
 
     def validatePage(self) -> bool:
         """Validate before allowing Next."""
-        # Check required equipment
-        required = [
-            ("Striker Bar", self.striker_combo.currentData()),
-            ("Incident Bar", self.incident_bar_combo.currentData()),
-            ("Transmission Bar", self.transmission_bar_combo.currentData()),
-            ("Incident Gauge", self.incident_gauge_combo.currentData()),
-            ("Transmission Gauge", self.transmission_gauge_combo.currentData()),
-        ]
-
-        missing = [name for name, value in required if not value]
-
-        if missing:
-            self.show_warning(
-                "Equipment Required",
-                f"Please select: {', '.join(missing)}"
-            )
+        if not self.form_widget:
+            self.show_warning("Form Error", "Form not initialized")
             return False
 
-        # Validate test date
-        if not self.date_edit.date().isValid():
-            self.show_warning("Invalid Date", "Please select a valid test date.")
+        # Validate using form builder
+        errors = self.form_builder.validate_form(self.form_widget)
+
+        if errors:
+            error_msg = "Please fix the following errors:\n\n"
+            for field_uri, field_errors in errors.items():
+                # Extract readable field name
+                field_name = field_uri.split('#')[-1].replace('has', '').replace('_', ' ')
+                error_msg += f"• {field_name}: {', '.join(field_errors)}\n"
+
+            self.show_warning("Validation Errors", error_msg)
             return False
 
         # Save to state
@@ -291,215 +358,216 @@ class EquipmentPage(BaseSHPBPage):
         except Exception as e:
             self.logger.error(f"Failed to initialize specimen loader: {e}")
 
-    def _get_class_metadata(self):
-        """Get and cache SHPBCompression class metadata from ontology."""
-        if self._class_metadata is None:
-            try:
-                self._class_metadata = self.ontology_manager.get_class_metadata_for_form(
-                    "https://dynamat.utep.edu/ontology#SHPBCompression"
-                )
-                # Build property lookup dict
-                for prop in self._class_metadata.properties:
-                    self._property_metadata[prop.uri] = prop
-            except Exception as e:
-                self.logger.error(f"Failed to get class metadata: {e}")
-        return self._class_metadata
+    def _connect_equipment_handlers(self) -> None:
+        """Connect equipment selection changes to property display updates.
 
-    def _get_property_metadata(self, property_uri: str):
-        """Get property metadata for a specific property."""
-        self._get_class_metadata()  # Ensure metadata is loaded
-        return self._property_metadata.get(property_uri)
-
-    def _create_equipment_combo(self, property_uri: str, placeholder: str = None) -> QComboBox:
-        """Create a combo box for an object property, populated from ontology.
-
-        Reads the range class from property metadata and queries for individuals.
+        Finds the equipment combo widgets in the generated form and connects
+        them to update the equipment properties display.
         """
-        combo = QComboBox()
-        prop_meta = self._get_property_metadata(property_uri)
+        if not self.form_widget or not hasattr(self.form_widget, 'form_fields'):
+            return
 
-        if prop_meta and prop_meta.range_class:
-            # Use placeholder from ontology display_name or provided
-            display_placeholder = placeholder or f"-- Select {prop_meta.display_name} --"
-            combo.addItem(display_placeholder, None)
+        # Equipment properties that should trigger display updates
+        equipment_properties = [
+            "https://dynamat.utep.edu/ontology#hasIncidentBar",
+            "https://dynamat.utep.edu/ontology#hasIncidentStrainGauge",
+            "https://dynamat.utep.edu/ontology#hasTransmissionStrainGauge",
+            "https://dynamat.utep.edu/ontology#hasMomentumTrapTailoredDistance"
+        ]
 
-            try:
-                individuals = self.ontology_manager.get_available_individuals(prop_meta.range_class)
-                for uri, label in individuals:
-                    display_name = label or (uri.split('#')[-1] if '#' in uri else uri)
-                    combo.addItem(display_name, uri)
-            except Exception as e:
-                self.logger.warning(f"Failed to load individuals for {prop_meta.range_class}: {e}")
-        else:
-            combo.addItem(placeholder or "-- Select --", None)
+        for prop_uri in equipment_properties:
+            if prop_uri in self.form_widget.form_fields:
+                widget = self.form_widget.form_fields[prop_uri].widget
 
-        return combo
-
-    def _create_measurement_widget(self, property_uri: str) -> UnitValueWidget:
-        """Create a UnitValueWidget for a measurement property.
-
-        Uses quantity kind and default unit from ontology to populate units.
-        """
-        prop_meta = self._get_property_metadata(property_uri)
-
-        if prop_meta and prop_meta.compatible_units:
-            widget = UnitValueWidget(
-                default_unit=prop_meta.default_unit,
-                available_units=prop_meta.compatible_units,
-                property_uri=prop_meta.uri,
-                reference_unit_uri=prop_meta.default_unit
-            )
-        else:
-            # Fallback if ontology query fails
-            self.logger.warning(f"No compatible units for {property_uri}")
-            widget = UnitValueWidget()
-
-        return widget
-
-
-    def _on_equipment_changed(self) -> None:
-        """Handle equipment selection change."""
-        # Update properties display
-        self._update_properties_display()
+                # Connect appropriate signal based on widget type
+                if hasattr(widget, 'currentIndexChanged'):
+                    # QComboBox
+                    widget.currentIndexChanged.connect(self._update_properties_display)
+                elif hasattr(widget, 'valueChanged'):
+                    # UnitValueWidget
+                    widget.valueChanged.connect(self._update_properties_display)
 
     def _update_properties_display(self) -> None:
-        """Update equipment properties display."""
-        if not self.specimen_loader:
+        """Update equipment properties display from selected equipment.
+
+        Queries ontology for properties of selected equipment individuals
+        and displays them in the Equipment Properties section.
+        """
+        if not self.specimen_loader or not self.form_widget:
+            return
+
+        if not hasattr(self.form_widget, 'form_fields'):
             return
 
         try:
+            form_fields = self.form_widget.form_fields
+
             # Get incident bar properties (use for display)
-            incident_bar_uri = self.incident_bar_combo.currentData()
+            incident_bar_uri_prop = "https://dynamat.utep.edu/ontology#hasIncidentBar"
+            if incident_bar_uri_prop in form_fields:
+                widget = form_fields[incident_bar_uri_prop].widget
+                incident_bar_uri = widget.currentData() if hasattr(widget, 'currentData') else None
 
-            if incident_bar_uri:
-                # Get bar properties
-                bar_props = self.specimen_loader.get_multiple_properties(
-                    incident_bar_uri,
-                    ['hasCrossSection', 'hasMaterial']
-                )
-
-                cross_section = bar_props.get('hasCrossSection')
-                if cross_section:
-                    self.cross_section_label.setText(f"{cross_section:.2f} mm²")
-                else:
-                    self.cross_section_label.setText("--")
-
-                # Get material properties
-                material_uri = bar_props.get('hasMaterial')
-                if material_uri:
-                    mat_props = self.specimen_loader.get_multiple_properties(
-                        material_uri,
-                        ['hasWaveSpeed', 'hasElasticModulus']
+                if incident_bar_uri:
+                    # Get bar properties
+                    bar_props = self.specimen_loader.get_multiple_properties(
+                        incident_bar_uri,
+                        ['hasCrossSection', 'hasMaterial']
                     )
 
-                    wave_speed = mat_props.get('hasWaveSpeed')
-                    elastic_mod = mat_props.get('hasElasticModulus')
-
-                    if wave_speed:
-                        self.wave_speed_label.setText(f"{wave_speed:.1f} m/s")
+                    cross_section = bar_props.get('hasCrossSection')
+                    if cross_section:
+                        self.cross_section_label.setText(f"{cross_section:.2f} mm²")
                     else:
-                        self.wave_speed_label.setText("--")
+                        self.cross_section_label.setText("--")
 
-                    if elastic_mod:
-                        self.elastic_modulus_label.setText(f"{elastic_mod:.1f} GPa")
-                    else:
-                        self.elastic_modulus_label.setText("--")
+                    # Get material properties
+                    material_uri = bar_props.get('hasMaterial')
+                    if material_uri:
+                        mat_props = self.specimen_loader.get_multiple_properties(
+                            material_uri,
+                            ['hasWaveSpeed', 'hasElasticModulus']
+                        )
 
-            # Get gauge factors
-            inc_gauge_uri = self.incident_gauge_combo.currentData()
-            trans_gauge_uri = self.transmission_gauge_combo.currentData()
+                        wave_speed = mat_props.get('hasWaveSpeed')
+                        elastic_mod = mat_props.get('hasElasticModulus')
 
-            if inc_gauge_uri:
-                gauge_props = self.specimen_loader.get_multiple_properties(
-                    inc_gauge_uri, ['hasGaugeFactor']
-                )
-                gf = gauge_props.get('hasGaugeFactor')
-                self.inc_gauge_factor_label.setText(f"{gf:.3f}" if gf else "--")
-            else:
-                self.inc_gauge_factor_label.setText("--")
+                        if wave_speed:
+                            self.wave_speed_label.setText(f"{wave_speed:.1f} m/s")
+                        else:
+                            self.wave_speed_label.setText("--")
 
-            if trans_gauge_uri:
-                gauge_props = self.specimen_loader.get_multiple_properties(
-                    trans_gauge_uri, ['hasGaugeFactor']
-                )
-                gf = gauge_props.get('hasGaugeFactor')
-                self.trans_gauge_factor_label.setText(f"{gf:.3f}" if gf else "--")
-            else:
-                self.trans_gauge_factor_label.setText("--")
+                        if elastic_mod:
+                            self.elastic_modulus_label.setText(f"{elastic_mod:.1f} GPa")
+                        else:
+                            self.elastic_modulus_label.setText("--")
+
+            # Get gauge factors and distances
+            inc_gauge_uri_prop = "https://dynamat.utep.edu/ontology#hasIncidentStrainGauge"
+            trans_gauge_uri_prop = "https://dynamat.utep.edu/ontology#hasTransmissionStrainGauge"
+
+            if inc_gauge_uri_prop in form_fields:
+                widget = form_fields[inc_gauge_uri_prop].widget
+                inc_gauge_uri = widget.currentData() if hasattr(widget, 'currentData') else None
+
+                if inc_gauge_uri:
+                    gauge_props = self.specimen_loader.get_multiple_properties(
+                        inc_gauge_uri, ['hasGaugeFactor', 'hasDistanceFromSpecimen']
+                    )
+                    gf = gauge_props.get('hasGaugeFactor')
+                    distance = gauge_props.get('hasDistanceFromSpecimen')
+
+                    self.inc_gauge_factor_label.setText(f"{gf:.3f}" if gf else "--")
+                    self.inc_gauge_distance_label.setText(f"{distance:.1f} mm" if distance else "--")
+                else:
+                    self.inc_gauge_factor_label.setText("--")
+                    self.inc_gauge_distance_label.setText("--")
+
+            if trans_gauge_uri_prop in form_fields:
+                widget = form_fields[trans_gauge_uri_prop].widget
+                trans_gauge_uri = widget.currentData() if hasattr(widget, 'currentData') else None
+
+                if trans_gauge_uri:
+                    gauge_props = self.specimen_loader.get_multiple_properties(
+                        trans_gauge_uri, ['hasGaugeFactor', 'hasDistanceFromSpecimen']
+                    )
+                    gf = gauge_props.get('hasGaugeFactor')
+                    distance = gauge_props.get('hasDistanceFromSpecimen')
+
+                    self.trans_gauge_factor_label.setText(f"{gf:.3f}" if gf else "--")
+                    self.trans_gauge_distance_label.setText(f"{distance:.1f} mm" if distance else "--")
+                else:
+                    self.trans_gauge_factor_label.setText("--")
+                    self.trans_gauge_distance_label.setText("--")
+
+            # Get momentum trap distance from test conditions widget
+            mtrap_dist_prop = "https://dynamat.utep.edu/ontology#hasMomentumTrapTailoredDistance"
+            if mtrap_dist_prop in form_fields:
+                widget = form_fields[mtrap_dist_prop].widget
+                try:
+                    if hasattr(widget, 'getData'):
+                        mtrap_data = widget.getData()
+                        mtrap_value = mtrap_data.get('value', 0)
+                        mtrap_unit = mtrap_data.get('unit_symbol', 'mm')
+
+                        if mtrap_value > 0:
+                            self.momentum_trap_distance_label.setText(f"{mtrap_value:.1f} {mtrap_unit}")
+                        else:
+                            self.momentum_trap_distance_label.setText("--")
+                except Exception as e:
+                    self.logger.debug(f"Could not get momentum trap distance: {e}")
+                    self.momentum_trap_distance_label.setText("--")
 
         except Exception as e:
             self.logger.warning(f"Failed to update properties display: {e}")
 
     def _restore_selections(self) -> None:
-        """Restore previous equipment selections from state."""
-        def select_by_uri(combo: QComboBox, uri: Optional[str]):
-            if uri:
-                for i in range(combo.count()):
-                    if combo.itemData(i) == uri:
-                        combo.setCurrentIndex(i)
-                        return
+        """Restore previous selections from state."""
+        if not self.form_widget or not self.form_builder:
+            return
 
-        # Equipment combos
-        select_by_uri(self.striker_combo, self.state.striker_bar_uri)
-        select_by_uri(self.incident_bar_combo, self.state.incident_bar_uri)
-        select_by_uri(self.transmission_bar_combo, self.state.transmission_bar_uri)
-        select_by_uri(self.incident_gauge_combo, self.state.incident_gauge_uri)
-        select_by_uri(self.transmission_gauge_combo, self.state.transmission_gauge_uri)
-        select_by_uri(self.momentum_trap_combo, self.state.momentum_trap_uri)
-        select_by_uri(self.pulse_shaper_combo, self.state.pulse_shaper_uri)
+        # Build state data dict from stored state
+        state_data = {}
+
+        # Equipment URIs
+        if hasattr(self.state, 'striker_bar_uri') and self.state.striker_bar_uri:
+            state_data["https://dynamat.utep.edu/ontology#hasStrikerBar"] = self.state.striker_bar_uri
+        if hasattr(self.state, 'incident_bar_uri') and self.state.incident_bar_uri:
+            state_data["https://dynamat.utep.edu/ontology#hasIncidentBar"] = self.state.incident_bar_uri
+        if hasattr(self.state, 'transmission_bar_uri') and self.state.transmission_bar_uri:
+            state_data["https://dynamat.utep.edu/ontology#hasTransmissionBar"] = self.state.transmission_bar_uri
+        if hasattr(self.state, 'incident_gauge_uri') and self.state.incident_gauge_uri:
+            state_data["https://dynamat.utep.edu/ontology#hasIncidentStrainGauge"] = self.state.incident_gauge_uri
+        if hasattr(self.state, 'transmission_gauge_uri') and self.state.transmission_gauge_uri:
+            state_data["https://dynamat.utep.edu/ontology#hasTransmissionStrainGauge"] = self.state.transmission_gauge_uri
+        if hasattr(self.state, 'momentum_trap_uri') and self.state.momentum_trap_uri:
+            state_data["https://dynamat.utep.edu/ontology#hasMomentumTrap"] = self.state.momentum_trap_uri
+        if hasattr(self.state, 'pulse_shaper_uri') and self.state.pulse_shaper_uri:
+            state_data["https://dynamat.utep.edu/ontology#hasPulseShaper"] = self.state.pulse_shaper_uri
 
         # Test date
-        if self.state.test_date:
-            try:
-                qdate = QDate.fromString(self.state.test_date, "yyyy-MM-dd")
-                if qdate.isValid():
-                    self.date_edit.setDate(qdate)
-            except:
-                pass
+        if hasattr(self.state, 'test_date') and self.state.test_date:
+            state_data["https://dynamat.utep.edu/ontology#hasTestDate"] = self.state.test_date
 
-        # Measurement widgets - use setData()
-        if self.state.striker_velocity:
-            self.velocity_widget.setData(self.state.striker_velocity)
-
-        if self.state.striker_launch_pressure:
-            self.pressure_widget.setData(self.state.striker_launch_pressure)
-
+        # Measurement values (these are dicts with value/unit)
+        if hasattr(self.state, 'striker_velocity') and self.state.striker_velocity:
+            state_data["https://dynamat.utep.edu/ontology#hasStrikerVelocity"] = self.state.striker_velocity
+        if hasattr(self.state, 'striker_launch_pressure') and self.state.striker_launch_pressure:
+            state_data["https://dynamat.utep.edu/ontology#hasStrikerLaunchPressure"] = self.state.striker_launch_pressure
         if hasattr(self.state, 'barrel_offset') and self.state.barrel_offset:
-            self.barrel_offset_widget.setData(self.state.barrel_offset)
-
+            state_data["https://dynamat.utep.edu/ontology#hasBarrelOffset"] = self.state.barrel_offset
         if hasattr(self.state, 'momentum_trap_distance') and self.state.momentum_trap_distance:
-            self.momentum_trap_distance_widget.setData(self.state.momentum_trap_distance)
+            state_data["https://dynamat.utep.edu/ontology#hasMomentumTrapTailoredDistance"] = self.state.momentum_trap_distance
+
+        # Set form data if we have any
+        if state_data:
+            self.form_builder.set_form_data(self.form_widget, state_data)
 
     def _save_to_state(self) -> None:
-        """Save current selections to state."""
+        """Save current form data to state."""
+        if not self.form_widget or not self.form_builder:
+            return
+
+        # Get all form data
+        data = self.form_builder.get_form_data(self.form_widget)
+
         # Equipment URIs
-        self.state.striker_bar_uri = self.striker_combo.currentData()
-        self.state.incident_bar_uri = self.incident_bar_combo.currentData()
-        self.state.transmission_bar_uri = self.transmission_bar_combo.currentData()
-        self.state.incident_gauge_uri = self.incident_gauge_combo.currentData()
-        self.state.transmission_gauge_uri = self.transmission_gauge_combo.currentData()
-        self.state.momentum_trap_uri = self.momentum_trap_combo.currentData()
-        self.state.pulse_shaper_uri = self.pulse_shaper_combo.currentData()
+        self.state.striker_bar_uri = data.get("https://dynamat.utep.edu/ontology#hasStrikerBar")
+        self.state.incident_bar_uri = data.get("https://dynamat.utep.edu/ontology#hasIncidentBar")
+        self.state.transmission_bar_uri = data.get("https://dynamat.utep.edu/ontology#hasTransmissionBar")
+        self.state.incident_gauge_uri = data.get("https://dynamat.utep.edu/ontology#hasIncidentStrainGauge")
+        self.state.transmission_gauge_uri = data.get("https://dynamat.utep.edu/ontology#hasTransmissionStrainGauge")
+        self.state.momentum_trap_uri = data.get("https://dynamat.utep.edu/ontology#hasMomentumTrap")
+        self.state.pulse_shaper_uri = data.get("https://dynamat.utep.edu/ontology#hasPulseShaper")
 
         # Test date
-        self.state.test_date = self.date_edit.date().toString("yyyy-MM-dd")
+        self.state.test_date = data.get("https://dynamat.utep.edu/ontology#hasTestDate")
 
-        # Measurement widgets - use getData()
-        velocity_data = self.velocity_widget.getData()
-        if velocity_data.get('value', 0) > 0:
-            self.state.striker_velocity = velocity_data
-
-        pressure_data = self.pressure_widget.getData()
-        if pressure_data.get('value', 0) > 0:
-            self.state.striker_launch_pressure = pressure_data
-
-        barrel_data = self.barrel_offset_widget.getData()
-        if barrel_data.get('value', 0) > 0:
-            self.state.barrel_offset = barrel_data
-
-        mtrap_data = self.momentum_trap_distance_widget.getData()
-        if mtrap_data.get('value', 0) > 0:
-            self.state.momentum_trap_distance = mtrap_data
+        # Measurement values
+        self.state.striker_velocity = data.get("https://dynamat.utep.edu/ontology#hasStrikerVelocity")
+        self.state.striker_launch_pressure = data.get("https://dynamat.utep.edu/ontology#hasStrikerLaunchPressure")
+        self.state.barrel_offset = data.get("https://dynamat.utep.edu/ontology#hasBarrelOffset")
+        self.state.momentum_trap_distance = data.get("https://dynamat.utep.edu/ontology#hasMomentumTrapTailoredDistance")
 
         # Get user
         self.state.user_uri = self.get_current_user()
