@@ -26,10 +26,7 @@ dyn:hasStrainGauge rdf:type owl:ObjectProperty ;
                    rdfs:domain dyn:MechanicalTest ;
                    rdfs:range dyn:StrainGauge ;
                    rdfs:comment "Strain gauge used in test"@en ;
-                   rdfs:label "Strain Gauge"@en ;
-                   gui:hasDisplayName "Strain Gauge" ;
-                   gui:hasDisplayOrder 1 ;
-                   gui:hasFormGroup "StrainGaugeConfiguration" .
+                   rdfs:label "Strain Gauge"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasTestValidity
@@ -38,10 +35,7 @@ dyn:hasTestValidity rdf:type owl:ObjectProperty ,
                     rdfs:domain dyn:MechanicalTest ;
                     rdfs:range dyn:TestValidity ;
                     rdfs:comment "Overall assessment of test validity (ValidTest, QuestionableTest, or InvalidTest)"@en ;
-                    rdfs:label "Test Validity"@en ;
-                    gui:hasDisplayName "Test Validity" ;
-                    gui:hasDisplayOrder 1 ;
-                    gui:hasFormGroup "TestValidation" .
+                    rdfs:label "Test Validity"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasValidityCriteria
@@ -49,10 +43,7 @@ dyn:hasValidityCriteria rdf:type owl:ObjectProperty ;
                         rdfs:domain dyn:MechanicalTest ;
                         rdfs:range dyn:TestValidity ;
                         rdfs:comment "Specific validity criteria achieved by the test (e.g., ForceEquilibrium, ConstantStrainRate)"@en ;
-                        rdfs:label "Validity Criteria"@en ;
-                        gui:hasDisplayName "Validity Criteria" ;
-                        gui:hasDisplayOrder 3 ;
-                        gui:hasFormGroup "TestValidation" .
+                        rdfs:label "Validity Criteria"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasTestingMachine
@@ -79,10 +70,7 @@ dyn:hasCalibrationResistance rdf:type owl:DatatypeProperty ,
                              qudt:hasQuantityKind qkdv:Resistance ;
                              rdfs:comment "Resistance used for strain gauge calibration"@en ;
                              rdfs:label "Calibration Resistance"@en ;
-                             dyn:hasUnit "unit:OHM" ;
-                             gui:hasDisplayName "Calibration Resistance (Ω)" ;
-                             gui:hasDisplayOrder 2 ;
-                             gui:hasFormGroup "StrainGaugeConfiguration" .
+                             dyn:hasUnit "unit:OHM" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasCalibrationVoltage
@@ -93,10 +81,7 @@ dyn:hasCalibrationVoltage rdf:type owl:DatatypeProperty ,
                           qudt:hasQuantityKind qkdv:Voltage ;
                           rdfs:comment "Voltage used for strain gauge calibration"@en ;
                           rdfs:label "Calibration Voltage"@en ;
-                          dyn:hasUnit "unit:V" ;
-                          gui:hasDisplayName "Calibration Voltage (V)" ;
-                          gui:hasDisplayOrder 3 ;
-                          gui:hasFormGroup "StrainGaugeConfiguration" .
+                          dyn:hasUnit "unit:V" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasCompressionSign
@@ -105,10 +90,7 @@ dyn:hasCompressionSign rdf:type owl:DatatypeProperty ,
                        rdfs:domain dyn:MechanicalTest ;
                        rdfs:range xsd:string ;
                        rdfs:comment "Sign convention for compression (positive or negative)"@en ;
-                       rdfs:label "Compression Sign"@en ;
-                       gui:hasDisplayName "Compression Sign Convention" ;
-                       gui:hasDisplayOrder 6 ;
-                       gui:hasFormGroup "StrainGaugeConfiguration" .
+                       rdfs:label "Compression Sign"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasDataBitResolution
@@ -117,10 +99,7 @@ dyn:hasDataBitResolution rdf:type owl:DatatypeProperty ,
                          rdfs:domain dyn:MechanicalTest ;
                          rdfs:range xsd:integer ;
                          rdfs:comment "Bit resolution of data acquisition system"@en ;
-                         rdfs:label "Data Bit Resolution"@en ;
-                         gui:hasDisplayName "Data Bit Resolution (bits)" ;
-                         gui:hasDisplayOrder 4 ;
-                         gui:hasFormGroup "StrainGaugeConfiguration" .
+                         rdfs:label "Data Bit Resolution"@en .
 
 ###  https://dynamat.utep.edu/ontology#hasDisplacementRate
 dyn:hasDisplacementRate rdf:type owl:DatatypeProperty ;
@@ -155,10 +134,7 @@ dyn:hasFailureMode rdf:type owl:DatatypeProperty ,
                    rdfs:domain dyn:MechanicalTest ;
                    rdfs:range xsd:string ;
                    rdfs:comment "Mode of specimen failure"@en ;
-                   rdfs:label "Failure Mode"@en ;
-                   gui:hasDisplayName "Failure Mode" ;
-                   gui:hasDisplayOrder 2 ;
-                   gui:hasFormGroup "QualitativeAssessment" .
+                   rdfs:label "Failure Mode"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasGaugeFactor
@@ -167,10 +143,7 @@ dyn:hasGaugeFactor rdf:type owl:DatatypeProperty ,
                    rdfs:domain dyn:MechanicalTest ;
                    rdfs:range xsd:double ;
                    rdfs:comment "Strain gauge sensitivity factor"@en ;
-                   rdfs:label "Gauge Factor"@en ;
-                   gui:hasDisplayName "Gauge Factor" ;
-                   gui:hasDisplayOrder 7 ;
-                   gui:hasFormGroup "StrainGaugeConfiguration" .
+                   rdfs:label "Gauge Factor"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasGaugeLength
@@ -196,10 +169,7 @@ dyn:hasGaugeResistance rdf:type owl:DatatypeProperty ,
                        qudt:hasQuantityKind qkdv:Resistance ;
                        rdfs:comment "Nominal resistance of strain gauge"@en ;
                        rdfs:label "Gauge Resistance"@en ;
-                       dyn:hasUnit "unit:OHM" ;
-                       gui:hasDisplayName "Gauge Resistance (Ω)" ;
-                       gui:hasDisplayOrder 8 ;
-                       gui:hasFormGroup "StrainGaugeConfiguration" .
+                       dyn:hasUnit "unit:OHM" .
 
 ###  https://dynamat.utep.edu/ontology#hasHeatingRate
 dyn:hasHeatingRate rdf:type owl:DatatypeProperty ;
@@ -311,10 +281,7 @@ dyn:hasValidityNotes rdf:type owl:DatatypeProperty ;
                      rdfs:domain dyn:MechanicalTest ;
                      rdfs:range xsd:string ;
                      rdfs:comment "Notes regarding test validity assessment"@en ;
-                     rdfs:label "Validity Notes"@en ;
-                     gui:hasDisplayName "Validity Notes" ;
-                     gui:hasDisplayOrder 2 ;
-                     gui:hasFormGroup "TestValidation" .
+                     rdfs:label "Validity Notes"@en .
 
 
 #################################################################

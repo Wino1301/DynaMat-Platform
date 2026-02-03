@@ -125,10 +125,7 @@ dyn:hasDataFile rdf:type owl:ObjectProperty ,
                 rdfs:domain dyn:DataSeries ;
                 rdfs:range dyn:AnalysisFile ;
                 rdfs:comment "Links data series to the file containing the actual data points"@en ;
-                rdfs:label "Data File"@en ;
-                gui:hasDisplayName "Data File" ;
-                gui:hasDisplayOrder 1 ;
-                gui:hasFormGroup "FileReference" .
+                rdfs:label "Data File"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasDataSeries
@@ -136,10 +133,7 @@ dyn:hasDataSeries rdf:type owl:ObjectProperty ;
                   rdfs:domain dyn:MechanicalTest ;
                   rdfs:range dyn:DataSeries ;
                   rdfs:comment "Links mechanical test to its data series (stress, strain, etc.)"@en ;
-                  rdfs:label "Data Series"@en ;
-                  gui:hasDisplayName "Data Series" ;
-                  gui:hasDisplayOrder 1 ;
-                  gui:hasFormGroup "AnalysisResults" .
+                  rdfs:label "Data Series"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#derivedFrom
@@ -226,10 +220,7 @@ dyn:hasColumnName rdf:type owl:DatatypeProperty ,
                   rdfs:domain dyn:DataSeries ;
                   rdfs:range xsd:string ;
                   rdfs:comment "Name of the column in the CSV file containing this data series"@en ;
-                  rdfs:label "Column Name"@en ;
-                  gui:hasDisplayName "Column Name" ;
-                  gui:hasDisplayOrder 2 ;
-                  gui:hasFormGroup "FileReference" .
+                  rdfs:label "Column Name"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasColumnIndex
@@ -238,10 +229,7 @@ dyn:hasColumnIndex rdf:type owl:DatatypeProperty ,
                    rdfs:domain dyn:DataSeries ;
                    rdfs:range xsd:integer ;
                    rdfs:comment "Zero-based index of the column in the CSV file (optional, for fast lookup)"@en ;
-                   rdfs:label "Column Index"@en ;
-                   gui:hasDisplayName "Column Index" ;
-                   gui:hasDisplayOrder 3 ;
-                   gui:hasFormGroup "FileReference" .
+                   rdfs:label "Column Index"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasLegendName
@@ -250,10 +238,7 @@ dyn:hasLegendName rdf:type owl:DatatypeProperty ,
                   rdfs:domain dyn:DataSeries ;
                   rdfs:range xsd:string ;
                   rdfs:comment "Human-readable name for plots and displays"@en ;
-                  rdfs:label "Legend Name"@en ;
-                  gui:hasDisplayName "Display Name" ;
-                  gui:hasDisplayOrder 4 ;
-                  gui:hasFormGroup "FileReference" .
+                  rdfs:label "Legend Name"@en .
 
 
 #################################################################
@@ -454,10 +439,7 @@ dyn:hasSamplingInterval rdf:type owl:DatatypeProperty ,
                         qudt:hasQuantityKind qkdv:Time ;
                         rdfs:comment "Time interval between consecutive data points in the series"@en ;
                         rdfs:label "Sampling Interval"@en ;
-                        dyn:hasUnit "unit:MicroSEC" ;
-                        gui:hasDisplayName "Sampling Interval (μs)" ;
-                        gui:hasDisplayOrder 8 ;
-                        gui:hasFormGroup "AcquisitionInfo" .
+                        dyn:hasUnit "unit:MicroSEC" .
 
 
 #################################################################
@@ -486,10 +468,7 @@ dyn:hasFilePath rdf:type owl:DatatypeProperty ,
                 rdfs:domain dyn:AnalysisFile ;
                 rdfs:range xsd:string ;
                 rdfs:comment "Relative path to the data file from the specimen directory"@en ;
-                rdfs:label "File Path"@en ;
-                gui:hasDisplayName "File Path" ;
-                gui:hasDisplayOrder 1 ;
-                gui:hasFormGroup "FileMetadata" .
+                rdfs:label "File Path"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasFileName
@@ -501,10 +480,7 @@ dyn:hasFileName rdf:type owl:DatatypeProperty ,
                 rdfs:domain dyn:AnalysisFile ;
                 rdfs:range xsd:string ;
                 rdfs:comment "DEPRECATED: Name of the data file. Use hasFilePath instead."@en ;
-                rdfs:label "File Name"@en ;
-                gui:hasDisplayName "File Name" ;
-                gui:hasDisplayOrder 2 ;
-                gui:hasFormGroup "FileMetadata" .
+                rdfs:label "File Name"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasFileSize
@@ -513,10 +489,7 @@ dyn:hasFileSize rdf:type owl:DatatypeProperty ,
                 rdfs:domain dyn:AnalysisFile ;
                 rdfs:range xsd:integer ;
                 rdfs:comment "Size of file in bytes"@en ;
-                rdfs:label "File Size"@en ;
-                gui:hasDisplayName "File Size (bytes)" ;
-                gui:hasDisplayOrder 3 ;
-                gui:hasFormGroup "FileMetadata" .
+                rdfs:label "File Size"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasFileFormat
@@ -525,11 +498,7 @@ dyn:hasFileFormat rdf:type owl:DatatypeProperty ,
                   rdfs:domain dyn:AnalysisFile ;
                   rdfs:range xsd:string ;
                   rdfs:comment "Format of the data file"@en ;
-                  rdfs:label "File Format"@en ;
-                  gui:hasDisplayName "File Format" ;
-                  gui:hasDisplayOrder 4 ;
-                  gui:hasFormGroup "FileMetadata" ;
-                  gui:hasValidValues "CSV, HDF5, JSON" .
+                  rdfs:label "File Format"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasColumnCount
@@ -538,10 +507,7 @@ dyn:hasColumnCount rdf:type owl:DatatypeProperty ,
                    rdfs:domain dyn:AnalysisFile ;
                    rdfs:range xsd:integer ;
                    rdfs:comment "Number of columns in the data file"@en ;
-                   rdfs:label "Column Count"@en ;
-                   gui:hasDisplayName "Column Count" ;
-                   gui:hasDisplayOrder 5 ;
-                   gui:hasFormGroup "FileMetadata" .
+                   rdfs:label "Column Count"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasFileEncoding
@@ -553,11 +519,7 @@ dyn:hasFileEncoding rdf:type owl:DatatypeProperty ,
                     rdfs:domain dyn:AnalysisFile ;
                     rdfs:range xsd:string ;
                     rdfs:comment "DEPRECATED: Character encoding of the file. Rarely used - assume UTF-8."@en ;
-                    rdfs:label "File Encoding"@en ;
-                    gui:hasDisplayName "File Encoding" ;
-                    gui:hasDisplayOrder 5 ;
-                    gui:hasFormGroup "FileMetadata" ;
-                    gui:hasValidValues "UTF-8,ASCII,ISO-8859-1" .
+                    rdfs:label "File Encoding"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasProcessingDate
@@ -569,10 +531,7 @@ dyn:hasProcessingDate rdf:type owl:DatatypeProperty ,
                       rdfs:domain dyn:AnalysisFile ;
                       rdfs:range xsd:dateTime ;
                       rdfs:comment "DEPRECATED: Use hasCreatedDate instead."@en ;
-                      rdfs:label "Processing Date"@en ;
-                      gui:hasDisplayName "Processing Date" ;
-                      gui:hasDisplayOrder 6 ;
-                      gui:hasFormGroup "FileMetadata" .
+                      rdfs:label "Processing Date"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasDelimiter
@@ -584,11 +543,7 @@ dyn:hasDelimiter rdf:type owl:DatatypeProperty ,
                  rdfs:domain dyn:AnalysisFile ;
                  rdfs:range xsd:string ;
                  rdfs:comment "DEPRECATED: CSV delimiter. Use hasColumnSeparator on test class."@en ;
-                 rdfs:label "Delimiter"@en ;
-                 gui:hasDisplayName "CSV Delimiter" ;
-                 gui:hasDisplayOrder 1 ;
-                 gui:hasFormGroup "FileFormat" ;
-                 gui:hasValidValues ",;|\t" .
+                 rdfs:label "Delimiter"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasHeaderRow
@@ -600,10 +555,7 @@ dyn:hasHeaderRow rdf:type owl:DatatypeProperty ,
                  rdfs:domain dyn:AnalysisFile ;
                  rdfs:range xsd:integer ;
                  rdfs:comment "Row index containing column headers (0-based). Use -1 if no header row exists."@en ;
-                 rdfs:label "Header Row"@en ;
-                 gui:hasDisplayName "Header Row Index" ;
-                 gui:hasDisplayOrder 2 ;
-                 gui:hasFormGroup "FileFormat" .
+                 rdfs:label "Header Row"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasSkipRows
@@ -615,10 +567,7 @@ dyn:hasSkipRows rdf:type owl:DatatypeProperty ,
                 rdfs:domain dyn:AnalysisFile ;
                 rdfs:range xsd:integer ;
                 rdfs:comment "DEPRECATED: Use hasHeaderRow instead."@en ;
-                rdfs:label "Skip Rows"@en ;
-                gui:hasDisplayName "Rows to Skip" ;
-                gui:hasDisplayOrder 3 ;
-                gui:hasFormGroup "FileFormat" .
+                rdfs:label "Skip Rows"@en .
 
 
 ###  Generated by the OWL API (version 4.5.29.2024-05-13T12:11:03Z) https://github.com/owlcs/owlapi
