@@ -171,6 +171,16 @@ dyn:hasGaugeResistance rdf:type owl:DatatypeProperty ,
                        rdfs:label "Gauge Resistance"@en ;
                        dyn:hasUnit "unit:OHM" .
 
+###  https://dynamat.utep.edu/ontology#hasDistanceFromSpecimen
+dyn:hasDistanceFromSpecimen rdf:type owl:DatatypeProperty ,
+                                     owl:FunctionalProperty ;
+                            rdfs:domain dyn:StrainGauge ;
+                            rdfs:range xsd:double ;
+                            qudt:hasQuantityKind qkdv:Length ;
+                            rdfs:comment "Distance from strain gauge to specimen interface on the bar"@en ;
+                            rdfs:label "Distance from Specimen"@en ;
+                            dyn:hasUnit "unit:MilliM" .
+
 ###  https://dynamat.utep.edu/ontology#hasHeatingRate
 dyn:hasHeatingRate rdf:type owl:DatatypeProperty ;
                    rdfs:subPropertyOf dyn:hasTestCondition ;

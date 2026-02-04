@@ -17,12 +17,20 @@ ASM Handbook, Vol. 8: Mechanical Testing and Evaluation.
 Kolsky, H. (1949). An Investigation of the Mechanical Properties of
 Materials at very High Rates of Loading. Proceedings of the Physical
 Society. Section B, 62(11), 676.
+
+Chen, W. W., & Song, B. (2011). Split Hopkinson (Kolsky) Bar: Design,
+Testing and Applications. Springer.
 """
 from __future__ import annotations
+
+import logging
 from typing import Dict
+
 import numpy as np
 from scipy.integrate import cumulative_trapezoid
 from scipy.stats import pearsonr
+
+logger = logging.getLogger(__name__)
 
 
 class StressStrainCalculator:
@@ -134,27 +142,27 @@ class StressStrainCalculator:
             required_keys = ['gauge_res', 'gauge_factor', 'cal_voltage', 'cal_resistance']
 
             if incident_reflected_gauge_params is None:
-                raise ValueError(
-                    "incident_reflected_gauge_params must be provided when use_voltage_input=True"
-                )
+                msg = "incident_reflected_gauge_params must be provided when use_voltage_input=True"
+                logger.error(msg)
+                raise ValueError(msg)
             if transmitted_gauge_params is None:
-                raise ValueError(
-                    "transmitted_gauge_params must be provided when use_voltage_input=True"
-                )
+                msg = "transmitted_gauge_params must be provided when use_voltage_input=True"
+                logger.error(msg)
+                raise ValueError(msg)
 
             # Check incident/reflected parameters
             missing_ir = [k for k in required_keys if k not in incident_reflected_gauge_params]
             if missing_ir:
-                raise ValueError(
-                    f"incident_reflected_gauge_params missing required keys: {missing_ir}"
-                )
+                msg = f"incident_reflected_gauge_params missing required keys: {missing_ir}"
+                logger.error(msg)
+                raise ValueError(msg)
 
             # Check transmitted parameters
             missing_t = [k for k in required_keys if k not in transmitted_gauge_params]
             if missing_t:
-                raise ValueError(
-                    f"transmitted_gauge_params missing required keys: {missing_t}"
-                )
+                msg = f"transmitted_gauge_params missing required keys: {missing_t}"
+                logger.error(msg)
+                raise ValueError(msg)
 
     def calculate(
         self,
@@ -225,11 +233,13 @@ class StressStrainCalculator:
         # Validate inputs
         N = len(time_vector)
         if not (len(incident) == len(transmitted) == len(reflected) == N):
-            raise ValueError(
-                f"All inputs must have same height. Got: "
+            msg = (
+                f"All inputs must have same length. Got: "
                 f"time={N}, incident={len(incident)}, "
                 f"transmitted={len(transmitted)}, reflected={len(reflected)}"
             )
+            logger.error(msg)
+            raise ValueError(msg)
 
         # Convert voltage to strain if needed
         if self.use_voltage_input:

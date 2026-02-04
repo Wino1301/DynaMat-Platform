@@ -684,3 +684,300 @@ class DomainQueries:
 
         logger.debug(f"Retrieved metadata for {len(metadata)} windowed series types")
         return metadata
+
+    # ============================================================================
+    # INDIVIDUAL PROPERTY QUERIES (for GUI Property Display)
+    # ============================================================================
+
+    def get_individual_properties_with_labels(
+        self,
+        individual_uri: str,
+        property_uris: List[str],
+        follow_links: Optional[Dict[str, List[str]]] = None
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Get property values WITH labels and units for a specific individual.
+
+        This method is optimized for GUI display, returning rich metadata about
+        each property including display labels and unit symbols.
+
+        Args:
+            individual_uri: URI of the individual to query
+            property_uris: List of property URIs to retrieve
+            follow_links: Optional mapping of object properties to nested properties
+                          e.g., {'dyn:hasMaterial': ['dyn:hasWaveSpeed', 'dyn:hasElasticModulus']}
+                          When specified, follows the object property link and retrieves
+                          nested properties from the linked individual.
+
+        Returns:
+            Dictionary mapping property_uri -> {
+                'value': Any,
+                'label': str,  # from gui:hasDisplayName, rdfs:label, or auto-generated
+                'unit': Optional[str],
+                'unit_symbol': Optional[str]
+            }
+
+        Example:
+            >>> props = domain_queries.get_individual_properties_with_labels(
+            ...     "dyn:IncidentBar_C350",
+            ...     ["dyn:hasWaveSpeed", "dyn:hasElasticModulus"],
+            ...     follow_links={"dyn:hasMaterial": ["dyn:hasWaveSpeed", "dyn:hasElasticModulus"]}
+            ... )
+            >>> props["dyn:hasWaveSpeed"]
+            {'value': 4953.3, 'label': 'Wave Speed', 'unit': 'unit:M-PER-SEC', 'unit_symbol': 'm/s'}
+        """
+        result = {}
+
+        # Normalize individual URI
+        if individual_uri.startswith('dyn:'):
+            individual_uri = f"https://dynamat.utep.edu/ontology#{individual_uri[4:]}"
+
+        # Determine which properties to query directly vs via links
+        direct_properties = list(property_uris)
+        linked_properties = {}
+
+        if follow_links:
+            for link_prop, nested_props in follow_links.items():
+                # Remove nested properties from direct query
+                for np in nested_props:
+                    if np in direct_properties:
+                        direct_properties.remove(np)
+                linked_properties[link_prop] = nested_props
+
+        # Query direct properties
+        if direct_properties:
+            direct_result = self._query_properties_with_labels(individual_uri, direct_properties)
+            result.update(direct_result)
+
+        # Query linked properties (follow object property links)
+        if linked_properties:
+            for link_prop, nested_props in linked_properties.items():
+                # First, get the linked individual URI
+                link_uri = self._normalize_property_uri(link_prop)
+                linked_individual = self._get_linked_individual(individual_uri, link_uri)
+
+                if linked_individual:
+                    # Query properties from the linked individual
+                    nested_result = self._query_properties_with_labels(linked_individual, nested_props)
+                    result.update(nested_result)
+                else:
+                    logger.debug(f"No linked individual found for {link_prop} on {individual_uri}")
+
+        return result
+
+    def _query_properties_with_labels(
+        self,
+        individual_uri: str,
+        property_uris: List[str]
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Query properties with labels and units from ontology.
+
+        Args:
+            individual_uri: URI of the individual
+            property_uris: List of property URIs to retrieve
+
+        Returns:
+            Dictionary mapping property_uri -> {value, label, unit, unit_symbol}
+        """
+        result = {}
+
+        for prop_uri in property_uris:
+            # Normalize property URI
+            normalized_prop = self._normalize_property_uri(prop_uri)
+
+            # Query for value, label, unit, and also the value's label if it's an object property
+            # This handles both datatype properties (literal values) and object properties (URI values)
+            query = f"""
+            SELECT ?value ?displayName ?label ?unit ?unitSymbol ?valueLabel ?valuePlotLabel WHERE {{
+                <{individual_uri}> <{normalized_prop}> ?value .
+
+                OPTIONAL {{ <{normalized_prop}> gui:hasDisplayName ?displayName }}
+                OPTIONAL {{ <{normalized_prop}> rdfs:label ?label }}
+                OPTIONAL {{ <{normalized_prop}> dyn:hasUnit ?unit }}
+                OPTIONAL {{ ?unit qudt:symbol ?unitSymbol }}
+
+                # For object properties, get the label of the linked individual
+                OPTIONAL {{ ?value rdfs:label ?valueLabel }}
+                OPTIONAL {{ ?value dyn:hasPlottingLabel ?valuePlotLabel }}
+            }}
+            LIMIT 1
+            """
+
+            try:
+                results = self.sparql.execute_query(query)
+
+                if results:
+                    row = results[0]
+                    raw_value = row.get('value')
+                    value = raw_value
+
+                    # Check if value is a URI (object property) and resolve its label
+                    value_is_uri = False
+                    if value is not None:
+                        value_str = str(value)
+                        if value_str.startswith('http') or '#' in value_str:
+                            value_is_uri = True
+                            # Use rdfs:label first (descriptive), then plotting label, then formatted URI
+                            value_label = row.get('valueLabel')
+                            value_plot_label = row.get('valuePlotLabel')
+                            if value_label:
+                                value = str(value_label)
+                            elif value_plot_label:
+                                value = str(value_plot_label)
+                            else:
+                                # Fallback to formatted URI fragment
+                                value = self._generate_label_from_uri(value_str)
+                        else:
+                            # Not a URI, try numeric conversion
+                            try:
+                                value = float(value)
+                            except (ValueError, TypeError):
+                                value = str(value)
+
+                    # Determine display label (priority: displayName > label > auto-generated)
+                    display_label = (
+                        row.get('displayName') or
+                        row.get('label') or
+                        self._generate_label_from_uri(prop_uri)
+                    )
+
+                    # Get unit info (only for datatype properties)
+                    unit = row.get('unit') if not value_is_uri else None
+                    unit_symbol = row.get('unitSymbol') if not value_is_uri else None
+
+                    # If no symbol from query, extract from unit URI
+                    if unit and not unit_symbol:
+                        unit_symbol = self._extract_unit_symbol_from_uri(str(unit))
+
+                    result[prop_uri] = {
+                        'value': value,
+                        'label': str(display_label) if display_label else self._generate_label_from_uri(prop_uri),
+                        'unit': str(unit) if unit else None,
+                        'unit_symbol': str(unit_symbol) if unit_symbol else None
+                    }
+
+            except Exception as e:
+                logger.warning(f"Failed to query property {prop_uri}: {e}")
+
+        return result
+
+    def _get_linked_individual(self, individual_uri: str, link_property_uri: str) -> Optional[str]:
+        """
+        Get the URI of a linked individual via an object property.
+
+        Args:
+            individual_uri: URI of the source individual
+            link_property_uri: URI of the object property to follow
+
+        Returns:
+            URI of the linked individual, or None if not found
+        """
+        query = f"""
+        SELECT ?linked WHERE {{
+            <{individual_uri}> <{link_property_uri}> ?linked .
+        }}
+        LIMIT 1
+        """
+
+        try:
+            results = self.sparql.execute_query(query)
+            if results:
+                return str(results[0]['linked'])
+        except Exception as e:
+            logger.warning(f"Failed to get linked individual: {e}")
+
+        return None
+
+    def _normalize_property_uri(self, prop_uri: str) -> str:
+        """
+        Normalize a property URI to full form.
+
+        Args:
+            prop_uri: Property URI (may be prefixed like 'dyn:hasWaveSpeed')
+
+        Returns:
+            Full URI string
+        """
+        if prop_uri.startswith('dyn:'):
+            return f"https://dynamat.utep.edu/ontology#{prop_uri[4:]}"
+        elif prop_uri.startswith('http'):
+            return prop_uri
+        elif '#' in prop_uri:
+            return prop_uri
+        else:
+            # Assume dyn namespace
+            return f"https://dynamat.utep.edu/ontology#{prop_uri}"
+
+    def _generate_label_from_uri(self, uri: str) -> str:
+        """
+        Generate a human-readable label from a property URI.
+
+        Args:
+            uri: Property URI (e.g., 'dyn:hasWaveSpeed')
+
+        Returns:
+            Label string (e.g., 'Wave Speed')
+        """
+        # Extract local name
+        if ':' in uri:
+            local_name = uri.split(':')[-1]
+        elif '/' in uri:
+            local_name = uri.split('/')[-1]
+        elif '#' in uri:
+            local_name = uri.split('#')[-1]
+        else:
+            local_name = uri
+
+        # Remove 'has' prefix if present
+        if local_name.startswith('has'):
+            local_name = local_name[3:]
+
+        # Insert spaces before capital letters
+        result = []
+        for i, char in enumerate(local_name):
+            if i > 0 and char.isupper():
+                result.append(' ')
+            result.append(char)
+
+        return ''.join(result).strip()
+
+    def _extract_unit_symbol_from_uri(self, unit_uri: str) -> str:
+        """
+        Extract a unit symbol from a unit URI.
+
+        Args:
+            unit_uri: Full unit URI (e.g., 'http://qudt.org/vocab/unit/M-PER-SEC')
+
+        Returns:
+            Symbol string (e.g., 'm/s')
+        """
+        # Common unit mappings
+        unit_symbols = {
+            'M-PER-SEC': 'm/s',
+            'GigaPA': 'GPa',
+            'MegaPA': 'MPa',
+            'KiloGM-PER-M3': 'kg/m³',
+            'GM-PER-CentiM3': 'g/cm³',
+            'MilliM': 'mm',
+            'M': 'm',
+            'SEC': 's',
+            'PER-SEC': '1/s',
+            'GM': 'g',
+            'KiloGM': 'kg',
+            'NUM': '',  # Dimensionless
+            'OHM': 'Ω',
+            'V': 'V',
+        }
+
+        # Extract local name from URI
+        if '/' in unit_uri:
+            local_name = unit_uri.split('/')[-1]
+        elif '#' in unit_uri:
+            local_name = unit_uri.split('#')[-1]
+        elif ':' in unit_uri:
+            local_name = unit_uri.split(':')[-1]
+        else:
+            local_name = unit_uri
+
+        return unit_symbols.get(local_name, local_name)

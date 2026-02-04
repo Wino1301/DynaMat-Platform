@@ -125,10 +125,7 @@ dyn:hasUser rdf:type owl:ObjectProperty ;
             rdfs:domain dyn:Activity ;
             rdfs:range dyn:User ;
             rdfs:comment "Person who performed the activity (multiple users allowed)"@en ;
-            rdfs:label "User"@en ;
-            gui:hasDisplayName "Operator" ;
-            gui:hasDisplayOrder 2 ;
-            gui:hasFormGroup "TestSetup" .
+            rdfs:label "User"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasCreatedBy
@@ -166,8 +163,9 @@ dyn:performedOn rdf:type owl:ObjectProperty ,
                 rdfs:comment "Specimen that the test was performed on"@en ;
                 rdfs:label "Performed On"@en ;
                 gui:hasDisplayName "Test Specimen" ;
-                gui:hasDisplayOrder 1 ;
-                gui:hasFormGroup "TestSetup" .
+                gui:hasGroupOrder 1 ;
+                gui:hasDisplayOrder 2 ;
+                gui:hasFormGroup "Identification" .
 
 
 #################################################################
@@ -271,8 +269,9 @@ dyn:hasTestDate rdf:type owl:DatatypeProperty ;
                 rdfs:comment "Date when the test was performed"@en ;
                 rdfs:label "Test Date"@en ;
                 gui:hasDisplayName "Test Date" ;
+                gui:hasGroupOrder 1 ;
                 gui:hasDisplayOrder 3 ;
-                gui:hasFormGroup "TestSetup" .
+                gui:hasFormGroup "Identification" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasTestID
@@ -284,6 +283,7 @@ dyn:hasTestID rdf:type owl:DatatypeProperty ;
               rdfs:comment "Unique test identifier (format: TEST-YYYY-Number)"@en ;
               rdfs:label "Test ID"@en ;
               gui:hasDisplayName "Test ID" ;
+              gui:hasGroupOrder 1 ;
               gui:hasDisplayOrder 1 ;
               gui:hasFormGroup "Identification" .
 
@@ -593,6 +593,8 @@ dyn:SHPBCompression rdf:type owl:Class ;
                     rdfs:subClassOf dyn:DynamicTest ;
                     rdfs:comment "Split Hopkinson Pressure Bar compression test"@en ;
                     rdfs:label "SHPB Compression Test"@en .
+
+
 
 
 ###  https://dynamat.utep.edu/ontology#Simulation

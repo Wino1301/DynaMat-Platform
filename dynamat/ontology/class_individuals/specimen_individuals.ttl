@@ -265,19 +265,19 @@ dyn:CharGroup_Placeholder rdf:type owl:NamedIndividual, dyn:CharacterizationGrou
 #    Composite Phase Descriptions
 #################################################################
 
-dyn:CompositePhase_Al60_A356_33 rdf:type owl:NamedIndividual, dyn:CompositePhaseDescription ;
+dyn:CompositePhase_SS316_33_A356_66 rdf:type owl:NamedIndividual, dyn:CompositePhaseDescription ;
     rdfs:label "SS316 Matrix (33%) - A356 Reinforcement (66%)"@en ;
     dyn:hasName "SS316 Matrix - A356 Reinforcement (33/66)"@en ;
-    dyn:hasDescription "Composite phase description for testing - 33% Al6061-T6 matrix with 66% A356 reinforcement."@en ;
+    dyn:hasDescription "Composite phase description for testing - 33% SS316 matrix with 66% A356 reinforcement."@en ;
     dyn:hasMatrixMaterial dyn:SS316 ;
     dyn:hasReinforcementMaterial dyn:A356 ;
     dyn:hasMatrixVolumeFraction 0.33 ;
     dyn:hasReinforcementVolumeFraction 0.66 .
 
-dyn:CompositePhase_Al60_A356_66 rdf:type owl:NamedIndividual, dyn:CompositePhaseDescription ;
+dyn:CompositePhase_SS316_66_A356_33 rdf:type owl:NamedIndividual, dyn:CompositePhaseDescription ;
     rdfs:label "SS316 Matrix (66%) - A356 Reinforcement (33%)"@en ;
     dyn:hasName "SS316 Matrix - A356 Reinforcement (66/33)"@en ;
-    dyn:hasDescription "Composite phase description for testing - 66% Al6061-T6 matrix with 33% A356 reinforcement."@en ;
+    dyn:hasDescription "Composite phase description for testing - 66% SS316 matrix with 33% A356 reinforcement."@en ;
     dyn:hasMatrixMaterial dyn:SS316 ;
     dyn:hasReinforcementMaterial dyn:A356 ;
     dyn:hasMatrixVolumeFraction 0.66 ;

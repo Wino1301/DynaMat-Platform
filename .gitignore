@@ -77,6 +77,9 @@ docs/_missing_integrations/
 /temp/
 /tmp/
 
+# User Data
+user_data/
+
 # But keep important directories
 !examples/**/*.csv
 !tests/fixtures/*.csv

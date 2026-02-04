@@ -151,3 +151,24 @@ gui:anyValue a owl:NamedIndividual ;
 gui:noValue a owl:NamedIndividual ;
     rdfs:label "No Value" ;
     rdfs:comment "Matches when property is empty" .
+
+#================================================================
+# Population Operation Properties
+#================================================================
+
+gui:populateFields a rdf:Property ;
+    rdfs:domain gui:Constraint ;
+    rdfs:label "populate fields" ;
+    rdfs:comment "List of (property_uri, display_label) tuples specifying which fields to populate from selected individual's properties. Structure: ((prop1 label1) (prop2 label2) ...)" .
+
+gui:makeReadOnly a owl:DatatypeProperty ;
+    rdfs:domain gui:Constraint ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "make read only" ;
+    rdfs:comment "If true, populated fields become read-only; if false, they remain editable" .
+
+gui:targetWidget a owl:DatatypeProperty ;
+    rdfs:domain gui:Constraint ;
+    rdfs:range xsd:string ;
+    rdfs:label "target widget" ;
+    rdfs:comment "Specifies a custom widget type for population display (e.g., 'BarMaterialProperties', 'StrainGaugeProperties')" .

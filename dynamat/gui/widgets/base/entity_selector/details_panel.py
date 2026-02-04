@@ -4,6 +4,7 @@ Composable details display panel for EntitySelectorWidget
 """
 
 import logging
+import re
 from typing import Dict, List, Optional, Any
 
 from PyQt6.QtWidgets import (
@@ -137,13 +138,17 @@ class DetailsPanel(QWidget):
         if value is None or value == "":
             return "--"
 
-        # Handle URI values (extract local name)
+        # Handle URI values (extract and format local name)
         if isinstance(value, str):
             if value.startswith('http://') or value.startswith('https://'):
                 if '#' in value:
-                    return value.split('#')[-1]
+                    local_name = value.split('#')[-1]
                 elif '/' in value:
-                    return value.split('/')[-1]
+                    local_name = value.split('/')[-1]
+                else:
+                    local_name = value
+                # Format for readability
+                return self._format_local_name(local_name)
             return str(value)
 
         # Handle measurement dictionaries
@@ -168,6 +173,31 @@ class DetailsPanel(QWidget):
             return ", ".join(self._format_value(v) for v in value)
 
         return str(value)
+
+    def _format_local_name(self, local_name: str) -> str:
+        """
+        Format a URI local name for human-readable display.
+
+        Handles patterns like:
+        - "SS316_A356" -> "SS316 A356"
+        - "CylindricalShape" -> "Cylindrical Shape"
+        - "LatticeStructure" -> "Lattice Structure"
+
+        Args:
+            local_name: Local name from URI
+
+        Returns:
+            Formatted display string
+        """
+        # Replace underscores with spaces
+        result = local_name.replace('_', ' ')
+
+        # Insert spaces before capitals in CamelCase (but not for consecutive caps like "SS316")
+        # Pattern: lowercase followed by uppercase, or uppercase followed by uppercase+lowercase
+        result = re.sub(r'([a-z])([A-Z])', r'\1 \2', result)
+        result = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1 \2', result)
+
+        return result
 
     def set_properties(self, properties: List[str]):
         """

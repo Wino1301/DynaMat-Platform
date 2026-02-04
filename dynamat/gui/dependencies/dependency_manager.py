@@ -70,6 +70,9 @@ class DependencyManager(QObject):
         self.active_class_uri = None
         self.constraints_by_trigger: Dict[str, List[Constraint]] = {}
 
+        # Property display widgets (for population constraints with gui:targetWidget)
+        self.property_display_widgets: Dict[str, QWidget] = {}  # constraint_uri -> PropertyDisplayWidget
+
         # Statistics tracking (always-on)
         self._constraint_evaluation_counts = {}  # constraint_uri -> count
         self._operation_execution_counts = {
@@ -152,18 +155,22 @@ class DependencyManager(QObject):
                         self.constraints_by_trigger[trigger_property] = []
                     self.constraints_by_trigger[trigger_property].append(constraint)
             
+            # Create and insert PropertyDisplayWidget instances for constraints with targetWidget
+            self._setup_property_display_widgets(constraints)
+
             # Connect Qt signals for each trigger property
             for trigger_property in self.constraints_by_trigger.keys():
                 self._connect_trigger_signal(trigger_property)
-            
+
             # Initialize form state (evaluate all constraints once)
             self._evaluate_all_constraints()
-            
+
             self.logger.info(
                 f"Dependencies setup complete for {class_uri}: "
-                f"{len(self.constraints_by_trigger)} trigger properties connected"
+                f"{len(self.constraints_by_trigger)} trigger properties connected, "
+                f"{len(self.property_display_widgets)} property display widgets created"
             )
-            
+
         except Exception as e:
             self.logger.error(f"Failed to setup dependencies: {e}", exc_info=True)
             self.error_occurred.emit("setup", str(e))
@@ -219,11 +226,180 @@ class DependencyManager(QObject):
             )
 
         self.logger.debug(f"Connected signal for trigger: {trigger_property} (widget type: {type(widget).__name__})")
-    
+
+    def _setup_property_display_widgets(self, constraints: List[Constraint]):
+        """
+        Create and insert PropertyDisplayWidget instances for population constraints.
+
+        Constraints with gui:targetWidget are rendered as read-only PropertyDisplayWidget
+        instances inserted below the trigger field's group in the form layout.
+
+        Args:
+            constraints: List of all constraints for the current form class
+        """
+        try:
+            from ..widgets.base.property_display import PropertyDisplayWidget, PropertyDisplayConfig
+        except ImportError:
+            self.logger.warning("PropertyDisplayWidget not available, skipping display widget setup")
+            return
+
+        self.property_display_widgets.clear()
+
+        # Find constraints with targetWidget (these are property display constraints)
+        display_constraints = [c for c in constraints if hasattr(c, 'target_widget') and c.target_widget]
+
+        if not display_constraints:
+            return
+
+        self.logger.info(f"Setting up {len(display_constraints)} property display widgets")
+
+        # For each display constraint, create widget and insert into layout
+        for constraint in display_constraints:
+            try:
+                # Extract title from constraint label or target_widget value
+                title = constraint.label or constraint.target_widget.replace("Properties", " Properties")
+
+                # Build PropertyDisplayConfig from constraint definition
+                properties = [prop_uri for prop_uri, _ in constraint.populate_fields]
+                labels = {prop_uri: label for prop_uri, label in constraint.populate_fields if label}
+
+                # Infer follow_links for nested properties (e.g., material properties on bars)
+                follow_links = self._infer_follow_links(properties)
+
+                config = PropertyDisplayConfig(
+                    title=title,
+                    properties=properties,
+                    property_labels=labels if labels else None,
+                    follow_links=follow_links if follow_links else None
+                )
+
+                # Create PropertyDisplayWidget with ontology-driven config
+                display_widget = PropertyDisplayWidget(
+                    config=config,
+                    ontology_manager=self.ontology_manager
+                )
+
+                # Find trigger widget to determine where to insert this display widget
+                if not constraint.triggers:
+                    self.logger.warning(f"Display constraint {constraint.uri} has no triggers")
+                    continue
+
+                trigger_property = constraint.triggers[0]  # Use first trigger
+
+                # Find the trigger widget's parent group widget
+                if trigger_property not in self.active_form.form_fields:
+                    self.logger.warning(f"Trigger property {trigger_property} not in form fields")
+                    continue
+
+                trigger_field = self.active_form.form_fields[trigger_property]
+                trigger_widget = trigger_field.widget
+
+                # Traverse up to find the group widget (QGroupBox)
+                parent = trigger_widget.parent()
+                while parent and parent.parent() is not None:
+                    # Look for QGroupBox or similar container
+                    if parent.__class__.__name__ == 'QGroupBox':
+                        # Found the group box - add display widget to its layout
+                        group_layout = parent.layout()
+                        if group_layout:
+                            group_layout.addWidget(display_widget)
+                            self.logger.debug(
+                                f"Inserted PropertyDisplayWidget '{title}' into group for {trigger_property}"
+                            )
+                            break
+                    parent = parent.parent()
+                else:
+                    self.logger.warning(
+                        f"Could not find group box for trigger {trigger_property}, "
+                        f"adding display widget to main layout"
+                    )
+                    # Fallback: add to scroll area content if we can find it
+                    # This is less ideal but ensures the widget is visible
+                    scroll_content = self._find_scroll_content_widget()
+                    if scroll_content and scroll_content.layout():
+                        # Insert before the final stretch
+                        layout = scroll_content.layout()
+                        insert_index = layout.count() - 1  # Before stretch
+                        layout.insertWidget(max(0, insert_index), display_widget)
+
+                # Store reference to widget keyed by constraint URI
+                self.property_display_widgets[constraint.uri] = display_widget
+
+            except Exception as e:
+                self.logger.error(
+                    f"Failed to create PropertyDisplayWidget for constraint {constraint.uri}: {e}",
+                    exc_info=True
+                )
+
+        self.logger.info(f"Created {len(self.property_display_widgets)} property display widgets")
+
+    def _find_scroll_content_widget(self) -> Optional[QWidget]:
+        """
+        Find the scroll area content widget in the form.
+
+        Returns:
+            QWidget that contains the form content, or None if not found
+        """
+        from PyQt6.QtWidgets import QScrollArea
+
+        # The form structure is: form_widget -> QVBoxLayout -> QScrollArea -> content widget
+        if not self.active_form:
+            return None
+
+        layout = self.active_form.layout()
+        if not layout:
+            return None
+
+        # Find QScrollArea
+        for i in range(layout.count()):
+            item = layout.itemAt(i)
+            if item and item.widget():
+                widget = item.widget()
+                if isinstance(widget, QScrollArea):
+                    return widget.widget()  # The content widget
+
+        return None
+
+    def _infer_follow_links(self, properties: List[str]) -> Optional[Dict[str, List[str]]]:
+        """
+        Infer which object properties need to be followed for nested property values.
+
+        Material properties (hasWaveSpeed, hasElasticModulus, hasDensity, hasPoissonRatio)
+        typically live on the Material individual, so when querying a Bar or equipment,
+        we need to follow the hasMaterial link to get these values.
+
+        Args:
+            properties: List of property URIs to check
+
+        Returns:
+            Dictionary mapping link property to nested properties, or None if no links needed
+        """
+        # Material properties that typically need hasMaterial followed
+        material_property_patterns = [
+            'hasWaveSpeed', 'WaveSpeed',
+            'hasElasticModulus', 'ElasticModulus',
+            'hasDensity', 'Density',
+            'hasPoissonRatio', 'PoissonRatio',
+            'hasYieldStrength', 'YieldStrength',
+        ]
+
+        # Check which properties need material link
+        needs_material = []
+        for prop in properties:
+            # Extract local name from URI
+            local_name = prop.split(':')[-1].split('#')[-1].split('/')[-1]
+            if any(pattern in local_name for pattern in material_property_patterns):
+                needs_material.append(prop)
+
+        if needs_material:
+            return {'dyn:hasMaterial': needs_material}
+
+        return None
+
     # ============================================================================
     # CONSTRAINT EVALUATION
     # ============================================================================
-    
+
     def _on_trigger_changed(self, trigger_property: str):
         """
         Handle change in a trigger property.
@@ -913,7 +1089,7 @@ class DependencyManager(QObject):
         Apply population operations - populate fields from a selected individual's properties.
 
         This operation queries the ontology for the selected individual's properties
-        and populates corresponding form fields, optionally making them read-only.
+        and populates corresponding form fields or PropertyDisplayWidget instances.
 
         Args:
             constraint: Constraint with population operations
@@ -939,61 +1115,128 @@ class DependencyManager(QObject):
                 str(selected_individual_uri).startswith("(")
             )
 
+            # Check if this is a PropertyDisplayWidget constraint
+            is_display_widget = constraint.target_widget is not None
+
             if is_placeholder:
                 self.logger.debug("No individual selected for population")
-                # Reset populated fields to defaults and re-enable them when selection is cleared
-                for property_uri, _ in constraint.populate_fields:
-                    if property_uri in self.active_form.form_fields:
-                        self._reset_widget_to_default(property_uri)
-                        # Always re-enable fields when clearing selection
-                        # (make_read_only only applies when a batch IS selected)
-                        self._set_widget_enabled(property_uri, True)
+
+                if is_display_widget:
+                    # Clear PropertyDisplayWidget
+                    display_widget = self.property_display_widgets.get(constraint.uri)
+                    if display_widget:
+                        display_widget.clear()
+                else:
+                    # Reset populated fields to defaults and re-enable them when selection is cleared
+                    for property_uri, _ in constraint.populate_fields:
+                        if property_uri in self.active_form.form_fields:
+                            self._reset_widget_to_default(property_uri)
+                            # Always re-enable fields when clearing selection
+                            # (make_read_only only applies when a batch IS selected)
+                            self._set_widget_enabled(property_uri, True)
                 return
 
             self.logger.info(
                 f"Populating {len(constraint.populate_fields)} fields from {selected_individual_uri}"
             )
 
-            # Query property values from ontology
-            property_uris = [prop_uri for prop_uri, _ in constraint.populate_fields]
-            property_values = self.ontology_manager.get_individual_property_values(
+            # Query property values from ontology - need to handle nested properties
+            # For bar material properties, query both bar properties and follow material link
+            property_values = self._query_nested_properties(
                 selected_individual_uri,
-                property_uris
+                constraint.populate_fields
             )
 
-            # Populate each field
-            populated_trigger_properties = []
-            for property_uri, display_label in constraint.populate_fields:
-                value = property_values.get(property_uri)
+            if is_display_widget:
+                # Populate PropertyDisplayWidget using the new ontology-driven API
+                display_widget = self.property_display_widgets.get(constraint.uri)
+                if display_widget:
+                    # Use setIndividual for ontology-driven property display
+                    # The widget's config (set during setup) handles property resolution
+                    display_widget.setIndividual(selected_individual_uri)
+                    self.logger.debug(f"Updated PropertyDisplayWidget with {len(display_data)} properties")
+            else:
+                # Populate regular form fields
+                populated_trigger_properties = []
+                for property_uri, display_label in constraint.populate_fields:
+                    value = property_values.get(property_uri)
 
-                if value:
-                    self.logger.debug(f"  Setting {property_uri} = {value}")
-                    self._set_widget_value(property_uri, value)
+                    if value:
+                        self.logger.debug(f"  Setting {property_uri} = {value}")
+                        self._set_widget_value(property_uri, value)
 
-                    # Make read-only if requested
-                    if constraint.make_read_only:
-                        self._set_widget_enabled(property_uri, False)
+                        # Make read-only if requested
+                        if constraint.make_read_only:
+                            self._set_widget_enabled(property_uri, False)
 
-                    # Track if this is a trigger property for any constraint
-                    if self._is_trigger_property(property_uri):
-                        populated_trigger_properties.append(property_uri)
-                else:
-                    # No value found - reset to default, keep read-only state
-                    self.logger.debug(f"  No value found for {property_uri}, resetting to default")
-                    self._reset_widget_to_default(property_uri)
-                    # Keep disabled if make_read_only is True
-                    if not constraint.make_read_only:
-                        self._set_widget_enabled(property_uri, True)
+                        # Track if this is a trigger property for any constraint
+                        if self._is_trigger_property(property_uri):
+                            populated_trigger_properties.append(property_uri)
+                    else:
+                        # No value found - reset to default, keep read-only state
+                        self.logger.debug(f"  No value found for {property_uri}, resetting to default")
+                        self._reset_widget_to_default(property_uri)
+                        # Keep disabled if make_read_only is True
+                        if not constraint.make_read_only:
+                            self._set_widget_enabled(property_uri, True)
 
-            # Re-evaluate constraints for any populated trigger properties
-            # This ensures visibility/other constraints respond to programmatically set values
-            for trigger_prop in populated_trigger_properties:
-                self.logger.debug(f"Re-evaluating constraints for populated trigger: {trigger_prop}")
-                self._on_trigger_changed(trigger_prop)
+                # Re-evaluate constraints for any populated trigger properties
+                # This ensures visibility/other constraints respond to programmatically set values
+                for trigger_prop in populated_trigger_properties:
+                    self.logger.debug(f"Re-evaluating constraints for populated trigger: {trigger_prop}")
+                    self._on_trigger_changed(trigger_prop)
 
         except Exception as e:
             self.logger.error(f"Population operation failed: {e}", exc_info=True)
             self.error_occurred.emit(constraint.uri, str(e))
+
+    def _query_nested_properties(self, individual_uri: str, populate_fields: List[tuple]) -> Dict[str, Any]:
+        """
+        Query properties, following object property links when needed.
+
+        For bar individuals, this queries the bar's direct properties and follows
+        the hasMaterial link to get material properties.
+
+        Args:
+            individual_uri: URI of the individual to query
+            populate_fields: List of (property_uri, display_label) tuples
+
+        Returns:
+            Dictionary mapping property URIs to values
+        """
+        property_uris = [prop_uri for prop_uri, _ in populate_fields]
+
+        # First, query direct properties
+        property_values = self.ontology_manager.get_individual_property_values(
+            individual_uri,
+            property_uris
+        )
+
+        # Check if any requested properties are missing (they might be on a related individual)
+        missing_properties = [uri for uri in property_uris if uri not in property_values]
+
+        if missing_properties:
+            # Check if this individual has a hasMaterial property
+            material_uri_result = self.ontology_manager.get_individual_property_values(
+                individual_uri,
+                ['dyn:hasMaterial']
+            )
+
+            material_uri = material_uri_result.get('dyn:hasMaterial')
+            if material_uri:
+                # Query material properties
+                material_properties = self.ontology_manager.get_individual_property_values(
+                    material_uri,
+                    missing_properties
+                )
+                # Merge material properties into result
+                property_values.update(material_properties)
+
+                # Also add the material name/URI itself if requested
+                if 'dyn:hasMaterial' in property_uris:
+                    property_values['dyn:hasMaterial'] = material_uri
+
+        return property_values
 
     def _is_trigger_property(self, property_uri: str) -> bool:
         """

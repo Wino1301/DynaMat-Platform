@@ -6,7 +6,8 @@
       "Bash(git push:*)",
       "Bash(python tools/validate_constraints.py:*)",
       "Bash(python tools/validate_widget.py:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []

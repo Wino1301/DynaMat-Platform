@@ -309,3 +309,36 @@ QSplitter::handle:vertical {
 QSplitter::handle:pressed {
     background-color: #4a90e2;
 }
+
+/* Property Display Widget */
+#propertyDisplayGroupBox {
+    font-weight: bold;
+    color: #ffffff;
+    border: 1px solid #666;
+    border-radius: 4px;
+    margin-top: 10px;
+    padding-top: 10px;
+}
+
+#propertyDisplayGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding-left: 10px;
+    padding-right: 10px;
+    background-color: #2b2b2b;
+}
+
+#propertyLabel {
+    font-weight: normal;
+    color: #ffffff;
+}
+
+#propertyValue {
+    background-color: #3a3a3a;
+    border: 1px solid #666;
+    border-radius: 3px;
+    padding: 5px 8px;
+    color: #ffffff;
+    font-weight: normal;
+    min-height: 20px;
+}

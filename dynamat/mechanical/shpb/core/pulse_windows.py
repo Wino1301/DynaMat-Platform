@@ -8,11 +8,24 @@ Classes
 -------
 PulseDetector : Configurable pulse detection and segmentation
 
+References
+----------
+Gray, G. T. (2000). Classic Split-Hopkinson Pressure Bar Testing.
+ASM Handbook, Vol. 8: Mechanical Testing and Evaluation.
+
+Follansbee, P. S., & Frantz, C. (1983). Wave propagation in the
+split Hopkinson pressure bar. Journal of Engineering Materials
+and Technology, 105(1), 61-66.
 """
 from __future__ import annotations
+
+import logging
 from typing import Tuple, List, Dict, Sequence, Literal
+
 import numpy as np
 from scipy.signal import fftconvolve
+
+logger = logging.getLogger(__name__)
 
 
 class PulseDetector:
@@ -117,7 +130,7 @@ class PulseDetector:
         peaks = np.where(corr > thr)[0]
 
         if debug:
-            print(f"[matched] σ={sigma:.2e} thr={thr:.2e} peaks={len(peaks)}")
+            logger.debug(f"Matched filter: sigma={sigma:.2e}, threshold={thr:.2e}, peaks={len(peaks)}")
 
         if peaks.size == 0:
             return []
@@ -136,7 +149,7 @@ class PulseDetector:
             end = min(len(signal), int(pk + self.pulse_points // 2))
             windows.append((start, end))
             if debug:
-                print(f"  window: pk={pk} idx=({start},{end}) len={end-start}")
+                logger.debug(f"  Window: peak={pk}, idx=({start},{end}), length={end-start}")
 
         return windows
 
@@ -181,11 +194,11 @@ class PulseDetector:
         # Run detector for all k_sigma values
         for k in self.k_trials:
             if debug:
-                print(f"\n[find_window] k_sigma = {k}")
+                logger.debug(f"find_window: trying k_sigma={k}")
             win_list = self._matched_filter(signal, k, debug=debug)
             windows_by_k[k] = win_list
             if debug:
-                print(f"  → {len(win_list)} window(s)")
+                logger.debug(f"  Found {len(win_list)} window(s)")
 
         # Select best window across all thresholds
         best_win = None
@@ -211,6 +224,10 @@ class PulseDetector:
                     best_win = (s, e)
 
         if best_win is None:
+            logger.error(
+                f"No pulse window found within bounds "
+                f"(lower={lower_bound}, upper={upper_bound})"
+            )
             raise RuntimeError("No pulse window found within bounds")
 
         if debug:
@@ -218,8 +235,8 @@ class PulseDetector:
                 f" (bounds [{lower_bound},{upper_bound}])"
                 if lower_bound is not None else ""
             )
-            print(
-                f"[window] selected idx={best_win} "
+            logger.debug(
+                f"Selected window: idx={best_win}, "
                 f"{metric}={best_val:.4e}{bounds_str}"
             )
 
@@ -285,7 +302,7 @@ class PulseDetector:
         seg = np.roll(seg, shift)
 
         if debug:
-            print(f"[segment_and_center] shift = {shift:+d} points")
+            logger.debug(f"segment_and_center: energy centering shift={shift:+d} points")
 
         # 3. Noise suppression
         mag_max = np.max(np.abs(seg))
@@ -364,9 +381,9 @@ class PulseDetector:
             idx_high_arr = np.where(pulse >= val_high)[0]
 
         if len(idx_low_arr) == 0 or len(idx_high_arr) == 0:
-            raise ValueError(
-                f"Pulse does not cross {low_pct*100:.0f}% and {high_pct*100:.0f}% thresholds"
-            )
+            msg = f"Pulse does not cross {low_pct*100:.0f}% and {high_pct*100:.0f}% thresholds"
+            logger.error(msg)
+            raise ValueError(msg)
 
         idx_low = idx_low_arr[0]
         idx_high = idx_high_arr[0]

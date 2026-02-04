@@ -1,0 +1,91 @@
+@prefix gui: <https://dynamat.utep.edu/gui/constraints#> .
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+#################################################################
+# SHPB COMPRESSION TEST FORM CONSTRAINTS (Unified Format)
+#################################################################
+
+#================================================================
+# 1.0 Momentum Trap Configuration
+#================================================================
+
+gui:shpb_c001 a gui:Constraint ;
+    rdfs:label "Show momentum trap distance for tailored gap configuration" ;
+    rdfs:comment "Displays momentum trap tailored distance field only when momentum trap is set to TailoredGap configuration. Hides the field for Full momentum trap or when no momentum trap is selected." ;
+    dc:created "2025-02-01"^^xsd:date ;
+    gui:forClass dyn:SHPBTestingConfiguration ;
+    gui:triggers dyn:hasMomentumTrap ;
+    gui:triggerLogic gui:ALL ;
+    gui:whenValue dyn:MomentumTrap_TailoredGap ;
+    gui:showFields (dyn:hasMomentumTrapTailoredDistance) ;
+    gui:priority 1 .
+
+#================================================================
+# 2.0 Bar Material Property Population
+# Note: Only striker bar shows material properties. Incident and transmission
+# bars are expected to use the same material (enforced by SHACL shapes later).
+#================================================================
+
+gui:shpb_c002 a gui:Constraint ;
+    rdfs:label "Populate striker bar material properties" ;
+    rdfs:comment "When striker bar is selected, displays bar material properties (material name, wave speed, elastic modulus, density) in a read-only PropertyDisplayWidget. All three bars (striker, incident, transmission) are expected to use the same material." ;
+    dc:created "2025-02-03"^^xsd:date ;
+    gui:forClass dyn:SHPBCompression ;
+    gui:triggers dyn:hasStrikerBar ;
+    gui:triggerLogic gui:ALL ;
+    gui:whenValue gui:anyValue ;
+    gui:populateFields (
+        (dyn:hasMaterial "Material")
+        (dyn:hasWaveSpeed "Wave Speed (m/s)")
+        (dyn:hasElasticModulus "Elastic Modulus (GPa)")
+        (dyn:hasDensity "Density (g/cm³)")
+    ) ;
+    gui:makeReadOnly true ;
+    gui:targetWidget "BarMaterialProperties" ;
+    gui:priority 10 .
+
+#================================================================
+# 3.0 Strain Gauge Property Population
+#================================================================
+
+gui:shpb_c005 a gui:Constraint ;
+    rdfs:label "Populate incident strain gauge properties" ;
+    rdfs:comment "When incident strain gauge is selected, displays gauge properties (gauge factor, resistance, calibration values, distance from specimen) in a read-only PropertyDisplayWidget." ;
+    dc:created "2025-02-03"^^xsd:date ;
+    gui:forClass dyn:SHPBCompression ;
+    gui:triggers dyn:hasIncidentStrainGauge ;
+    gui:triggerLogic gui:ALL ;
+    gui:whenValue gui:anyValue ;
+    gui:populateFields (
+        (dyn:hasGaugeFactor "Gauge Factor")
+        (dyn:hasGaugeResistance "Gauge Resistance (Ω)")
+        (dyn:hasCalibrationVoltage "Calibration Voltage (V)")
+        (dyn:hasCalibrationResistance "Calibration Resistance (Ω)")
+        (dyn:hasDistanceFromSpecimen "Distance from Specimen (mm)")
+    ) ;
+    gui:makeReadOnly true ;
+    gui:targetWidget "IncidentStrainGaugeProperties" ;
+    gui:priority 10 .
+
+gui:shpb_c006 a gui:Constraint ;
+    rdfs:label "Populate transmission strain gauge properties" ;
+    rdfs:comment "When transmission strain gauge is selected, displays gauge properties (gauge factor, resistance, calibration values, distance from specimen) in a read-only PropertyDisplayWidget." ;
+    dc:created "2025-02-03"^^xsd:date ;
+    gui:forClass dyn:SHPBCompression ;
+    gui:triggers dyn:hasTransmissionStrainGauge ;
+    gui:triggerLogic gui:ALL ;
+    gui:whenValue gui:anyValue ;
+    gui:populateFields (
+        (dyn:hasGaugeFactor "Gauge Factor")
+        (dyn:hasGaugeResistance "Gauge Resistance (Ω)")
+        (dyn:hasCalibrationVoltage "Calibration Voltage (V)")
+        (dyn:hasCalibrationResistance "Calibration Resistance (Ω)")
+        (dyn:hasDistanceFromSpecimen "Distance from Specimen (mm)")
+    ) ;
+    gui:makeReadOnly true ;
+    gui:targetWidget "TransmissionStrainGaugeProperties" ;
+    gui:priority 10 .
+

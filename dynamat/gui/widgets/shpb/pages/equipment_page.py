@@ -1,195 +1,46 @@
 """Equipment Configuration Page - Ontology-driven form for SHPB analysis.
 
 This page uses CustomizableFormBuilder to automatically generate the equipment
-configuration form from the SHPBTestingConfiguration class definition in the ontology.
+configuration form from the SHPBCompression class definition in the ontology.
 
 Form structure comes from gui:hasFormGroup annotations:
-- EquipmentConfiguration: Bars, gauges, momentum trap, pulse shaper (custom builder)
-- TestConditions: Velocity, pressure, date, lubrication, etc. (default builder)
+- Identification: Test ID, test specimen, test date
+- BarConfiguration: Striker, incident, and transmission bars
+- StrainGaugeConfiguration: Incident and transmission strain gauges
+- TestConditions: Striker velocity, pressure, barrel offset, pulse shaper, momentum trap, lubrication
 
 Widget types and constraints are automatically inferred from ontology metadata.
-
-The EquipmentConfiguration group uses a custom GroupBuilder that includes an
-intermediate display widget showing derived properties from selected equipment
-(bar wave speed, gauge factors, etc.).
 """
 
 import logging
-import re
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional
 
 from PyQt6.QtWidgets import (
-    QVBoxLayout, QHBoxLayout, QLabel,
-    QGroupBox, QGridLayout, QScrollArea,
-    QWidget, QFrame, QFormLayout
+    QVBoxLayout, QLabel,
+    QScrollArea, QWidget, QFrame
 )
-from PyQt6.QtCore import Qt
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.io.specimen_loader import SpecimenLoader
 from .....config import config
-from .....ontology import PropertyMetadata
 from ....builders.customizable_form_builder import CustomizableFormBuilder
-from ....builders.group_builder import GroupBuilder
-from ....core.form_manager import FormField
+from ....dependencies import DependencyManager
 
 logger = logging.getLogger(__name__)
 
 
 class EquipmentPage(BaseSHPBPage):
-    """Equipment configuration page for SHPB analysis (ontology-driven with custom groups).
+    """Equipment configuration page for SHPB analysis (ontology-driven).
 
     Features:
-    - Auto-generated form from SHPBTestingConfiguration ontology class
+    - Auto-generated form from SHPBCompression ontology class
     - Automatic widget type inference (combos for equipment, unit widgets for measurements)
     - Constraint-based visibility (momentum trap distance only for TailoredGap)
-    - Equipment property display (derived values from selected equipment via custom group builder)
 
     The form structure is entirely driven by GUI annotations in:
     - dynamat/ontology/class_properties/shpb_compression_class.ttl
     - dynamat/ontology/constraints/gui_shpb_rules.ttl
-
-    Custom group rendering:
-    - EquipmentConfiguration group uses nested _EquipmentPropertiesBuilder
-    - Other groups use default QGroupBox + QFormLayout rendering
     """
-
-    class _EquipmentPropertiesBuilder(GroupBuilder):
-        """Custom builder for equipment configuration with derived properties display.
-
-        This builder creates two sections:
-        1. Standard form group for equipment selection (bars, gauges, etc.)
-        2. Intermediate display showing derived properties from selected equipment
-        """
-
-        def build_group(
-            self,
-            group_name: str,
-            properties: List[PropertyMetadata],
-            parent: Optional[QWidget] = None
-        ) -> Tuple[QWidget, Dict[str, FormField]]:
-            """Build equipment group with standard form and properties display."""
-            # Create container with vertical layout
-            container = QWidget(parent)
-            layout = QVBoxLayout(container)
-            layout.setContentsMargins(0, 0, 0, 0)
-
-            # 1. Create standard form group for equipment selection
-            equipment_group, form_fields = self._create_equipment_form(
-                group_name, properties, container
-            )
-            layout.addWidget(equipment_group)
-
-            # 2. Create intermediate display widget for derived properties
-            properties_display = self._create_properties_display(container)
-            layout.addWidget(properties_display)
-
-            # Store references to display labels on container for external access
-            container.wave_speed_label = self.wave_speed_label
-            container.cross_section_label = self.cross_section_label
-            container.elastic_modulus_label = self.elastic_modulus_label
-            container.inc_gauge_factor_label = self.inc_gauge_factor_label
-            container.inc_gauge_distance_label = self.inc_gauge_distance_label
-            container.trans_gauge_factor_label = self.trans_gauge_factor_label
-            container.trans_gauge_distance_label = self.trans_gauge_distance_label
-            container.momentum_trap_distance_label = self.momentum_trap_distance_label
-
-            return container, form_fields
-
-        def _create_equipment_form(
-            self,
-            group_name: str,
-            properties: List[PropertyMetadata],
-            parent: QWidget
-        ) -> Tuple[QGroupBox, Dict[str, FormField]]:
-            """Create standard form group for equipment selection."""
-            # Create QGroupBox with formatted title
-            group_box = QGroupBox(self._format_group_name(group_name), parent)
-            form_layout = QFormLayout(group_box)
-
-            # Create widgets for all properties
-            widgets = self.create_widgets_for_group(properties)
-
-            # Add label-widget pairs
-            form_fields = {}
-            sorted_properties = sorted(properties, key=lambda p: p.display_order or 0)
-
-            for prop in sorted_properties:
-                if prop.uri not in widgets:
-                    continue
-
-                widget = widgets[prop.uri]
-
-                # Create label
-                label_text = prop.display_name or prop.name
-                if prop.is_required:
-                    label_text += " *"
-
-                label = QLabel(label_text)
-
-                # Add to form layout
-                form_layout.addRow(label, widget)
-
-                # Create FormField
-                form_fields[prop.uri] = FormField(
-                    widget=widget,
-                    property_uri=prop.uri,
-                    property_metadata=prop,
-                    group_name=group_name,
-                    required=prop.is_required,
-                    label=label_text,
-                    label_widget=label
-                )
-
-            return group_box, form_fields
-
-        def _create_properties_display(self, parent: QWidget) -> QGroupBox:
-            """Create intermediate display widget for derived equipment properties."""
-            props_group = QGroupBox("Equipment Properties", parent)
-            props_layout = QGridLayout(props_group)
-
-            # Bar properties (derived from selected bar equipment)
-            props_layout.addWidget(QLabel("Bar Wave Speed:"), 0, 0)
-            self.wave_speed_label = QLabel("--")
-            props_layout.addWidget(self.wave_speed_label, 0, 1)
-
-            props_layout.addWidget(QLabel("Bar Cross Section:"), 1, 0)
-            self.cross_section_label = QLabel("--")
-            props_layout.addWidget(self.cross_section_label, 1, 1)
-
-            props_layout.addWidget(QLabel("Bar Elastic Modulus:"), 2, 0)
-            self.elastic_modulus_label = QLabel("--")
-            props_layout.addWidget(self.elastic_modulus_label, 2, 1)
-
-            # Strain gauge properties (derived from selected gauge equipment)
-            props_layout.addWidget(QLabel("Incident Gauge Factor:"), 3, 0)
-            self.inc_gauge_factor_label = QLabel("--")
-            props_layout.addWidget(self.inc_gauge_factor_label, 3, 1)
-
-            props_layout.addWidget(QLabel("Incident Gauge Distance:"), 4, 0)
-            self.inc_gauge_distance_label = QLabel("--")
-            props_layout.addWidget(self.inc_gauge_distance_label, 4, 1)
-
-            props_layout.addWidget(QLabel("Transmission Gauge Factor:"), 5, 0)
-            self.trans_gauge_factor_label = QLabel("--")
-            props_layout.addWidget(self.trans_gauge_factor_label, 5, 1)
-
-            props_layout.addWidget(QLabel("Transmission Gauge Distance:"), 6, 0)
-            self.trans_gauge_distance_label = QLabel("--")
-            props_layout.addWidget(self.trans_gauge_distance_label, 6, 1)
-
-            # Momentum trap distance (from test conditions)
-            props_layout.addWidget(QLabel("Momentum Trap Distance:"), 7, 0)
-            self.momentum_trap_distance_label = QLabel("--")
-            props_layout.addWidget(self.momentum_trap_distance_label, 7, 1)
-
-            return props_group
-
-        def _format_group_name(self, group_name: str) -> str:
-            """Format group name for display (camelCase/snake_case to Title Case)."""
-            formatted = re.sub(r'([a-z])([A-Z])', r'\1 \2', group_name)
-            formatted = formatted.replace('_', ' ')
-            return formatted.title()
 
     def __init__(self, state, ontology_manager, qudt_manager=None, parent=None):
         super().__init__(state, ontology_manager, qudt_manager, parent)
@@ -200,10 +51,10 @@ class EquipmentPage(BaseSHPBPage):
         self.specimen_loader: Optional[SpecimenLoader] = None
         self.form_widget: Optional[QWidget] = None
         self.form_builder: Optional[CustomizableFormBuilder] = None
-        self.equipment_container: Optional[QWidget] = None
+        self.dependency_manager: Optional[DependencyManager] = None
 
     def _setup_ui(self) -> None:
-        """Setup page UI using customizable form builder with equipment group builder."""
+        """Setup page UI using customizable form builder."""
         layout = self._create_base_layout()
 
         # Create scrollable content
@@ -217,29 +68,24 @@ class EquipmentPage(BaseSHPBPage):
         # Initialize customizable form builder
         self.form_builder = CustomizableFormBuilder(self.ontology_manager)
 
-        # Register custom builder for EquipmentConfiguration group
-        # This will automatically include the equipment properties display
-        equipment_builder = self._EquipmentPropertiesBuilder(
-            self.form_builder.widget_factory
-        )
-        self.form_builder.register_group_builder(
-            "EquipmentConfiguration",
-            equipment_builder
-        )
-
-        # Build form from ontology for SHPBTestingConfiguration class
+        # Build form from ontology for SHPBCompression class
         try:
             self.form_widget = self.form_builder.build_form(
-                "https://dynamat.utep.edu/ontology#SHPBTestingConfiguration",
+                "https://dynamat.utep.edu/ontology#SHPBCompression",
                 parent=content
             )
 
             if self.form_widget:
                 content_layout.addWidget(self.form_widget)
-                self.logger.info("Equipment form created from ontology with custom group builder")
+                self.logger.info("Equipment form created from ontology")
 
-                # Find the equipment container for property updates
-                self._find_equipment_container()
+                # Setup dependency manager for constraints
+                self.dependency_manager = DependencyManager(self.ontology_manager)
+                self.dependency_manager.setup_dependencies(
+                    self.form_widget,
+                    "https://dynamat.utep.edu/ontology#SHPBCompression"
+                )
+                self.logger.info("Dependencies configured with PropertyDisplayWidgets")
 
             else:
                 self.logger.error("Form builder returned None")
@@ -259,41 +105,6 @@ class EquipmentPage(BaseSHPBPage):
 
         self._add_status_area()
 
-    def _find_equipment_container(self) -> None:
-        """Find the equipment container widget created by EquipmentPropertiesGroupBuilder.
-
-        The custom group builder creates a container widget with references to the
-        display labels. This method finds that container so we can update the displays
-        when equipment selections change.
-        """
-        if not self.form_widget:
-            return
-
-        # The equipment container is the widget for one of the equipment properties
-        # We'll search through form_fields to find it
-        if hasattr(self.form_widget, 'form_fields'):
-            for field in self.form_widget.form_fields.values():
-                if field.group_name == "EquipmentConfiguration":
-                    # Walk up the widget tree to find the container
-                    widget = field.widget
-                    while widget and widget != self.form_widget:
-                        if hasattr(widget, 'wave_speed_label'):
-                            # Found the equipment container
-                            self.equipment_container = widget
-                            # Store label references for convenience
-                            self.wave_speed_label = widget.wave_speed_label
-                            self.cross_section_label = widget.cross_section_label
-                            self.elastic_modulus_label = widget.elastic_modulus_label
-                            self.inc_gauge_factor_label = widget.inc_gauge_factor_label
-                            self.inc_gauge_distance_label = widget.inc_gauge_distance_label
-                            self.trans_gauge_factor_label = widget.trans_gauge_factor_label
-                            self.trans_gauge_distance_label = widget.trans_gauge_distance_label
-                            self.momentum_trap_distance_label = widget.momentum_trap_distance_label
-                            self.logger.debug("Found equipment container with display labels")
-                            return
-                        widget = widget.parentWidget()
-
-        self.logger.warning("Could not find equipment container widget")
 
     def initializePage(self) -> None:
         """Initialize page when it becomes current."""
@@ -305,12 +116,6 @@ class EquipmentPage(BaseSHPBPage):
 
         # Restore previous selections if any
         self._restore_selections()
-
-        # Connect equipment combo change handlers to update properties display
-        self._connect_equipment_handlers()
-
-        # Update properties display
-        self._update_properties_display()
 
     def validatePage(self) -> bool:
         """Validate before allowing Next."""
@@ -358,148 +163,6 @@ class EquipmentPage(BaseSHPBPage):
         except Exception as e:
             self.logger.error(f"Failed to initialize specimen loader: {e}")
 
-    def _connect_equipment_handlers(self) -> None:
-        """Connect equipment selection changes to property display updates.
-
-        Finds the equipment combo widgets in the generated form and connects
-        them to update the equipment properties display.
-        """
-        if not self.form_widget or not hasattr(self.form_widget, 'form_fields'):
-            return
-
-        # Equipment properties that should trigger display updates
-        equipment_properties = [
-            "https://dynamat.utep.edu/ontology#hasIncidentBar",
-            "https://dynamat.utep.edu/ontology#hasIncidentStrainGauge",
-            "https://dynamat.utep.edu/ontology#hasTransmissionStrainGauge",
-            "https://dynamat.utep.edu/ontology#hasMomentumTrapTailoredDistance"
-        ]
-
-        for prop_uri in equipment_properties:
-            if prop_uri in self.form_widget.form_fields:
-                widget = self.form_widget.form_fields[prop_uri].widget
-
-                # Connect appropriate signal based on widget type
-                if hasattr(widget, 'currentIndexChanged'):
-                    # QComboBox
-                    widget.currentIndexChanged.connect(self._update_properties_display)
-                elif hasattr(widget, 'valueChanged'):
-                    # UnitValueWidget
-                    widget.valueChanged.connect(self._update_properties_display)
-
-    def _update_properties_display(self) -> None:
-        """Update equipment properties display from selected equipment.
-
-        Queries ontology for properties of selected equipment individuals
-        and displays them in the Equipment Properties section.
-        """
-        if not self.specimen_loader or not self.form_widget:
-            return
-
-        if not hasattr(self.form_widget, 'form_fields'):
-            return
-
-        try:
-            form_fields = self.form_widget.form_fields
-
-            # Get incident bar properties (use for display)
-            incident_bar_uri_prop = "https://dynamat.utep.edu/ontology#hasIncidentBar"
-            if incident_bar_uri_prop in form_fields:
-                widget = form_fields[incident_bar_uri_prop].widget
-                incident_bar_uri = widget.currentData() if hasattr(widget, 'currentData') else None
-
-                if incident_bar_uri:
-                    # Get bar properties
-                    bar_props = self.specimen_loader.get_multiple_properties(
-                        incident_bar_uri,
-                        ['hasCrossSection', 'hasMaterial']
-                    )
-
-                    cross_section = bar_props.get('hasCrossSection')
-                    if cross_section:
-                        self.cross_section_label.setText(f"{cross_section:.2f} mm²")
-                    else:
-                        self.cross_section_label.setText("--")
-
-                    # Get material properties
-                    material_uri = bar_props.get('hasMaterial')
-                    if material_uri:
-                        mat_props = self.specimen_loader.get_multiple_properties(
-                            material_uri,
-                            ['hasWaveSpeed', 'hasElasticModulus']
-                        )
-
-                        wave_speed = mat_props.get('hasWaveSpeed')
-                        elastic_mod = mat_props.get('hasElasticModulus')
-
-                        if wave_speed:
-                            self.wave_speed_label.setText(f"{wave_speed:.1f} m/s")
-                        else:
-                            self.wave_speed_label.setText("--")
-
-                        if elastic_mod:
-                            self.elastic_modulus_label.setText(f"{elastic_mod:.1f} GPa")
-                        else:
-                            self.elastic_modulus_label.setText("--")
-
-            # Get gauge factors and distances
-            inc_gauge_uri_prop = "https://dynamat.utep.edu/ontology#hasIncidentStrainGauge"
-            trans_gauge_uri_prop = "https://dynamat.utep.edu/ontology#hasTransmissionStrainGauge"
-
-            if inc_gauge_uri_prop in form_fields:
-                widget = form_fields[inc_gauge_uri_prop].widget
-                inc_gauge_uri = widget.currentData() if hasattr(widget, 'currentData') else None
-
-                if inc_gauge_uri:
-                    gauge_props = self.specimen_loader.get_multiple_properties(
-                        inc_gauge_uri, ['hasGaugeFactor', 'hasDistanceFromSpecimen']
-                    )
-                    gf = gauge_props.get('hasGaugeFactor')
-                    distance = gauge_props.get('hasDistanceFromSpecimen')
-
-                    self.inc_gauge_factor_label.setText(f"{gf:.3f}" if gf else "--")
-                    self.inc_gauge_distance_label.setText(f"{distance:.1f} mm" if distance else "--")
-                else:
-                    self.inc_gauge_factor_label.setText("--")
-                    self.inc_gauge_distance_label.setText("--")
-
-            if trans_gauge_uri_prop in form_fields:
-                widget = form_fields[trans_gauge_uri_prop].widget
-                trans_gauge_uri = widget.currentData() if hasattr(widget, 'currentData') else None
-
-                if trans_gauge_uri:
-                    gauge_props = self.specimen_loader.get_multiple_properties(
-                        trans_gauge_uri, ['hasGaugeFactor', 'hasDistanceFromSpecimen']
-                    )
-                    gf = gauge_props.get('hasGaugeFactor')
-                    distance = gauge_props.get('hasDistanceFromSpecimen')
-
-                    self.trans_gauge_factor_label.setText(f"{gf:.3f}" if gf else "--")
-                    self.trans_gauge_distance_label.setText(f"{distance:.1f} mm" if distance else "--")
-                else:
-                    self.trans_gauge_factor_label.setText("--")
-                    self.trans_gauge_distance_label.setText("--")
-
-            # Get momentum trap distance from test conditions widget
-            mtrap_dist_prop = "https://dynamat.utep.edu/ontology#hasMomentumTrapTailoredDistance"
-            if mtrap_dist_prop in form_fields:
-                widget = form_fields[mtrap_dist_prop].widget
-                try:
-                    if hasattr(widget, 'getData'):
-                        mtrap_data = widget.getData()
-                        mtrap_value = mtrap_data.get('value', 0)
-                        mtrap_unit = mtrap_data.get('unit_symbol', 'mm')
-
-                        if mtrap_value > 0:
-                            self.momentum_trap_distance_label.setText(f"{mtrap_value:.1f} {mtrap_unit}")
-                        else:
-                            self.momentum_trap_distance_label.setText("--")
-                except Exception as e:
-                    self.logger.debug(f"Could not get momentum trap distance: {e}")
-                    self.momentum_trap_distance_label.setText("--")
-
-        except Exception as e:
-            self.logger.warning(f"Failed to update properties display: {e}")
 
     def _restore_selections(self) -> None:
         """Restore previous selections from state."""

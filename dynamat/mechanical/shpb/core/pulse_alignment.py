@@ -12,12 +12,20 @@ References
 ----------
 Gray, G. T. (2000). Classic Split-Hopkinson Pressure Bar Testing.
 ASM Handbook, Vol. 8: Mechanical Testing and Evaluation.
+
+Chen, W. W., & Song, B. (2011). Split Hopkinson (Kolsky) Bar: Design,
+Testing and Applications. Springer.
 """
 from __future__ import annotations
+
+import logging
 from typing import Tuple, Dict, Optional, Sequence
+
 import numpy as np
 from scipy.integrate import cumulative_trapezoid
 from scipy.optimize import differential_evolution
+
+logger = logging.getLogger(__name__)
 
 
 class PulseAligner:
@@ -79,9 +87,9 @@ class PulseAligner:
 
         # Validate weights
         if not np.isclose(sum(self.weights.values()), 1.0, atol=0.01):
-            import warnings
-            warnings.warn(
-                f"Weights sum to {sum(self.weights.values()):.3f}, not 1.0"
+            logger.warning(
+                f"Weights sum to {sum(self.weights.values()):.3f}, not 1.0. "
+                f"Consider normalizing weights for consistent fitness scaling."
             )
 
     @staticmethod
@@ -351,11 +359,13 @@ class PulseAligner:
         # Validate inputs
         N = len(incident)
         if not (len(transmitted) == len(reflected) == len(time_vector) == N):
-            raise ValueError(
-                f"All inputs must have same height. Got: "
+            msg = (
+                f"All inputs must have same length. Got: "
                 f"incident={len(incident)}, transmitted={len(transmitted)}, "
                 f"reflected={len(reflected)}, time={len(time_vector)}"
             )
+            logger.error(msg)
+            raise ValueError(msg)
 
         # Default search bounds
         if search_bounds_t is None:
@@ -372,10 +382,14 @@ class PulseAligner:
         idx_linear = np.arange(fall_start, fall_end)
 
         if debug:
-            print(f"[PulseAligner] Linear region: [{fall_start}, {fall_end}] "
-                  f"({len(idx_linear)} points)")
-            print(f"[PulseAligner] Search bounds: T={search_bounds_t}, "
-                  f"R={search_bounds_r}")
+            logger.debug(
+                f"Linear region: [{fall_start}, {fall_end}] "
+                f"({len(idx_linear)} points)"
+            )
+            logger.debug(
+                f"Search bounds: transmitted={search_bounds_t}, "
+                f"reflected={search_bounds_r}"
+            )
 
         # Run differential evolution
         bounds = [search_bounds_t, search_bounds_r]
@@ -395,9 +409,11 @@ class PulseAligner:
         shift_t, shift_r = map(lambda x: int(round(x)), result.x)
 
         if debug:
-            print(f"[PulseAligner] Optimal shifts: T={shift_t:+d}, "
-                  f"R={shift_r:+d} samples")
-            print(f"[PulseAligner] Final fitness: {-result.fun:.6f}")
+            logger.debug(
+                f"Optimal shifts: transmitted={shift_t:+d}, "
+                f"reflected={shift_r:+d} samples"
+            )
+            logger.debug(f"Final fitness: {-result.fun:.6f}")
 
         # Apply shifts and return
         inc_aligned = incident.copy()

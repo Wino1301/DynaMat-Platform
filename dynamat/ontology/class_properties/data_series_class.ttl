@@ -298,10 +298,7 @@ dyn:hasProcessingMethod rdf:type owl:DatatypeProperty ,
                         rdfs:domain dyn:DataSeries ;
                         rdfs:range xsd:string ;
                         rdfs:comment "Algorithm or method used to calculate this data"@en ;
-                        rdfs:label "Processing Method"@en ;
-                        gui:hasDisplayName "Processing Method" ;
-                        gui:hasDisplayOrder 1 ;
-                        gui:hasFormGroup "ProcessingInfo" .
+                        rdfs:label "Processing Method"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasFilterApplied
@@ -310,10 +307,7 @@ dyn:hasFilterApplied rdf:type owl:DatatypeProperty ,
                      rdfs:domain dyn:DataSeries ;
                      rdfs:range xsd:boolean ;
                      rdfs:comment "Whether filtering was applied to this data"@en ;
-                     rdfs:label "Filter Applied"@en ;
-                     gui:hasDisplayName "Filter Applied" ;
-                     gui:hasDisplayOrder 2 ;
-                     gui:hasFormGroup "ProcessingInfo" .
+                     rdfs:label "Filter Applied"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasFilterType
@@ -322,11 +316,7 @@ dyn:hasFilterType rdf:type owl:DatatypeProperty ,
                   rdfs:domain dyn:DataSeries ;
                   rdfs:range xsd:string ;
                   rdfs:comment "Type of filter applied (if any)"@en ;
-                  rdfs:label "Filter Type"@en ;
-                  gui:hasDisplayName "Filter Type" ;
-                  gui:hasDisplayOrder 3 ;
-                  gui:hasFormGroup "ProcessingInfo" ;
-                  gui:hasValidValues "LowPass,HighPass,BandPass,Butterworth,Savitzky-Golay" .
+                  rdfs:label "Filter Type"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasFilterFrequency
@@ -337,10 +327,7 @@ dyn:hasFilterFrequency rdf:type owl:DatatypeProperty ,
                        qudt:hasQuantityKind qkdv:Frequency ;
                        rdfs:comment "Cutoff frequency for applied filter"@en ;
                        rdfs:label "Filter Frequency"@en ;
-                       dyn:hasUnit "unit:HZ" ;
-                       gui:hasDisplayName "Filter Frequency (Hz)" ;
-                       gui:hasDisplayOrder 4 ;
-                       gui:hasFormGroup "ProcessingInfo" .
+                       dyn:hasUnit "unit:HZ" .
 
 
 #################################################################
@@ -353,10 +340,7 @@ dyn:hasTukeyFactor rdf:type owl:DatatypeProperty ,
                    rdfs:domain dyn:DataSeries ;
                    rdfs:range xsd:double ;
                    rdfs:comment "Tukey windowing factor used for pulse processing (deprecated, use hasTukeyAlpha)"@en ;
-                   rdfs:label "Tukey Factor"@en ;
-                   gui:hasDisplayName "Tukey Factor" ;
-                   gui:hasDisplayOrder 5 ;
-                   gui:hasFormGroup "ProcessingInfo" .
+                   rdfs:label "Tukey Factor"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasTukeyAlpha
@@ -365,10 +349,7 @@ dyn:hasTukeyAlpha rdf:type owl:DatatypeProperty ,
                   rdfs:domain dyn:DataSeries ;
                   rdfs:range xsd:double ;
                   rdfs:comment "Tukey window alpha parameter (0.0-1.0). 0.0=rectangular, 0.5=half-tapered, 1.0=Hann"@en ;
-                  rdfs:label "Tukey Alpha"@en ;
-                  gui:hasDisplayName "Tukey Alpha" ;
-                  gui:hasDisplayOrder 5 ;
-                  gui:hasFormGroup "ProcessingInfo" .
+                  rdfs:label "Tukey Alpha"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasTukeyWindowLength
@@ -377,10 +358,7 @@ dyn:hasTukeyWindowLength rdf:type owl:DatatypeProperty ,
                          rdfs:domain dyn:DataSeries ;
                          rdfs:range xsd:integer ;
                          rdfs:comment "Length of Tukey window applied to pulse data"@en ;
-                         rdfs:label "Tukey Window Length"@en ;
-                         gui:hasDisplayName "Tukey Window Length" ;
-                         gui:hasDisplayOrder 6 ;
-                         gui:hasFormGroup "ProcessingInfo" .
+                         rdfs:label "Tukey Window Length"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#isCenteredPulse
@@ -389,10 +367,7 @@ dyn:isCenteredPulse rdf:type owl:DatatypeProperty ,
                     rdfs:domain dyn:DataSeries ;
                     rdfs:range xsd:boolean ;
                     rdfs:comment "Whether pulse data has been centered and aligned"@en ;
-                    rdfs:label "Centered Pulse"@en ;
-                    gui:hasDisplayName "Centered Pulse" ;
-                    gui:hasDisplayOrder 7 ;
-                    gui:hasFormGroup "ProcessingInfo" .
+                    rdfs:label "Centered Pulse"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#isAlignedPulse
@@ -401,10 +376,7 @@ dyn:isAlignedPulse rdf:type owl:DatatypeProperty ,
                    rdfs:domain dyn:DataSeries ;
                    rdfs:range xsd:boolean ;
                    rdfs:comment "Whether pulse data has been time-aligned"@en ;
-                   rdfs:label "Aligned Pulse"@en ;
-                   gui:hasDisplayName "Aligned Pulse" ;
-                   gui:hasDisplayOrder 8 ;
-                   gui:hasFormGroup "ProcessingInfo" .
+                   rdfs:label "Aligned Pulse"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#isReferencePulse
@@ -425,10 +397,7 @@ dyn:hasSegmentShift rdf:type owl:DatatypeProperty ,
                     rdfs:domain dyn:DataSeries ;
                     rdfs:range xsd:integer ;
                     rdfs:comment "Shift applied during segment_and_center operation to center pulse on energy median"@en ;
-                    rdfs:label "Segment Shift"@en ;
-                    gui:hasDisplayName "Segment Shift (samples)" ;
-                    gui:hasDisplayOrder 9 ;
-                    gui:hasFormGroup "ProcessingInfo" .
+                    rdfs:label "Segment Shift"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasSamplingInterval

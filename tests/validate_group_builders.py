@@ -99,15 +99,15 @@ def test_equipment_page_nested_builder():
         print("  + EquipmentPage imports successfully")
 
         # Verify nested builder exists
-        assert hasattr(EquipmentPage, '_EquipmentPropertiesBuilder')
-        print("  + EquipmentPage has _EquipmentPropertiesBuilder nested class")
+        assert hasattr(EquipmentPage, '_TestConditionsBuilder')
+        print("  + EquipmentPage has _TestConditionsBuilder nested class")
 
         # Test builder instantiation
         ontology_manager = OntologyManager()
         widget_factory = WidgetFactory(ontology_manager)
-        equipment_builder = EquipmentPage._EquipmentPropertiesBuilder(widget_factory)
+        test_conditions_builder = EquipmentPage._TestConditionsBuilder(widget_factory)
 
-        assert equipment_builder.widget_factory is not None
+        assert test_conditions_builder.widget_factory is not None
         print("  + Nested builder instantiates correctly")
 
     except Exception as e:

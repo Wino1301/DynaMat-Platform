@@ -14,7 +14,12 @@ Harris, F. J. (1978). On the use of windows for harmonic analysis with the
 discrete Fourier transform. Proceedings of the IEEE, 66(1), 51-83.
 """
 from __future__ import annotations
+
+import logging
+
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 class TukeyWindow:
@@ -51,9 +56,9 @@ class TukeyWindow:
 
     def __init__(self, alpha: float = 0.5):
         if not 0.0 <= alpha <= 1.0:
-            raise ValueError(
-                f"alpha must be in [0, 1], got {alpha}"
-            )
+            msg = f"alpha must be in [0, 1], got {alpha}"
+            logger.error(msg)
+            raise ValueError(msg)
         self.alpha = alpha
 
     def generate(self, length: int) -> np.ndarray:
@@ -80,7 +85,9 @@ class TukeyWindow:
         where N is the window length and α is the taper fraction.
         """
         if length <= 0:
-            raise ValueError(f"length must be positive, got {length}")
+            msg = f"length must be positive, got {length}"
+            logger.error(msg)
+            raise ValueError(msg)
 
         # Special cases for efficiency
         if self.alpha == 0.0:

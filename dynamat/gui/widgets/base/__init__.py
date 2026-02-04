@@ -6,6 +6,7 @@ Base widget components used throughout the application
 from .unit_value_widget import UnitValueWidget
 from .series_metadata_resolver import SeriesMetadataResolver
 from .data_series_widget import DataSeriesWidget
+from .property_display import PropertyDisplayConfig, PropertyDisplayWidget
 
 # Plot widgets
 from .base_plot_widget import BasePlotWidget
@@ -32,6 +33,8 @@ __all__ = [
     'UnitValueWidget',
     'SeriesMetadataResolver',
     'DataSeriesWidget',
+    'PropertyDisplayConfig',
+    'PropertyDisplayWidget',
     # Plot widgets
     'BasePlotWidget',
     'MatplotlibPlotWidget',

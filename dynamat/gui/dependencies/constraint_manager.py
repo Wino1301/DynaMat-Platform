@@ -85,6 +85,7 @@ class Constraint:
     # Population operation
     populate_fields: Optional[List[tuple]] = None  # List of (source_property, target_property) tuples
     make_read_only: bool = False
+    target_widget: Optional[str] = None  # Custom widget identifier (e.g., "BarMaterialProperties")
 
     # Filtering operations
     apply_to_fields: Optional[List[str]] = None
@@ -275,6 +276,8 @@ class ConstraintManager:
             populate_fields_raw = self._get_populate_fields(constraint_ref)
             make_read_only_val = self.graph.value(constraint_ref, self.GUI.makeReadOnly)
             make_read_only = bool(make_read_only_val) if make_read_only_val else False
+            target_widget_val = self.graph.value(constraint_ref, self.GUI.targetWidget)
+            target_widget = str(target_widget_val) if target_widget_val else None
 
             # Parse filtering operations
             apply_to_fields = self._get_all_values(constraint_ref, self.GUI.applyToFields)
@@ -301,6 +304,7 @@ class ConstraintManager:
                 generation_inputs=gen_inputs if gen_inputs else None,
                 populate_fields=populate_fields_raw if populate_fields_raw else None,
                 make_read_only=make_read_only,
+                target_widget=target_widget,
                 apply_to_fields=apply_to_fields if apply_to_fields else None,
                 exclude_classes=exclude_classes if exclude_classes else None,
                 filter_by_classes=filter_by_classes if filter_by_classes else None
