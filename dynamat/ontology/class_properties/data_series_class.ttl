@@ -27,6 +27,26 @@ dyn:AnalysisFile rdf:type owl:Class ;
                  rdfs:comment "Container for analysis result data files with processing metadata"@en .
 
 
+###  https://dynamat.utep.edu/ontology#RawDataFile
+dyn:RawDataFile rdf:type owl:Class ;
+    rdfs:subClassOf dyn:AnalysisFile ;
+    rdfs:comment "Raw input data file (e.g., oscilloscope CSV/TXT) before processing"@en ;
+    rdfs:label "Raw Data File"@en .
+
+
+###  https://dynamat.utep.edu/ontology#ProcessedDataFile
+dyn:ProcessedDataFile rdf:type owl:Class ;
+    rdfs:subClassOf dyn:AnalysisFile ;
+    rdfs:comment "Processed output data file produced by analysis pipeline"@en ;
+    rdfs:label "Processed Data File"@en .
+
+
+###  https://dynamat.utep.edu/ontology#ColumnSeparator
+dyn:ColumnSeparator rdf:type owl:Class ;
+    rdfs:comment "Column delimiter type for tabular data files. Individuals represent specific separator characters."@en ;
+    rdfs:label "Column Separator"@en .
+
+
 ###  https://dynamat.utep.edu/ontology#DataSeries
 dyn:DataSeries rdf:type owl:Class ;
                rdfs:label "Data Series"@en ;
@@ -118,6 +138,22 @@ dyn:requiresStrainGauge rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
 #################################################################
 #    Object Properties
 #################################################################
+
+###  https://dynamat.utep.edu/ontology#hasRawSeries
+dyn:hasRawSeries rdf:type owl:ObjectProperty ;
+    rdfs:domain dyn:MechanicalTest ;
+    rdfs:range dyn:SeriesType ;
+    rdfs:comment "SeriesType individuals required as raw input data for this test class."@en ;
+    rdfs:label "Raw Series"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasProcessedSeries
+dyn:hasProcessedSeries rdf:type owl:ObjectProperty ;
+    rdfs:domain dyn:MechanicalTest ;
+    rdfs:range dyn:SeriesType ;
+    rdfs:comment "SeriesType individuals produced as processed output by this test class."@en ;
+    rdfs:label "Processed Series"@en .
+
 
 ###  https://dynamat.utep.edu/ontology#hasDataFile
 dyn:hasDataFile rdf:type owl:ObjectProperty ,
@@ -437,20 +473,31 @@ dyn:hasFilePath rdf:type owl:DatatypeProperty ,
                 rdfs:domain dyn:AnalysisFile ;
                 rdfs:range xsd:string ;
                 rdfs:comment "Relative path to the data file from the specimen directory"@en ;
-                rdfs:label "File Path"@en .
+                rdfs:label "File Path"@en ;
+                gui:hasDisplayName "File" ;
+                gui:hasFormGroup "DataFileInput" ;
+                gui:hasDisplayOrder 1 .
 
 
-###  https://dynamat.utep.edu/ontology#hasFileName
-# DEPRECATED: File name is redundant - can be extracted from hasFilePath.
-# Kept for backwards compatibility with existing data.
-dyn:hasFileName rdf:type owl:DatatypeProperty ,
-                         owl:FunctionalProperty ;
-                owl:deprecated true ;
-                rdfs:domain dyn:AnalysisFile ;
-                rdfs:range xsd:string ;
-                rdfs:comment "DEPRECATED: Name of the data file. Use hasFilePath instead."@en ;
-                rdfs:label "File Name"@en .
+###  https://dynamat.utep.edu/ontology#hasDelimiterCharacter
+dyn:hasDelimiterCharacter rdf:type owl:DatatypeProperty ,
+                                   owl:FunctionalProperty ;
+    rdfs:domain dyn:ColumnSeparator ;
+    rdfs:range xsd:string ;
+    rdfs:comment "The actual character(s) used as delimiter (e.g., ',', '\\t', ';', ' ')"@en ;
+    rdfs:label "Delimiter Character"@en .
 
+
+###  https://dynamat.utep.edu/ontology#hasColumnSeparator
+dyn:hasColumnSeparator rdf:type owl:ObjectProperty ,
+                                owl:FunctionalProperty ;
+    rdfs:domain dyn:AnalysisFile ;
+    rdfs:range dyn:ColumnSeparator ;
+    rdfs:comment "Column delimiter used in this data file. Points to a ColumnSeparator individual."@en ;
+    rdfs:label "Column Separator"@en ;
+    gui:hasDisplayName "Separator" ;
+    gui:hasFormGroup "DataFileInput" ;
+    gui:hasDisplayOrder 2 .
 
 ###  https://dynamat.utep.edu/ontology#hasFileSize
 dyn:hasFileSize rdf:type owl:DatatypeProperty ,
@@ -479,64 +526,30 @@ dyn:hasColumnCount rdf:type owl:DatatypeProperty ,
                    rdfs:label "Column Count"@en .
 
 
-###  https://dynamat.utep.edu/ontology#hasFileEncoding
-# DEPRECATED: File encoding metadata was defined but never populated in practice.
-# Most files are UTF-8. Kept for backwards compatibility.
-dyn:hasFileEncoding rdf:type owl:DatatypeProperty ,
-                             owl:FunctionalProperty ;
-                    owl:deprecated true ;
-                    rdfs:domain dyn:AnalysisFile ;
-                    rdfs:range xsd:string ;
-                    rdfs:comment "DEPRECATED: Character encoding of the file. Rarely used - assume UTF-8."@en ;
-                    rdfs:label "File Encoding"@en .
-
-
-###  https://dynamat.utep.edu/ontology#hasProcessingDate
-# DEPRECATED: Use dyn:hasCreatedDate instead for consistency.
-# hasCreatedDate is defined in DynaMat_core.ttl with xsd:dateTime range.
-dyn:hasProcessingDate rdf:type owl:DatatypeProperty ,
-                               owl:FunctionalProperty ;
-                      owl:deprecated true ;
-                      rdfs:domain dyn:AnalysisFile ;
-                      rdfs:range xsd:dateTime ;
-                      rdfs:comment "DEPRECATED: Use hasCreatedDate instead."@en ;
-                      rdfs:label "Processing Date"@en .
-
-
 ###  https://dynamat.utep.edu/ontology#hasDelimiter
 # DEPRECATED: Delimiter metadata was defined but never populated.
-# Use hasColumnSeparator on SHPBCompression for test-specific delimiter.
+# Use hasColumnSeparator (ObjectProperty → ColumnSeparator individual) on AnalysisFile.
 dyn:hasDelimiter rdf:type owl:DatatypeProperty ,
                           owl:FunctionalProperty ;
                  owl:deprecated true ;
                  rdfs:domain dyn:AnalysisFile ;
                  rdfs:range xsd:string ;
-                 rdfs:comment "DEPRECATED: CSV delimiter. Use hasColumnSeparator on test class."@en ;
+                 rdfs:comment "DEPRECATED: CSV delimiter. Use dyn:hasColumnSeparator (ObjectProperty → ColumnSeparator individual)."@en ;
                  rdfs:label "Delimiter"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasHeaderRow
 # NOTE: Changed from xsd:boolean to xsd:integer for consistency with
-# shpb_compression_class.ttl definition. Value represents 0-based row index
+# original shpb_compression_class.ttl definition. Value represents 0-based row index
 # of the header row, or -1 if no header exists.
 dyn:hasHeaderRow rdf:type owl:DatatypeProperty ,
                           owl:FunctionalProperty ;
                  rdfs:domain dyn:AnalysisFile ;
                  rdfs:range xsd:integer ;
                  rdfs:comment "Row index containing column headers (0-based). Use -1 if no header row exists."@en ;
-                 rdfs:label "Header Row"@en .
-
-
-###  https://dynamat.utep.edu/ontology#hasSkipRows
-# DEPRECATED: Skip rows metadata was defined but never populated.
-# hasHeaderRow (integer) provides sufficient information for reading files.
-dyn:hasSkipRows rdf:type owl:DatatypeProperty ,
-                         owl:FunctionalProperty ;
-                owl:deprecated true ;
-                rdfs:domain dyn:AnalysisFile ;
-                rdfs:range xsd:integer ;
-                rdfs:comment "DEPRECATED: Use hasHeaderRow instead."@en ;
-                rdfs:label "Skip Rows"@en .
-
+                 rdfs:label "Header Row"@en ;
+                 gui:hasDisplayName "Skip Rows" ;
+                 gui:hasFormGroup "DataFileInput" ;
+                 gui:hasDisplayOrder 3 .
 
 ###  Generated by the OWL API (version 4.5.29.2024-05-13T12:11:03Z) https://github.com/owlcs/owlapi
