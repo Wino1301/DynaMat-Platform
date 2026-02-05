@@ -207,3 +207,17 @@ class CustomizableFormBuilder:
             data: Dict mapping property URIs to values
         """
         self.form_manager.set_form_data(form_widget, data)
+
+    def validate_form(self, form_widget: QWidget) -> Dict[str, list]:
+        """
+        Validate form data and return errors.
+
+        This is a convenience method that delegates to FormManager.
+
+        Args:
+            form_widget: Form widget created by build_form()
+
+        Returns:
+            Dictionary mapping property URIs to lists of error messages
+        """
+        return self.form_manager.validate_form(form_widget)

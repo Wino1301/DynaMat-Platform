@@ -76,7 +76,7 @@ dyn:ReflectedPulse rdf:type owl:NamedIndividual, dyn:SeriesType ;
     qudt:hasQuantityKind qkdv:Voltage ;
     dyn:hasUnit unit:V ;
     dyn:hasLegendTemplate "Reflected Pulse" ;
-    dyn:hasDefaultSeriesClass dyn:RawSignal ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
     dyn:requiresStrainGauge true .
 
 

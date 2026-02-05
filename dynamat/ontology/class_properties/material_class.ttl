@@ -139,7 +139,7 @@ dyn:hasElasticModulus rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     gui:hasDisplayName "Elastic Modulus" ;
     gui:hasFormGroup "ElasticProperties" ;
     gui:hasDisplayOrder 1 ;
-    dyn:hasUnit "unit:GigaPA" ;
+    dyn:hasUnit "unit:MegaPA" ;
     rdfs:comment "Young's modulus of elasticity with provenance"@en .
 
 dyn:hasPoissonsRatio rdf:type owl:ObjectProperty, owl:FunctionalProperty ;

@@ -16,7 +16,7 @@ gui:shpb_c001 a gui:Constraint ;
     rdfs:label "Show momentum trap distance for tailored gap configuration" ;
     rdfs:comment "Displays momentum trap tailored distance field only when momentum trap is set to TailoredGap configuration. Hides the field for Full momentum trap or when no momentum trap is selected." ;
     dc:created "2025-02-01"^^xsd:date ;
-    gui:forClass dyn:SHPBTestingConfiguration ;
+    gui:forClass dyn:SHPBCompression ;
     gui:triggers dyn:hasMomentumTrap ;
     gui:triggerLogic gui:ALL ;
     gui:whenValue dyn:MomentumTrap_TailoredGap ;
@@ -30,7 +30,7 @@ gui:shpb_c001 a gui:Constraint ;
 #================================================================
 
 gui:shpb_c002 a gui:Constraint ;
-    rdfs:label "Populate striker bar material properties" ;
+    rdfs:label "Bar Material Properties" ;
     rdfs:comment "When striker bar is selected, displays bar material properties (material name, wave speed, elastic modulus, density) in a read-only PropertyDisplayWidget. All three bars (striker, incident, transmission) are expected to use the same material." ;
     dc:created "2025-02-03"^^xsd:date ;
     gui:forClass dyn:SHPBCompression ;
@@ -39,9 +39,9 @@ gui:shpb_c002 a gui:Constraint ;
     gui:whenValue gui:anyValue ;
     gui:populateFields (
         (dyn:hasMaterial "Material")
-        (dyn:hasWaveSpeed "Wave Speed (m/s)")
-        (dyn:hasElasticModulus "Elastic Modulus (GPa)")
-        (dyn:hasDensity "Density (g/cm³)")
+        (dyn:hasWaveSpeed "Wave Speed")
+        (dyn:hasElasticModulus "Elastic Modulus")
+        (dyn:hasDensity "Density")
     ) ;
     gui:makeReadOnly true ;
     gui:targetWidget "BarMaterialProperties" ;
@@ -52,7 +52,7 @@ gui:shpb_c002 a gui:Constraint ;
 #================================================================
 
 gui:shpb_c005 a gui:Constraint ;
-    rdfs:label "Populate incident strain gauge properties" ;
+    rdfs:label "Incident SG Properties" ;
     rdfs:comment "When incident strain gauge is selected, displays gauge properties (gauge factor, resistance, calibration values, distance from specimen) in a read-only PropertyDisplayWidget." ;
     dc:created "2025-02-03"^^xsd:date ;
     gui:forClass dyn:SHPBCompression ;
@@ -61,17 +61,17 @@ gui:shpb_c005 a gui:Constraint ;
     gui:whenValue gui:anyValue ;
     gui:populateFields (
         (dyn:hasGaugeFactor "Gauge Factor")
-        (dyn:hasGaugeResistance "Gauge Resistance (Ω)")
-        (dyn:hasCalibrationVoltage "Calibration Voltage (V)")
-        (dyn:hasCalibrationResistance "Calibration Resistance (Ω)")
-        (dyn:hasDistanceFromSpecimen "Distance from Specimen (mm)")
+        (dyn:hasGaugeResistance "Gauge Resistance")
+        (dyn:hasCalibrationVoltage "Calibration Voltage")
+        (dyn:hasCalibrationResistance "Calibration Resistance")
+        (dyn:hasDistanceFromSpecimen "Distance from Specimen")
     ) ;
     gui:makeReadOnly true ;
     gui:targetWidget "IncidentStrainGaugeProperties" ;
     gui:priority 10 .
 
 gui:shpb_c006 a gui:Constraint ;
-    rdfs:label "Populate transmission strain gauge properties" ;
+    rdfs:label "Transmitted SG Properties" ;
     rdfs:comment "When transmission strain gauge is selected, displays gauge properties (gauge factor, resistance, calibration values, distance from specimen) in a read-only PropertyDisplayWidget." ;
     dc:created "2025-02-03"^^xsd:date ;
     gui:forClass dyn:SHPBCompression ;
@@ -80,10 +80,10 @@ gui:shpb_c006 a gui:Constraint ;
     gui:whenValue gui:anyValue ;
     gui:populateFields (
         (dyn:hasGaugeFactor "Gauge Factor")
-        (dyn:hasGaugeResistance "Gauge Resistance (Ω)")
-        (dyn:hasCalibrationVoltage "Calibration Voltage (V)")
-        (dyn:hasCalibrationResistance "Calibration Resistance (Ω)")
-        (dyn:hasDistanceFromSpecimen "Distance from Specimen (mm)")
+        (dyn:hasGaugeResistance "Gauge Resistance")
+        (dyn:hasCalibrationVoltage "Calibration Voltage")
+        (dyn:hasCalibrationResistance "Calibration Resistance")
+        (dyn:hasDistanceFromSpecimen "Distance from Specimen")
     ) ;
     gui:makeReadOnly true ;
     gui:targetWidget "TransmissionStrainGaugeProperties" ;

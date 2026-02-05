@@ -111,7 +111,7 @@ dyn:hasDisplacementRate rdf:type owl:DatatypeProperty ;
                         rdfs:comment "Crosshead displacement rate"@en ;
                         rdfs:label "Displacement Rate"@en ;
                         dyn:hasUnit "unit:MilliM-PER-SEC" ;
-                        gui:hasDisplayName "Crosshead Speed (mm/s)" ;
+                        gui:hasDisplayName "Crosshead Speed" ;
                         gui:hasDisplayOrder 2 ;
                         gui:hasFormGroup "TestConditions" .
 
@@ -156,7 +156,7 @@ dyn:hasGaugeLength rdf:type owl:DatatypeProperty ;
                    rdfs:comment "Length of the gauge section for strain measurement"@en ;
                    rdfs:label "Gauge Length"@en ;
                    dyn:hasUnit "unit:MilliM" ;
-                   gui:hasDisplayName "Gauge Length (mm)" ;
+                   gui:hasDisplayName "Gauge Length" ;
                    gui:hasDisplayOrder 1 ;
                    gui:hasFormGroup "TestConditions" .
 
@@ -191,9 +191,10 @@ dyn:hasHeatingRate rdf:type owl:DatatypeProperty ;
                    rdfs:comment "Rate of temperature increase for elevated temperature tests"@en ;
                    rdfs:label "Heating Rate"@en ;
                    dyn:hasUnit "unit:DEG_C-PER-MIN" ;
-                   gui:hasDisplayName "Heating Rate (°C/min)" ;
-                   gui:hasDisplayOrder 11 ;
-                   gui:hasFormGroup "TestConditions" .
+                   gui:hasDisplayName "Heating Rate" ;
+                   gui:hasDisplayOrder 2 ;
+                   gui:hasGroupOrder 6 ;
+                   gui:hasFormGroup "HighTemperatureTesting" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasLoadingRate
@@ -206,7 +207,7 @@ dyn:hasLoadingRate rdf:type owl:DatatypeProperty ;
                    rdfs:comment "Rate of stress application (Pa/s)"@en ;
                    rdfs:label "Loading Rate"@en ;
                    dyn:hasUnit "unit:PA-PER-SEC" ;
-                   gui:hasDisplayName "Loading Rate (Pa/s)" ;
+                   gui:hasDisplayName "Loading Rate" ;
                    gui:hasDisplayOrder 1 ;
                    gui:hasFormGroup "TestConditions" .
 
@@ -221,24 +222,9 @@ dyn:hasMaximumLoad rdf:type owl:DatatypeProperty ;
                    rdfs:comment "Maximum load to be applied during test"@en ;
                    rdfs:label "Maximum Load"@en ;
                    dyn:hasUnit "unit:N" ;
-                   gui:hasDisplayName "Maximum Load (N)" ;
+                   gui:hasDisplayName "Maximum Load" ;
                    gui:hasDisplayOrder 3 ;
                    gui:hasFormGroup "TestConditions" .
-
-
-###  https://dynamat.utep.edu/ontology#hasTargetStrainRate
-dyn:hasTargetStrainRate rdf:type owl:DatatypeProperty ;
-                        rdfs:subPropertyOf dyn:hasTestCondition ;
-                        rdf:type owl:FunctionalProperty ;
-                        rdfs:domain dyn:MechanicalTest ;
-                        rdfs:range xsd:double ;
-                        qudt:hasQuantityKind qkdv:StrainRate ;
-                        rdfs:comment "Target strain rate for the test"@en ;
-                        rdfs:label "Target Strain Rate"@en ;
-                        dyn:hasUnit "unit:PER-SEC" ;
-                        gui:hasDisplayName "Target Strain Rate (1/s)" ;
-                        gui:hasDisplayOrder 20 ;
-                        gui:hasFormGroup "TestConditions" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasTemperatureStabilizationTime
@@ -251,9 +237,10 @@ dyn:hasTemperatureStabilizationTime rdf:type owl:DatatypeProperty ;
                                     rdfs:comment "Time allowed for temperature stabilization before testing"@en ;
                                     rdfs:label "Temperature Stabilization Time"@en ;
                                     dyn:hasUnit "unit:MIN" ;
-                                    gui:hasDisplayName "Stabilization Time (min)" ;
-                                    gui:hasDisplayOrder 12 ;
-                                    gui:hasFormGroup "TestConditions" .
+                                    gui:hasDisplayName "Stabilization Time" ;
+                                    gui:hasDisplayOrder 3 ;
+                                    gui:hasGroupOrder 6 ;
+                                    gui:hasFormGroup "HighTemperatureTesting" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasTestCondition
@@ -270,9 +257,10 @@ dyn:hasTestTemperature rdf:type owl:DatatypeProperty ;
                        rdfs:comment "Temperature during testing"@en ;
                        rdfs:label "Test Temperature"@en ;
                        dyn:hasUnit "unit:DEG_C" ;
-                       gui:hasDisplayName "Temperature (°C)" ;
-                       gui:hasDisplayOrder 10 ;
-                       gui:hasFormGroup "TestConditions" .
+                       gui:hasDisplayName "Test Temperature" ;
+                       gui:hasDisplayOrder 1 ;
+                       gui:hasGroupOrder 6 ;
+                       gui:hasFormGroup "HighTemperatureTesting" .
 
 ###  https://dynamat.utep.edu/ontology#hasTestType
 dyn:hasTestType rdf:type owl:ObjectProperty ,

@@ -312,7 +312,7 @@ class PropertyDisplayWidget(QWidget):
 
     def _extract_unit_symbol(self, unit_uri: str) -> str:
         """
-        Extract unit symbol from unit URI.
+        Extract unit symbol from unit URI using QUDT ontology.
 
         Args:
             unit_uri: Full unit URI (e.g., 'unit:M-PER-SEC')
@@ -320,21 +320,57 @@ class PropertyDisplayWidget(QWidget):
         Returns:
             Unit symbol (e.g., 'm/s')
         """
-        # Common unit mappings
-        unit_symbols = {
-            'M-PER-SEC': 'm/s',
-            'GigaPA': 'GPa',
-            'MegaPA': 'MPa',
-            'KiloGM-PER-M3': 'kg/m³',
-            'GM-PER-CentiM3': 'g/cm³',
-            'MilliM': 'mm',
-            'M': 'm',
-            'SEC': 's',
-            'PER-SEC': '1/s',
-            'OHM': 'Ω',
-            'V': 'V',
-        }
+        if not unit_uri:
+            return ""
 
+        # Try QUDT lookup first if ontology manager is available
+        if self.ontology_manager and hasattr(self.ontology_manager, 'qudt_manager'):
+            qudt_manager = self.ontology_manager.qudt_manager
+            if qudt_manager:
+                # Normalize URI for QUDT lookup
+                normalized_uri = self._normalize_unit_uri(unit_uri)
+                unit_info = qudt_manager.get_unit_by_uri(normalized_uri)
+                if unit_info:
+                    logger.debug(f"QUDT lookup for {unit_uri}: symbol='{unit_info.symbol}'")
+                    return unit_info.symbol
+
+        # Fallback: extract from URI local name
+        logger.debug(f"QUDT lookup failed for {unit_uri}, using URI extraction")
+        return self._extract_symbol_from_uri(unit_uri)
+
+    def _normalize_unit_uri(self, unit_uri: str) -> str:
+        """
+        Normalize unit URI to full form for QUDT lookup.
+
+        Args:
+            unit_uri: Unit URI (prefixed or full form)
+
+        Returns:
+            Full URI suitable for QUDT lookup
+        """
+        if not unit_uri:
+            return ""
+
+        unit_uri = str(unit_uri).strip().strip('"\'')
+
+        # Handle namespace prefixes
+        if ':' in unit_uri and not unit_uri.startswith('http'):
+            prefix, local = unit_uri.split(':', 1)
+            if prefix == 'unit':
+                return f'http://qudt.org/vocab/unit/{local}'
+
+        return unit_uri
+
+    def _extract_symbol_from_uri(self, unit_uri: str) -> str:
+        """
+        Extract a reasonable symbol from unit URI as fallback.
+
+        Args:
+            unit_uri: Unit URI
+
+        Returns:
+            Extracted symbol string
+        """
         # Extract local name
         if ':' in unit_uri:
             local_name = unit_uri.split(':')[-1]
@@ -345,7 +381,7 @@ class PropertyDisplayWidget(QWidget):
         else:
             local_name = unit_uri
 
-        return unit_symbols.get(local_name, local_name)
+        return local_name
 
     def _extract_label_from_uri(self, uri: str) -> str:
         """

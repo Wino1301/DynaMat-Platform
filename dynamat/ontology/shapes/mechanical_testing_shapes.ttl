@@ -81,7 +81,6 @@ dyn:MechanicalTestShape a sh:NodeShape ;
     sh:property [ sh:path dyn:hasTestTemperature ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path dyn:hasHeatingRate ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path dyn:hasTemperatureStabilizationTime ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
-    sh:property [ sh:path dyn:hasTargetStrainRate ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path dyn:hasLoadFrame ; sh:maxCount 1 ] ;
     sh:property [ sh:path dyn:hasSamplingRate ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path dyn:hasDataAcquisitionSystem ; sh:maxCount 1 ] ;

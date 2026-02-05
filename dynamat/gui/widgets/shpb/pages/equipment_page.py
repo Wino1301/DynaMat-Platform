@@ -15,10 +15,7 @@ Widget types and constraints are automatically inferred from ontology metadata.
 import logging
 from typing import Optional
 
-from PyQt6.QtWidgets import (
-    QVBoxLayout, QLabel,
-    QScrollArea, QWidget, QFrame
-)
+from PyQt6.QtWidgets import QVBoxLayout, QLabel, QWidget, QComboBox, QLineEdit
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.io.specimen_loader import SpecimenLoader
@@ -27,6 +24,9 @@ from ....builders.customizable_form_builder import CustomizableFormBuilder
 from ....dependencies import DependencyManager
 
 logger = logging.getLogger(__name__)
+
+# DynaMat ontology namespace
+DYN_NS = "https://dynamat.utep.edu/ontology#"
 
 
 class EquipmentPage(BaseSHPBPage):
@@ -57,26 +57,19 @@ class EquipmentPage(BaseSHPBPage):
         """Setup page UI using customizable form builder."""
         layout = self._create_base_layout()
 
-        # Create scrollable content
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-
-        content = QWidget()
-        content_layout = QVBoxLayout(content)
-
         # Initialize customizable form builder
         self.form_builder = CustomizableFormBuilder(self.ontology_manager)
 
         # Build form from ontology for SHPBCompression class
+        # Note: CustomizableFormBuilder already creates its own scroll area
         try:
             self.form_widget = self.form_builder.build_form(
                 "https://dynamat.utep.edu/ontology#SHPBCompression",
-                parent=content
+                parent=self
             )
 
             if self.form_widget:
-                content_layout.addWidget(self.form_widget)
+                layout.addWidget(self.form_widget)
                 self.logger.info("Equipment form created from ontology")
 
                 # Setup dependency manager for constraints
@@ -91,17 +84,13 @@ class EquipmentPage(BaseSHPBPage):
                 self.logger.error("Form builder returned None")
                 error_label = QLabel("Error: Could not create form from ontology")
                 error_label.setStyleSheet("color: red;")
-                content_layout.addWidget(error_label)
+                layout.addWidget(error_label)
 
         except Exception as e:
             self.logger.error(f"Failed to build form from ontology: {e}", exc_info=True)
             error_label = QLabel(f"Error creating form: {str(e)}")
             error_label.setStyleSheet("color: red;")
-            content_layout.addWidget(error_label)
-
-        content_layout.addStretch()
-        scroll.setWidget(content)
-        layout.addWidget(scroll)
+            layout.addWidget(error_label)
 
         self._add_status_area()
 
@@ -113,6 +102,9 @@ class EquipmentPage(BaseSHPBPage):
         # Initialize specimen loader for equipment property queries
         if self.specimen_loader is None:
             self._initialize_specimen_loader()
+
+        # Populate identification fields from specimen selection (cross-page data)
+        self._populate_from_specimen_selection()
 
         # Restore previous selections if any
         self._restore_selections()
@@ -163,44 +155,118 @@ class EquipmentPage(BaseSHPBPage):
         except Exception as e:
             self.logger.error(f"Failed to initialize specimen loader: {e}")
 
+    def _populate_from_specimen_selection(self) -> None:
+        """Populate identification fields from specimen selection (cross-page data).
+
+        This sets:
+        - Test ID: Auto-generated from specimen ID (e.g., DYNML_A356_0001_SHPBTest)
+        - Test Specimen: Selected specimen URI (read-only reference)
+
+        These fields are populated from the specimen selected on the previous page,
+        not from constraint triggers within this form.
+        """
+        if not self.form_widget or not hasattr(self.form_widget, 'form_fields'):
+            return
+
+        form_fields = self.form_widget.form_fields
+
+        # Get specimen info from state (set on previous page)
+        specimen_id = getattr(self.state, 'specimen_id', None)
+        specimen_uri = getattr(self.state, 'specimen_uri', None)
+
+        if not specimen_id and not specimen_uri:
+            self.logger.debug("No specimen selected, skipping identification population")
+            return
+
+        # 1. Generate and set Test ID (inherited from MechanicalTest via DynaMat_core.ttl)
+        test_id_uri = f"{DYN_NS}hasTestID"
+        if test_id_uri in form_fields:
+            test_id_field = form_fields[test_id_uri]
+            widget = test_id_field.widget
+
+            # Generate test ID from specimen ID
+            if specimen_id:
+                # Format: DYNML_A356_0001_SHPBTest (replace dashes with underscores for consistency)
+                test_id = f"{specimen_id.replace('-', '_')}_SHPBTest"
+            else:
+                # Fallback: extract from URI
+                local_name = specimen_uri.split('#')[-1] if '#' in specimen_uri else specimen_uri.split('/')[-1]
+                test_id = f"{local_name}_SHPBTest"
+
+            # Set the value
+            if isinstance(widget, QLineEdit):
+                widget.setText(test_id)
+                widget.setReadOnly(True)
+                self.logger.info(f"Set Test ID: {test_id} (read-only)")
+            elif isinstance(widget, QComboBox):
+                # If it's a combo (unlikely for ID), try to add the item
+                widget.setCurrentText(test_id)
+                widget.setEnabled(False)
+                self.logger.info(f"Set Test ID: {test_id} (disabled)")
+
+            # Store in state for later use
+            self.state.test_id = test_id
+
+        # 2. Set Test Specimen reference (inherited from Activity via DynaMat_core.ttl as performedOn)
+        test_specimen_uri = f"{DYN_NS}performedOn"
+        if test_specimen_uri in form_fields and specimen_uri:
+            test_specimen_field = form_fields[test_specimen_uri]
+            widget = test_specimen_field.widget
+
+            if isinstance(widget, QComboBox):
+                # Find and select the specimen in the combo
+                index = widget.findData(specimen_uri)
+                if index >= 0:
+                    widget.setCurrentIndex(index)
+                else:
+                    # Specimen not in list - add it
+                    display_name = specimen_id or specimen_uri.split('#')[-1]
+                    widget.addItem(display_name, specimen_uri)
+                    widget.setCurrentIndex(widget.count() - 1)
+
+                # Make read-only (disable the combo)
+                widget.setEnabled(False)
+                self.logger.info(f"Set Test Specimen: {specimen_uri} (read-only)")
 
     def _restore_selections(self) -> None:
-        """Restore previous selections from state."""
+        """Restore previous selections from state (equipment and test conditions)."""
         if not self.form_widget or not self.form_builder:
             return
 
         # Build state data dict from stored state
+        # Note: Identification fields (Test ID, Test Specimen) are handled by
+        # _populate_from_specimen_selection() and are read-only
         state_data = {}
 
         # Equipment URIs
         if hasattr(self.state, 'striker_bar_uri') and self.state.striker_bar_uri:
-            state_data["https://dynamat.utep.edu/ontology#hasStrikerBar"] = self.state.striker_bar_uri
+            state_data[f"{DYN_NS}hasStrikerBar"] = self.state.striker_bar_uri
         if hasattr(self.state, 'incident_bar_uri') and self.state.incident_bar_uri:
-            state_data["https://dynamat.utep.edu/ontology#hasIncidentBar"] = self.state.incident_bar_uri
+            state_data[f"{DYN_NS}hasIncidentBar"] = self.state.incident_bar_uri
         if hasattr(self.state, 'transmission_bar_uri') and self.state.transmission_bar_uri:
-            state_data["https://dynamat.utep.edu/ontology#hasTransmissionBar"] = self.state.transmission_bar_uri
+            state_data[f"{DYN_NS}hasTransmissionBar"] = self.state.transmission_bar_uri
         if hasattr(self.state, 'incident_gauge_uri') and self.state.incident_gauge_uri:
-            state_data["https://dynamat.utep.edu/ontology#hasIncidentStrainGauge"] = self.state.incident_gauge_uri
+            state_data[f"{DYN_NS}hasIncidentStrainGauge"] = self.state.incident_gauge_uri
         if hasattr(self.state, 'transmission_gauge_uri') and self.state.transmission_gauge_uri:
-            state_data["https://dynamat.utep.edu/ontology#hasTransmissionStrainGauge"] = self.state.transmission_gauge_uri
+            state_data[f"{DYN_NS}hasTransmissionStrainGauge"] = self.state.transmission_gauge_uri
         if hasattr(self.state, 'momentum_trap_uri') and self.state.momentum_trap_uri:
-            state_data["https://dynamat.utep.edu/ontology#hasMomentumTrap"] = self.state.momentum_trap_uri
+            state_data[f"{DYN_NS}hasMomentumTrap"] = self.state.momentum_trap_uri
         if hasattr(self.state, 'pulse_shaper_uri') and self.state.pulse_shaper_uri:
-            state_data["https://dynamat.utep.edu/ontology#hasPulseShaper"] = self.state.pulse_shaper_uri
+            state_data[f"{DYN_NS}hasPulseShaper"] = self.state.pulse_shaper_uri
 
         # Test date
         if hasattr(self.state, 'test_date') and self.state.test_date:
-            state_data["https://dynamat.utep.edu/ontology#hasTestDate"] = self.state.test_date
+            state_data[f"{DYN_NS}hasTestDate"] = self.state.test_date
 
         # Measurement values (these are dicts with value/unit)
         if hasattr(self.state, 'striker_velocity') and self.state.striker_velocity:
-            state_data["https://dynamat.utep.edu/ontology#hasStrikerVelocity"] = self.state.striker_velocity
+            state_data[f"{DYN_NS}hasStrikerVelocity"] = self.state.striker_velocity
         if hasattr(self.state, 'striker_launch_pressure') and self.state.striker_launch_pressure:
-            state_data["https://dynamat.utep.edu/ontology#hasStrikerLaunchPressure"] = self.state.striker_launch_pressure
+            state_data[f"{DYN_NS}hasStrikerLaunchPressure"] = self.state.striker_launch_pressure
         if hasattr(self.state, 'barrel_offset') and self.state.barrel_offset:
-            state_data["https://dynamat.utep.edu/ontology#hasBarrelOffset"] = self.state.barrel_offset
+            state_data[f"{DYN_NS}hasBarrelOffset"] = self.state.barrel_offset
         if hasattr(self.state, 'momentum_trap_distance') and self.state.momentum_trap_distance:
-            state_data["https://dynamat.utep.edu/ontology#hasMomentumTrapTailoredDistance"] = self.state.momentum_trap_distance
+            state_data[f"{DYN_NS}hasMomentumTrapTailoredDistance"] = self.state.momentum_trap_distance
 
         # Set form data if we have any
         if state_data:
@@ -214,23 +280,27 @@ class EquipmentPage(BaseSHPBPage):
         # Get all form data
         data = self.form_builder.get_form_data(self.form_widget)
 
+        # Identification (auto-generated, read-only)
+        # test_id is already set in _populate_from_specimen_selection()
+        # specimen_uri is already in state from specimen selection page
+
         # Equipment URIs
-        self.state.striker_bar_uri = data.get("https://dynamat.utep.edu/ontology#hasStrikerBar")
-        self.state.incident_bar_uri = data.get("https://dynamat.utep.edu/ontology#hasIncidentBar")
-        self.state.transmission_bar_uri = data.get("https://dynamat.utep.edu/ontology#hasTransmissionBar")
-        self.state.incident_gauge_uri = data.get("https://dynamat.utep.edu/ontology#hasIncidentStrainGauge")
-        self.state.transmission_gauge_uri = data.get("https://dynamat.utep.edu/ontology#hasTransmissionStrainGauge")
-        self.state.momentum_trap_uri = data.get("https://dynamat.utep.edu/ontology#hasMomentumTrap")
-        self.state.pulse_shaper_uri = data.get("https://dynamat.utep.edu/ontology#hasPulseShaper")
+        self.state.striker_bar_uri = data.get(f"{DYN_NS}hasStrikerBar")
+        self.state.incident_bar_uri = data.get(f"{DYN_NS}hasIncidentBar")
+        self.state.transmission_bar_uri = data.get(f"{DYN_NS}hasTransmissionBar")
+        self.state.incident_gauge_uri = data.get(f"{DYN_NS}hasIncidentStrainGauge")
+        self.state.transmission_gauge_uri = data.get(f"{DYN_NS}hasTransmissionStrainGauge")
+        self.state.momentum_trap_uri = data.get(f"{DYN_NS}hasMomentumTrap")
+        self.state.pulse_shaper_uri = data.get(f"{DYN_NS}hasPulseShaper")
 
         # Test date
-        self.state.test_date = data.get("https://dynamat.utep.edu/ontology#hasTestDate")
+        self.state.test_date = data.get(f"{DYN_NS}hasTestDate")
 
         # Measurement values
-        self.state.striker_velocity = data.get("https://dynamat.utep.edu/ontology#hasStrikerVelocity")
-        self.state.striker_launch_pressure = data.get("https://dynamat.utep.edu/ontology#hasStrikerLaunchPressure")
-        self.state.barrel_offset = data.get("https://dynamat.utep.edu/ontology#hasBarrelOffset")
-        self.state.momentum_trap_distance = data.get("https://dynamat.utep.edu/ontology#hasMomentumTrapTailoredDistance")
+        self.state.striker_velocity = data.get(f"{DYN_NS}hasStrikerVelocity")
+        self.state.striker_launch_pressure = data.get(f"{DYN_NS}hasStrikerLaunchPressure")
+        self.state.barrel_offset = data.get(f"{DYN_NS}hasBarrelOffset")
+        self.state.momentum_trap_distance = data.get(f"{DYN_NS}hasMomentumTrapTailoredDistance")
 
         # Get user
         self.state.user_uri = self.get_current_user()

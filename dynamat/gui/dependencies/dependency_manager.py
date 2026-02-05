@@ -1154,7 +1154,7 @@ class DependencyManager(QObject):
                     # Use setIndividual for ontology-driven property display
                     # The widget's config (set during setup) handles property resolution
                     display_widget.setIndividual(selected_individual_uri)
-                    self.logger.debug(f"Updated PropertyDisplayWidget with {len(display_data)} properties")
+                    self.logger.debug(f"Updated PropertyDisplayWidget with {len(display_widget.property_widgets)} properties")
             else:
                 # Populate regular form fields
                 populated_trigger_properties = []

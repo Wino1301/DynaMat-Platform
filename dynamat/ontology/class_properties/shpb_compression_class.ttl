@@ -38,6 +38,14 @@ dyn:hasSHPBCompressionTest rdf:type owl:ObjectProperty ;
 # GUI annotations for those properties should be updated there if needed.
 
 
+# NOTE: Test Identification properties (hasTestID, performedOn, hasTestDate) are
+# inherited from MechanicalTest/Activity defined in DynaMat_core.ttl.
+# - hasTestID: Auto-populated from specimen ID (e.g., DYNML_A356_0001_SHPBTest)
+# - performedOn: Links to the specimen being tested (set read-only from wizard state)
+# - hasTestDate: Date of test execution
+# Do not redefine here to avoid duplicate form fields.
+
+
 #################################################################
 #    Object Properties - SHPB Equipment Configuration (Workflow Section 3)
 #################################################################
