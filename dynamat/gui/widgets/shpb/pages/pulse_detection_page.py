@@ -1,20 +1,21 @@
 """Pulse Detection Page - Detect incident, transmitted, and reflected pulse windows."""
 
 import logging
-from typing import Optional, Dict, Tuple
+from typing import Optional, Dict, Tuple, Any
+from datetime import datetime
 
 import numpy as np
 
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QGroupBox, QGridLayout, QSpinBox, QLineEdit,
-    QComboBox, QSplitter, QFrame, QTabWidget, QWidget
+    QGroupBox, QGridLayout, QSplitter, QFrame, QTabWidget, QWidget
 )
 from PyQt6.QtCore import Qt
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.pulse_windows import PulseDetector
 from ...base.plot_widget_factory import create_plot_widget
+from ....builders.customizable_form_builder import CustomizableFormBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +39,13 @@ class PulseDetectionPage(BaseSHPBPage):
         self.detectors: Dict[str, PulseDetector] = {}
         self.plot_widget = None
 
+        # Ontology-driven form components
+        self.form_builder = CustomizableFormBuilder(ontology_manager)
+        self._pulse_forms: Dict[str, QWidget] = {}  # pulse_type -> form widget
+        self._form_fields: Dict[str, Dict[str, Any]] = {}  # pulse_type -> {uri -> FormField}
+
     def _setup_ui(self) -> None:
-        """Setup page UI."""
+        """Setup page UI with ontology-driven forms."""
         layout = self._create_base_layout()
 
         # Create splitter for params and plot
@@ -49,12 +55,17 @@ class PulseDetectionPage(BaseSHPBPage):
         params_frame = QFrame()
         params_layout = QVBoxLayout(params_frame)
 
-        # Tab widget for each pulse type
+        # Tab widget for each pulse type with ontology-generated forms
         self.pulse_tabs = QTabWidget()
 
+        DYN_CLASS = "https://dynamat.utep.edu/ontology#PulseDetectionParams"
         for pulse_type in ['incident', 'transmitted', 'reflected']:
-            tab = self._create_pulse_params_tab(pulse_type)
-            self.pulse_tabs.addTab(tab, pulse_type.capitalize())
+            form_widget = self.form_builder.build_form(DYN_CLASS, parent=self.pulse_tabs)
+
+            self._pulse_forms[pulse_type] = form_widget
+            self._form_fields[pulse_type] = form_widget.form_fields
+
+            self.pulse_tabs.addTab(form_widget, pulse_type.capitalize())
 
         params_layout.addWidget(self.pulse_tabs)
 
@@ -110,105 +121,6 @@ class PulseDetectionPage(BaseSHPBPage):
         layout.addWidget(splitter)
         self._add_status_area()
 
-    def _create_pulse_params_tab(self, pulse_type: str) -> QWidget:
-        """Create parameters tab for a pulse type.
-
-        Args:
-            pulse_type: 'incident', 'transmitted', or 'reflected'
-
-        Returns:
-            Tab widget
-        """
-        tab = QWidget()
-        layout = QGridLayout(tab)
-
-        row = 0
-
-        # Pulse points
-        layout.addWidget(QLabel("Pulse Points:"), row, 0)
-        pulse_points_spin = QSpinBox()
-        pulse_points_spin.setRange(1000, 100000)
-        pulse_points_spin.setValue(15000)
-        pulse_points_spin.setSingleStep(1000)
-        pulse_points_spin.setObjectName(f"{pulse_type}_pulse_points")
-        layout.addWidget(pulse_points_spin, row, 1)
-        row += 1
-
-        # K trials
-        layout.addWidget(QLabel("K Trials:"), row, 0)
-        k_trials_edit = QLineEdit("6000,4000,2000")
-        k_trials_edit.setObjectName(f"{pulse_type}_k_trials")
-        layout.addWidget(k_trials_edit, row, 1)
-        row += 1
-
-        # Polarity
-        layout.addWidget(QLabel("Polarity:"), row, 0)
-        polarity_combo = QComboBox()
-        polarity_combo.addItem("Compressive", "compressive")
-        polarity_combo.addItem("Tensile", "tensile")
-        polarity_combo.setObjectName(f"{pulse_type}_polarity")
-        # Set default polarity based on pulse type
-        if pulse_type == 'reflected':
-            polarity_combo.setCurrentIndex(1)  # Tensile
-        layout.addWidget(polarity_combo, row, 1)
-        row += 1
-
-        # Detection metric
-        layout.addWidget(QLabel("Detection Metric:"), row, 0)
-        metric_combo = QComboBox()
-        metric_combo.addItem("Median", "median")
-        metric_combo.addItem("Peak", "peak")
-        metric_combo.setObjectName(f"{pulse_type}_metric")
-        layout.addWidget(metric_combo, row, 1)
-        row += 1
-
-        # Search bounds
-        layout.addWidget(QLabel("Lower Bound:"), row, 0)
-        lower_spin = QSpinBox()
-        lower_spin.setRange(0, 1000000)
-        lower_spin.setValue(0)
-        lower_spin.setSpecialValueText("Auto")
-        lower_spin.setObjectName(f"{pulse_type}_lower_bound")
-        layout.addWidget(lower_spin, row, 1)
-        row += 1
-
-        layout.addWidget(QLabel("Upper Bound:"), row, 0)
-        upper_spin = QSpinBox()
-        upper_spin.setRange(0, 1000000)
-        upper_spin.setValue(0)
-        upper_spin.setSpecialValueText("Auto")
-        upper_spin.setObjectName(f"{pulse_type}_upper_bound")
-        layout.addWidget(upper_spin, row, 1)
-        row += 1
-
-        # Min separation
-        layout.addWidget(QLabel("Min Separation:"), row, 0)
-        min_sep_spin = QSpinBox()
-        min_sep_spin.setRange(0, 100000)
-        min_sep_spin.setValue(0)
-        min_sep_spin.setSpecialValueText("Auto")
-        min_sep_spin.setObjectName(f"{pulse_type}_min_separation")
-        layout.addWidget(min_sep_spin, row, 1)
-        row += 1
-
-        layout.setRowStretch(row, 1)
-
-        return tab
-
-    def _get_param_widget(self, pulse_type: str, param_name: str):
-        """Get a parameter widget by name.
-
-        Args:
-            pulse_type: Pulse type
-            param_name: Parameter name
-
-        Returns:
-            Widget or None
-        """
-        tab_index = ['incident', 'transmitted', 'reflected'].index(pulse_type)
-        tab = self.pulse_tabs.widget(tab_index)
-        return tab.findChild(QWidget, f"{pulse_type}_{param_name}")
-
     def initializePage(self) -> None:
         """Initialize page when it becomes current."""
         super().initializePage()
@@ -238,89 +150,163 @@ class PulseDetectionPage(BaseSHPBPage):
 
         return True
 
+    def _parse_k_trials(self, k_str: str) -> Tuple[float, ...]:
+        """Parse comma-separated k_trials string to tuple."""
+        try:
+            return tuple(float(k.strip()) for k in k_str.split(','))
+        except (ValueError, AttributeError):
+            logger.warning(f"Invalid k_trials format: {k_str}, using defaults")
+            return (6000.0, 4000.0, 2000.0)
+
+    def _get_polarity_value(self, polarity_uri: Optional[str]) -> str:
+        """Get polarity string value from individual URI."""
+        if not polarity_uri:
+            return "compressive"
+
+        try:
+            # Query for hasPolarityValue from individual
+            query = f"""
+            PREFIX dyn: <https://dynamat.utep.edu/ontology#>
+            SELECT ?value WHERE {{
+                <{polarity_uri}> dyn:hasPolarityValue ?value .
+            }}
+            """
+            results = self.ontology_manager.sparql_executor.execute_query(query)
+            return str(results[0]['value']) if results else "compressive"
+        except Exception as e:
+            logger.warning(f"Failed to get polarity value: {e}")
+            return "compressive"
+
+    def _get_metric_value(self, metric_uri: Optional[str]) -> str:
+        """Get metric string value from individual URI."""
+        if not metric_uri:
+            return "median"
+
+        try:
+            query = f"""
+            PREFIX dyn: <https://dynamat.utep.edu/ontology#>
+            SELECT ?value WHERE {{
+                <{metric_uri}> dyn:hasMetricValue ?value .
+            }}
+            """
+            results = self.ontology_manager.sparql_executor.execute_query(query)
+            return str(results[0]['value']) if results else "median"
+        except Exception as e:
+            logger.warning(f"Failed to get metric value: {e}")
+            return "median"
+
+    def _find_polarity_uri(self, polarity_str: str) -> Optional[str]:
+        """Find PolarityType individual URI by string value."""
+        try:
+            query = f"""
+            PREFIX dyn: <https://dynamat.utep.edu/ontology#>
+            SELECT ?individual WHERE {{
+                ?individual a dyn:PolarityType ;
+                            dyn:hasPolarityValue "{polarity_str}" .
+            }}
+            """
+            results = self.ontology_manager.sparql_executor.execute_query(query)
+            return str(results[0]['individual']) if results else None
+        except Exception as e:
+            logger.warning(f"Failed to find polarity URI: {e}")
+            return None
+
+    def _find_metric_uri(self, metric_str: str) -> Optional[str]:
+        """Find DetectionMetric individual URI by string value."""
+        try:
+            query = f"""
+            PREFIX dyn: <https://dynamat.utep.edu/ontology#>
+            SELECT ?individual WHERE {{
+                ?individual a dyn:DetectionMetric ;
+                            dyn:hasMetricValue "{metric_str}" .
+            }}
+            """
+            results = self.ontology_manager.sparql_executor.execute_query(query)
+            return str(results[0]['individual']) if results else None
+        except Exception as e:
+            logger.warning(f"Failed to find metric URI: {e}")
+            return None
+
     def _restore_params(self) -> None:
-        """Restore parameters from state."""
+        """Restore parameters from state to all three forms."""
+        DYN_NS = "https://dynamat.utep.edu/ontology#"
+
         for pulse_type in ['incident', 'transmitted', 'reflected']:
             params = self.state.detection_params.get(pulse_type, {})
 
-            # Pulse points
-            widget = self._get_param_widget(pulse_type, 'pulse_points')
-            if widget and params.get('pulse_points'):
-                widget.setValue(params['pulse_points'])
+            if not params:
+                continue
 
-            # K trials
-            widget = self._get_param_widget(pulse_type, 'k_trials')
-            if widget and params.get('k_trials'):
-                widget.setText(params['k_trials'])
+            # Build form data dict with property URIs as keys
+            form_data = {}
 
-            # Polarity
-            widget = self._get_param_widget(pulse_type, 'polarity')
-            if widget and params.get('polarity'):
-                index = widget.findData(params['polarity'])
-                if index >= 0:
-                    widget.setCurrentIndex(index)
+            if params.get('pulse_points') is not None:
+                form_data[f"{DYN_NS}hasPulsePoints"] = params['pulse_points']
 
-            # Detection metric
-            widget = self._get_param_widget(pulse_type, 'metric')
-            if widget and params.get('detection_metric'):
-                index = widget.findData(params['detection_metric'])
-                if index >= 0:
-                    widget.setCurrentIndex(index)
+            if params.get('k_trials') is not None:
+                form_data[f"{DYN_NS}hasKTrials"] = params['k_trials']
 
-            # Bounds
-            widget = self._get_param_widget(pulse_type, 'lower_bound')
-            if widget and params.get('lower_bound') is not None:
-                widget.setValue(params['lower_bound'])
+            if params.get('polarity'):
+                polarity_uri = self._find_polarity_uri(params['polarity'])
+                if polarity_uri:
+                    form_data[f"{DYN_NS}hasDetectionPolarity"] = polarity_uri
 
-            widget = self._get_param_widget(pulse_type, 'upper_bound')
-            if widget and params.get('upper_bound') is not None:
-                widget.setValue(params['upper_bound'])
+            if params.get('min_separation') is not None:
+                form_data[f"{DYN_NS}hasMinSeparation"] = params['min_separation']
+
+            if params.get('lower_bound') is not None:
+                form_data[f"{DYN_NS}hasDetectionLowerBound"] = params['lower_bound']
+
+            if params.get('upper_bound') is not None:
+                form_data[f"{DYN_NS}hasDetectionUpperBound"] = params['upper_bound']
+
+            if params.get('detection_metric'):
+                metric_uri = self._find_metric_uri(params['detection_metric'])
+                if metric_uri:
+                    form_data[f"{DYN_NS}hasSelectionMetric"] = metric_uri
+
+            # Populate form
+            form_widget = self._pulse_forms[pulse_type]
+            self.form_builder.set_form_data(form_widget, form_data)
 
     def _save_params(self) -> None:
-        """Save parameters to state."""
+        """Save parameters from all forms to state."""
+        DYN_NS = "https://dynamat.utep.edu/ontology#"
+
         for pulse_type in ['incident', 'transmitted', 'reflected']:
+            form_widget = self._pulse_forms[pulse_type]
+            form_data = self.form_builder.get_form_data(form_widget)
+
             params = {}
 
-            # Pulse points
-            widget = self._get_param_widget(pulse_type, 'pulse_points')
-            if widget:
-                params['pulse_points'] = widget.value()
+            # Extract values with proper type conversions
+            if f"{DYN_NS}hasPulsePoints" in form_data:
+                params['pulse_points'] = form_data[f"{DYN_NS}hasPulsePoints"]
 
-            # K trials
-            widget = self._get_param_widget(pulse_type, 'k_trials')
-            if widget:
-                params['k_trials'] = widget.text()
+            if f"{DYN_NS}hasKTrials" in form_data:
+                params['k_trials'] = form_data[f"{DYN_NS}hasKTrials"]
 
-            # Polarity
-            widget = self._get_param_widget(pulse_type, 'polarity')
-            if widget:
-                params['polarity'] = widget.currentData()
+            if f"{DYN_NS}hasDetectionPolarity" in form_data:
+                polarity_uri = form_data[f"{DYN_NS}hasDetectionPolarity"]
+                params['polarity'] = self._get_polarity_value(polarity_uri)
 
-            # Detection metric
-            widget = self._get_param_widget(pulse_type, 'metric')
-            if widget:
-                params['detection_metric'] = widget.currentData()
+            if f"{DYN_NS}hasMinSeparation" in form_data:
+                params['min_separation'] = form_data[f"{DYN_NS}hasMinSeparation"]
 
-            # Bounds
-            widget = self._get_param_widget(pulse_type, 'lower_bound')
-            if widget:
-                val = widget.value()
-                params['lower_bound'] = val if val > 0 else None
+            if f"{DYN_NS}hasDetectionLowerBound" in form_data:
+                params['lower_bound'] = form_data[f"{DYN_NS}hasDetectionLowerBound"]
 
-            widget = self._get_param_widget(pulse_type, 'upper_bound')
-            if widget:
-                val = widget.value()
-                params['upper_bound'] = val if val > 0 else None
+            if f"{DYN_NS}hasDetectionUpperBound" in form_data:
+                params['upper_bound'] = form_data[f"{DYN_NS}hasDetectionUpperBound"]
 
-            widget = self._get_param_widget(pulse_type, 'min_separation')
-            if widget:
-                val = widget.value()
-                params['min_separation'] = val if val > 0 else None
+            if f"{DYN_NS}hasSelectionMetric" in form_data:
+                metric_uri = form_data[f"{DYN_NS}hasSelectionMetric"]
+                params['detection_metric'] = self._get_metric_value(metric_uri)
 
             self.state.detection_params[pulse_type] = params
 
     def _get_current_params(self, pulse_type: str) -> Dict:
-        """Get current parameters for a pulse type.
+        """Extract parameters for PulseDetector from ontology form.
 
         Args:
             pulse_type: Pulse type
@@ -328,34 +314,81 @@ class PulseDetectionPage(BaseSHPBPage):
         Returns:
             Parameters dictionary
         """
-        params = {}
+        form_widget = self._pulse_forms[pulse_type]
+        form_data = self.form_builder.get_form_data(form_widget)
 
-        widget = self._get_param_widget(pulse_type, 'pulse_points')
-        params['pulse_points'] = widget.value() if widget else 15000
+        DYN_NS = "https://dynamat.utep.edu/ontology#"
 
-        widget = self._get_param_widget(pulse_type, 'k_trials')
-        k_str = widget.text() if widget else "6000,4000,2000"
-        params['k_trials'] = tuple(float(k) for k in k_str.split(','))
+        # Map ontology properties to PulseDetector kwargs
+        params = {
+            'pulse_points': form_data.get(f"{DYN_NS}hasPulsePoints", 15000),
+            'k_trials': self._parse_k_trials(
+                form_data.get(f"{DYN_NS}hasKTrials", "6000,4000,2000")
+            ),
+            'polarity': self._get_polarity_value(
+                form_data.get(f"{DYN_NS}hasDetectionPolarity")
+            ),
+            'min_separation': form_data.get(f"{DYN_NS}hasMinSeparation"),
+        }
 
-        widget = self._get_param_widget(pulse_type, 'polarity')
-        params['polarity'] = widget.currentData() if widget else 'compressive'
-
-        widget = self._get_param_widget(pulse_type, 'metric')
-        params['metric'] = widget.currentData() if widget else 'median'
-
-        widget = self._get_param_widget(pulse_type, 'lower_bound')
-        val = widget.value() if widget else 0
-        params['lower_bound'] = val if val > 0 else None
-
-        widget = self._get_param_widget(pulse_type, 'upper_bound')
-        val = widget.value() if widget else 0
-        params['upper_bound'] = val if val > 0 else None
-
-        widget = self._get_param_widget(pulse_type, 'min_separation')
-        val = widget.value() if widget else 0
-        params['min_separation'] = val if val > 0 else None
+        # Detection parameters (passed to find_window)
+        params['lower_bound'] = form_data.get(f"{DYN_NS}hasDetectionLowerBound")
+        params['upper_bound'] = form_data.get(f"{DYN_NS}hasDetectionUpperBound")
+        params['metric'] = self._get_metric_value(
+            form_data.get(f"{DYN_NS}hasSelectionMetric")
+        )
 
         return params
+
+    def _create_detection_params_individual(
+        self,
+        pulse_type: str,
+        params: Dict[str, Any],
+        window: Tuple[int, int]
+    ) -> str:
+        """
+        Generate URI and metadata for PulseDetectionParams individual.
+
+        Note: Currently logs the individual structure for provenance tracking.
+        Future enhancement: Save to RDF file when test is saved.
+
+        Args:
+            pulse_type: 'incident', 'transmitted', or 'reflected'
+            params: Detection parameters dict from _get_current_params()
+            window: Detected window (start_index, end_index)
+
+        Returns:
+            URI of detection params (e.g., 'dyn:DYNML_A356_0001_SHPBTest_inc_detect')
+        """
+        # Get test ID from state (set by equipment page)
+        test_id = getattr(self.state, 'test_id', None)
+        if not test_id:
+            test_id = f"SHPBTest_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+        # Create individual URI with pattern: {testid}_{pulse_type}_detect
+        pulse_suffix = pulse_type[:3]  # inc, tra, ref
+        individual_uri = f"https://dynamat.utep.edu/ontology#{test_id}_{pulse_suffix}_detect"
+
+        # Store detection metadata in state for later serialization
+        detection_metadata = {
+            'uri': individual_uri,
+            'pulse_type': pulse_type,
+            'pulse_points': params['pulse_points'],
+            'k_trials': params['k_trials'],
+            'polarity': params['polarity'],
+            'min_separation': params.get('min_separation'),
+            'lower_bound': params.get('lower_bound'),
+            'upper_bound': params.get('upper_bound'),
+            'metric': params['metric'],
+            'window_start': window[0],
+            'window_end': window[1],
+            'window_length': window[1] - window[0],
+        }
+
+        logger.info(f"Detection metadata generated: {individual_uri}")
+        logger.debug(f"  Parameters: {detection_metadata}")
+
+        return individual_uri
 
     def _detect_current_pulse(self) -> None:
         """Detect pulse for currently selected tab."""
@@ -420,11 +453,21 @@ class PulseDetectionPage(BaseSHPBPage):
             self.state.pulse_windows[pulse_type] = window
             self.detectors[pulse_type] = detector
 
+            # Create PulseDetectionParams individual for provenance
+            individual_uri = self._create_detection_params_individual(
+                pulse_type, params, window
+            )
+
+            # Store individual URI in state for later reference
+            if not hasattr(self.state, 'detection_params_uris'):
+                self.state.detection_params_uris = {}
+            self.state.detection_params_uris[pulse_type] = individual_uri
+
             # Update display
             self._update_result_label(pulse_type, window)
             self._update_plot()
 
-            self.logger.info(f"Detected {pulse_type} window: {window}")
+            logger.info(f"Detected {pulse_type} window: {window}")
 
         except Exception as e:
             self.logger.error(f"Failed to detect {pulse_type}: {e}")

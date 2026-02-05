@@ -21,6 +21,18 @@
 #    Classes
 #################################################################
 
+###  https://dynamat.utep.edu/ontology#PolarityType
+dyn:PolarityType rdf:type owl:Class ;
+                 rdfs:label "Polarity Type"@en ;
+                 rdfs:comment "Enumeration of pulse polarity types (compressive or tensile) used in pulse detection."@en .
+
+
+###  https://dynamat.utep.edu/ontology#DetectionMetric
+dyn:DetectionMetric rdf:type owl:Class ;
+                    rdfs:label "Detection Metric"@en ;
+                    rdfs:comment "Enumeration of pulse detection metrics (median or peak) used to select the optimal window from multiple k-trial candidates."@en .
+
+
 ###  https://dynamat.utep.edu/ontology#PulseShift
 dyn:PulseShift rdf:type owl:Class ;
                rdfs:label "Pulse Shift"@en ;
@@ -61,13 +73,8 @@ dyn:SHPBCompression rdf:type owl:Class .
 dyn:appliedToSeries rdf:type owl:ObjectProperty ;
                     rdfs:domain dyn:PulseDetectionParams ;
                     rdfs:range dyn:DataSeries ;
-                    rdfs:comment "Links pulse detection parameters to the data series it was applied to"@en ;
-                    rdfs:label "Applied to Series"@en ;
-                    gui:hasDisplayName "Applied to Series" ;
-                    gui:hasFormGroup "DetectionProvenance" ;
-                    gui:hasGroupOrder 4 ;
-                    gui:hasDisplayOrder 1 ;
-                    gui:isReadOnly true .
+                    rdfs:comment "Links pulse detection parameters to the data series it was applied to (output property, not shown in forms)"@en ;
+                    rdfs:label "Applied to Series"@en .
 
 
 #################################################################
@@ -134,8 +141,7 @@ dyn:hasPulsePoints rdf:type owl:DatatypeProperty ,
                    gui:hasDisplayName "Pulse Points (samples)" ;
                    gui:hasFormGroup "DetectionConfig" ;
                    gui:hasGroupOrder 1 ;
-                   gui:hasDisplayOrder 1 ;
-                   gui:isReadOnly true .
+                   gui:hasDisplayOrder 1 .
 
 
 ###  https://dynamat.utep.edu/ontology#hasKTrials
@@ -152,17 +158,16 @@ dyn:hasKTrials rdf:type owl:DatatypeProperty ,
 
 
 ###  https://dynamat.utep.edu/ontology#hasDetectionPolarity
-dyn:hasDetectionPolarity rdf:type owl:DatatypeProperty ,
+dyn:hasDetectionPolarity rdf:type owl:ObjectProperty ,
                                   owl:FunctionalProperty ;
                          rdfs:domain dyn:PulseDetectionParams ;
-                         rdfs:range xsd:string ;
-                         rdfs:comment "Sign convention for pulse detection"@en ;
+                         rdfs:range dyn:PolarityType ;
+                         rdfs:comment "Sign convention for pulse detection (reference to PolarityType individual)"@en ;
                          rdfs:label "Detection Polarity"@en ;
                          gui:hasDisplayName "Polarity" ;
                          gui:hasFormGroup "DetectionConfig" ;
                          gui:hasGroupOrder 1 ;
-                         gui:hasDisplayOrder 3 ;
-                         gui:hasValidValues "compressive,tensile" .
+                         gui:hasDisplayOrder 3 .
 
 
 ###  https://dynamat.utep.edu/ontology#hasMinSeparation
@@ -205,17 +210,16 @@ dyn:hasDetectionUpperBound rdf:type owl:DatatypeProperty ,
 
 
 ###  https://dynamat.utep.edu/ontology#hasSelectionMetric
-dyn:hasSelectionMetric rdf:type owl:DatatypeProperty ,
+dyn:hasSelectionMetric rdf:type owl:ObjectProperty ,
                                 owl:FunctionalProperty ;
                        rdfs:domain dyn:PulseDetectionParams ;
-                       rdfs:range xsd:string ;
-                       rdfs:comment "Amplitude measure used to select best window from candidates"@en ;
+                       rdfs:range dyn:DetectionMetric ;
+                       rdfs:comment "Amplitude measure used to select best window from candidates (reference to DetectionMetric individual)"@en ;
                        rdfs:label "Selection Metric"@en ;
                        gui:hasDisplayName "Selection Metric" ;
                        gui:hasFormGroup "SearchBounds" ;
                        gui:hasGroupOrder 2 ;
-                       gui:hasDisplayOrder 3 ;
-                       gui:hasValidValues "median,peak" .
+                       gui:hasDisplayOrder 3 .
 
 
 ###  https://dynamat.utep.edu/ontology#hasStartIndex
@@ -223,13 +227,8 @@ dyn:hasStartIndex rdf:type owl:DatatypeProperty ,
                            owl:FunctionalProperty ;
                   rdfs:domain dyn:PulseDetectionParams ;
                   rdfs:range xsd:integer ;
-                  rdfs:comment "Starting sample index of detected pulse window"@en ;
-                  rdfs:label "Start Index"@en ;
-                  gui:hasDisplayName "Start Index" ;
-                  gui:hasFormGroup "DetectionResults" ;
-                  gui:hasGroupOrder 3 ;
-                  gui:hasDisplayOrder 1 ;
-                  gui:isReadOnly true .
+                  rdfs:comment "Starting sample index of detected pulse window (output property, not shown in forms)"@en ;
+                  rdfs:label "Start Index"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasEndIndex
@@ -237,13 +236,8 @@ dyn:hasEndIndex rdf:type owl:DatatypeProperty ,
                          owl:FunctionalProperty ;
                 rdfs:domain dyn:PulseDetectionParams ;
                 rdfs:range xsd:integer ;
-                rdfs:comment "Ending sample index of detected pulse window"@en ;
-                rdfs:label "End Index"@en ;
-                gui:hasDisplayName "End Index" ;
-                gui:hasFormGroup "DetectionResults" ;
-                gui:hasGroupOrder 3 ;
-                gui:hasDisplayOrder 2 ;
-                gui:isReadOnly true .
+                rdfs:comment "Ending sample index of detected pulse window (output property, not shown in forms)"@en ;
+                rdfs:label "End Index"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasWindowLength
@@ -251,13 +245,8 @@ dyn:hasWindowLength rdf:type owl:DatatypeProperty ,
                              owl:FunctionalProperty ;
                     rdfs:domain dyn:PulseDetectionParams ;
                     rdfs:range xsd:integer ;
-                    rdfs:comment "Length of pulse window in samples (end_idx - start_idx)"@en ;
-                    rdfs:label "Window Length"@en ;
-                    gui:hasDisplayName "Window Length (samples)" ;
-                    gui:hasFormGroup "DetectionResults" ;
-                    gui:hasGroupOrder 3 ;
-                    gui:hasDisplayOrder 3 ;
-                    gui:isReadOnly true .
+                    rdfs:comment "Length of pulse window in samples (end_idx - start_idx) (output property, not shown in forms)"@en ;
+                    rdfs:label "Window Length"@en .
 
 
 #################################################################

@@ -1,0 +1,56 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+
+# =============================================================================
+# Pulse Detection Individuals
+# =============================================================================
+# This file defines individuals used by the PulseDetectionParams class,
+# primarily for form dropdown population in the pulse detection page.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Helper Properties
+# -----------------------------------------------------------------------------
+
+dyn:hasPolarityValue rdf:type owl:DatatypeProperty ;
+    rdfs:domain dyn:PolarityType ;
+    rdfs:range xsd:string ;
+    rdfs:label "Has Polarity Value"@en ;
+    rdfs:comment "String value representation of pulse polarity type."@en .
+
+dyn:hasMetricValue rdf:type owl:DatatypeProperty ;
+    rdfs:domain dyn:DetectionMetric ;
+    rdfs:range xsd:string ;
+    rdfs:label "Has Metric Value"@en ;
+    rdfs:comment "String value representation of detection metric."@en .
+
+# -----------------------------------------------------------------------------
+# Polarity Type Individuals
+# -----------------------------------------------------------------------------
+
+dyn:CompressivePolarity rdf:type owl:NamedIndividual, dyn:PolarityType ;
+    rdfs:label "Compressive"@en ;
+    rdfs:comment "Compressive pulse polarity - pulse magnitude is negative."@en ;
+    dyn:hasPolarityValue "compressive" .
+
+dyn:TensilePolarity rdf:type owl:NamedIndividual, dyn:PolarityType ;
+    rdfs:label "Tensile"@en ;
+    rdfs:comment "Tensile pulse polarity - pulse magnitude is positive."@en ;
+    dyn:hasPolarityValue "tensile" .
+
+# -----------------------------------------------------------------------------
+# Detection Metric Individuals
+# -----------------------------------------------------------------------------
+
+dyn:MedianMetric rdf:type owl:NamedIndividual, dyn:DetectionMetric ;
+    rdfs:label "Median"@en ;
+    rdfs:comment "Use median of detected peaks for pulse window selection."@en ;
+    dyn:hasMetricValue "median" .
+
+dyn:PeakMetric rdf:type owl:NamedIndividual, dyn:DetectionMetric ;
+    rdfs:label "Peak"@en ;
+    rdfs:comment "Use maximum peak value for pulse window selection."@en ;
+    dyn:hasMetricValue "peak" .
