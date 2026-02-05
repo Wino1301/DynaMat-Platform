@@ -392,33 +392,48 @@ class RawDataLoaderWidget(QWidget):
             self.data_loaded.emit(self._build_data_payload())
 
     def _update_sampling_info(self) -> None:
-        """Calculate and display sampling interval from time column."""
+        """Calculate and display sampling interval from time column with selected unit."""
         if self._dataframe is None:
-            self._sampling_label.setText("-- ms")
+            self._sampling_label.setText("--")
             self._samples_label.setText("--")
             return
 
         self._samples_label.setText(f"{len(self._dataframe):,}")
 
-        # Find time column
-        time_col = None
+        # Find time series mapping
+        time_sm = None
         for sm in self._series_mappings:
-            if sm.key.lower() == 'time' and sm.column_combo.currentData():
-                time_col = sm.column_combo.currentData()
+            if sm.key.lower() == 'time':
+                time_sm = sm
                 break
 
-        if time_col and time_col in self._dataframe.columns:
-            try:
-                time_data = self._dataframe[time_col].values
-                if len(time_data) > 1:
-                    intervals = np.diff(time_data)
-                    sampling_interval = float(np.median(intervals))
-                    self._sampling_label.setText(f"{sampling_interval:.6f} ms")
-                    return
-            except Exception as e:
-                logger.warning(f"Could not calculate sampling interval: {e}")
+        if not time_sm:
+            self._sampling_label.setText("--")
+            return
 
-        self._sampling_label.setText("-- ms")
+        # Get time column
+        time_col = time_sm.column_combo.currentData() if time_sm.column_combo else None
+        if not time_col or time_col not in self._dataframe.columns:
+            self._sampling_label.setText("--")
+            return
+
+        # Get selected unit symbol
+        unit_symbol = "ms"  # Default fallback
+        if time_sm.unit_combo:
+            unit_symbol = time_sm.unit_combo.currentText() or "ms"
+
+        # Calculate sampling interval
+        try:
+            time_data = self._dataframe[time_col].values
+            if len(time_data) > 1:
+                intervals = np.diff(time_data)
+                sampling_interval = float(np.median(intervals))
+                self._sampling_label.setText(f"{sampling_interval:.6f} {unit_symbol}")
+                return
+        except Exception as e:
+            logger.warning(f"Could not calculate sampling interval: {e}")
+
+        self._sampling_label.setText(f"-- {unit_symbol}")
 
     # ------------------------------------------------------------------
     # Preview table
