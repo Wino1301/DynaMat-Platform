@@ -7,6 +7,7 @@ from .unit_value_widget import UnitValueWidget
 from .series_metadata_resolver import SeriesMetadataResolver
 from .data_series_widget import DataSeriesWidget
 from .property_display import PropertyDisplayConfig, PropertyDisplayWidget
+from .raw_data_loader import RawDataLoaderConfig, RawDataLoaderWidget
 
 # Plot widgets
 from .base_plot_widget import BasePlotWidget
@@ -35,6 +36,8 @@ __all__ = [
     'DataSeriesWidget',
     'PropertyDisplayConfig',
     'PropertyDisplayWidget',
+    'RawDataLoaderConfig',
+    'RawDataLoaderWidget',
     # Plot widgets
     'BasePlotWidget',
     'MatplotlibPlotWidget',

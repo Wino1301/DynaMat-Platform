@@ -618,6 +618,66 @@ class DomainQueries:
         logger.debug(f"Expanded series metadata to {len(expanded)} entries for SHPB")
         return expanded
 
+    def get_series_for_class(self, class_uri: str, relationship: str) -> List[Dict[str, Any]]:
+        """
+        Query series linked to a test class via a given relationship property.
+
+        Args:
+            class_uri: e.g., "dyn:SHPBCompression"
+            relationship: e.g., "dyn:hasRawSeries" or "dyn:hasProcessedSeries"
+
+        Returns:
+            List of dicts with keys:
+                - series_type_uri: str (full URI of SeriesType individual)
+                - label: str (from rdfs:label)
+                - default_column_name: str (from dyn:hasDefaultColumnName)
+                - quantity_kind: Optional[str] (QUDT URI)
+                - unit: Optional[str] (QUDT unit URI)
+        """
+        # Normalize URIs
+        normalized_class = self._normalize_property_uri(class_uri)
+        normalized_rel = self._normalize_property_uri(relationship)
+
+        query = f"""
+        SELECT ?seriesType ?label ?columnName ?quantityKind ?unit
+        WHERE {{
+            <{normalized_class}> <{normalized_rel}> ?seriesType .
+            ?seriesType rdfs:label ?label .
+            OPTIONAL {{ ?seriesType dyn:hasDefaultColumnName ?columnName }}
+            OPTIONAL {{ ?seriesType qudt:hasQuantityKind ?quantityKind }}
+            OPTIONAL {{ ?seriesType dyn:hasUnit ?unit }}
+        }}
+        ORDER BY ?label
+        """
+
+        try:
+            results = self.sparql.execute_query(query)
+
+            series_list = []
+            for result in results:
+                series_list.append({
+                    'series_type_uri': str(result.get('seriesType', '')),
+                    'label': str(result.get('label', '')),
+                    'default_column_name': str(result.get('columnName', '')) if result.get('columnName') else '',
+                    'quantity_kind': str(result.get('quantityKind', '')) if result.get('quantityKind') else None,
+                    'unit': str(result.get('unit', '')) if result.get('unit') else None,
+                })
+
+            logger.debug(f"Found {len(series_list)} series for {class_uri} via {relationship}")
+            return series_list
+
+        except Exception as e:
+            logger.error(f"Failed to query series for {class_uri} via {relationship}: {e}")
+            return []
+
+    def get_raw_series_for_class(self, class_uri: str) -> List[Dict[str, Any]]:
+        """Get raw input series required by a test class."""
+        return self.get_series_for_class(class_uri, "dyn:hasRawSeries")
+
+    def get_processed_series_for_class(self, class_uri: str) -> List[Dict[str, Any]]:
+        """Get processed output series produced by a test class."""
+        return self.get_series_for_class(class_uri, "dyn:hasProcessedSeries")
+
     def get_windowed_series_metadata(self) -> Dict[str, Dict[str, Any]]:
         """
         Get metadata for windowed series types from ontology.

@@ -42,6 +42,8 @@ class SHPBAnalysisState:
     csv_separator: str = ","
     column_mapping: Dict[str, str] = field(default_factory=dict)
     # Column mapping: {'time': 'col_name', 'incident': 'col_name', 'transmitted': 'col_name'}
+    unit_mapping: Dict[str, Dict[str, str]] = field(default_factory=dict)
+    # Unit mapping: {'time': {'unit': 'uri', 'symbol': 'ms'}, ...}
 
     # Sampling information
     sampling_interval: Optional[float] = None  # ms
