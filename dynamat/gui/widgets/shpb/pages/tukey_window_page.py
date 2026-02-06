@@ -7,16 +7,18 @@ import numpy as np
 
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QGroupBox, QGridLayout, QSlider, QDoubleSpinBox,
-    QSplitter, QFrame, QCheckBox
+    QGroupBox, QGridLayout, QSplitter, QFrame, QWidget
 )
 from PyQt6.QtCore import Qt
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.tukey_window import TukeyWindow
 from ...base.plot_widget_factory import create_plot_widget
+from ....builders.customizable_form_builder import CustomizableFormBuilder
 
 logger = logging.getLogger(__name__)
+
+DYN_NS = "https://dynamat.utep.edu/ontology#"
 
 
 class TukeyWindowPage(BaseSHPBPage):
@@ -36,8 +38,12 @@ class TukeyWindowPage(BaseSHPBPage):
 
         self.tukey_window: Optional[TukeyWindow] = None
 
+        # Ontology-driven form
+        self.form_builder = CustomizableFormBuilder(ontology_manager)
+        self._form_widget: Optional[QWidget] = None
+
     def _setup_ui(self) -> None:
-        """Setup page UI."""
+        """Setup page UI with ontology-driven form."""
         layout = self._create_base_layout()
 
         # Info label
@@ -57,32 +63,18 @@ class TukeyWindowPage(BaseSHPBPage):
         params_frame = QFrame()
         params_layout = QVBoxLayout(params_frame)
 
-        # Enable checkbox
-        self.enable_check = QCheckBox("Apply Tukey Window")
-        self.enable_check.setChecked(True)
-        self.enable_check.stateChanged.connect(self._on_enable_changed)
-        params_layout.addWidget(self.enable_check)
+        # Ontology-driven form (checkbox + alpha spinbox)
+        TUKEY_CLASS = f"{DYN_NS}TukeyWindowParams"
+        self._form_widget = self.form_builder.build_form(
+            TUKEY_CLASS, parent=params_frame
+        )
+        params_layout.addWidget(self._form_widget)
 
-        # Alpha parameter
-        alpha_group = self._create_group_box("Window Parameter")
-        alpha_layout = QGridLayout(alpha_group)
-
-        alpha_layout.addWidget(QLabel("Alpha:"), 0, 0)
-
-        self.alpha_spin = QDoubleSpinBox()
-        self.alpha_spin.setRange(0.0, 1.0)
-        self.alpha_spin.setValue(0.5)
-        self.alpha_spin.setDecimals(2)
-        self.alpha_spin.setSingleStep(0.05)
-        self.alpha_spin.valueChanged.connect(self._on_alpha_changed)
-        alpha_layout.addWidget(self.alpha_spin, 0, 1)
-
-        # Alpha slider
-        self.alpha_slider = QSlider(Qt.Orientation.Horizontal)
-        self.alpha_slider.setRange(0, 100)
-        self.alpha_slider.setValue(50)
-        self.alpha_slider.valueChanged.connect(self._on_slider_changed)
-        alpha_layout.addWidget(self.alpha_slider, 1, 0, 1, 2)
+        # Wire enable checkbox to control alpha field enable state
+        enable_uri = f"{DYN_NS}isTukeyEnabled"
+        if enable_uri in self._form_widget.form_fields:
+            enable_field = self._form_widget.form_fields[enable_uri]
+            enable_field.widget.stateChanged.connect(self._on_enable_changed)
 
         # Alpha explanation
         alpha_info = QLabel(
@@ -91,9 +83,7 @@ class TukeyWindowPage(BaseSHPBPage):
             "alpha = 1.0: Hann window (full taper)"
         )
         alpha_info.setStyleSheet("color: gray; font-size: 10px;")
-        alpha_layout.addWidget(alpha_info, 2, 0, 1, 2)
-
-        params_layout.addWidget(alpha_group)
+        params_layout.addWidget(alpha_info)
 
         # Apply button
         apply_btn = QPushButton("Apply Window")
@@ -139,13 +129,17 @@ class TukeyWindowPage(BaseSHPBPage):
         layout.addWidget(splitter)
         self._add_status_area()
 
+    def _is_enabled(self) -> bool:
+        """Check if Tukey window is enabled from form."""
+        form_data = self.form_builder.get_form_data(self._form_widget)
+        return bool(form_data.get(f"{DYN_NS}isTukeyEnabled", True))
+
     def initializePage(self) -> None:
         """Initialize page when it becomes current."""
         super().initializePage()
 
-        # Restore alpha from state
-        self.alpha_spin.setValue(self.state.tukey_alpha)
-        self.alpha_slider.setValue(int(self.state.tukey_alpha * 100))
+        # Restore parameters from state
+        self._restore_params()
 
         # If already applied, show results
         if self.state.tapered_pulses:
@@ -156,20 +150,37 @@ class TukeyWindowPage(BaseSHPBPage):
 
         Tukey window is optional, so always allow continuing.
         """
-        # Save alpha to state
-        self.state.tukey_alpha = self.alpha_spin.value()
+        # Save parameters to state
+        self._save_params()
 
         # If enabled but not applied, apply now
-        if self.enable_check.isChecked() and not self.state.tapered_pulses:
+        if self._is_enabled() and not self.state.tapered_pulses:
             self._apply_window()
 
         return True
 
+    def _restore_params(self) -> None:
+        """Restore parameters from state to ontology form."""
+        form_data = {
+            f"{DYN_NS}isTukeyEnabled": self.state.tukey_enabled,
+            f"{DYN_NS}hasTukeyAlphaParam": self.state.tukey_alpha,
+        }
+        self.form_builder.set_form_data(self._form_widget, form_data)
+
+    def _save_params(self) -> None:
+        """Save parameters from ontology form to state."""
+        form_data = self.form_builder.get_form_data(self._form_widget)
+        self.state.tukey_enabled = bool(form_data.get(f"{DYN_NS}isTukeyEnabled", True))
+        self.state.tukey_alpha = form_data.get(f"{DYN_NS}hasTukeyAlphaParam", 0.5)
+
     def _on_enable_changed(self, state: int) -> None:
         """Handle enable checkbox change."""
         enabled = state == Qt.CheckState.Checked.value
-        self.alpha_spin.setEnabled(enabled)
-        self.alpha_slider.setEnabled(enabled)
+
+        # Enable/disable alpha field
+        alpha_uri = f"{DYN_NS}hasTukeyAlphaParam"
+        if alpha_uri in self._form_widget.form_fields:
+            self._form_widget.form_fields[alpha_uri].widget.setEnabled(enabled)
 
         if not enabled:
             # Clear tapered pulses
@@ -178,31 +189,9 @@ class TukeyWindowPage(BaseSHPBPage):
                 self.plot_widget.clear()
                 self.plot_widget.refresh()
 
-    def _on_alpha_changed(self, value: float) -> None:
-        """Handle alpha spinbox change."""
-        # Update slider (avoid signal loop)
-        self.alpha_slider.blockSignals(True)
-        self.alpha_slider.setValue(int(value * 100))
-        self.alpha_slider.blockSignals(False)
-
-        # Update taper label
-        self.taper_label.setText(f"{value * 100:.0f}%")
-
-    def _on_slider_changed(self, value: int) -> None:
-        """Handle alpha slider change."""
-        alpha = value / 100.0
-
-        # Update spinbox (avoid signal loop)
-        self.alpha_spin.blockSignals(True)
-        self.alpha_spin.setValue(alpha)
-        self.alpha_spin.blockSignals(False)
-
-        # Update taper label
-        self.taper_label.setText(f"{value}%")
-
     def _apply_window(self) -> None:
         """Apply Tukey window to aligned pulses."""
-        if not self.enable_check.isChecked():
+        if not self._is_enabled():
             self.set_status("Window application disabled")
             return
 
@@ -210,7 +199,8 @@ class TukeyWindowPage(BaseSHPBPage):
         self.set_status("Applying Tukey window...")
 
         try:
-            alpha = self.alpha_spin.value()
+            form_data = self.form_builder.get_form_data(self._form_widget)
+            alpha = form_data.get(f"{DYN_NS}hasTukeyAlphaParam", 0.5)
 
             # Create Tukey window
             self.tukey_window = TukeyWindow(alpha=alpha)
@@ -224,6 +214,9 @@ class TukeyWindowPage(BaseSHPBPage):
 
             # Save alpha
             self.state.tukey_alpha = alpha
+
+            # Update taper label
+            self.taper_label.setText(f"{alpha * 100:.0f}%")
 
             # Calculate energy ratio
             if self.state.aligned_pulses.get('incident') is not None:

@@ -160,6 +160,7 @@ class SHPBAnalysisState:
     incident_rise_time: Optional[Dict[str, Any]] = None
 
     # ==================== STAGE 10: TUKEY WINDOW ====================
+    tukey_enabled: bool = True
     tukey_alpha: float = 0.5
 
     # Tapered pulses for ML applications

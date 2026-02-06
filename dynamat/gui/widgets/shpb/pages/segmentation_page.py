@@ -7,16 +7,18 @@ import numpy as np
 
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QGroupBox, QGridLayout, QSpinBox, QDoubleSpinBox,
-    QSplitter, QFrame
+    QGroupBox, QGridLayout, QSplitter, QFrame, QWidget
 )
 from PyQt6.QtCore import Qt
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.pulse_windows import PulseDetector
 from ...base.plot_widget_factory import create_plot_widget
+from ....builders.customizable_form_builder import CustomizableFormBuilder
 
 logger = logging.getLogger(__name__)
+
+DYN_NS = "https://dynamat.utep.edu/ontology#"
 
 
 class SegmentationPage(BaseSHPBPage):
@@ -36,8 +38,12 @@ class SegmentationPage(BaseSHPBPage):
 
         self.plot_widget = None
 
+        # Ontology-driven form
+        self.form_builder = CustomizableFormBuilder(ontology_manager)
+        self._form_widget: Optional[QWidget] = None
+
     def _setup_ui(self) -> None:
-        """Setup page UI."""
+        """Setup page UI with ontology-driven form."""
         layout = self._create_base_layout()
 
         # Create splitter
@@ -47,34 +53,21 @@ class SegmentationPage(BaseSHPBPage):
         params_frame = QFrame()
         params_layout = QVBoxLayout(params_frame)
 
-        # Segmentation parameters
-        params_group = self._create_group_box("Segmentation Parameters")
-        params_grid = QGridLayout(params_group)
+        # Ontology-driven segmentation parameters form
+        SEGMENTATION_CLASS = f"{DYN_NS}SegmentationParams"
+        self._form_widget = self.form_builder.build_form(
+            SEGMENTATION_CLASS, parent=params_frame
+        )
+        params_layout.addWidget(self._form_widget)
 
-        params_grid.addWidget(QLabel("Segment Length (n_points):"), 0, 0)
-        self.n_points_spin = QSpinBox()
-        self.n_points_spin.setRange(1000, 100000)
-        self.n_points_spin.setValue(25000)
-        self.n_points_spin.setSingleStep(1000)
-        params_grid.addWidget(self.n_points_spin, 0, 1)
-
-        params_grid.addWidget(QLabel("Threshold Ratio:"), 1, 0)
-        self.thresh_spin = QDoubleSpinBox()
-        self.thresh_spin.setRange(0.001, 0.5)
-        self.thresh_spin.setValue(0.01)
-        self.thresh_spin.setDecimals(3)
-        self.thresh_spin.setSingleStep(0.005)
-        params_grid.addWidget(self.thresh_spin, 1, 1)
-
+        # Info label
         info_label = QLabel(
             "Threshold ratio controls noise suppression.\n"
             "Lower values preserve more signal detail.\n"
             "Typical range: 0.005 - 0.05"
         )
         info_label.setStyleSheet("color: gray; font-size: 10px;")
-        params_grid.addWidget(info_label, 2, 0, 1, 2)
-
-        params_layout.addWidget(params_group)
+        params_layout.addWidget(info_label)
 
         # Segment button
         segment_btn = QPushButton("Segment All Pulses")
@@ -135,8 +128,7 @@ class SegmentationPage(BaseSHPBPage):
         super().initializePage()
 
         # Restore parameters from state
-        self.n_points_spin.setValue(self.state.segment_n_points)
-        self.thresh_spin.setValue(self.state.segment_thresh_ratio)
+        self._restore_params()
 
         # If already segmented, show results
         if self.state.has_segmented_pulses():
@@ -153,10 +145,27 @@ class SegmentationPage(BaseSHPBPage):
             return False
 
         # Save parameters
-        self.state.segment_n_points = self.n_points_spin.value()
-        self.state.segment_thresh_ratio = self.thresh_spin.value()
+        self._save_params()
 
         return True
+
+    def _restore_params(self) -> None:
+        """Restore parameters from state to ontology form."""
+        form_data = {
+            f"{DYN_NS}hasSegmentPoints": self.state.segment_n_points,
+            f"{DYN_NS}hasSegmentThreshold": self.state.segment_thresh_ratio,
+        }
+        self.form_builder.set_form_data(self._form_widget, form_data)
+
+    def _save_params(self) -> None:
+        """Save parameters from ontology form to state."""
+        form_data = self.form_builder.get_form_data(self._form_widget)
+        self.state.segment_n_points = form_data.get(
+            f"{DYN_NS}hasSegmentPoints", 25000
+        )
+        self.state.segment_thresh_ratio = form_data.get(
+            f"{DYN_NS}hasSegmentThreshold", 0.01
+        )
 
     def _segment_pulses(self) -> None:
         """Segment all detected pulses."""
@@ -164,8 +173,10 @@ class SegmentationPage(BaseSHPBPage):
         self.set_status("Segmenting pulses...")
 
         try:
-            n_points = self.n_points_spin.value()
-            thresh_ratio = self.thresh_spin.value()
+            # Get parameters from form
+            form_data = self.form_builder.get_form_data(self._form_widget)
+            n_points = form_data.get(f"{DYN_NS}hasSegmentPoints", 25000)
+            thresh_ratio = form_data.get(f"{DYN_NS}hasSegmentThreshold", 0.01)
 
             # Get raw signals
             incident_signal = self.state.get_raw_signal('incident')

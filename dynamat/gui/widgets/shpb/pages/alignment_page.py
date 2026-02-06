@@ -7,16 +7,18 @@ import numpy as np
 
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QGroupBox, QGridLayout, QSpinBox, QDoubleSpinBox,
-    QSplitter, QFrame, QTabWidget, QWidget
+    QGroupBox, QGridLayout, QSplitter, QFrame, QTabWidget, QWidget
 )
 from PyQt6.QtCore import Qt
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.pulse_alignment import PulseAligner
 from ...base.plot_widget_factory import create_plot_widget
+from ....builders.customizable_form_builder import CustomizableFormBuilder
 
 logger = logging.getLogger(__name__)
+
+DYN_NS = "https://dynamat.utep.edu/ontology#"
 
 
 class AlignmentPage(BaseSHPBPage):
@@ -38,119 +40,37 @@ class AlignmentPage(BaseSHPBPage):
         self.aligner: Optional[PulseAligner] = None
         self.plot_tabs: Optional[QTabWidget] = None
 
+        # Ontology-driven form
+        self.form_builder = CustomizableFormBuilder(ontology_manager)
+        self._form_widget: Optional[QWidget] = None
+
     def _setup_ui(self) -> None:
-        """Setup page UI."""
+        """Setup page UI with ontology-driven form."""
         layout = self._create_base_layout()
 
         # Create splitter
         splitter = QSplitter(Qt.Orientation.Horizontal)
 
-        # Left: Parameters
+        # Left: Parameters (ontology-driven form)
         params_frame = QFrame()
         params_layout = QVBoxLayout(params_frame)
 
-        # Alignment parameters
-        params_group = self._create_group_box("Alignment Parameters")
-        params_grid = QGridLayout(params_group)
+        ALIGNMENT_CLASS = f"{DYN_NS}AlignmentParams"
+        self._form_widget = self.form_builder.build_form(
+            ALIGNMENT_CLASS, parent=params_frame
+        )
+        params_layout.addWidget(self._form_widget)
 
-        params_grid.addWidget(QLabel("k_linear:"), 0, 0)
-        self.k_linear_spin = QDoubleSpinBox()
-        self.k_linear_spin.setRange(0.1, 0.9)
-        self.k_linear_spin.setValue(0.35)
-        self.k_linear_spin.setDecimals(2)
-        self.k_linear_spin.setSingleStep(0.05)
-        params_grid.addWidget(self.k_linear_spin, 0, 1)
-
-        info = QLabel("Fraction of pulse for linear region detection")
-        info.setStyleSheet("color: gray; font-size: 10px;")
-        params_grid.addWidget(info, 1, 0, 1, 2)
-
-        params_layout.addWidget(params_group)
-
-        # Weights
-        weights_group = self._create_group_box("Fitness Weights")
-        weights_grid = QGridLayout(weights_group)
-
-        weight_labels = [
-            ("Correlation (corr):", "corr", 0.3),
-            ("Displacement (u):", "u", 0.3),
-            ("Strain Rate (sr):", "sr", 0.3),
-            ("Strain (e):", "e", 0.1),
-        ]
-
-        self.weight_spins = {}
-        for row, (label, key, default) in enumerate(weight_labels):
-            weights_grid.addWidget(QLabel(label), row, 0)
-            spin = QDoubleSpinBox()
-            spin.setRange(0.0, 1.0)
-            spin.setValue(default)
-            spin.setDecimals(2)
-            spin.setSingleStep(0.05)
-            self.weight_spins[key] = spin
-            weights_grid.addWidget(spin, row, 1)
-
-        weights_info = QLabel("Weights should sum to ~1.0")
-        weights_info.setStyleSheet("color: gray; font-size: 10px;")
-        weights_grid.addWidget(weights_info, len(weight_labels), 0, 1, 2)
-
-        params_layout.addWidget(weights_group)
-
-        # Search bounds
-        bounds_group = self._create_group_box("Search Bounds (samples)")
-        bounds_grid = QGridLayout(bounds_group)
-
-        bounds_grid.addWidget(QLabel("Transmitted Min:"), 0, 0)
-        self.t_min_spin = QSpinBox()
-        self.t_min_spin.setRange(-5000, 5000)
-        self.t_min_spin.setValue(-100)
-        bounds_grid.addWidget(self.t_min_spin, 0, 1)
-
-        bounds_grid.addWidget(QLabel("Transmitted Max:"), 1, 0)
-        self.t_max_spin = QSpinBox()
-        self.t_max_spin.setRange(-5000, 5000)
-        self.t_max_spin.setValue(100)
-        bounds_grid.addWidget(self.t_max_spin, 1, 1)
-
-        bounds_grid.addWidget(QLabel("Reflected Min:"), 2, 0)
-        self.r_min_spin = QSpinBox()
-        self.r_min_spin.setRange(-5000, 5000)
-        self.r_min_spin.setValue(-100)
-        bounds_grid.addWidget(self.r_min_spin, 2, 1)
-
-        bounds_grid.addWidget(QLabel("Reflected Max:"), 3, 0)
-        self.r_max_spin = QSpinBox()
-        self.r_max_spin.setRange(-5000, 5000)
-        self.r_max_spin.setValue(100)
-        bounds_grid.addWidget(self.r_max_spin, 3, 1)
-
-        params_layout.addWidget(bounds_group)
+        # "Linear Region" display label (not persisted, display-only)
+        self.linear_label = QLabel("Linear Region: --")
+        self.linear_label.setStyleSheet("color: gray; font-size: 10px;")
+        params_layout.addWidget(self.linear_label)
 
         # Align button
         align_btn = QPushButton("Run Alignment")
         align_btn.clicked.connect(self._run_alignment)
         params_layout.addWidget(align_btn)
 
-        # Results
-        results_group = self._create_group_box("Alignment Results")
-        results_layout = QGridLayout(results_group)
-
-        results_layout.addWidget(QLabel("Transmitted Shift:"), 0, 0)
-        self.t_shift_label = QLabel("--")
-        results_layout.addWidget(self.t_shift_label, 0, 1)
-
-        results_layout.addWidget(QLabel("Reflected Shift:"), 1, 0)
-        self.r_shift_label = QLabel("--")
-        results_layout.addWidget(self.r_shift_label, 1, 1)
-
-        results_layout.addWidget(QLabel("Front Index:"), 2, 0)
-        self.front_label = QLabel("--")
-        results_layout.addWidget(self.front_label, 2, 1)
-
-        results_layout.addWidget(QLabel("Linear Region:"), 3, 0)
-        self.linear_label = QLabel("--")
-        results_layout.addWidget(self.linear_label, 3, 1)
-
-        params_layout.addWidget(results_group)
         params_layout.addStretch()
 
         splitter.addWidget(params_frame)
@@ -199,19 +119,7 @@ class AlignmentPage(BaseSHPBPage):
         super().initializePage()
 
         # Restore parameters from state
-        self.k_linear_spin.setValue(self.state.k_linear)
-
-        for key, spin in self.weight_spins.items():
-            weight = self.state.alignment_weights.get(key, 0.25)
-            spin.setValue(weight)
-
-        if self.state.search_bounds_t:
-            self.t_min_spin.setValue(self.state.search_bounds_t[0])
-            self.t_max_spin.setValue(self.state.search_bounds_t[1])
-
-        if self.state.search_bounds_r:
-            self.r_min_spin.setValue(self.state.search_bounds_r[0])
-            self.r_max_spin.setValue(self.state.search_bounds_r[1])
+        self._restore_params()
 
         # If already aligned, show results
         if self.state.has_aligned_pulses():
@@ -232,16 +140,62 @@ class AlignmentPage(BaseSHPBPage):
 
         return True
 
+    def _restore_params(self) -> None:
+        """Restore parameters from state to ontology form."""
+        form_data = {}
+
+        form_data[f"{DYN_NS}hasKLinear"] = self.state.k_linear
+
+        # Segmentation params on AlignmentParams
+        form_data[f"{DYN_NS}hasCenteredSegmentPoints"] = self.state.segment_n_points
+        form_data[f"{DYN_NS}hasThresholdRatio"] = self.state.segment_thresh_ratio
+
+        # Fitness weights
+        weights = self.state.alignment_weights
+        form_data[f"{DYN_NS}hasCorrelationWeight"] = weights.get('corr', 0.3)
+        form_data[f"{DYN_NS}hasDisplacementWeight"] = weights.get('u', 0.3)
+        form_data[f"{DYN_NS}hasStrainRateWeight"] = weights.get('sr', 0.3)
+        form_data[f"{DYN_NS}hasStrainWeight"] = weights.get('e', 0.1)
+
+        # Search bounds
+        if self.state.search_bounds_t:
+            form_data[f"{DYN_NS}hasTransmittedSearchMin"] = self.state.search_bounds_t[0]
+            form_data[f"{DYN_NS}hasTransmittedSearchMax"] = self.state.search_bounds_t[1]
+
+        if self.state.search_bounds_r:
+            form_data[f"{DYN_NS}hasReflectedSearchMin"] = self.state.search_bounds_r[0]
+            form_data[f"{DYN_NS}hasReflectedSearchMax"] = self.state.search_bounds_r[1]
+
+        # Read-only results
+        if self.state.shift_transmitted is not None:
+            form_data[f"{DYN_NS}hasTransmittedShiftValue"] = self.state.shift_transmitted
+        if self.state.shift_reflected is not None:
+            form_data[f"{DYN_NS}hasReflectedShiftValue"] = self.state.shift_reflected
+        if self.state.alignment_front_idx is not None:
+            form_data[f"{DYN_NS}hasFrontIndex"] = self.state.alignment_front_idx
+
+        self.form_builder.set_form_data(self._form_widget, form_data)
+
     def _save_params(self) -> None:
-        """Save parameters to state."""
-        self.state.k_linear = self.k_linear_spin.value()
+        """Save parameters from ontology form to state."""
+        form_data = self.form_builder.get_form_data(self._form_widget)
+
+        self.state.k_linear = form_data.get(f"{DYN_NS}hasKLinear", 0.35)
 
         self.state.alignment_weights = {
-            key: spin.value() for key, spin in self.weight_spins.items()
+            'corr': form_data.get(f"{DYN_NS}hasCorrelationWeight", 0.3),
+            'u': form_data.get(f"{DYN_NS}hasDisplacementWeight", 0.3),
+            'sr': form_data.get(f"{DYN_NS}hasStrainRateWeight", 0.3),
+            'e': form_data.get(f"{DYN_NS}hasStrainWeight", 0.1),
         }
 
-        self.state.search_bounds_t = (self.t_min_spin.value(), self.t_max_spin.value())
-        self.state.search_bounds_r = (self.r_min_spin.value(), self.r_max_spin.value())
+        t_min = form_data.get(f"{DYN_NS}hasTransmittedSearchMin", -100)
+        t_max = form_data.get(f"{DYN_NS}hasTransmittedSearchMax", 100)
+        self.state.search_bounds_t = (t_min, t_max)
+
+        r_min = form_data.get(f"{DYN_NS}hasReflectedSearchMin", -100)
+        r_max = form_data.get(f"{DYN_NS}hasReflectedSearchMax", 100)
+        self.state.search_bounds_r = (r_min, r_max)
 
     def _run_alignment(self) -> None:
         """Run pulse alignment optimization."""
@@ -249,11 +203,24 @@ class AlignmentPage(BaseSHPBPage):
         self.set_status("Running alignment optimization...")
 
         try:
-            # Get parameters
-            k_linear = self.k_linear_spin.value()
-            weights = {key: spin.value() for key, spin in self.weight_spins.items()}
-            search_bounds_t = (self.t_min_spin.value(), self.t_max_spin.value())
-            search_bounds_r = (self.r_min_spin.value(), self.r_max_spin.value())
+            # Get parameters from form
+            form_data = self.form_builder.get_form_data(self._form_widget)
+
+            k_linear = form_data.get(f"{DYN_NS}hasKLinear", 0.35)
+            weights = {
+                'corr': form_data.get(f"{DYN_NS}hasCorrelationWeight", 0.3),
+                'u': form_data.get(f"{DYN_NS}hasDisplacementWeight", 0.3),
+                'sr': form_data.get(f"{DYN_NS}hasStrainRateWeight", 0.3),
+                'e': form_data.get(f"{DYN_NS}hasStrainWeight", 0.1),
+            }
+            search_bounds_t = (
+                form_data.get(f"{DYN_NS}hasTransmittedSearchMin", -100),
+                form_data.get(f"{DYN_NS}hasTransmittedSearchMax", 100),
+            )
+            search_bounds_r = (
+                form_data.get(f"{DYN_NS}hasReflectedSearchMin", -100),
+                form_data.get(f"{DYN_NS}hasReflectedSearchMax", 100),
+            )
 
             # Get equipment properties
             equipment = self.state.equipment_properties
@@ -268,7 +235,7 @@ class AlignmentPage(BaseSHPBPage):
             # Get specimen height
             specimen_data = self.state.specimen_data or {}
             specimen_height = specimen_data.get(
-                'https://dynamat.utep.edu/ontology#hasOriginalHeight'
+                f'{DYN_NS}hasOriginalHeight'
             )
 
             if isinstance(specimen_height, dict):
@@ -319,7 +286,6 @@ class AlignmentPage(BaseSHPBPage):
             self.state.time_vector = time_vector
 
             # Calculate front index and linear region
-            # (These are approximations - actual values come from aligner internals)
             front_thresh = 0.05 * np.max(np.abs(aligned_inc))
             front_idx = np.argmax(np.abs(aligned_inc) > front_thresh)
             self.state.alignment_front_idx = int(front_idx)
@@ -330,6 +296,14 @@ class AlignmentPage(BaseSHPBPage):
 
             # Save parameters
             self._save_params()
+
+            # Update read-only fields in form with results
+            result_data = {
+                f"{DYN_NS}hasTransmittedShiftValue": shift_t,
+                f"{DYN_NS}hasReflectedShiftValue": shift_r,
+                f"{DYN_NS}hasFrontIndex": int(front_idx),
+            }
+            self.form_builder.set_form_data(self._form_widget, result_data)
 
             # Update display
             self._update_results_display()
@@ -347,27 +321,12 @@ class AlignmentPage(BaseSHPBPage):
             self.hide_progress()
 
     def _update_results_display(self) -> None:
-        """Update results labels."""
-        if self.state.shift_transmitted is not None:
-            self.t_shift_label.setText(f"{self.state.shift_transmitted:+d} samples")
-        else:
-            self.t_shift_label.setText("--")
-
-        if self.state.shift_reflected is not None:
-            self.r_shift_label.setText(f"{self.state.shift_reflected:+d} samples")
-        else:
-            self.r_shift_label.setText("--")
-
-        if self.state.alignment_front_idx is not None:
-            self.front_label.setText(f"{self.state.alignment_front_idx}")
-        else:
-            self.front_label.setText("--")
-
+        """Update display-only linear region label."""
         if self.state.linear_region:
             start, end = self.state.linear_region
-            self.linear_label.setText(f"[{start}, {end}]")
+            self.linear_label.setText(f"Linear Region: [{start}, {end}]")
         else:
-            self.linear_label.setText("--")
+            self.linear_label.setText("Linear Region: --")
 
     def _update_plots(self) -> None:
         """Update plots with aligned pulses."""

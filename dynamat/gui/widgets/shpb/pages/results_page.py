@@ -8,15 +8,40 @@ import numpy as np
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QGroupBox, QGridLayout, QSplitter, QFrame,
-    QTabWidget, QTableWidget, QTableWidgetItem, QHeaderView
+    QTabWidget, QWidget
 )
 from PyQt6.QtCore import Qt
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.stress_strain import StressStrainCalculator
 from ...base.plot_widget_factory import create_plot_widget
+from ....builders.customizable_form_builder import CustomizableFormBuilder
 
 logger = logging.getLogger(__name__)
+
+DYN_NS = "https://dynamat.utep.edu/ontology#"
+
+# Metric URI to metrics dict key mapping
+METRIC_URI_MAP = {
+    f"{DYN_NS}hasFBC": "FBC",
+    f"{DYN_NS}hasSEQI": "SEQI",
+    f"{DYN_NS}hasSOI": "SOI",
+    f"{DYN_NS}hasDSUF": "DSUF",
+    f"{DYN_NS}hasFBCLoading": "windowed_FBC_loading",
+    f"{DYN_NS}hasDSUFLoading": "windowed_DSUF_loading",
+    f"{DYN_NS}hasFBCPlateau": "windowed_FBC_plateau",
+    f"{DYN_NS}hasDSUFPlateau": "windowed_DSUF_plateau",
+    f"{DYN_NS}hasFBCUnloading": "windowed_FBC_unloading",
+    f"{DYN_NS}hasDSUFUnloading": "windowed_DSUF_unloading",
+}
+
+# Color thresholds for overall metrics
+METRIC_THRESHOLDS = {
+    "FBC": lambda v: "green" if v > 0.95 else "orange" if v > 0.90 else "red",
+    "SEQI": lambda v: "green" if v > 0.90 else "orange" if v > 0.80 else "red",
+    "SOI": lambda v: "green" if v < 0.05 else "orange" if v < 0.10 else "red",
+    "DSUF": lambda v: "green" if v > 0.98 else "orange" if v > 0.95 else "red",
+}
 
 
 class ResultsPage(BaseSHPBPage):
@@ -24,7 +49,7 @@ class ResultsPage(BaseSHPBPage):
 
     Features:
     - Calculate 1-wave and 3-wave stress-strain curves
-    - Display equilibrium metrics
+    - Display equilibrium metrics (ontology-driven)
     - Visualize stress-strain plots
     """
 
@@ -36,8 +61,12 @@ class ResultsPage(BaseSHPBPage):
 
         self.calculator: Optional[StressStrainCalculator] = None
 
+        # Ontology-driven form for metrics
+        self.form_builder = CustomizableFormBuilder(ontology_manager)
+        self._metrics_form: Optional[QWidget] = None
+
     def _setup_ui(self) -> None:
-        """Setup page UI."""
+        """Setup page UI with ontology-driven metrics form."""
         layout = self._create_base_layout()
 
         # Create splitter
@@ -52,53 +81,14 @@ class ResultsPage(BaseSHPBPage):
         calc_btn.clicked.connect(self._calculate_results)
         left_layout.addWidget(calc_btn)
 
-        # Equilibrium metrics
-        metrics_group = self._create_group_box("Equilibrium Metrics")
-        metrics_layout = QGridLayout(metrics_group)
+        # Ontology-driven equilibrium metrics form (read-only)
+        METRICS_CLASS = f"{DYN_NS}EquilibriumMetrics"
+        self._metrics_form = self.form_builder.build_form(
+            METRICS_CLASS, parent=left_frame
+        )
+        left_layout.addWidget(self._metrics_form)
 
-        metric_labels = [
-            ("FBC (Force Balance):", "FBC", "> 0.95"),
-            ("SEQI (Stress Equilibrium):", "SEQI", "> 0.90"),
-            ("SOI (Strain Offset):", "SOI", "< 0.05"),
-            ("DSUF (Uniformity):", "DSUF", "> 0.98"),
-        ]
-
-        self.metric_labels = {}
-        for row, (label, key, target) in enumerate(metric_labels):
-            metrics_layout.addWidget(QLabel(label), row, 0)
-
-            value_label = QLabel("--")
-            self.metric_labels[key] = value_label
-            metrics_layout.addWidget(value_label, row, 1)
-
-            target_label = QLabel(f"(target {target})")
-            target_label.setStyleSheet("color: gray; font-size: 10px;")
-            metrics_layout.addWidget(target_label, row, 2)
-
-        left_layout.addWidget(metrics_group)
-
-        # Windowed metrics
-        windowed_group = self._create_group_box("Windowed Metrics")
-        windowed_layout = QGridLayout(windowed_group)
-
-        windowed_layout.addWidget(QLabel(""), 0, 0)
-        windowed_layout.addWidget(QLabel("Loading"), 0, 1)
-        windowed_layout.addWidget(QLabel("Plateau"), 0, 2)
-        windowed_layout.addWidget(QLabel("Unloading"), 0, 3)
-
-        self.windowed_labels = {}
-        for row, metric in enumerate(['FBC', 'DSUF'], start=1):
-            windowed_layout.addWidget(QLabel(f"{metric}:"), row, 0)
-
-            for col, phase in enumerate(['loading', 'plateau', 'unloading'], start=1):
-                key = f"windowed_{metric}_{phase}"
-                label = QLabel("--")
-                self.windowed_labels[key] = label
-                windowed_layout.addWidget(label, row, col)
-
-        left_layout.addWidget(windowed_group)
-
-        # Calculated characteristics
+        # Calculated characteristics (hardcoded for now - future ontology-driven)
         chars_group = self._create_group_box("Calculated Characteristics")
         chars_layout = QGridLayout(chars_group)
 
@@ -203,10 +193,10 @@ class ResultsPage(BaseSHPBPage):
             specimen_data = self.state.specimen_data or {}
 
             specimen_area = specimen_data.get(
-                'https://dynamat.utep.edu/ontology#hasOriginalCrossSection'
+                f'{DYN_NS}hasOriginalCrossSection'
             )
             specimen_height = specimen_data.get(
-                'https://dynamat.utep.edu/ontology#hasOriginalHeight'
+                f'{DYN_NS}hasOriginalHeight'
             )
 
             # Handle measurement dictionaries
@@ -278,70 +268,68 @@ class ResultsPage(BaseSHPBPage):
             self.hide_progress()
 
     def _update_metrics_display(self) -> None:
-        """Update metrics labels."""
+        """Update metrics display using ontology form and color coding."""
         metrics = self.state.equilibrium_metrics
         if not metrics:
             return
 
-        # Main metrics
-        metric_map = {
-            'FBC': 'FBC',
-            'SEQI': 'SEQI',
-            'SOI': 'SOI',
-            'DSUF': 'DSUF'
-        }
-
-        for display_key, metric_key in metric_map.items():
+        # Build form data from metrics dict using URI map
+        form_data = {}
+        for uri, metric_key in METRIC_URI_MAP.items():
             value = metrics.get(metric_key)
-            label = self.metric_labels.get(display_key)
-            if label and value is not None:
-                # Color code based on quality
-                if display_key == 'FBC':
-                    color = "green" if value > 0.95 else "orange" if value > 0.90 else "red"
-                elif display_key == 'SEQI':
-                    color = "green" if value > 0.90 else "orange" if value > 0.80 else "red"
-                elif display_key == 'SOI':
-                    color = "green" if value < 0.05 else "orange" if value < 0.10 else "red"
-                elif display_key == 'DSUF':
-                    color = "green" if value > 0.98 else "orange" if value > 0.95 else "red"
-                else:
-                    color = "black"
+            if value is not None:
+                form_data[uri] = value
 
-                label.setText(f"{value:.4f}")
-                label.setStyleSheet(f"color: {color}; font-weight: bold;")
+        # Populate the ontology form with metric values
+        self.form_builder.set_form_data(self._metrics_form, form_data)
 
-        # Windowed metrics
-        for phase in ['loading', 'plateau', 'unloading']:
-            for metric in ['FBC', 'DSUF']:
-                key = f"windowed_{metric}_{phase}"
-                metric_key = f"windowed_{metric}_{phase}"
-                value = metrics.get(metric_key)
-                label = self.windowed_labels.get(key)
-                if label and value is not None:
-                    label.setText(f"{value:.3f}")
+        # Apply color coding to overall metrics
+        self._apply_metric_colors(metrics)
 
-        # Calculated characteristics
+        # Update calculated characteristics
+        self._update_characteristics()
+
+    def _apply_metric_colors(self, metrics: Dict[str, float]) -> None:
+        """Apply color stylesheets to FBC/SEQI/SOI/DSUF fields based on thresholds."""
+        for metric_key, threshold_fn in METRIC_THRESHOLDS.items():
+            value = metrics.get(metric_key)
+            if value is None:
+                continue
+
+            # Find the URI for this metric
+            uri = f"{DYN_NS}has{metric_key}"
+            form_fields = self._metrics_form.form_fields
+            if uri in form_fields:
+                color = threshold_fn(value)
+                form_fields[uri].widget.setStyleSheet(
+                    f"color: {color}; font-weight: bold;"
+                )
+
+    def _update_characteristics(self) -> None:
+        """Update calculated characteristics labels."""
         results = self.state.calculation_results
-        if results:
-            stress_1w = results.get('stress_1w', [])
-            strain_1w = results.get('strain_1w', [])
-            strain_rate_1w = results.get('strain_rate_1w', [])
+        if not results:
+            return
 
-            if len(stress_1w) > 0:
-                self.char_labels['peak_stress_1w'].setText(f"{np.max(np.abs(stress_1w)):.1f} MPa")
+        stress_1w = results.get('stress_1w', [])
+        strain_1w = results.get('strain_1w', [])
+        strain_rate_1w = results.get('strain_rate_1w', [])
 
-            if len(strain_1w) > 0:
-                self.char_labels['peak_strain_1w'].setText(f"{np.max(np.abs(strain_1w)):.4f}")
+        if len(stress_1w) > 0:
+            self.char_labels['peak_stress_1w'].setText(f"{np.max(np.abs(stress_1w)):.1f} MPa")
 
-            if len(strain_rate_1w) > 0:
-                self.char_labels['max_strain_rate'].setText(f"{np.max(np.abs(strain_rate_1w)):.0f} /s")
+        if len(strain_1w) > 0:
+            self.char_labels['peak_strain_1w'].setText(f"{np.max(np.abs(strain_1w)):.4f}")
 
-            # Flow stress (simplified: use plateau region)
-            if len(stress_1w) > 10:
-                mid_start = len(stress_1w) // 4
-                mid_end = 3 * len(stress_1w) // 4
-                flow = np.mean(np.abs(stress_1w[mid_start:mid_end]))
-                self.char_labels['flow_stress'].setText(f"{flow:.1f} MPa")
+        if len(strain_rate_1w) > 0:
+            self.char_labels['max_strain_rate'].setText(f"{np.max(np.abs(strain_rate_1w)):.0f} /s")
+
+        # Flow stress (simplified: use plateau region)
+        if len(stress_1w) > 10:
+            mid_start = len(stress_1w) // 4
+            mid_end = 3 * len(stress_1w) // 4
+            flow = np.mean(np.abs(stress_1w[mid_start:mid_end]))
+            self.char_labels['flow_stress'].setText(f"{flow:.1f} MPa")
 
     def _update_plots(self) -> None:
         """Update plots with results."""

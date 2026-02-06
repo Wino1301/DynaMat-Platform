@@ -57,6 +57,18 @@ dyn:EquilibriumMetrics rdf:type owl:Class ;
                        rdfs:comment "Force and stress equilibrium assessment metrics for SHPB tests. Includes overall metrics (FBC, SEQI, SOI, DSUF) and phase-specific metrics for loading, plateau, and unloading."@en .
 
 
+###  https://dynamat.utep.edu/ontology#SegmentationParams
+dyn:SegmentationParams rdf:type owl:Class ;
+                       rdfs:label "Segmentation Parameters"@en ;
+                       rdfs:comment "Configuration parameters for pulse segmentation including segment length and noise threshold ratio."@en .
+
+
+###  https://dynamat.utep.edu/ontology#TukeyWindowParams
+dyn:TukeyWindowParams rdf:type owl:Class ;
+                      rdfs:label "Tukey Window Parameters"@en ;
+                      rdfs:comment "Configuration parameters for Tukey window application including enable flag and alpha parameter."@en .
+
+
 ###  https://dynamat.utep.edu/ontology#DataSeries
 dyn:DataSeries rdf:type owl:Class .
 
@@ -580,6 +592,86 @@ dyn:hasDSUFUnloading rdf:type owl:DatatypeProperty ,
                      gui:hasGroupOrder 2 ;
                      gui:hasDisplayOrder 6 ;
                      gui:isReadOnly true .
+
+
+#################################################################
+#    Object Properties - SHPBCompression links
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasSegmentationParams
+dyn:hasSegmentationParams rdf:type owl:ObjectProperty ;
+                          rdfs:domain dyn:SHPBCompression ;
+                          rdfs:range dyn:SegmentationParams ;
+                          rdfs:comment "Links an SHPB compression test to its segmentation parameters."@en ;
+                          rdfs:label "Segmentation Parameters"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasTukeyWindowParams
+dyn:hasTukeyWindowParams rdf:type owl:ObjectProperty ;
+                         rdfs:domain dyn:SHPBCompression ;
+                         rdfs:range dyn:TukeyWindowParams ;
+                         rdfs:comment "Links an SHPB compression test to its Tukey window parameters."@en ;
+                         rdfs:label "Tukey Window Parameters"@en .
+
+
+#################################################################
+#    Data Properties - SegmentationParams
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasSegmentPoints
+dyn:hasSegmentPoints rdf:type owl:DatatypeProperty ,
+                              owl:FunctionalProperty ;
+                     rdfs:domain dyn:SegmentationParams ;
+                     rdfs:range xsd:integer ;
+                     rdfs:comment "Number of points for each centered pulse segment (n_points parameter)"@en ;
+                     rdfs:label "Segment Points"@en ;
+                     gui:hasDisplayName "Segment Length (n_points)" ;
+                     gui:hasFormGroup "SegmentationConfig" ;
+                     gui:hasGroupOrder 1 ;
+                     gui:hasDisplayOrder 1 .
+
+
+###  https://dynamat.utep.edu/ontology#hasSegmentThreshold
+dyn:hasSegmentThreshold rdf:type owl:DatatypeProperty ,
+                                 owl:FunctionalProperty ;
+                        rdfs:domain dyn:SegmentationParams ;
+                        rdfs:range xsd:double ;
+                        rdfs:comment "Threshold ratio for noise suppression during segmentation (samples with |signal| < ratio * max(|signal|) are zeroed). Typical range: 0.005-0.05"@en ;
+                        rdfs:label "Segment Threshold"@en ;
+                        gui:hasDisplayName "Threshold Ratio" ;
+                        gui:hasFormGroup "SegmentationConfig" ;
+                        gui:hasGroupOrder 1 ;
+                        gui:hasDisplayOrder 2 .
+
+
+#################################################################
+#    Data Properties - TukeyWindowParams
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#isTukeyEnabled
+dyn:isTukeyEnabled rdf:type owl:DatatypeProperty ,
+                            owl:FunctionalProperty ;
+                   rdfs:domain dyn:TukeyWindowParams ;
+                   rdfs:range xsd:boolean ;
+                   rdfs:comment "Whether the Tukey window is enabled for this test"@en ;
+                   rdfs:label "Tukey Enabled"@en ;
+                   gui:hasDisplayName "Apply Tukey Window" ;
+                   gui:hasFormGroup "WindowConfig" ;
+                   gui:hasGroupOrder 1 ;
+                   gui:hasDisplayOrder 1 .
+
+
+###  https://dynamat.utep.edu/ontology#hasTukeyAlphaParam
+dyn:hasTukeyAlphaParam rdf:type owl:DatatypeProperty ,
+                                owl:FunctionalProperty ;
+                       rdfs:domain dyn:TukeyWindowParams ;
+                       rdfs:range xsd:double ;
+                       rdfs:comment "Tukey window alpha parameter controlling taper fraction. 0.0 = rectangular (no taper), 0.5 = 50% tapered (recommended), 1.0 = Hann window (full taper)"@en ;
+                       rdfs:label "Tukey Alpha"@en ;
+                       gui:hasDisplayName "Alpha" ;
+                       gui:hasFormGroup "WindowConfig" ;
+                       gui:hasGroupOrder 1 ;
+                       gui:hasDisplayOrder 2 .
 
 
 ###  Generated by the OWL API (version 4.5.29.2024-05-13T12:11:03Z) https://github.com/owlcs/owlapi
