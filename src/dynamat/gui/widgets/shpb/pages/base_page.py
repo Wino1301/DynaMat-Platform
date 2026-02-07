@@ -265,7 +265,7 @@ class BaseSHPBPage(QWizardPage):
         Returns:
             SHACLValidator instance
         """
-        from ...core.form_validator import SHACLValidator
+        from ....core.form_validator import SHACLValidator
 
         wizard = self.get_wizard()
         if wizard is not None:

@@ -33,13 +33,38 @@ dyn:SHPBCompressionShape a sh:NodeShape ;
     rdfs:comment "Validation rules for SHPB compression test instances" ;
 
     # =========================================================================
+    # REQUIRED FIELDS (Critical for SHPB calculations)
+    # =========================================================================
+
+    sh:property [
+        sh:path dyn:hasIncidentBar ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:class dyn:Bar ;
+        sh:message "Incident bar must be selected" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    sh:property [
+        sh:path dyn:hasTransmissionBar ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:class dyn:Bar ;
+        sh:message "Transmission bar must be selected" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    sh:property [
+        sh:path dyn:hasStrikerBar ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:class dyn:Bar ;
+        sh:message "Striker bar must be selected" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    # =========================================================================
     # CARDINALITY CONSTRAINTS (Single-value properties)
     # =========================================================================
 
-    # Equipment configuration
-    sh:property [ sh:path dyn:hasStrikerBar ; sh:maxCount 1 ; sh:class dyn:Bar ] ;
-    sh:property [ sh:path dyn:hasIncidentBar ; sh:maxCount 1 ; sh:class dyn:Bar ] ;
-    sh:property [ sh:path dyn:hasTransmissionBar ; sh:maxCount 1 ; sh:class dyn:Bar ] ;
+    # Equipment configuration (optional)
     sh:property [ sh:path dyn:hasMomentumTrap ; sh:maxCount 1 ; sh:class dyn:MomentumTrap ] ;
     sh:property [ sh:path dyn:hasPulseShaper ; sh:maxCount 1 ; sh:class dyn:PulseShaper ] ;
 

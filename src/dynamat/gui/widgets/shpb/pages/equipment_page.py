@@ -335,6 +335,14 @@ class EquipmentPage(BaseSHPBPage):
                 'transmission_bar': data.get(f"{DYN_NS}hasTransmissionBar"),
             }
 
+            # Verify required bars are selected
+            required_bars = ['incident_bar', 'transmission_bar', 'striker_bar']
+            missing = [b for b in required_bars if not bar_uri_map.get(b)]
+            if missing:
+                names = ', '.join(b.replace('_', ' ').title() for b in missing)
+                self.logger.error(f"Missing required bars: {names}")
+                return False
+
             for bar_type, uri in bar_uri_map.items():
                 if uri:
                     bar_props = self.specimen_loader.get_multiple_properties(
