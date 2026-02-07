@@ -89,3 +89,6 @@ user_data/
 
 # Claude Code temporary files
 tmpclaude-*-cwd
+
+.gemini/
+gha-creds-*.json
