@@ -24,7 +24,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # Import after path setup
 from dynamat.gui.app import DynaMatApp, main as gui_main
 from dynamat.ontology.manager import OntologyManager
-from dynamat.config import config
+from dynamat.config import Config, config
 
 
 def setup_logging(debug: bool = False):
@@ -138,6 +138,9 @@ Examples:
     )
     
     args = parser.parse_args()
+
+    # Ensure all necessary directories exist
+    Config.ensure_directories()
     
     # Setup logging
     setup_logging(args.debug)
