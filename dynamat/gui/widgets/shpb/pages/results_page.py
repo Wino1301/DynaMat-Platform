@@ -14,7 +14,7 @@ from PyQt6.QtCore import Qt
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.stress_strain import StressStrainCalculator
-from ...base.plot_widget_factory import create_plot_widget
+from ...base.plotting import create_plot_widget
 from ....builders.customizable_form_builder import CustomizableFormBuilder
 
 logger = logging.getLogger(__name__)
@@ -348,23 +348,28 @@ class ResultsPage(BaseSHPBPage):
                 stress_3w = results.get('stress_3w', [])
 
                 if len(strain_1w) > 0 and len(stress_1w) > 0:
-                    self.stress_strain_plot.add_trace(
+                    self.stress_strain_plot.add_ontology_trace(
                         np.abs(strain_1w),
                         np.abs(stress_1w),
+                        x_series_type_uri='dyn:Strain',
+                        y_series_type_uri='dyn:Stress',
+                        analysis_method='1-wave',
                         label="1-Wave",
                         color="blue"
                     )
 
                 if len(strain_3w) > 0 and len(stress_3w) > 0:
-                    self.stress_strain_plot.add_trace(
+                    self.stress_strain_plot.add_ontology_trace(
                         np.abs(strain_3w),
                         np.abs(stress_3w),
+                        y_series_type_uri='dyn:Stress',
+                        analysis_method='3-wave',
                         label="3-Wave",
                         color="red"
                     )
 
-                self.stress_strain_plot.set_xlabel("Strain")
-                self.stress_strain_plot.set_ylabel("Stress (MPa)")
+                self.stress_strain_plot.enable_grid()
+                self.stress_strain_plot.enable_legend()
                 self.stress_strain_plot.refresh()
 
             except Exception as e:
@@ -379,15 +384,17 @@ class ResultsPage(BaseSHPBPage):
                 strain_rate_1w = results.get('strain_rate_1w', [])
 
                 if len(time) > 0 and len(strain_rate_1w) > 0:
-                    self.strain_rate_plot.add_trace(
+                    self.strain_rate_plot.add_ontology_trace(
                         time,
                         np.abs(strain_rate_1w),
+                        x_series_type_uri='dyn:Time',
+                        y_series_type_uri='dyn:StrainRate',
                         label="Strain Rate",
                         color="green"
                     )
 
-                self.strain_rate_plot.set_xlabel("Time (ms)")
-                self.strain_rate_plot.set_ylabel("Strain Rate (/s)")
+                self.strain_rate_plot.enable_grid()
+                self.strain_rate_plot.enable_legend()
                 self.strain_rate_plot.refresh()
 
             except Exception as e:

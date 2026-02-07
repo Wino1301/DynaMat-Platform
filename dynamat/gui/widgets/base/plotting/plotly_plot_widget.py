@@ -18,7 +18,7 @@ from PyQt6.QtCore import QUrl
 from rdflib import URIRef
 
 from .base_plot_widget import BasePlotWidget
-from .series_metadata_resolver import SeriesMetadataResolver
+from .plotting_config import PlottingConfig
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,8 @@ class PlotlyPlotWidget(BasePlotWidget):
     Plotly-based interactive plotting widget with ontology-driven axis labels.
 
     Embeds a Plotly chart in QWebEngineView and uses ontology queries to determine
-    axis labels from SeriesType URIs. Supports single and multi-panel layouts.
+    axis labels from SeriesType URIs. Supports single and multi-panel layouts,
+    fill_between for uncertainty bands, configurable font sizes, and style presets.
 
     Built-in Plotly interactivity (no extra code needed):
         - Zoom: Drag to zoom, double-click to reset
@@ -92,13 +93,25 @@ class PlotlyPlotWidget(BasePlotWidget):
         'dot': 'dot',
     }
 
+    # Style preset mapping from matplotlib names to Plotly templates
+    STYLE_TO_TEMPLATE = {
+        'default': 'plotly_white',
+        'seaborn-v0_8-whitegrid': 'seaborn',
+        'seaborn': 'seaborn',
+        'ggplot': 'ggplot2',
+        'bmh': 'plotly_white',
+        'dark_background': 'plotly_dark',
+        'fivethirtyeight': 'plotly',
+    }
+
     def __init__(
         self,
         ontology_manager,
         qudt_manager,
         figsize: Tuple[float, float] = None,
         show_toolbar: bool = True,
-        parent=None
+        parent=None,
+        config: PlottingConfig = None
     ):
         """
         Initialize the Plotly plot widget.
@@ -109,6 +122,7 @@ class PlotlyPlotWidget(BasePlotWidget):
             figsize: Figure size tuple (width, height) in inches
             show_toolbar: Whether to show the Plotly modebar (toolbar)
             parent: Parent widget
+            config: Optional PlottingConfig for styling defaults
 
         Raises:
             ImportError: If Plotly or PyQtWebEngine is not installed
@@ -118,10 +132,7 @@ class PlotlyPlotWidget(BasePlotWidget):
         if not WEBENGINE_AVAILABLE:
             raise ImportError("PyQtWebEngine is required for PlotlyPlotWidget. Install with: pip install PyQtWebEngine")
 
-        super().__init__(ontology_manager, qudt_manager, figsize, show_toolbar, parent)
-
-        # Create metadata resolver for axis labels
-        self.resolver = SeriesMetadataResolver(ontology_manager, qudt_manager)
+        super().__init__(ontology_manager, qudt_manager, figsize, show_toolbar, parent, config)
 
         # Plotly figure - will be recreated on configure_subplot
         self.fig: go.Figure = None
@@ -163,13 +174,13 @@ class PlotlyPlotWidget(BasePlotWidget):
                                for i in range(rows * cols)]
 
         # Apply default layout
-        width = int(self.figsize[0] * self.DEFAULT_DPI)
-        height = int(self.figsize[1] * self.DEFAULT_DPI)
+        width = int(self.figsize[0] * self.config.dpi)
+        height = int(self.figsize[1] * self.config.dpi)
 
         self.fig.update_layout(
             width=width,
             height=height,
-            template='plotly_white',
+            template=self.config.plotly_template,
             showlegend=False,
             margin=dict(l=60, r=40, t=40, b=60),
         )
@@ -251,15 +262,21 @@ class PlotlyPlotWidget(BasePlotWidget):
 
         logger.debug(f"Set axis labels: x='{x_label}', y='{y_label}' for subplot {idx}")
 
-    def set_xlabel(self, label: str, subplot_idx: int = None):
+    def set_xlabel(self, label: str, fontsize: float = None, subplot_idx: int = None):
         """Set x-axis label directly."""
         subplot_kwargs = self._get_subplot_kwargs(subplot_idx)
-        self.fig.update_xaxes(title_text=label, **subplot_kwargs)
+        title_kwargs = {'title_text': label}
+        fs = fontsize if fontsize is not None else self.config.axis_label_font_size
+        title_kwargs['title_font_size'] = fs
+        self.fig.update_xaxes(**title_kwargs, **subplot_kwargs)
 
-    def set_ylabel(self, label: str, subplot_idx: int = None):
+    def set_ylabel(self, label: str, fontsize: float = None, subplot_idx: int = None):
         """Set y-axis label directly."""
         subplot_kwargs = self._get_subplot_kwargs(subplot_idx)
-        self.fig.update_yaxes(title_text=label, **subplot_kwargs)
+        title_kwargs = {'title_text': label}
+        fs = fontsize if fontsize is not None else self.config.axis_label_font_size
+        title_kwargs['title_font_size'] = fs
+        self.fig.update_yaxes(**title_kwargs, **subplot_kwargs)
 
     # =========================================================================
     # Trace Management
@@ -296,7 +313,7 @@ class PlotlyPlotWidget(BasePlotWidget):
         Returns:
             Trace ID string for later reference
         """
-        lw = linewidth if linewidth is not None else self.DEFAULT_LINE_WIDTH
+        lw = linewidth if linewidth is not None else self.config.line_width
 
         # Build line style
         line_kwargs = {
@@ -506,18 +523,6 @@ class PlotlyPlotWidget(BasePlotWidget):
         """
         subplot_kwargs = self._get_subplot_kwargs(subplot_idx)
 
-        # Determine axis reference
-        if subplot_kwargs:
-            row = subplot_kwargs['row']
-            col = subplot_kwargs['col']
-            # Calculate axis index (1-indexed for first, 2+ for subsequent)
-            axis_idx = (row - 1) * self._subplot_cols + col
-            xref = f'x{axis_idx}' if axis_idx > 1 else 'x'
-            yref = f'y{axis_idx}' if axis_idx > 1 else 'y'
-        else:
-            xref = 'x'
-            yref = 'y'
-
         line_dict = dict(
             color=color,
             width=linewidth,
@@ -586,6 +591,74 @@ class PlotlyPlotWidget(BasePlotWidget):
         )
 
     # =========================================================================
+    # Fill Between (Uncertainty Bands)
+    # =========================================================================
+
+    def fill_between(
+        self,
+        x: np.ndarray,
+        y_low: np.ndarray,
+        y_high: np.ndarray,
+        color: str = None,
+        alpha: float = 0.3,
+        label: str = None,
+        subplot_idx: int = None
+    ):
+        """
+        Add a filled region between two curves (e.g., uncertainty bands).
+
+        Uses two Scatter traces: invisible lower bound and upper bound with fill='tonexty'.
+
+        Args:
+            x: X-axis data array
+            y_low: Lower bound y-data array
+            y_high: Upper bound y-data array
+            color: Fill color
+            alpha: Fill opacity (0.0 to 1.0)
+            label: Legend label (optional)
+            subplot_idx: Subplot index, or None for active subplot
+        """
+        x_list = x.tolist() if isinstance(x, np.ndarray) else x
+        y_low_list = y_low.tolist() if isinstance(y_low, np.ndarray) else y_low
+        y_high_list = y_high.tolist() if isinstance(y_high, np.ndarray) else y_high
+
+        fill_color = color or 'rgba(0, 100, 200, 0.3)'
+
+        # If color is a named color, convert to rgba with alpha
+        if color and not color.startswith('rgba'):
+            # Use plotly's color handling
+            fill_color = color
+
+        subplot_kwargs = self._get_subplot_kwargs(subplot_idx)
+
+        # Lower bound (invisible line)
+        self.fig.add_trace(
+            go.Scatter(
+                x=x_list, y=y_low_list,
+                mode='lines',
+                line=dict(width=0),
+                showlegend=False,
+                hoverinfo='skip',
+            ),
+            **subplot_kwargs
+        )
+
+        # Upper bound with fill to lower bound
+        self.fig.add_trace(
+            go.Scatter(
+                x=x_list, y=y_high_list,
+                mode='lines',
+                line=dict(width=0),
+                fill='tonexty',
+                fillcolor=fill_color,
+                opacity=alpha,
+                name=label or '',
+                showlegend=bool(label),
+            ),
+            **subplot_kwargs
+        )
+
+    # =========================================================================
     # Multi-Panel Support
     # =========================================================================
 
@@ -623,27 +696,26 @@ class PlotlyPlotWidget(BasePlotWidget):
     # Styling
     # =========================================================================
 
-    def set_title(self, title: str, subplot_idx: int = None):
+    def set_title(self, title: str, fontsize: float = None, subplot_idx: int = None):
         """Set the title for a subplot or main figure."""
+        fs = fontsize if fontsize is not None else self.config.title_font_size
         if subplot_idx is None and self._subplot_rows == 1 and self._subplot_cols == 1:
-            self.fig.update_layout(title_text=title)
+            self.fig.update_layout(title_text=title, title_font_size=fs)
         else:
             # For subplots, update annotation (Plotly doesn't have per-subplot titles by default)
             idx = subplot_idx if subplot_idx is not None else self._active_subplot
             subplot_kwargs = self._get_subplot_kwargs(idx)
             if subplot_kwargs:
-                # Add annotation as subplot title
-                row, col = subplot_kwargs['row'], subplot_kwargs['col']
                 self.fig.add_annotation(
                     text=title,
                     xref=f'x{idx + 1} domain' if idx > 0 else 'x domain',
                     yref=f'y{idx + 1} domain' if idx > 0 else 'y domain',
                     x=0.5, y=1.1,
                     showarrow=False,
-                    font=dict(size=14),
+                    font=dict(size=fs),
                 )
             else:
-                self.fig.update_layout(title_text=title)
+                self.fig.update_layout(title_text=title, title_font_size=fs)
 
     def set_xlim(self, xmin: float = None, xmax: float = None, subplot_idx: int = None):
         """Set x-axis limits."""
@@ -657,13 +729,24 @@ class PlotlyPlotWidget(BasePlotWidget):
         range_val = [ymin, ymax] if ymin is not None or ymax is not None else None
         self.fig.update_yaxes(range=range_val, **subplot_kwargs)
 
-    def enable_legend(self, visible: bool = True, loc: str = 'best', subplot_idx: int = None):
+    def enable_legend(
+        self,
+        visible: bool = True,
+        loc: str = 'best',
+        title: str = None,
+        fontsize: float = None,
+        title_fontsize: float = None,
+        subplot_idx: int = None
+    ):
         """
         Enable or disable the legend.
 
         Args:
             visible: Whether to show legend
             loc: Legend location (mapped from matplotlib names)
+            title: Legend title (optional)
+            fontsize: Font size for legend entries
+            title_fontsize: Font size for legend title
             subplot_idx: Subplot index (ignored for Plotly, legend is figure-wide)
         """
         # Map matplotlib locations to Plotly
@@ -679,28 +762,73 @@ class PlotlyPlotWidget(BasePlotWidget):
         }
 
         legend_kwargs = loc_map.get(loc, loc_map['best'])
+        fs = fontsize if fontsize is not None else self.config.legend_font_size
+        legend_kwargs['font'] = dict(size=fs)
+        if title:
+            legend_kwargs['title'] = dict(
+                text=title,
+                font=dict(size=title_fontsize or self.config.legend_title_font_size)
+            )
         self.fig.update_layout(showlegend=visible, legend=legend_kwargs)
 
-    def enable_grid(self, visible: bool = True, alpha: float = None, subplot_idx: int = None):
+    def enable_grid(
+        self,
+        visible: bool = True,
+        alpha: float = None,
+        linewidth: float = None,
+        subplot_idx: int = None
+    ):
         """
         Enable or disable grid lines.
 
         Args:
             visible: Whether to show grid
             alpha: Grid line opacity
+            linewidth: Grid line width
             subplot_idx: Subplot index
         """
         subplot_kwargs = self._get_subplot_kwargs(subplot_idx)
+        grid_alpha = alpha if alpha is not None else self.config.grid_alpha
         grid_kwargs = {'showgrid': visible}
-        if alpha is not None:
-            grid_kwargs['gridcolor'] = f'rgba(128, 128, 128, {alpha})'
+        grid_kwargs['gridcolor'] = f'rgba(128, 128, 128, {grid_alpha})'
+        if linewidth is not None:
+            grid_kwargs['gridwidth'] = linewidth
 
         self.fig.update_xaxes(**grid_kwargs, **subplot_kwargs)
         self.fig.update_yaxes(**grid_kwargs, **subplot_kwargs)
 
+    def set_tick_params(self, axis: str = 'both', labelsize: float = None, subplot_idx: int = None):
+        """
+        Configure tick label parameters.
+
+        Args:
+            axis: Which axis to configure ('x', 'y', or 'both')
+            labelsize: Font size for tick labels
+            subplot_idx: Subplot index, or None for active subplot
+        """
+        subplot_kwargs = self._get_subplot_kwargs(subplot_idx)
+        ls = labelsize if labelsize is not None else self.config.tick_label_font_size
+        tick_kwargs = {'tickfont_size': ls}
+
+        if axis in ('x', 'both'):
+            self.fig.update_xaxes(**tick_kwargs, **subplot_kwargs)
+        if axis in ('y', 'both'):
+            self.fig.update_yaxes(**tick_kwargs, **subplot_kwargs)
+
+    def apply_style_preset(self, preset_name: str):
+        """
+        Apply a style preset by mapping matplotlib style names to Plotly templates.
+
+        Args:
+            preset_name: Style name (e.g., 'seaborn', 'ggplot', 'dark_background')
+        """
+        template = self.STYLE_TO_TEMPLATE.get(preset_name, preset_name)
+        self.fig.update_layout(template=template)
+        logger.debug(f"Applied template: {template} (from preset: {preset_name})")
+
     def set_template(self, template: str = 'plotly_white'):
         """
-        Apply a Plotly template (similar to matplotlib style).
+        Apply a Plotly template directly.
 
         Args:
             template: Template name ('plotly', 'plotly_white', 'plotly_dark',
@@ -755,7 +883,7 @@ class PlotlyPlotWidget(BasePlotWidget):
             self.fig.write_html(str(filepath), **kwargs)
         else:
             # Calculate size from DPI
-            scale = dpi / self.DEFAULT_DPI
+            scale = dpi / self.config.dpi
             try:
                 self.fig.write_image(str(filepath), scale=scale, **kwargs)
             except Exception as e:

@@ -13,6 +13,9 @@ from PyQt6.QtCore import pyqtSignal
 
 from rdflib import URIRef
 
+from .plotting_config import PlottingConfig
+from .series_metadata_resolver import SeriesMetadataResolver
+
 logger = logging.getLogger(__name__)
 
 
@@ -40,6 +43,9 @@ class BasePlotWidget(QWidget):
         - refresh(): Update the display
         - save_figure(): Export to file
         - clear(): Clear all content
+        - fill_between(): Add filled region between curves
+        - apply_style_preset(): Apply a named style preset
+        - set_tick_params(): Configure tick label sizes
     """
 
     # Signals
@@ -48,7 +54,7 @@ class BasePlotWidget(QWidget):
     plotUpdated = pyqtSignal()
     cursorMoved = pyqtSignal(float, float)         # x, y
 
-    # Default plot styling
+    # Default plot styling (used when no PlottingConfig is provided)
     DEFAULT_FIGSIZE = (10, 6)
     DEFAULT_DPI = 100
     DEFAULT_LINE_WIDTH = 1.5
@@ -60,7 +66,8 @@ class BasePlotWidget(QWidget):
         qudt_manager,
         figsize: Tuple[float, float] = None,
         show_toolbar: bool = True,
-        parent=None
+        parent=None,
+        config: PlottingConfig = None
     ):
         """
         Initialize the plot widget.
@@ -71,13 +78,21 @@ class BasePlotWidget(QWidget):
             figsize: Figure size tuple (width, height) in inches
             show_toolbar: Whether to show the navigation toolbar
             parent: Parent widget
+            config: Optional PlottingConfig for styling defaults
         """
         super().__init__(parent)
 
         self.ontology_manager = ontology_manager
         self.qudt_manager = qudt_manager
-        self.figsize = figsize or self.DEFAULT_FIGSIZE
+        self.config = config or PlottingConfig()
+
+        # Use config values, with explicit figsize taking precedence
+        self.figsize = figsize or self.config.figsize
+
         self.show_toolbar = show_toolbar
+
+        # Create metadata resolver for axis labels (shared by all subclasses)
+        self.resolver = SeriesMetadataResolver(ontology_manager, qudt_manager)
 
         # Trace management
         self._traces: Dict[str, Dict[str, Any]] = {}
@@ -269,6 +284,50 @@ class BasePlotWidget(QWidget):
         """Clear all content from all subplots."""
         raise NotImplementedError("Subclass must implement clear()")
 
+    def fill_between(
+        self,
+        x: np.ndarray,
+        y_low: np.ndarray,
+        y_high: np.ndarray,
+        color: str = None,
+        alpha: float = 0.3,
+        label: str = None,
+        subplot_idx: int = None
+    ):
+        """
+        Add a filled region between two curves (e.g., uncertainty bands).
+
+        Args:
+            x: X-axis data array
+            y_low: Lower bound y-data array
+            y_high: Upper bound y-data array
+            color: Fill color
+            alpha: Fill opacity (0.0 to 1.0)
+            label: Legend label (optional)
+            subplot_idx: Subplot index, or None for active subplot
+        """
+        raise NotImplementedError("Subclass must implement fill_between()")
+
+    def apply_style_preset(self, preset_name: str):
+        """
+        Apply a named style preset.
+
+        Args:
+            preset_name: Style preset name (e.g., 'seaborn-v0_8-whitegrid', 'ggplot')
+        """
+        raise NotImplementedError("Subclass must implement apply_style_preset()")
+
+    def set_tick_params(self, axis: str = 'both', labelsize: float = None, subplot_idx: int = None):
+        """
+        Configure tick label parameters.
+
+        Args:
+            axis: Which axis to configure ('x', 'y', or 'both')
+            labelsize: Font size for tick labels
+            subplot_idx: Subplot index, or None for active subplot
+        """
+        raise NotImplementedError("Subclass must implement set_tick_params()")
+
     # =========================================================================
     # Concrete Methods - Shared by all implementations
     # =========================================================================
@@ -288,19 +347,88 @@ class BasePlotWidget(QWidget):
         """Get total number of subplots."""
         return self._subplot_rows * self._subplot_cols
 
+    def add_ontology_trace(
+        self,
+        x_data: np.ndarray,
+        y_data: np.ndarray,
+        x_series_type_uri: str = None,
+        y_series_type_uri: str = None,
+        label: str = None,
+        color: str = None,
+        linestyle: str = '-',
+        linewidth: float = None,
+        alpha: float = 1.0,
+        marker: str = None,
+        analysis_method: str = None,
+        subplot_idx: int = None
+    ) -> str:
+        """
+        Add a trace with ontology-driven axis labels and legend text.
+
+        Automatically resolves axis labels from SeriesType URIs and generates
+        legend text using the ontology's legend templates.
+
+        Args:
+            x_data: X-axis data array
+            y_data: Y-axis data array
+            x_series_type_uri: SeriesType URI for x-axis (e.g., 'dyn:Time')
+            y_series_type_uri: SeriesType URI for y-axis (e.g., 'dyn:Stress')
+            label: Legend label override (auto-resolved if None)
+            color: Line color
+            linestyle: Line style ('-', '--', '-.', ':')
+            linewidth: Line width in points
+            alpha: Opacity (0.0 to 1.0)
+            marker: Marker style (None, 'o', 's', etc.)
+            analysis_method: Analysis method for legend (e.g., '1-wave', '3-wave')
+            subplot_idx: Subplot index, or None for active subplot
+
+        Returns:
+            Trace ID string for later reference
+
+        Example:
+            >>> plot.add_ontology_trace(
+            ...     strain, stress,
+            ...     x_series_type_uri='dyn:Strain',
+            ...     y_series_type_uri='dyn:Stress',
+            ...     analysis_method='1-wave',
+            ...     color='blue'
+            ... )
+            # Auto-sets xlabel="Strain", ylabel="Stress (MPa)", legend="Engineering Stress (1-wave)"
+        """
+        if x_series_type_uri:
+            self.set_xlabel(
+                self.resolver.get_axis_label(x_series_type_uri),
+                subplot_idx=subplot_idx
+            )
+        if y_series_type_uri:
+            self.set_ylabel(
+                self.resolver.get_axis_label(y_series_type_uri),
+                subplot_idx=subplot_idx
+            )
+        if label is None and y_series_type_uri:
+            label = self.resolver.get_legend_text(y_series_type_uri, analysis_method)
+
+        return self.add_trace(
+            x_data, y_data,
+            label=label, color=color,
+            linestyle=linestyle, linewidth=linewidth,
+            alpha=alpha, marker=marker,
+            subplot_idx=subplot_idx
+        )
+
     # =========================================================================
     # Optional Methods - Can be overridden by subclasses
     # =========================================================================
 
-    def set_xlabel(self, label: str, subplot_idx: int = None):
+    def set_xlabel(self, label: str, fontsize: float = None, subplot_idx: int = None):
         """Set x-axis label directly."""
         pass
 
-    def set_ylabel(self, label: str, subplot_idx: int = None):
+    def set_ylabel(self, label: str, fontsize: float = None, subplot_idx: int = None):
         """Set y-axis label directly."""
         pass
 
-    def set_title(self, title: str, subplot_idx: int = None):
+    def set_title(self, title: str, fontsize: float = None, subplot_idx: int = None):
         """Set the title for a subplot."""
         pass
 
@@ -312,11 +440,25 @@ class BasePlotWidget(QWidget):
         """Set y-axis limits."""
         pass
 
-    def enable_legend(self, visible: bool = True, loc: str = 'best', subplot_idx: int = None):
+    def enable_legend(
+        self,
+        visible: bool = True,
+        loc: str = 'best',
+        title: str = None,
+        fontsize: float = None,
+        title_fontsize: float = None,
+        subplot_idx: int = None
+    ):
         """Enable or disable the legend."""
         pass
 
-    def enable_grid(self, visible: bool = True, alpha: float = None, subplot_idx: int = None):
+    def enable_grid(
+        self,
+        visible: bool = True,
+        alpha: float = None,
+        linewidth: float = None,
+        subplot_idx: int = None
+    ):
         """Enable or disable grid lines."""
         pass
 

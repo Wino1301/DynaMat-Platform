@@ -4,15 +4,22 @@ Base widget components used throughout the application
 """
 
 from .unit_value_widget import UnitValueWidget
-from .series_metadata_resolver import SeriesMetadataResolver
-from .data_series_widget import DataSeriesWidget
 from .property_display import PropertyDisplayConfig, PropertyDisplayWidget
 from .raw_data_loader import RawDataLoaderConfig, RawDataLoaderWidget
 
-# Plot widgets
-from .base_plot_widget import BasePlotWidget
-from .data_series_plot_widget import MatplotlibPlotWidget, DataSeriesPlotWidget
-from .plot_widget_factory import create_plot_widget, get_available_backends, is_backend_available
+# Plot widgets (from plotting submodule)
+from .plotting import (
+    PlottingConfig,
+    BasePlotWidget,
+    MatplotlibPlotWidget,
+    DataSeriesPlotWidget,
+    PlotlyPlotWidget,
+    create_plot_widget,
+    get_available_backends,
+    is_backend_available,
+    SeriesMetadataResolver,
+    DataSeriesWidget,
+)
 
 # Entity selector components
 from .entity_selector import (
@@ -24,12 +31,6 @@ from .entity_selector import (
     EntitySelectorDialog,
 )
 
-# Plotly widget is optional (requires plotly and PyQtWebEngine)
-try:
-    from .plotly_plot_widget import PlotlyPlotWidget
-except ImportError:
-    PlotlyPlotWidget = None
-
 __all__ = [
     'UnitValueWidget',
     'SeriesMetadataResolver',
@@ -39,6 +40,7 @@ __all__ = [
     'RawDataLoaderConfig',
     'RawDataLoaderWidget',
     # Plot widgets
+    'PlottingConfig',
     'BasePlotWidget',
     'MatplotlibPlotWidget',
     'DataSeriesPlotWidget',  # Backwards compatibility alias

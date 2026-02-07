@@ -14,7 +14,7 @@ from PyQt6.QtCore import Qt
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.pulse_windows import PulseDetector
-from ...base.plot_widget_factory import create_plot_widget
+from ...base.plotting import create_plot_widget
 from ....builders.customizable_form_builder import CustomizableFormBuilder
 
 logger = logging.getLogger(__name__)
@@ -525,10 +525,19 @@ class PulseDetectionPage(BaseSHPBPage):
 
             # Plot raw signals
             if incident is not None:
-                self.plot_widget.add_trace(time, incident, label="Incident Bar", color="blue")
+                self.plot_widget.add_ontology_trace(
+                    time, incident,
+                    x_series_type_uri='dyn:Time',
+                    y_series_type_uri='dyn:IncidentPulse',
+                    label="Incident Bar", color="blue"
+                )
 
             if transmitted is not None:
-                self.plot_widget.add_trace(time, transmitted, label="Transmitted Bar", color="red")
+                self.plot_widget.add_ontology_trace(
+                    time, transmitted,
+                    y_series_type_uri='dyn:TransmittedPulse',
+                    label="Transmitted Bar", color="red"
+                )
 
             # Overlay detected windows
             colors = {'incident': 'cyan', 'transmitted': 'orange', 'reflected': 'magenta'}
@@ -546,8 +555,8 @@ class PulseDetectionPage(BaseSHPBPage):
                             color=colors.get(pulse_type, 'gray')
                         )
 
-            self.plot_widget.set_xlabel("Time")
-            self.plot_widget.set_ylabel("Signal")
+            self.plot_widget.enable_grid()
+            self.plot_widget.enable_legend()
             self.plot_widget.refresh()
 
         except Exception as e:

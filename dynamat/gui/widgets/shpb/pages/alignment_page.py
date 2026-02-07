@@ -13,7 +13,7 @@ from PyQt6.QtCore import Qt
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.pulse_alignment import PulseAligner
-from ...base.plot_widget_factory import create_plot_widget
+from ...base.plotting import create_plot_widget
 from ....builders.customizable_form_builder import CustomizableFormBuilder
 
 logger = logging.getLogger(__name__)
@@ -363,6 +363,8 @@ class AlignmentPage(BaseSHPBPage):
 
             self.aligned_plot.set_xlabel("Time (ms)")
             self.aligned_plot.set_ylabel("Signal")
+            self.aligned_plot.enable_grid()
+            self.aligned_plot.enable_legend()
             self.aligned_plot.refresh()
 
         except Exception as e:
@@ -407,6 +409,8 @@ class AlignmentPage(BaseSHPBPage):
 
             self.equilibrium_plot.set_xlabel("Time (ms)")
             self.equilibrium_plot.set_ylabel("Signal")
+            self.equilibrium_plot.enable_grid()
+            self.equilibrium_plot.enable_legend()
             self.equilibrium_plot.refresh()
 
         except Exception as e:

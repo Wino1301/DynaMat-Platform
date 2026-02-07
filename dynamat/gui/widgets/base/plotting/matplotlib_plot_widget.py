@@ -1,6 +1,6 @@
 """
-DynaMat Platform - Data Series Plot Widget
-Matplotlib-based plotting widget with ontology-driven axis labels.
+DynaMat Platform - Matplotlib Plot Widget
+Matplotlib-based plotting widget with ontology-driven axis labels and enhanced styling.
 """
 
 import logging
@@ -25,7 +25,7 @@ from matplotlib.axes import Axes
 from rdflib import URIRef
 
 from .base_plot_widget import BasePlotWidget
-from .series_metadata_resolver import SeriesMetadataResolver
+from .plotting_config import PlottingConfig
 from .data_series_widget import DataSeriesWidget
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,8 @@ class MatplotlibPlotWidget(BasePlotWidget):
     Matplotlib-based plotting widget with ontology-driven axis labels.
 
     Embeds a matplotlib canvas in PyQt6 and uses ontology queries to determine
-    axis labels from SeriesType URIs. Supports single and multi-panel layouts.
+    axis labels from SeriesType URIs. Supports single and multi-panel layouts,
+    fill_between for uncertainty bands, configurable font sizes, and style presets.
 
     Signals:
         traceClicked(str, float, float): Emitted when a trace is clicked (uri, x, y)
@@ -66,7 +67,8 @@ class MatplotlibPlotWidget(BasePlotWidget):
         qudt_manager,
         figsize: Tuple[float, float] = None,
         show_toolbar: bool = True,
-        parent=None
+        parent=None,
+        config: PlottingConfig = None
     ):
         """
         Initialize the plot widget.
@@ -77,11 +79,9 @@ class MatplotlibPlotWidget(BasePlotWidget):
             figsize: Figure size tuple (width, height) in inches
             show_toolbar: Whether to show the matplotlib navigation toolbar
             parent: Parent widget
+            config: Optional PlottingConfig for styling defaults
         """
-        super().__init__(ontology_manager, qudt_manager, figsize, show_toolbar, parent)
-
-        # Create metadata resolver for axis labels
-        self.resolver = SeriesMetadataResolver(ontology_manager, qudt_manager)
+        super().__init__(ontology_manager, qudt_manager, figsize, show_toolbar, parent, config)
 
         # Axes list for subplots
         self._axes: List[Axes] = []
@@ -98,7 +98,7 @@ class MatplotlibPlotWidget(BasePlotWidget):
         layout.setSpacing(0)
 
         # Create matplotlib figure and canvas
-        self.figure = Figure(figsize=self.figsize, dpi=self.DEFAULT_DPI)
+        self.figure = Figure(figsize=self.figsize, dpi=self.config.dpi)
         self.canvas = FigureCanvasQTAgg(self.figure)
         self.canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
@@ -201,20 +201,22 @@ class MatplotlibPlotWidget(BasePlotWidget):
 
         # Apply to axes
         ax = self._get_ax(subplot_idx)
-        ax.set_xlabel(x_label)
-        ax.set_ylabel(y_label)
+        ax.set_xlabel(x_label, fontsize=self.config.axis_label_font_size)
+        ax.set_ylabel(y_label, fontsize=self.config.axis_label_font_size)
 
         logger.debug(f"Set axis labels: x='{x_label}', y='{y_label}' for subplot {idx}")
 
-    def set_xlabel(self, label: str, subplot_idx: int = None):
+    def set_xlabel(self, label: str, fontsize: float = None, subplot_idx: int = None):
         """Set x-axis label directly."""
         ax = self._get_ax(subplot_idx)
-        ax.set_xlabel(label)
+        fs = fontsize if fontsize is not None else self.config.axis_label_font_size
+        ax.set_xlabel(label, fontsize=fs)
 
-    def set_ylabel(self, label: str, subplot_idx: int = None):
+    def set_ylabel(self, label: str, fontsize: float = None, subplot_idx: int = None):
         """Set y-axis label directly."""
         ax = self._get_ax(subplot_idx)
-        ax.set_ylabel(label)
+        fs = fontsize if fontsize is not None else self.config.axis_label_font_size
+        ax.set_ylabel(label, fontsize=fs)
 
     # =========================================================================
     # Trace Management
@@ -256,7 +258,7 @@ class MatplotlibPlotWidget(BasePlotWidget):
             >>> plot.remove_trace(trace_id)
         """
         ax = self._get_ax(subplot_idx)
-        lw = linewidth if linewidth is not None else self.DEFAULT_LINE_WIDTH
+        lw = linewidth if linewidth is not None else self.config.line_width
 
         # Plot the data
         plot_kwargs = {
@@ -468,6 +470,44 @@ class MatplotlibPlotWidget(BasePlotWidget):
         ax.axvspan(xmin, xmax, color=color, alpha=alpha)
 
     # =========================================================================
+    # Fill Between (Uncertainty Bands)
+    # =========================================================================
+
+    def fill_between(
+        self,
+        x: np.ndarray,
+        y_low: np.ndarray,
+        y_high: np.ndarray,
+        color: str = None,
+        alpha: float = 0.3,
+        label: str = None,
+        subplot_idx: int = None
+    ):
+        """
+        Add a filled region between two curves (e.g., uncertainty bands).
+
+        Args:
+            x: X-axis data array
+            y_low: Lower bound y-data array
+            y_high: Upper bound y-data array
+            color: Fill color
+            alpha: Fill opacity (0.0 to 1.0)
+            label: Legend label (optional)
+            subplot_idx: Subplot index, or None for active subplot
+
+        Example:
+            >>> plot.fill_between(time, stress_low, stress_high,
+            ...                   color='blue', alpha=0.2, label="Uncertainty")
+        """
+        ax = self._get_ax(subplot_idx)
+        kwargs = {'alpha': alpha}
+        if color:
+            kwargs['color'] = color
+        if label:
+            kwargs['label'] = label
+        ax.fill_between(x, y_low, y_high, **kwargs)
+
+    # =========================================================================
     # Multi-Panel Support
     # =========================================================================
 
@@ -508,10 +548,11 @@ class MatplotlibPlotWidget(BasePlotWidget):
     # Styling
     # =========================================================================
 
-    def set_title(self, title: str, subplot_idx: int = None):
+    def set_title(self, title: str, fontsize: float = None, subplot_idx: int = None):
         """Set the title for a subplot."""
         ax = self._get_ax(subplot_idx)
-        ax.set_title(title)
+        fs = fontsize if fontsize is not None else self.config.title_font_size
+        ax.set_title(title, fontsize=fs)
 
     def set_xlim(self, xmin: float = None, xmax: float = None, subplot_idx: int = None):
         """Set x-axis limits."""
@@ -523,48 +564,97 @@ class MatplotlibPlotWidget(BasePlotWidget):
         ax = self._get_ax(subplot_idx)
         ax.set_ylim(ymin, ymax)
 
-    def enable_legend(self, visible: bool = True, loc: str = 'best', subplot_idx: int = None):
+    def enable_legend(
+        self,
+        visible: bool = True,
+        loc: str = 'best',
+        title: str = None,
+        fontsize: float = None,
+        title_fontsize: float = None,
+        subplot_idx: int = None
+    ):
         """
         Enable or disable the legend.
 
         Args:
             visible: Whether to show legend
             loc: Legend location ('best', 'upper right', 'lower left', etc.)
+            title: Legend title (optional)
+            fontsize: Font size for legend entries
+            title_fontsize: Font size for legend title
             subplot_idx: Subplot index
         """
         ax = self._get_ax(subplot_idx)
         if visible:
-            ax.legend(loc=loc)
+            legend_kwargs = {'loc': loc}
+            fs = fontsize if fontsize is not None else self.config.legend_font_size
+            legend_kwargs['fontsize'] = fs
+            if title is not None:
+                legend_kwargs['title'] = title
+                tfs = title_fontsize if title_fontsize is not None else self.config.legend_title_font_size
+                legend_kwargs['title_fontsize'] = tfs
+            ax.legend(**legend_kwargs)
         else:
             legend = ax.get_legend()
             if legend:
                 legend.remove()
 
-    def enable_grid(self, visible: bool = True, alpha: float = None, subplot_idx: int = None):
+    def enable_grid(
+        self,
+        visible: bool = True,
+        alpha: float = None,
+        linewidth: float = None,
+        subplot_idx: int = None
+    ):
         """
         Enable or disable grid lines.
 
         Args:
             visible: Whether to show grid
             alpha: Grid line opacity
+            linewidth: Grid line width
             subplot_idx: Subplot index
         """
         ax = self._get_ax(subplot_idx)
-        ax.grid(visible, alpha=alpha if alpha is not None else self.DEFAULT_GRID_ALPHA)
+        grid_alpha = alpha if alpha is not None else self.config.grid_alpha
+        grid_lw = linewidth if linewidth is not None else self.config.grid_line_width
+        ax.grid(visible, alpha=grid_alpha, linewidth=grid_lw)
+
+    def set_tick_params(self, axis: str = 'both', labelsize: float = None, subplot_idx: int = None):
+        """
+        Configure tick label parameters.
+
+        Args:
+            axis: Which axis to configure ('x', 'y', or 'both')
+            labelsize: Font size for tick labels
+            subplot_idx: Subplot index, or None for active subplot
+        """
+        ax = self._get_ax(subplot_idx)
+        ls = labelsize if labelsize is not None else self.config.tick_label_font_size
+        ax.tick_params(axis=axis, labelsize=ls)
+
+    def apply_style_preset(self, preset_name: str):
+        """
+        Apply a matplotlib style preset.
+
+        Args:
+            preset_name: Style name (e.g., 'seaborn-v0_8-whitegrid', 'ggplot', 'bmh')
+        """
+        try:
+            import matplotlib.pyplot as plt
+            plt.style.use(preset_name)
+            logger.debug(f"Applied style: {preset_name}")
+        except Exception as e:
+            logger.warning(f"Could not apply style '{preset_name}': {e}")
 
     def set_style(self, style: str = 'seaborn-v0_8-whitegrid'):
         """
-        Apply a matplotlib style.
+        Apply a matplotlib style (alias for apply_style_preset).
 
         Args:
             style: Style name (e.g., 'seaborn-v0_8-whitegrid', 'ggplot', 'bmh')
         """
-        try:
-            import matplotlib.pyplot as plt
-            plt.style.use(style)
-            logger.debug(f"Applied style: {style}")
-        except Exception as e:
-            logger.warning(f"Could not apply style '{style}': {e}")
+        self.apply_style_preset(style)
 
     # =========================================================================
     # Canvas Operations

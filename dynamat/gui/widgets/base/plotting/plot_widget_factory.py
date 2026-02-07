@@ -8,6 +8,7 @@ from typing import Tuple, Optional
 
 from dynamat.config import Config
 from .base_plot_widget import BasePlotWidget
+from .plotting_config import PlottingConfig
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,8 @@ def create_plot_widget(
     figsize: Tuple[float, float] = None,
     show_toolbar: bool = True,
     backend: str = None,
-    parent=None
+    parent=None,
+    config: PlottingConfig = None
 ) -> BasePlotWidget:
     """
     Create a plot widget based on configuration or explicit backend selection.
@@ -37,6 +39,7 @@ def create_plot_widget(
         backend: Explicit backend selection ('plotly' or 'matplotlib').
                  If None, uses Config.PLOT_BACKEND.
         parent: Parent widget
+        config: Optional PlottingConfig for styling defaults
 
     Returns:
         BasePlotWidget: Either PlotlyPlotWidget or MatplotlibPlotWidget
@@ -52,6 +55,10 @@ def create_plot_widget(
 
         >>> # Force Plotly backend
         >>> plotly_plot = create_plot_widget(ontology_manager, qudt_manager, backend='plotly')
+
+        >>> # With custom config
+        >>> cfg = PlottingConfig(figsize=(12, 8), dpi=150, title_font_size=18)
+        >>> plot = create_plot_widget(ontology_manager, qudt_manager, config=cfg)
     """
     # Determine backend to use
     selected_backend = backend if backend else Config.PLOT_BACKEND
@@ -76,7 +83,8 @@ def create_plot_widget(
                     qudt_manager,
                     figsize=figsize,
                     show_toolbar=show_toolbar,
-                    parent=parent
+                    parent=parent,
+                    config=config
                 )
         except ImportError as e:
             logger.warning(f"Failed to import Plotly components: {e}")
@@ -84,7 +92,7 @@ def create_plot_widget(
             selected_backend = "matplotlib"
 
     # Default: Matplotlib backend
-    from .data_series_plot_widget import MatplotlibPlotWidget
+    from .matplotlib_plot_widget import MatplotlibPlotWidget
 
     logger.debug("Creating MatplotlibPlotWidget")
     return MatplotlibPlotWidget(
@@ -92,7 +100,8 @@ def create_plot_widget(
         qudt_manager,
         figsize=figsize,
         show_toolbar=show_toolbar,
-        parent=parent
+        parent=parent,
+        config=config
     )
 
 

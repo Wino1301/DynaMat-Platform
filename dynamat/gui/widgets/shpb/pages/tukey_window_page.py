@@ -13,7 +13,7 @@ from PyQt6.QtCore import Qt
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.tukey_window import TukeyWindow
-from ...base.plot_widget_factory import create_plot_widget
+from ...base.plotting import create_plot_widget
 from ....builders.customizable_form_builder import CustomizableFormBuilder
 
 logger = logging.getLogger(__name__)
@@ -290,6 +290,8 @@ class TukeyWindowPage(BaseSHPBPage):
 
             self.plot_widget.set_xlabel("Time (ms)")
             self.plot_widget.set_ylabel("Signal")
+            self.plot_widget.enable_grid()
+            self.plot_widget.enable_legend()
             self.plot_widget.refresh()
 
         except Exception as e:
