@@ -16,6 +16,8 @@ import logging
 from typing import Optional
 
 from PyQt6.QtWidgets import QVBoxLayout, QLabel, QWidget, QComboBox, QLineEdit
+from rdflib import Graph, Namespace, Literal, URIRef
+from rdflib.namespace import RDF, XSD
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.io.specimen_loader import SpecimenLoader
@@ -131,6 +133,11 @@ class EquipmentPage(BaseSHPBPage):
         # Save to state
         self._save_to_state()
 
+        # Run SHACL validation on partial graph
+        validation_graph = self._build_validation_graph()
+        if validation_graph and not self._validate_page_data(validation_graph):
+            return False
+
         # Extract equipment properties
         if not self._extract_equipment_properties():
             self.show_warning(
@@ -140,6 +147,79 @@ class EquipmentPage(BaseSHPBPage):
             return False
 
         return True
+
+    def _build_validation_graph(self) -> Optional[Graph]:
+        """Build partial RDF graph for SHACL validation of equipment data.
+
+        Returns:
+            RDF graph with SHPBCompression instance, or None on error.
+        """
+        if not self.state.equipment_form_data:
+            return None
+
+        try:
+            DYN = Namespace(DYN_NS)
+            g = Graph()
+            g.bind("dyn", DYN)
+
+            instance = DYN["_val_equipment"]
+            g.add((instance, RDF.type, DYN.SHPBCompression))
+
+            form_data = self.state.equipment_form_data
+
+            # Property type mapping for SHPBCompression
+            object_properties = {
+                "hasStrikerBar", "hasIncidentBar", "hasTransmissionBar",
+                "hasMomentumTrap", "hasPulseShaper", "hasAlignmentParams",
+                "hasEquilibriumMetrics", "performedOn", "hasUser",
+                "hasIncidentStrainGauge", "hasTransmissionStrainGauge",
+            }
+            boolean_properties = {
+                "hasPulseShaping", "hasLubricationUsed",
+            }
+            integer_properties = {
+                "hasPulsePoints", "hasCenteredSegmentPoints",
+                "hasShiftValue", "hasMinSeparation", "hasFrontIndex",
+                "hasDetectionLowerBound", "hasDetectionUpperBound",
+                "hasDataBitResolution",
+            }
+            string_properties = {
+                "hasTestID", "hasTestType", "hasLubricationType",
+                "hasKTrials", "hasDeformationMode", "hasFailureMode",
+                "hasTestValidity", "hasWaveDispersion", "hasCompressionSign",
+            }
+            date_properties = {"hasTestDate", "hasAnalysisTimestamp"}
+
+            for uri, value in form_data.items():
+                if value is None:
+                    continue
+
+                prop_name = uri.split("#")[-1] if "#" in uri else uri.split("/")[-1]
+                prop = DYN[prop_name]
+
+                if prop_name in object_properties:
+                    if isinstance(value, str) and value:
+                        g.add((instance, prop, URIRef(value)))
+                elif prop_name in boolean_properties:
+                    g.add((instance, prop, Literal(bool(value), datatype=XSD.boolean)))
+                elif prop_name in integer_properties:
+                    g.add((instance, prop, Literal(int(value), datatype=XSD.integer)))
+                elif prop_name in string_properties:
+                    g.add((instance, prop, Literal(str(value), datatype=XSD.string)))
+                elif prop_name in date_properties:
+                    g.add((instance, prop, Literal(str(value), datatype=XSD.date)))
+                else:
+                    # Default to double for measurement properties
+                    try:
+                        g.add((instance, prop, Literal(float(value), datatype=XSD.double)))
+                    except (ValueError, TypeError):
+                        g.add((instance, prop, Literal(str(value), datatype=XSD.string)))
+
+            return g
+
+        except Exception as e:
+            self.logger.error(f"Failed to build validation graph: {e}")
+            return None
 
     def _initialize_specimen_loader(self) -> None:
         """Initialize the specimen loader for property queries."""

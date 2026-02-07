@@ -1,0 +1,239 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@prefix qkdv: <http://qudt.org/vocab/quantitykind/> .
+
+# =============================================================================
+# DynaMat Platform - Data Series SHACL Shapes
+# =============================================================================
+#
+# Reusable shapes for data series validation, applicable across test types.
+# Split from mechanical_testing_shapes.ttl for modularity.
+#
+# Covers:
+# 1. DataSeries (base for all data series)
+# 2. RawSignal (raw sensor data)
+# 3. ProcessedData (calculated quantities)
+# 4. AnalysisFile (CSV and other data files)
+# 5. Business rules (derivation recommendations, unit recommendations)
+# =============================================================================
+
+
+#################################################################
+#    DataSeries Shape (Base for all data series)
+#################################################################
+
+dyn:DataSeriesShape a sh:NodeShape ;
+    sh:targetClass dyn:DataSeries ;
+    rdfs:comment "Base validation rules for data series instances" ;
+
+    # =========================================================================
+    # REQUIRED FIELDS
+    # =========================================================================
+
+    sh:property [
+        sh:path dyn:hasSeriesType ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class dyn:SeriesType ;
+        sh:message "Data series must have a series type (Stress, Strain, Time, etc.)" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    sh:property [
+        sh:path dyn:hasDataFile ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class dyn:AnalysisFile ;
+        sh:message "Data series must reference a data file" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    sh:property [
+        sh:path dyn:hasColumnName ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message "Data series must specify column name in data file" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    # =========================================================================
+    # CARDINALITY CONSTRAINTS
+    # =========================================================================
+
+    sh:property [ sh:path dyn:hasColumnIndex ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasLegendName ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path dyn:hasAnalysisMethod ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path dyn:hasSeriesUnit ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path dyn:hasQuantityKind ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path dyn:hasDataPointCount ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasProcessingMethod ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path dyn:hasFilterApplied ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
+    sh:property [ sh:path dyn:hasFilterType ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path dyn:hasFilterFrequency ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasTukeyAlpha ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasTukeyWindowLength ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasSamplingInterval ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:isCenteredPulse ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
+    sh:property [ sh:path dyn:isAlignedPulse ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
+    sh:property [ sh:path dyn:isReferencePulse ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
+    sh:property [ sh:path dyn:hasSegmentShift ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasThresholdRatio ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:isTrainingData ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
+    sh:property [ sh:path dyn:measuredBy ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:derivedFrom ; sh:maxCount 1 ] .
+
+
+#################################################################
+#    RawSignal Shape (Raw sensor data)
+#################################################################
+
+dyn:RawSignalShape a sh:NodeShape ;
+    sh:targetClass dyn:RawSignal ;
+    rdfs:comment "Validation rules for raw signal data series" ;
+
+    # Raw signals typically have voltage as quantity kind
+    sh:property [
+        sh:path dyn:hasQuantityKind ;
+        sh:message "Raw signals should specify quantity kind (typically Voltage or Time)" ;
+        sh:severity sh:Warning ;
+    ] .
+
+
+#################################################################
+#    ProcessedData Shape (Calculated quantities)
+#################################################################
+
+dyn:ProcessedDataShape a sh:NodeShape ;
+    sh:targetClass dyn:ProcessedData ;
+    rdfs:comment "Validation rules for processed data series" ;
+
+    # Processed data should specify analysis method
+    sh:property [
+        sh:path dyn:hasAnalysisMethod ;
+        sh:message "Processed data should specify analysis method (1-wave, 3-wave, etc.)" ;
+        sh:severity sh:Warning ;
+    ] ;
+
+    # Processed data should be derived from raw data
+    sh:property [
+        sh:path dyn:derivedFrom ;
+        sh:message "Processed data should reference source raw data series" ;
+        sh:severity sh:Info ;
+    ] .
+
+
+#################################################################
+#    AnalysisFile Shape (CSV and other data files)
+#################################################################
+
+dyn:AnalysisFileShape a sh:NodeShape ;
+    sh:targetClass dyn:AnalysisFile ;
+    rdfs:comment "Validation rules for analysis file metadata" ;
+
+    # =========================================================================
+    # REQUIRED FIELDS
+    # =========================================================================
+
+    sh:property [
+        sh:path dyn:hasFilePath ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message "Analysis file must have a file path" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    sh:property [
+        sh:path dyn:hasFileFormat ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message "Analysis file must specify format (CSV, HDF5, etc.)" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    # =========================================================================
+    # CARDINALITY CONSTRAINTS
+    # =========================================================================
+
+    sh:property [ sh:path dyn:hasFileName ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path dyn:hasFileSize ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasDataPointCount ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasColumnCount ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasCreatedDate ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
+    sh:property [ sh:path dyn:hasFileEncoding ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path dyn:hasProcessingDate ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:property [ sh:path dyn:hasDelimiter ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path dyn:hasHeaderRow ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
+    sh:property [ sh:path dyn:hasSkipRows ; sh:maxCount 1 ; sh:datatype xsd:integer ] .
+
+
+#################################################################
+#    Business Rules - Data Series Constraints
+#################################################################
+
+# -----------------------------------------------------------------------------
+# Processed Data Derivation Recommendation
+# -----------------------------------------------------------------------------
+dyn:ProcessedDataDerivationRecommendation a sh:NodeShape ;
+    sh:targetClass dyn:ProcessedData ;
+    sh:severity sh:Info ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Consider documenting source raw data series for full provenance tracking" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            SELECT ?this WHERE {
+                ?this a dyn:ProcessedData .
+                FILTER NOT EXISTS { ?this dyn:derivedFrom ?source }
+            }
+        """ ;
+    ] .
+
+# -----------------------------------------------------------------------------
+# Data Series Unit Recommendation (For quantitative measurements)
+# Uses IRI comparison for SeriesType individuals instead of string comparison
+# -----------------------------------------------------------------------------
+dyn:DataSeriesUnitRecommendation a sh:NodeShape ;
+    sh:targetClass dyn:DataSeries ;
+    sh:severity sh:Info ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Consider specifying unit and quantity kind for better semantic interoperability" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            SELECT ?this WHERE {
+                ?this a dyn:DataSeries .
+                ?this dyn:hasSeriesType ?type .
+                # Only recommend for quantitative types, not Time
+                FILTER(?type IN (
+                    dyn:StressSeriesType,
+                    dyn:StrainSeriesType,
+                    dyn:ForceSeriesType,
+                    dyn:DisplacementSeriesType,
+                    dyn:StrainRateSeriesType
+                ))
+                FILTER NOT EXISTS { ?this dyn:hasSeriesUnit ?unit }
+            }
+        """ ;
+    ] .
+
+
+###  Generated for DynaMat Platform data series validation

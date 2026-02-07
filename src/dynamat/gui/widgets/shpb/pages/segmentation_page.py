@@ -10,6 +10,8 @@ from PyQt6.QtWidgets import (
     QGroupBox, QGridLayout, QSplitter, QFrame, QWidget
 )
 from PyQt6.QtCore import Qt
+from rdflib import Graph, Namespace, Literal
+from rdflib.namespace import RDF, XSD
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.pulse_windows import PulseDetector
@@ -147,7 +149,49 @@ class SegmentationPage(BaseSHPBPage):
         # Save parameters
         self._save_params()
 
+        # Run SHACL validation on partial graph
+        validation_graph = self._build_validation_graph()
+        if validation_graph and not self._validate_page_data(validation_graph):
+            return False
+
         return True
+
+    def _build_validation_graph(self) -> Optional[Graph]:
+        """Build partial RDF graph for SHACL validation of segmentation data.
+
+        Returns:
+            RDF graph with SegmentationParams instance, or None on error.
+        """
+        if not self.state.segmentation_form_data:
+            return None
+
+        try:
+            DYN = Namespace(DYN_NS)
+            g = Graph()
+            g.bind("dyn", DYN)
+
+            instance = DYN["_val_segmentation"]
+            g.add((instance, RDF.type, DYN.SegmentationParams))
+
+            form_data = self.state.segmentation_form_data
+
+            # hasSegmentPoints -> xsd:integer
+            seg_points = form_data.get(f"{DYN_NS}hasSegmentPoints")
+            if seg_points is not None:
+                g.add((instance, DYN.hasSegmentPoints,
+                       Literal(int(seg_points), datatype=XSD.integer)))
+
+            # hasSegmentThreshold -> xsd:double
+            threshold = form_data.get(f"{DYN_NS}hasSegmentThreshold")
+            if threshold is not None:
+                g.add((instance, DYN.hasSegmentThreshold,
+                       Literal(float(threshold), datatype=XSD.double)))
+
+            return g
+
+        except Exception as e:
+            self.logger.error(f"Failed to build validation graph: {e}")
+            return None
 
     def _restore_params(self) -> None:
         """Restore parameters from state form data to ontology form."""

@@ -9,15 +9,18 @@ from typing import Optional, TYPE_CHECKING
 
 from PyQt6.QtWidgets import (
     QWizardPage, QVBoxLayout, QHBoxLayout, QLabel,
-    QGroupBox, QFrame, QProgressBar, QMessageBox
+    QGroupBox, QFrame, QProgressBar, QMessageBox, QDialog
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
+
+from rdflib import Graph
 
 if TYPE_CHECKING:
     from ..state.analysis_state import SHPBAnalysisState
     from ....ontology import OntologyManager
     from ....ontology.qudt import QUDTManager
+    from ....core.form_validator import SHACLValidator
 
 
 class BaseSHPBPage(QWizardPage):
@@ -223,6 +226,55 @@ class BaseSHPBPage(QWizardPage):
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         return reply == QMessageBox.StandardButton.Yes
+
+    # ==================== SHACL VALIDATION HELPERS ====================
+
+    def _validate_page_data(self, data_graph: Graph) -> bool:
+        """Validate page data against SHACL shapes.
+
+        Builds a partial RDF graph from page form data and validates it
+        against the loaded SHACL shapes. Shows a ValidationResultsDialog
+        if issues are found.
+
+        Args:
+            data_graph: RDF graph containing page-specific instance data
+
+        Returns:
+            True if navigation should proceed, False to block.
+        """
+        from ...validation_results_dialog import ValidationResultsDialog
+
+        validator = self._get_cached_validator()
+        result = validator.validate(data_graph)
+
+        if result.has_blocking_issues():
+            dialog = ValidationResultsDialog(result, parent=self)
+            dialog.exec()
+            return False
+        elif result.has_any_issues():
+            dialog = ValidationResultsDialog(result, parent=self)
+            return dialog.exec() == QDialog.DialogCode.Accepted
+        return True
+
+    def _get_cached_validator(self) -> "SHACLValidator":
+        """Get or create cached SHACL validator from wizard.
+
+        Caches a single SHACLValidator instance on the wizard to avoid
+        reloading shapes on every page transition.
+
+        Returns:
+            SHACLValidator instance
+        """
+        from ...core.form_validator import SHACLValidator
+
+        wizard = self.get_wizard()
+        if wizard is not None:
+            if not hasattr(wizard, '_shacl_validator') or wizard._shacl_validator is None:
+                wizard._shacl_validator = SHACLValidator(self.ontology_manager)
+            return wizard._shacl_validator
+
+        # Fallback if no wizard (e.g., testing)
+        return SHACLValidator(self.ontology_manager)
 
     # ==================== WIZARD PAGE OVERRIDES ====================
 

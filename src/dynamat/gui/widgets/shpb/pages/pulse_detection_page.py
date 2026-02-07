@@ -11,6 +11,8 @@ from PyQt6.QtWidgets import (
     QGroupBox, QGridLayout, QSplitter, QFrame, QTabWidget, QWidget
 )
 from PyQt6.QtCore import Qt
+from rdflib import Graph, Namespace, Literal, URIRef
+from rdflib.namespace import RDF, XSD
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.pulse_windows import PulseDetector
@@ -150,7 +152,69 @@ class PulseDetectionPage(BaseSHPBPage):
         # Save parameters to state
         self._save_params()
 
+        # Run SHACL validation on partial graph
+        validation_graph = self._build_validation_graph()
+        if validation_graph and not self._validate_page_data(validation_graph):
+            return False
+
         return True
+
+    def _build_validation_graph(self) -> Optional[Graph]:
+        """Build partial RDF graph for SHACL validation of pulse detection data.
+
+        Creates one PulseDetectionParams instance per pulse type.
+
+        Returns:
+            RDF graph with PulseDetectionParams instances, or None on error.
+        """
+        try:
+            DYN = Namespace(DYN_NS)
+            g = Graph()
+            g.bind("dyn", DYN)
+
+            object_properties = {"hasDetectionPolarity", "hasSelectionMetric", "appliedToSeries"}
+            integer_properties = {
+                "hasDetectionLowerBound", "hasDetectionUpperBound",
+                "hasPulsePoints", "hasMinSeparation",
+                "hasStartIndex", "hasEndIndex", "hasWindowLength",
+            }
+
+            for pulse_type in ["incident", "transmitted", "reflected"]:
+                form_data = self.state.detection_form_data.get(pulse_type, {})
+                if not form_data:
+                    continue
+
+                instance = DYN[f"_val_{pulse_type}_detection"]
+                g.add((instance, RDF.type, DYN.PulseDetectionParams))
+
+                for uri, value in form_data.items():
+                    if value is None:
+                        continue
+
+                    prop_name = uri.split("#")[-1] if "#" in uri else uri.split("/")[-1]
+                    prop = DYN[prop_name]
+
+                    if prop_name in object_properties:
+                        if isinstance(value, str) and value:
+                            g.add((instance, prop, URIRef(value)))
+                    elif prop_name in integer_properties:
+                        try:
+                            g.add((instance, prop, Literal(int(value), datatype=XSD.integer)))
+                        except (ValueError, TypeError):
+                            pass
+                    elif prop_name == "hasKTrials":
+                        g.add((instance, prop, Literal(str(value), datatype=XSD.string)))
+                    else:
+                        try:
+                            g.add((instance, prop, Literal(float(value), datatype=XSD.double)))
+                        except (ValueError, TypeError):
+                            g.add((instance, prop, Literal(str(value), datatype=XSD.string)))
+
+            return g
+
+        except Exception as e:
+            self.logger.error(f"Failed to build validation graph: {e}")
+            return None
 
     def _parse_k_trials(self, k_str: str) -> Tuple[float, ...]:
         """Parse comma-separated k_trials string to tuple."""

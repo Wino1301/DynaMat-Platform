@@ -1,0 +1,309 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@prefix qkdv: <http://qudt.org/vocab/quantitykind/> .
+
+# =============================================================================
+# DynaMat Platform - SHPB Compression SHACL Shapes
+# =============================================================================
+#
+# SHPB-specific validation shapes split from mechanical_testing_shapes.ttl.
+# Covers:
+# 1. SHPBCompression (equipment, test conditions, processing links)
+# 2. PulseDetectionParams (detection configuration per pulse)
+# 3. AlignmentParams (alignment configuration and results)
+# 4. EquilibriumMetrics (force equilibrium assessment)
+# 5. SegmentationParams (segment extraction parameters)
+# 6. TukeyWindowParams (signal tapering parameters)
+# 7. Business rules (pulse shaper, lubrication, dimensions)
+# =============================================================================
+
+
+#################################################################
+#    SHPBCompression Shape (SHPB-specific properties)
+#################################################################
+
+dyn:SHPBCompressionShape a sh:NodeShape ;
+    sh:targetClass dyn:SHPBCompression ;
+    rdfs:comment "Validation rules for SHPB compression test instances" ;
+
+    # =========================================================================
+    # CARDINALITY CONSTRAINTS (Single-value properties)
+    # =========================================================================
+
+    # Equipment configuration
+    sh:property [ sh:path dyn:hasStrikerBar ; sh:maxCount 1 ; sh:class dyn:Bar ] ;
+    sh:property [ sh:path dyn:hasIncidentBar ; sh:maxCount 1 ; sh:class dyn:Bar ] ;
+    sh:property [ sh:path dyn:hasTransmissionBar ; sh:maxCount 1 ; sh:class dyn:Bar ] ;
+    sh:property [ sh:path dyn:hasMomentumTrap ; sh:maxCount 1 ; sh:class dyn:MomentumTrap ] ;
+    sh:property [ sh:path dyn:hasPulseShaper ; sh:maxCount 1 ; sh:class dyn:PulseShaper ] ;
+
+    # Test conditions
+    sh:property [ sh:path dyn:hasStrikerVelocity ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasStrikerLength ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasIncidentBarLength ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasTransmissionBarLength ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasBarrelOffset ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasIncidentStrainGaugeDistance ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasTransmissionStrainGaugeDistance ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasLubricationUsed ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
+    sh:property [ sh:path dyn:hasLubricationType ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path dyn:hasMomentumTrapTailoredDistance ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+
+    # Pulse shaping
+    sh:property [ sh:path dyn:hasPulseShaping ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
+    sh:property [ sh:path dyn:hasPulseShaperDiameter ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasPulseShaperThickness ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+
+    # Pulse characteristics
+    sh:property [ sh:path dyn:hasPulseDuration ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasPulseLength ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasPulseSpeed ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasPulseStrainAmplitude ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasPulseStressAmplitude ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasPulseRiseTime ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasPulsePoints ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+
+    # Processing parameters
+    sh:property [ sh:path dyn:hasAlignmentParams ; sh:maxCount 1 ; sh:class dyn:AlignmentParams ] ;
+    sh:property [ sh:path dyn:hasEquilibriumMetrics ; sh:maxCount 1 ; sh:class dyn:EquilibriumMetrics ] ;
+
+    # Analysis metadata
+    sh:property [ sh:path dyn:hasAnalysisTimestamp ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
+    sh:property [ sh:path dyn:hasCenteredSegmentPoints ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasSamplingInterval ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasTukeyAlpha ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasThresholdRatio ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasShiftValue ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasSelectionMetric ; sh:maxCount 1 ; sh:class dyn:DetectionMetric ] ;
+    sh:property [ sh:path dyn:hasKLinear ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasKTrials ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path dyn:hasMinSeparation ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasFrontIndex ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasDetectionLowerBound ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasDetectionUpperBound ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasDetectionPolarity ; sh:maxCount 1 ; sh:class dyn:PolarityType ] ;
+
+    # Equilibrium metrics (stored at test level)
+    sh:property [ sh:path dyn:hasDSUF ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasFBC ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasSEQI ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasSOI ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+
+    # Qualitative assessment
+    sh:property [ sh:path dyn:hasWaveDispersion ; sh:maxCount 1 ; sh:datatype xsd:string ] .
+
+
+#################################################################
+#    PulseDetectionParams Shape (Pulse detection configuration)
+#################################################################
+
+dyn:PulseDetectionParamsShape a sh:NodeShape ;
+    sh:targetClass dyn:PulseDetectionParams ;
+    rdfs:comment "Validation rules for pulse detection parameter instances" ;
+
+    # =========================================================================
+    # REQUIRED FIELDS
+    # =========================================================================
+
+    sh:property [
+        sh:path dyn:appliedToSeries ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class dyn:DataSeries ;
+        sh:message "Pulse detection params must reference the data series they were applied to" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    # =========================================================================
+    # CARDINALITY CONSTRAINTS
+    # =========================================================================
+
+    sh:property [ sh:path dyn:hasDetectionLowerBound ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasDetectionUpperBound ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasDetectionPolarity ; sh:maxCount 1 ; sh:class dyn:PolarityType ] ;
+    sh:property [ sh:path dyn:hasKTrials ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path dyn:hasMinSeparation ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasPulsePoints ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasSelectionMetric ; sh:maxCount 1 ; sh:class dyn:DetectionMetric ] .
+
+
+#################################################################
+#    AlignmentParams Shape (Pulse alignment configuration)
+#################################################################
+
+dyn:AlignmentParamsShape a sh:NodeShape ;
+    sh:targetClass dyn:AlignmentParams ;
+    rdfs:comment "Validation rules for alignment parameter instances" ;
+
+    # =========================================================================
+    # CARDINALITY CONSTRAINTS
+    # =========================================================================
+
+    sh:property [ sh:path dyn:hasKLinear ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasReflectedSearchMin ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasReflectedSearchMax ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasTransmittedSearchMin ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasTransmittedSearchMax ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasCorrelationWeight ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasDisplacementWeight ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasStrainRateWeight ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasStrainWeight ; sh:maxCount 1 ; sh:datatype xsd:double ] .
+
+
+#################################################################
+#    EquilibriumMetrics Shape (Force equilibrium assessment)
+#################################################################
+
+dyn:EquilibriumMetricsShape a sh:NodeShape ;
+    sh:targetClass dyn:EquilibriumMetrics ;
+    rdfs:comment "Validation rules for equilibrium metrics instances" ;
+
+    # =========================================================================
+    # CARDINALITY CONSTRAINTS
+    # =========================================================================
+
+    sh:property [ sh:path dyn:hasDSUF ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasDSUFLoading ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasDSUFPlateau ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasDSUFUnloading ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasFBC ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasFBCLoading ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasFBCPlateau ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasFBCUnloading ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasSEQI ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasSOI ; sh:maxCount 1 ; sh:datatype xsd:double ] .
+
+
+#################################################################
+#    SegmentationParams Shape (Pulse segmentation parameters)
+#################################################################
+
+dyn:SegmentationParamsShape a sh:NodeShape ;
+    sh:targetClass dyn:SegmentationParams ;
+    rdfs:comment "Validation rules for segmentation parameter instances" ;
+    sh:property [
+        sh:path dyn:hasSegmentPoints ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:integer ;
+        sh:minExclusive 0 ;
+        sh:message "Segment points must be specified and positive" ;
+        sh:severity sh:Violation ;
+    ] ;
+    sh:property [
+        sh:path dyn:hasSegmentThreshold ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:double ;
+        sh:minExclusive 0.0 ;
+        sh:maxExclusive 1.0 ;
+        sh:message "Segment threshold must be between 0 and 1 (exclusive)" ;
+        sh:severity sh:Violation ;
+    ] .
+
+
+#################################################################
+#    TukeyWindowParams Shape (Signal tapering parameters)
+#################################################################
+
+dyn:TukeyWindowParamsShape a sh:NodeShape ;
+    sh:targetClass dyn:TukeyWindowParams ;
+    rdfs:comment "Validation rules for Tukey window parameter instances" ;
+    sh:property [
+        sh:path dyn:isTukeyEnabled ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:boolean ;
+        sh:message "Tukey window enable flag is required" ;
+        sh:severity sh:Violation ;
+    ] ;
+    sh:property [
+        sh:path dyn:hasTukeyAlphaParam ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:double ;
+        sh:minInclusive 0.0 ;
+        sh:maxInclusive 1.0 ;
+        sh:message "Tukey alpha must be between 0.0 and 1.0" ;
+        sh:severity sh:Violation ;
+    ] .
+
+
+#################################################################
+#    Business Rules - SHPB-Specific Constraints
+#################################################################
+
+# -----------------------------------------------------------------------------
+# Pulse Shaper Constraint (Required when pulse shaping is used)
+# -----------------------------------------------------------------------------
+dyn:PulseShaperConstraint a sh:NodeShape ;
+    sh:targetClass dyn:SHPBCompression ;
+    sh:severity sh:Violation ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Pulse shaper must be specified when pulse shaping is used" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            SELECT ?this WHERE {
+                ?this dyn:hasPulseShaping true .
+                FILTER NOT EXISTS { ?this dyn:hasPulseShaper ?shaper }
+            }
+        """ ;
+    ] .
+
+# -----------------------------------------------------------------------------
+# Lubrication Type Constraint (Required when lubrication is used)
+# -----------------------------------------------------------------------------
+dyn:LubricationConstraint a sh:NodeShape ;
+    sh:targetClass dyn:SHPBCompression ;
+    sh:severity sh:Violation ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Lubrication type must be specified when lubrication is used" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            SELECT ?this WHERE {
+                ?this dyn:hasLubricationUsed true .
+                FILTER NOT EXISTS { ?this dyn:hasLubricationType ?type }
+            }
+        """ ;
+    ] .
+
+# -----------------------------------------------------------------------------
+# Pulse Shaper Dimension Constraint (Thickness < Diameter)
+# -----------------------------------------------------------------------------
+dyn:PulseShaperDimensionConstraint a sh:NodeShape ;
+    sh:targetClass dyn:SHPBCompression ;
+    sh:severity sh:Violation ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Pulse shaper thickness must be less than diameter" ;
+        sh:prefixes [
+            sh:declare [
+                sh:prefix "dyn" ;
+                sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ]
+        ] ;
+        sh:select """
+            SELECT ?this WHERE {
+                ?this dyn:hasPulseShaperDiameter ?diameter .
+                ?this dyn:hasPulseShaperThickness ?thickness .
+                FILTER(?thickness >= ?diameter)
+            }
+        """ ;
+    ] .
+
+
+###  Generated for DynaMat Platform SHPB compression validation

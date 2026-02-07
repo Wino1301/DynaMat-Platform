@@ -10,6 +10,8 @@ from PyQt6.QtWidgets import (
     QGroupBox, QGridLayout, QSplitter, QFrame, QWidget
 )
 from PyQt6.QtCore import Qt
+from rdflib import Graph, Namespace, Literal
+from rdflib.namespace import RDF, XSD
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.tukey_window import TukeyWindow
@@ -149,15 +151,58 @@ class TukeyWindowPage(BaseSHPBPage):
         """Validate before allowing Next.
 
         Tukey window is optional, so always allow continuing.
+        SHACL validates that the enable flag is present and alpha is in range.
         """
         # Save parameters to state
         self._save_params()
+
+        # Run SHACL validation on partial graph
+        validation_graph = self._build_validation_graph()
+        if validation_graph and not self._validate_page_data(validation_graph):
+            return False
 
         # If enabled but not applied, apply now
         if self._is_enabled() and not self.state.tapered_pulses:
             self._apply_window()
 
         return True
+
+    def _build_validation_graph(self) -> Optional[Graph]:
+        """Build partial RDF graph for SHACL validation of Tukey window data.
+
+        Returns:
+            RDF graph with TukeyWindowParams instance, or None on error.
+        """
+        if not self.state.tukey_form_data:
+            return None
+
+        try:
+            DYN = Namespace(DYN_NS)
+            g = Graph()
+            g.bind("dyn", DYN)
+
+            instance = DYN["_val_tukey_window"]
+            g.add((instance, RDF.type, DYN.TukeyWindowParams))
+
+            form_data = self.state.tukey_form_data
+
+            # isTukeyEnabled -> xsd:boolean
+            enabled = form_data.get(f"{DYN_NS}isTukeyEnabled")
+            if enabled is not None:
+                g.add((instance, DYN.isTukeyEnabled,
+                       Literal(bool(enabled), datatype=XSD.boolean)))
+
+            # hasTukeyAlphaParam -> xsd:double
+            alpha = form_data.get(f"{DYN_NS}hasTukeyAlphaParam")
+            if alpha is not None:
+                g.add((instance, DYN.hasTukeyAlphaParam,
+                       Literal(float(alpha), datatype=XSD.double)))
+
+            return g
+
+        except Exception as e:
+            self.logger.error(f"Failed to build validation graph: {e}")
+            return None
 
     def _restore_params(self) -> None:
         """Restore parameters from state form data to ontology form."""
