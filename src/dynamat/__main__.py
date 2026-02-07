@@ -2,14 +2,13 @@
 DynaMat Platform - Main Entry Point
 Desktop application for dynamic materials testing data management
 
-This is the main entry point that should be placed in the root dynamat/ directory.
-It launches the GUI application and handles command-line arguments.
+This launches the GUI application and handles command-line arguments.
 
 Usage:
-    python main.py                    # Launch GUI
-    python main.py --help            # Show help
-    python main.py --validate        # Validate ontology only
-    python main.py --debug           # Enable debug logging
+    dynamat                  # Launch GUI
+    dynamat --help           # Show help
+    dynamat --validate       # Validate ontology only
+    dynamat --debug          # Enable debug logging
 """
 
 import sys
@@ -17,11 +16,11 @@ import argparse
 import logging
 from pathlib import Path
 
-# Add project root to Python path
-PROJECT_ROOT = Path(__file__).parent
-sys.path.insert(0, str(PROJECT_ROOT))
+# In a 'src' layout, the project root is 3 levels up from src/dynamat/__main__.py
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+# We don't need sys.path.insert(0, str(PROJECT_ROOT)) if installed in editable mode
 
-# Import after path setup
+# Import package modules
 from dynamat.gui.app import DynaMatApp, main as gui_main
 from dynamat.ontology.manager import OntologyManager
 from dynamat.config import config
@@ -102,14 +101,15 @@ def show_system_info():
 def main():
     """Main entry point"""
     parser = argparse.ArgumentParser(
+        prog="dynamat",
         description="DynaMat Platform - Dynamic Materials Testing Data Management",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    python main.py                   # Launch GUI application
-    python main.py --debug           # Launch with debug logging
-    python main.py --validate        # Validate ontology only
-    python main.py --info            # Show system information
+    dynamat                  # Launch GUI application
+    dynamat --debug          # Launch with debug logging
+    dynamat --validate       # Validate ontology only
+    dynamat --info           # Show system information
         """
     )
     
