@@ -156,15 +156,7 @@ class EquipmentPage(BaseSHPBPage):
             self.logger.error(f"Failed to initialize specimen loader: {e}")
 
     def _populate_from_specimen_selection(self) -> None:
-        """Populate identification fields from specimen selection (cross-page data).
-
-        This sets:
-        - Test ID: Auto-generated from specimen ID (e.g., DYNML_A356_0001_SHPBTest)
-        - Test Specimen: Selected specimen URI (read-only reference)
-
-        These fields are populated from the specimen selected on the previous page,
-        not from constraint triggers within this form.
-        """
+        """Populate identification fields from specimen selection (cross-page data)."""
         if not self.form_widget or not hasattr(self.form_widget, 'form_fields'):
             return
 
@@ -178,7 +170,7 @@ class EquipmentPage(BaseSHPBPage):
             self.logger.debug("No specimen selected, skipping identification population")
             return
 
-        # 1. Generate and set Test ID (inherited from MechanicalTest via DynaMat_core.ttl)
+        # 1. Generate and set Test ID
         test_id_uri = f"{DYN_NS}hasTestID"
         if test_id_uri in form_fields:
             test_id_field = form_fields[test_id_uri]
@@ -186,127 +178,60 @@ class EquipmentPage(BaseSHPBPage):
 
             # Generate test ID from specimen ID
             if specimen_id:
-                # Format: DYNML_A356_0001_SHPBTest (replace dashes with underscores for consistency)
                 test_id = f"{specimen_id.replace('-', '_')}_SHPBTest"
             else:
-                # Fallback: extract from URI
                 local_name = specimen_uri.split('#')[-1] if '#' in specimen_uri else specimen_uri.split('/')[-1]
                 test_id = f"{local_name}_SHPBTest"
 
-            # Set the value
             if isinstance(widget, QLineEdit):
                 widget.setText(test_id)
                 widget.setReadOnly(True)
                 self.logger.info(f"Set Test ID: {test_id} (read-only)")
             elif isinstance(widget, QComboBox):
-                # If it's a combo (unlikely for ID), try to add the item
                 widget.setCurrentText(test_id)
                 widget.setEnabled(False)
                 self.logger.info(f"Set Test ID: {test_id} (disabled)")
 
-            # Store in state for later use
             self.state.test_id = test_id
 
-        # 2. Set Test Specimen reference (inherited from Activity via DynaMat_core.ttl as performedOn)
+        # 2. Set Test Specimen reference
         test_specimen_uri = f"{DYN_NS}performedOn"
         if test_specimen_uri in form_fields and specimen_uri:
             test_specimen_field = form_fields[test_specimen_uri]
             widget = test_specimen_field.widget
 
             if isinstance(widget, QComboBox):
-                # Find and select the specimen in the combo
                 index = widget.findData(specimen_uri)
                 if index >= 0:
                     widget.setCurrentIndex(index)
                 else:
-                    # Specimen not in list - add it
                     display_name = specimen_id or specimen_uri.split('#')[-1]
                     widget.addItem(display_name, specimen_uri)
                     widget.setCurrentIndex(widget.count() - 1)
 
-                # Make read-only (disable the combo)
                 widget.setEnabled(False)
                 self.logger.info(f"Set Test Specimen: {specimen_uri} (read-only)")
 
     def _restore_selections(self) -> None:
-        """Restore previous selections from state (equipment and test conditions)."""
+        """Restore previous selections from state equipment form data."""
         if not self.form_widget or not self.form_builder:
             return
 
-        # Build state data dict from stored state
-        # Note: Identification fields (Test ID, Test Specimen) are handled by
-        # _populate_from_specimen_selection() and are read-only
-        state_data = {}
-
-        # Equipment URIs
-        if hasattr(self.state, 'striker_bar_uri') and self.state.striker_bar_uri:
-            state_data[f"{DYN_NS}hasStrikerBar"] = self.state.striker_bar_uri
-        if hasattr(self.state, 'incident_bar_uri') and self.state.incident_bar_uri:
-            state_data[f"{DYN_NS}hasIncidentBar"] = self.state.incident_bar_uri
-        if hasattr(self.state, 'transmission_bar_uri') and self.state.transmission_bar_uri:
-            state_data[f"{DYN_NS}hasTransmissionBar"] = self.state.transmission_bar_uri
-        if hasattr(self.state, 'incident_gauge_uri') and self.state.incident_gauge_uri:
-            state_data[f"{DYN_NS}hasIncidentStrainGauge"] = self.state.incident_gauge_uri
-        if hasattr(self.state, 'transmission_gauge_uri') and self.state.transmission_gauge_uri:
-            state_data[f"{DYN_NS}hasTransmissionStrainGauge"] = self.state.transmission_gauge_uri
-        if hasattr(self.state, 'momentum_trap_uri') and self.state.momentum_trap_uri:
-            state_data[f"{DYN_NS}hasMomentumTrap"] = self.state.momentum_trap_uri
-        if hasattr(self.state, 'pulse_shaper_uri') and self.state.pulse_shaper_uri:
-            state_data[f"{DYN_NS}hasPulseShaper"] = self.state.pulse_shaper_uri
-
-        # Test date
-        if hasattr(self.state, 'test_date') and self.state.test_date:
-            state_data[f"{DYN_NS}hasTestDate"] = self.state.test_date
-
-        # Measurement values (these are dicts with value/unit)
-        if hasattr(self.state, 'striker_velocity') and self.state.striker_velocity:
-            state_data[f"{DYN_NS}hasStrikerVelocity"] = self.state.striker_velocity
-        if hasattr(self.state, 'striker_launch_pressure') and self.state.striker_launch_pressure:
-            state_data[f"{DYN_NS}hasStrikerLaunchPressure"] = self.state.striker_launch_pressure
-        if hasattr(self.state, 'barrel_offset') and self.state.barrel_offset:
-            state_data[f"{DYN_NS}hasBarrelOffset"] = self.state.barrel_offset
-        if hasattr(self.state, 'momentum_trap_distance') and self.state.momentum_trap_distance:
-            state_data[f"{DYN_NS}hasMomentumTrapTailoredDistance"] = self.state.momentum_trap_distance
-
-        # Set form data if we have any
-        if state_data:
-            self.form_builder.set_form_data(self.form_widget, state_data)
+        if self.state.equipment_form_data:
+            self.form_builder.set_form_data(self.form_widget, self.state.equipment_form_data)
 
     def _save_to_state(self) -> None:
-        """Save current form data to state."""
+        """Save current form data to state as a single dict."""
         if not self.form_widget or not self.form_builder:
             return
 
-        # Get all form data
-        data = self.form_builder.get_form_data(self.form_widget)
-
-        # Identification (auto-generated, read-only)
-        # test_id is already set in _populate_from_specimen_selection()
-        # specimen_uri is already in state from specimen selection page
-
-        # Equipment URIs
-        self.state.striker_bar_uri = data.get(f"{DYN_NS}hasStrikerBar")
-        self.state.incident_bar_uri = data.get(f"{DYN_NS}hasIncidentBar")
-        self.state.transmission_bar_uri = data.get(f"{DYN_NS}hasTransmissionBar")
-        self.state.incident_gauge_uri = data.get(f"{DYN_NS}hasIncidentStrainGauge")
-        self.state.transmission_gauge_uri = data.get(f"{DYN_NS}hasTransmissionStrainGauge")
-        self.state.momentum_trap_uri = data.get(f"{DYN_NS}hasMomentumTrap")
-        self.state.pulse_shaper_uri = data.get(f"{DYN_NS}hasPulseShaper")
-
-        # Test date
-        self.state.test_date = data.get(f"{DYN_NS}hasTestDate")
-
-        # Measurement values
-        self.state.striker_velocity = data.get(f"{DYN_NS}hasStrikerVelocity")
-        self.state.striker_launch_pressure = data.get(f"{DYN_NS}hasStrikerLaunchPressure")
-        self.state.barrel_offset = data.get(f"{DYN_NS}hasBarrelOffset")
-        self.state.momentum_trap_distance = data.get(f"{DYN_NS}hasMomentumTrapTailoredDistance")
-
-        # Get user
-        self.state.user_uri = self.get_current_user()
+        self.state.equipment_form_data = self.form_builder.get_form_data(self.form_widget)
 
     def _extract_equipment_properties(self) -> bool:
         """Extract full equipment properties from ontology.
+
+        Reads URIs from equipment_form_data and queries ontology for
+        bar/gauge physical properties needed for calculations.
 
         Returns:
             True if successful, False otherwise
@@ -315,23 +240,30 @@ class EquipmentPage(BaseSHPBPage):
             self.logger.error("Specimen loader not available")
             return False
 
+        data = self.state.equipment_form_data
+        if not data:
+            self.logger.error("No equipment form data available")
+            return False
+
         try:
             equipment = {}
 
-            # Extract bar properties
-            for bar_type, uri_attr in [
-                ('striker_bar', self.state.striker_bar_uri),
-                ('incident_bar', self.state.incident_bar_uri),
-                ('transmission_bar', self.state.transmission_bar_uri),
-            ]:
-                if uri_attr:
+            # Extract bar properties using URIs from form data
+            bar_uri_map = {
+                'striker_bar': data.get(f"{DYN_NS}hasStrikerBar"),
+                'incident_bar': data.get(f"{DYN_NS}hasIncidentBar"),
+                'transmission_bar': data.get(f"{DYN_NS}hasTransmissionBar"),
+            }
+
+            for bar_type, uri in bar_uri_map.items():
+                if uri:
                     bar_props = self.specimen_loader.get_multiple_properties(
-                        uri_attr,
+                        uri,
                         ['hasLength', 'hasDiameter', 'hasCrossSection', 'hasMaterial']
                     )
 
                     equipment[bar_type] = {
-                        'uri': uri_attr,
+                        'uri': uri,
                         'length': bar_props.get('hasLength'),
                         'diameter': bar_props.get('hasDiameter'),
                         'cross_section': bar_props.get('hasCrossSection'),
@@ -350,20 +282,22 @@ class EquipmentPage(BaseSHPBPage):
                         equipment[bar_type]['density'] = mat_props.get('hasDensity')
 
             # Extract gauge properties
-            for gauge_type, uri_attr in [
-                ('incident_gauge', self.state.incident_gauge_uri),
-                ('transmission_gauge', self.state.transmission_gauge_uri),
-            ]:
-                if uri_attr:
+            gauge_uri_map = {
+                'incident_gauge': data.get(f"{DYN_NS}hasIncidentStrainGauge"),
+                'transmission_gauge': data.get(f"{DYN_NS}hasTransmissionStrainGauge"),
+            }
+
+            for gauge_type, uri in gauge_uri_map.items():
+                if uri:
                     gauge_props = self.specimen_loader.get_multiple_properties(
-                        uri_attr,
+                        uri,
                         ['hasGaugeFactor', 'hasGaugeResistance',
                          'hasCalibrationVoltage', 'hasCalibrationResistance',
                          'hasDistanceFromSpecimen']
                     )
 
                     equipment[gauge_type] = {
-                        'uri': uri_attr,
+                        'uri': uri,
                         'gauge_factor': gauge_props.get('hasGaugeFactor'),
                         'gauge_resistance': gauge_props.get('hasGaugeResistance'),
                         'calibration_voltage': gauge_props.get('hasCalibrationVoltage'),

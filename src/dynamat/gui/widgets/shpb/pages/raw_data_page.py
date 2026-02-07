@@ -5,6 +5,7 @@ widget signals to the SHPB analysis state.
 """
 
 import logging
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 # Full URI constant used by the ontology
 _SHPB_CLASS_URI = "https://dynamat.utep.edu/ontology#SHPBCompression"
+DYN_NS = "https://dynamat.utep.edu/ontology#"
 
 
 class RawDataPage(BaseSHPBPage):
@@ -94,6 +96,17 @@ class RawDataPage(BaseSHPBPage):
         self.state.unit_mapping = data.get('unit_mapping', {})
         self.state.sampling_interval = data.get('sampling_interval')
         self.state.total_samples = data['total_samples']
+
+        # Compute file metadata for RDF export
+        file_path = data['file_path']
+        df = data['dataframe']
+        self.state.raw_file_metadata = {
+            f"{DYN_NS}hasFilePath": str(file_path),
+            f"{DYN_NS}hasFileFormat": Path(file_path).suffix.lstrip('.'),
+            f"{DYN_NS}hasFileSize": os.path.getsize(file_path),
+            f"{DYN_NS}hasDataPointCount": len(df),
+            f"{DYN_NS}hasColumnCount": len(df.columns),
+        }
 
         self.set_status(
             f"Loaded {data['total_samples']} rows, "

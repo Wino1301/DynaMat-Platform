@@ -339,6 +339,236 @@ class StressStrainCalculator:
             'true_stress_3w': np.abs(true_stress_3w)
         }
 
+    def _normalize_inputs(
+        self,
+        incident: np.ndarray,
+        transmitted: np.ndarray,
+        reflected: np.ndarray
+    ):
+        """Convert voltage to strain if needed, then normalize by scale factor.
+
+        Returns
+        -------
+        tuple of np.ndarray
+            (incident_norm, transmitted_norm, reflected_norm) as dimensionless strain.
+        """
+        if self.use_voltage_input:
+            incident = self.voltage_to_strain(incident, self.incident_reflected_gauge_params)
+            transmitted = self.voltage_to_strain(transmitted, self.transmitted_gauge_params)
+            reflected = self.voltage_to_strain(reflected, self.incident_reflected_gauge_params)
+
+        return (
+            incident / self.strain_scale_factor,
+            transmitted / self.strain_scale_factor,
+            reflected / self.strain_scale_factor,
+        )
+
+    # ==================== INDIVIDUAL 1-WAVE METHODS ====================
+
+    def bar_displacement_1w(self, transmitted_norm: np.ndarray) -> np.ndarray:
+        """Bar displacement from transmitted pulse. Unit: mm."""
+        return np.abs(self.bar_wave_speed * transmitted_norm)
+
+    def bar_force_1w(self, transmitted_norm: np.ndarray) -> np.ndarray:
+        """Bar force from transmitted pulse. Unit: N."""
+        return np.abs(self.bar_area * self.bar_elastic_modulus * transmitted_norm)
+
+    def strain_rate_1w(self, reflected_norm: np.ndarray) -> np.ndarray:
+        """Engineering strain rate (1-wave). Unit: 1/s."""
+        return np.abs((2 * self.bar_wave_speed * reflected_norm) / self.specimen_height) * 1000
+
+    def strain_1w(self, reflected_norm: np.ndarray, time: np.ndarray) -> np.ndarray:
+        """Engineering strain (1-wave). Unit: unitless."""
+        return np.abs(
+            (2 * self.bar_wave_speed / self.specimen_height)
+            * cumulative_trapezoid(reflected_norm, time, initial=0)
+        )
+
+    def stress_1w(self, transmitted_norm: np.ndarray) -> np.ndarray:
+        """Engineering stress (1-wave). Unit: MPa."""
+        return np.abs(self.bar_elastic_modulus * self.area_ratio * transmitted_norm)
+
+    def true_strain_1w(self, strain_1w_arr: np.ndarray) -> np.ndarray:
+        """True strain from engineering strain. Unit: unitless."""
+        return np.abs(np.log(1 + strain_1w_arr))
+
+    def true_stress_1w(self, stress_1w_arr: np.ndarray, strain_1w_arr: np.ndarray) -> np.ndarray:
+        """True stress from engineering stress and strain. Unit: MPa."""
+        return np.abs(stress_1w_arr * (1 + strain_1w_arr))
+
+    def true_strain_rate_1w(self, reflected_norm: np.ndarray) -> np.ndarray:
+        """True strain rate (1-wave). Unit: 1/s."""
+        raw_rate = (2 * self.bar_wave_speed * reflected_norm) / self.specimen_height
+        return np.abs(np.log(1 + raw_rate)) * 1000
+
+    # ==================== INDIVIDUAL 3-WAVE METHODS ====================
+
+    def bar_displacement_3w(self, incident_norm: np.ndarray, reflected_norm: np.ndarray) -> np.ndarray:
+        """Bar displacement (3-wave). Unit: mm."""
+        return np.abs(self.bar_wave_speed * (incident_norm + reflected_norm))
+
+    def bar_force_3w(self, incident_norm: np.ndarray, reflected_norm: np.ndarray) -> np.ndarray:
+        """Bar force (3-wave). Unit: N."""
+        return np.abs(self.bar_area * self.bar_elastic_modulus * (incident_norm + reflected_norm))
+
+    def strain_rate_3w(self, incident_norm: np.ndarray, reflected_norm: np.ndarray, transmitted_norm: np.ndarray) -> np.ndarray:
+        """Engineering strain rate (3-wave). Unit: 1/s."""
+        return np.abs(
+            (self.bar_wave_speed / self.specimen_height)
+            * (incident_norm - reflected_norm - transmitted_norm)
+        ) * 1000
+
+    def strain_3w(self, incident_norm: np.ndarray, reflected_norm: np.ndarray, transmitted_norm: np.ndarray, time: np.ndarray) -> np.ndarray:
+        """Engineering strain (3-wave). Unit: unitless."""
+        return np.abs(
+            (self.bar_wave_speed / self.specimen_height)
+            * cumulative_trapezoid(
+                incident_norm - reflected_norm - transmitted_norm,
+                time, initial=0
+            )
+        )
+
+    def stress_3w(self, incident_norm: np.ndarray, reflected_norm: np.ndarray) -> np.ndarray:
+        """Engineering stress (3-wave). Unit: MPa."""
+        return np.abs(self.bar_elastic_modulus * self.area_ratio * (incident_norm + reflected_norm))
+
+    def true_strain_3w(self, strain_3w_arr: np.ndarray) -> np.ndarray:
+        """True strain (3-wave). Unit: unitless."""
+        return np.abs(np.log(1 + strain_3w_arr))
+
+    def true_stress_3w(self, stress_3w_arr: np.ndarray, strain_3w_arr: np.ndarray) -> np.ndarray:
+        """True stress (3-wave). Unit: MPa."""
+        return np.abs(stress_3w_arr * (1 + strain_3w_arr))
+
+    def true_strain_rate_3w(self, incident_norm: np.ndarray, reflected_norm: np.ndarray, transmitted_norm: np.ndarray) -> np.ndarray:
+        """True strain rate (3-wave). Unit: 1/s."""
+        raw_rate = (self.bar_wave_speed / self.specimen_height) * (incident_norm - reflected_norm - transmitted_norm)
+        return np.abs(np.log(1 - raw_rate)) * 1000
+
+    # ==================== ENRICHED CALCULATION ====================
+
+    def calculate_enriched(
+        self,
+        incident: np.ndarray,
+        transmitted: np.ndarray,
+        reflected: np.ndarray,
+        time_vector: np.ndarray,
+        incident_uri: str = None,
+        transmitted_uri: str = None,
+        reflected_uri: str = None,
+        time_uri: str = None,
+        test_id: str = None,
+    ) -> Dict[str, Dict]:
+        """Calculate all series with provenance metadata per series.
+
+        Provenance is inherent from function signatures - each ``enrich()`` call
+        explicitly passes the URIs of its inputs. No external derivation map needed.
+
+        Parameters
+        ----------
+        incident, transmitted, reflected : np.ndarray
+            Input pulse arrays.
+        time_vector : np.ndarray
+            Time axis (ms).
+        incident_uri, transmitted_uri, reflected_uri, time_uri : str, optional
+            URIs of windowed input series for provenance tracking.
+        test_id : str, optional
+            Test ID for generating intermediate series URIs.
+
+        Returns
+        -------
+        Dict[str, Dict]
+            Enriched results: ``{key: {'data': array, 'series_type': uri,
+            'unit': uri, 'derived_from': [uris], ...}}``.
+        """
+        from ..io.series_config import SERIES_METADATA
+
+        N = len(time_vector)
+        if not (len(incident) == len(transmitted) == len(reflected) == N):
+            raise ValueError(
+                f"All inputs must have same length. Got: time={N}, "
+                f"incident={len(incident)}, transmitted={len(transmitted)}, "
+                f"reflected={len(reflected)}"
+            )
+
+        inc_n, trs_n, ref_n = self._normalize_inputs(incident, transmitted, reflected)
+
+        results = {}
+
+        def enrich(key, data, derived_from_uris):
+            meta = SERIES_METADATA.get(key, {})
+            results[key] = {
+                'data': data,
+                'series_type': meta.get('series_type'),
+                'unit': meta.get('unit'),
+                'quantity_kind': meta.get('quantity_kind'),
+                'analysis_method': meta.get('analysis_method'),
+                'legend_name': meta.get('legend_name'),
+                'derived_from': [u for u in derived_from_uris if u],
+                'class_uri': meta.get('class_uri', 'https://dynamat.utep.edu/ontology#ProcessedData'),
+            }
+
+        # Windowed pulses (direct from inputs)
+        enrich('time', time_vector, [time_uri])
+        enrich('incident', inc_n, [incident_uri])
+        enrich('transmitted', trs_n, [transmitted_uri])
+        enrich('reflected', ref_n, [reflected_uri])
+
+        # 1-wave: provenance from function arguments
+        _bd1 = self.bar_displacement_1w(trs_n)
+        enrich('bar_displacement_1w', _bd1, [transmitted_uri])
+
+        _bf1 = self.bar_force_1w(trs_n)
+        enrich('bar_force_1w', _bf1, [transmitted_uri])
+
+        _sr1 = self.strain_rate_1w(ref_n)
+        enrich('strain_rate_1w', _sr1, [reflected_uri])
+
+        _s1 = self.strain_1w(ref_n, time_vector)
+        enrich('strain_1w', _s1, [reflected_uri])
+
+        _sig1 = self.stress_1w(trs_n)
+        enrich('stress_1w', _sig1, [transmitted_uri])
+
+        # True quantities derive from intermediate series
+        _ts1 = self.true_strain_1w(_s1)
+        enrich('true_strain_1w', _ts1, [f"dyn:{test_id}_strain_1w"] if test_id else [])
+
+        _tsig1 = self.true_stress_1w(_sig1, _s1)
+        enrich('true_stress_1w', _tsig1,
+               [f"dyn:{test_id}_stress_1w", f"dyn:{test_id}_strain_1w"] if test_id else [])
+
+        _tsr1 = self.true_strain_rate_1w(ref_n)
+        enrich('true_strain_rate_1w', _tsr1, [f"dyn:{test_id}_strain_rate_1w"] if test_id else [])
+
+        # 3-wave: multi-input provenance
+        _bd3 = self.bar_displacement_3w(inc_n, ref_n)
+        enrich('bar_displacement_3w', _bd3, [incident_uri, reflected_uri])
+
+        _bf3 = self.bar_force_3w(inc_n, ref_n)
+        enrich('bar_force_3w', _bf3, [incident_uri, reflected_uri])
+
+        _sr3 = self.strain_rate_3w(inc_n, ref_n, trs_n)
+        enrich('strain_rate_3w', _sr3, [incident_uri, reflected_uri, transmitted_uri])
+
+        _s3 = self.strain_3w(inc_n, ref_n, trs_n, time_vector)
+        enrich('strain_3w', _s3, [incident_uri, reflected_uri, transmitted_uri])
+
+        _sig3 = self.stress_3w(inc_n, ref_n)
+        enrich('stress_3w', _sig3, [incident_uri, reflected_uri])
+
+        _ts3 = self.true_strain_3w(_s3)
+        enrich('true_strain_3w', _ts3, [f"dyn:{test_id}_strain_3w"] if test_id else [])
+
+        _tsig3 = self.true_stress_3w(_sig3, _s3)
+        enrich('true_stress_3w', _tsig3,
+               [f"dyn:{test_id}_stress_3w", f"dyn:{test_id}_strain_3w"] if test_id else [])
+
+        _tsr3 = self.true_strain_rate_3w(inc_n, ref_n, trs_n)
+        enrich('true_strain_rate_3w', _tsr3, [f"dyn:{test_id}_strain_rate_3w"] if test_id else [])
+
+        return results
+
     def voltage_to_strain(self, voltage_array: np.ndarray, gauge_params: dict) -> np.ndarray:
         """
         Converts measured voltage from a strain gauge into strain.

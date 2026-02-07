@@ -236,21 +236,16 @@ class ResultsPage(BaseSHPBPage):
                 time_vector
             )
 
-            # Store results
+            # Store results (flat dict for backward compat)
             self.state.calculation_results = results
 
-            # Calculate equilibrium metrics
+            # Calculate equilibrium metrics and store as form data
             metrics = self.calculator.calculate_equilibrium_metrics(results)
-            self.state.equilibrium_metrics = metrics
-
-            # Store calculated characteristics
-            self.state.pulse_stress_amplitude = {
-                'value': float(np.max(np.abs(results.get('stress_1w', [0])))),
-                'unit': 'unit:MegaPA',
-                'reference_unit': 'unit:MegaPA'
-            }
-
-            self.state.pulse_strain_amplitude = float(np.max(np.abs(results.get('strain_1w', [0]))))
+            self.state.equilibrium_form_data = {}
+            for uri, metric_key in METRIC_URI_MAP.items():
+                value = metrics.get(metric_key)
+                if value is not None:
+                    self.state.equilibrium_form_data[uri] = value
 
             # Update display
             self._update_metrics_display()
@@ -269,19 +264,18 @@ class ResultsPage(BaseSHPBPage):
 
     def _update_metrics_display(self) -> None:
         """Update metrics display using ontology form and color coding."""
-        metrics = self.state.equilibrium_metrics
-        if not metrics:
+        if not self.state.equilibrium_form_data:
             return
 
-        # Build form data from metrics dict using URI map
-        form_data = {}
-        for uri, metric_key in METRIC_URI_MAP.items():
-            value = metrics.get(metric_key)
-            if value is not None:
-                form_data[uri] = value
+        # Populate the ontology form with metric values from form data
+        self.form_builder.set_form_data(self._metrics_form, self.state.equilibrium_form_data)
 
-        # Populate the ontology form with metric values
-        self.form_builder.set_form_data(self._metrics_form, form_data)
+        # Build reverse lookup for color coding
+        metrics = {}
+        for uri, metric_key in METRIC_URI_MAP.items():
+            value = self.state.equilibrium_form_data.get(uri)
+            if value is not None:
+                metrics[metric_key] = value
 
         # Apply color coding to overall metrics
         self._apply_metric_colors(metrics)

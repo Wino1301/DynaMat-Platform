@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dynamat"
+version = "0.1.0"
+authors = [
+  { name = "University of Texas at El Paso", email = "research@utep.edu" },
+]
+description = "Integrated, ontology-driven platform for dynamic materials testing (SHPB)"
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    "PyQt6>=6.7.0",
+    "rdflib>=7.0.0",
+    "numpy>=2.0.0",
+    "scipy>=1.15.0",
+    "matplotlib>=3.10.0",
+    "plotly>=6.0.0",
+    "platformdirs>=4.0.0",
+    "pydantic>=2.0.0",
+    "pandas>=2.0.0",
+    "pyyaml>=6.0.0",
+    "pyshacl>=0.23.0", # Added for SHACL validation
+    "PyQt6-WebEngine>=6.7.0", # Added for PlotlyPlotWidget
+]
+
+[project.urls]
+"Homepage" = "https://github.com/utep-research/DynaMat-Platform"
+"Bug Tracker" = "https://github.com/utep-research/DynaMat-Platform/issues"
+
+[project.scripts]
+dynamat = "dynamat.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

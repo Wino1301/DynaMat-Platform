@@ -160,18 +160,13 @@ class TukeyWindowPage(BaseSHPBPage):
         return True
 
     def _restore_params(self) -> None:
-        """Restore parameters from state to ontology form."""
-        form_data = {
-            f"{DYN_NS}isTukeyEnabled": self.state.tukey_enabled,
-            f"{DYN_NS}hasTukeyAlphaParam": self.state.tukey_alpha,
-        }
-        self.form_builder.set_form_data(self._form_widget, form_data)
+        """Restore parameters from state form data to ontology form."""
+        if self.state.tukey_form_data:
+            self.form_builder.set_form_data(self._form_widget, self.state.tukey_form_data)
 
     def _save_params(self) -> None:
-        """Save parameters from ontology form to state."""
-        form_data = self.form_builder.get_form_data(self._form_widget)
-        self.state.tukey_enabled = bool(form_data.get(f"{DYN_NS}isTukeyEnabled", True))
-        self.state.tukey_alpha = form_data.get(f"{DYN_NS}hasTukeyAlphaParam", 0.5)
+        """Save parameters from ontology form to state as form-data dict."""
+        self.state.tukey_form_data = self.form_builder.get_form_data(self._form_widget)
 
     def _on_enable_changed(self, state: int) -> None:
         """Handle enable checkbox change."""
@@ -212,8 +207,8 @@ class TukeyWindowPage(BaseSHPBPage):
                     tapered = self.tukey_window.apply(aligned)
                     self.state.tapered_pulses[pulse_type] = tapered
 
-            # Save alpha
-            self.state.tukey_alpha = alpha
+            # Save form data
+            self._save_params()
 
             # Update taper label
             self.taper_label.setText(f"{alpha * 100:.0f}%")

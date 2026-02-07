@@ -12,11 +12,12 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 
 from .base_page import BaseSHPBPage
-from .....mechanical.shpb.io.test_metadata import SHPBTestMetadata
 from .....mechanical.shpb.io.shpb_test_writer import SHPBTestWriter
 from .....config import config
 
 logger = logging.getLogger(__name__)
+
+DYN_NS = "https://dynamat.utep.edu/ontology#"
 
 
 class ExportPage(BaseSHPBPage):
@@ -183,16 +184,21 @@ class ExportPage(BaseSHPBPage):
             self.show_warning("Test ID Required", "Please enter or generate a test ID.")
             return False
 
-        # Save to state
+        # Save to state as form data
         self.state.test_id = test_id
-        self.state.test_type = self.test_type_combo.currentData()
-        self.state.validity_notes = self.notes_edit.toPlainText()
+        self.state.export_form_data = {
+            f"{DYN_NS}hasTestType": self.test_type_combo.currentData(),
+            f"{DYN_NS}hasValidityNotes": self.notes_edit.toPlainText(),
+        }
 
-        # Handle override
+        # Handle validity
         if self.override_check.isChecked():
-            self.state.validity_override = True
-            self.state.test_validity = self.override_combo.currentData()
-            self.state.validity_override_reason = self.override_reason_edit.text()
+            self.state.export_form_data[f"{DYN_NS}hasTestValidity"] = self.override_combo.currentData()
+            self.state.export_form_data[f"{DYN_NS}hasValidityOverrideReason"] = self.override_reason_edit.text()
+        elif hasattr(self, '_assessed_validity'):
+            self.state.export_form_data[f"{DYN_NS}hasTestValidity"] = self._assessed_validity
+            if hasattr(self, '_assessed_criteria'):
+                self.state.export_form_data[f"{DYN_NS}hasValidityCriteria"] = self._assessed_criteria
 
         # Export test
         return self._export_test()
@@ -200,7 +206,9 @@ class ExportPage(BaseSHPBPage):
     def _generate_test_id(self) -> None:
         """Generate a unique test ID."""
         specimen_id = self.state.specimen_id or "UNKNOWN"
-        date_str = self.state.test_date or datetime.now().strftime("%Y%m%d")
+        # Read test date from equipment form data, fall back to now
+        test_date = self.state.get_equipment_value('hasTestDate')
+        date_str = test_date or datetime.now().strftime("%Y%m%d")
         date_str = date_str.replace("-", "")
 
         # Simple counter-based approach
@@ -212,36 +220,42 @@ class ExportPage(BaseSHPBPage):
         self._update_output_path()
 
     def _assess_validity(self) -> None:
-        """Assess test validity from metrics."""
-        metrics = self.state.equilibrium_metrics
-        if not metrics:
+        """Assess test validity from equilibrium form data metrics."""
+        if not self.state.equilibrium_form_data:
             self.validity_label.setText("Cannot assess - no metrics")
             self.validity_label.setStyleSheet("color: gray; font-weight: bold;")
             return
 
-        # Use SHPBTestMetadata's validity assessment
         try:
-            # Create temporary metadata for assessment
-            temp_metadata = SHPBTestMetadata(
-                test_id="temp",
-                specimen_uri=self.state.specimen_uri or "",
-                test_date=self.state.test_date or datetime.now().strftime("%Y-%m-%d"),
-                user=self.state.user_uri or "",
-                striker_bar_uri=self.state.striker_bar_uri or "",
-                incident_bar_uri=self.state.incident_bar_uri or "",
-                transmission_bar_uri=self.state.transmission_bar_uri or "",
-                incident_strain_gauge_uri=self.state.incident_gauge_uri or "",
-                transmission_strain_gauge_uri=self.state.transmission_gauge_uri or ""
-            )
+            fbc = self.state.get_equilibrium_metric('hasFBC')
+            dsuf = self.state.get_equilibrium_metric('hasDSUF')
+            seqi = self.state.get_equilibrium_metric('hasSEQI')
 
-            temp_metadata.assess_validity_from_metrics(metrics)
+            # Simple validity assessment based on metrics
+            criteria = []
+            if fbc is not None and fbc > 0.95:
+                criteria.append("dyn:FBCAbove95")
+            if dsuf is not None and dsuf > 0.98:
+                criteria.append("dyn:DSUFAbove98")
+            if seqi is not None and seqi > 0.90:
+                criteria.append("dyn:SEQIAbove90")
 
-            self.state.test_validity = temp_metadata.test_validity
-            self.state.validity_notes = temp_metadata.validity_notes
-            self.state.validity_criteria = temp_metadata.validity_criteria
+            # Determine validity
+            if fbc is not None and fbc > 0.95 and dsuf is not None and dsuf > 0.98:
+                validity = "dyn:ValidTest"
+                notes = "Test meets equilibrium criteria."
+            elif fbc is not None and fbc > 0.90:
+                validity = "dyn:QuestionableTest"
+                notes = "Test partially meets equilibrium criteria."
+            else:
+                validity = "dyn:InvalidTest"
+                notes = "Test does not meet equilibrium criteria."
+
+            # Store for use in validatePage
+            self._assessed_validity = validity
+            self._assessed_criteria = criteria
 
             # Update display
-            validity = temp_metadata.test_validity
             if validity == "dyn:ValidTest":
                 self.validity_label.setText("VALID")
                 self.validity_label.setStyleSheet("color: green; font-weight: bold;")
@@ -253,12 +267,11 @@ class ExportPage(BaseSHPBPage):
                 self.validity_label.setStyleSheet("color: red; font-weight: bold;")
 
             # Criteria
-            criteria = temp_metadata.validity_criteria or []
             criteria_text = ", ".join([c.replace("dyn:", "") for c in criteria]) or "None"
             self.criteria_label.setText(criteria_text)
 
             # Notes
-            self.notes_edit.setText(temp_metadata.validity_notes or "")
+            self.notes_edit.setText(notes)
 
         except Exception as e:
             self.logger.error(f"Failed to assess validity: {e}")
@@ -273,15 +286,19 @@ class ExportPage(BaseSHPBPage):
 
     def _update_summary(self) -> None:
         """Update test summary display."""
+        import numpy as np
+
         # Specimen
         self.summary_labels['specimen'].setText(self.state.specimen_id or "--")
 
-        # Date
-        self.summary_labels['date'].setText(self.state.test_date or "--")
+        # Date (from equipment form data)
+        test_date = self.state.get_equipment_value('hasTestDate')
+        self.summary_labels['date'].setText(test_date or "--")
 
-        # Equipment (simplified)
-        if self.state.incident_bar_uri:
-            bar_name = self.state.incident_bar_uri.split('#')[-1] if '#' in self.state.incident_bar_uri else self.state.incident_bar_uri
+        # Equipment (from equipment form data)
+        incident_bar_uri = self.state.get_equipment_value('hasIncidentBar')
+        if incident_bar_uri:
+            bar_name = incident_bar_uri.split('#')[-1] if '#' in incident_bar_uri else incident_bar_uri
             self.summary_labels['equipment'].setText(bar_name)
         else:
             self.summary_labels['equipment'].setText("--")
@@ -289,7 +306,6 @@ class ExportPage(BaseSHPBPage):
         # Results
         results = self.state.calculation_results
         if results:
-            import numpy as np
             stress_1w = results.get('stress_1w', [])
             strain_1w = results.get('strain_1w', [])
 
@@ -298,10 +314,9 @@ class ExportPage(BaseSHPBPage):
             if len(strain_1w) > 0:
                 self.summary_labels['strain'].setText(f"{np.max(np.abs(strain_1w)):.4f}")
 
-        # FBC
-        metrics = self.state.equilibrium_metrics
-        if metrics:
-            fbc = metrics.get('FBC', 0)
+        # FBC (from equilibrium form data)
+        fbc = self.state.get_equilibrium_metric('hasFBC')
+        if fbc is not None:
             self.summary_labels['fbc'].setText(f"{fbc:.4f}")
 
     def _update_output_path(self) -> None:
@@ -316,7 +331,7 @@ class ExportPage(BaseSHPBPage):
             self.output_label.setText("(will be determined on export)")
 
     def _export_test(self) -> bool:
-        """Export test to RDF/TTL.
+        """Export test to RDF/TTL using form-data-driven state.
 
         Returns:
             True if export successful
@@ -331,10 +346,6 @@ class ExportPage(BaseSHPBPage):
                     self.ontology_manager,
                     self.qudt_manager
                 )
-
-            # Build metadata from state
-            kwargs = self.state.to_test_metadata_kwargs()
-            metadata = SHPBTestMetadata(**kwargs)
 
             # Get raw DataFrame
             raw_df = self.state.raw_df
@@ -356,9 +367,9 @@ class ExportPage(BaseSHPBPage):
             if missing:
                 raise ValueError(f"Missing columns for export: {missing}")
 
-            # Export
-            saved_path, validation_result = self.test_writer.ingest_test(
-                test_metadata=metadata,
+            # Export using form-data-driven state
+            saved_path, validation_result = self.test_writer.ingest_from_state(
+                state=self.state,
                 raw_data_df=export_df,
                 processed_results=self.state.calculation_results
             )
@@ -375,6 +386,11 @@ class ExportPage(BaseSHPBPage):
             self.set_status(f"Exported successfully: {saved_path}")
             self.logger.info(f"Test exported to {saved_path}")
 
+            # Get validity from export form data for display
+            validity = (self.state.export_form_data or {}).get(
+                f"{DYN_NS}hasTestValidity", "Unknown"
+            )
+
             # Show warnings if any
             if validation_result and validation_result.has_any_issues():
                 self.show_warning(
@@ -390,7 +406,7 @@ class ExportPage(BaseSHPBPage):
                     f"Test saved successfully!\n\n"
                     f"File: {saved_path}\n\n"
                     f"Test ID: {self.state.test_id}\n"
-                    f"Validity: {self.state.test_validity}"
+                    f"Validity: {validity}"
                 )
 
             return True

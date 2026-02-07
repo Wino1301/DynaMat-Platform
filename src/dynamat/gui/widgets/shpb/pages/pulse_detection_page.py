@@ -19,6 +19,8 @@ from ....builders.customizable_form_builder import CustomizableFormBuilder
 
 logger = logging.getLogger(__name__)
 
+DYN_NS = "https://dynamat.utep.edu/ontology#"
+
 
 class PulseDetectionPage(BaseSHPBPage):
     """Pulse detection page for SHPB analysis.
@@ -164,7 +166,6 @@ class PulseDetectionPage(BaseSHPBPage):
             return "compressive"
 
         try:
-            # Query for hasPolarityValue from individual
             query = f"""
             PREFIX dyn: <https://dynamat.utep.edu/ontology#>
             SELECT ?value WHERE {{
@@ -228,82 +229,34 @@ class PulseDetectionPage(BaseSHPBPage):
             return None
 
     def _restore_params(self) -> None:
-        """Restore parameters from state to all three forms."""
-        DYN_NS = "https://dynamat.utep.edu/ontology#"
-
+        """Restore parameters from state form data to all three forms."""
         for pulse_type in ['incident', 'transmitted', 'reflected']:
-            params = self.state.detection_params.get(pulse_type, {})
-
-            if not params:
-                continue
-
-            # Build form data dict with property URIs as keys
-            form_data = {}
-
-            if params.get('pulse_points') is not None:
-                form_data[f"{DYN_NS}hasPulsePoints"] = params['pulse_points']
-
-            if params.get('k_trials') is not None:
-                form_data[f"{DYN_NS}hasKTrials"] = params['k_trials']
-
-            if params.get('polarity'):
-                polarity_uri = self._find_polarity_uri(params['polarity'])
-                if polarity_uri:
-                    form_data[f"{DYN_NS}hasDetectionPolarity"] = polarity_uri
-
-            if params.get('min_separation') is not None:
-                form_data[f"{DYN_NS}hasMinSeparation"] = params['min_separation']
-
-            if params.get('lower_bound') is not None:
-                form_data[f"{DYN_NS}hasDetectionLowerBound"] = params['lower_bound']
-
-            if params.get('upper_bound') is not None:
-                form_data[f"{DYN_NS}hasDetectionUpperBound"] = params['upper_bound']
-
-            if params.get('detection_metric'):
-                metric_uri = self._find_metric_uri(params['detection_metric'])
-                if metric_uri:
-                    form_data[f"{DYN_NS}hasSelectionMetric"] = metric_uri
-
-            # Populate form
-            form_widget = self._pulse_forms[pulse_type]
-            self.form_builder.set_form_data(form_widget, form_data)
+            form_data = self.state.detection_form_data.get(pulse_type)
+            if form_data:
+                form_widget = self._pulse_forms[pulse_type]
+                self.form_builder.set_form_data(form_widget, form_data)
 
     def _save_params(self) -> None:
-        """Save parameters from all forms to state."""
-        DYN_NS = "https://dynamat.utep.edu/ontology#"
+        """Save parameters from all forms to state as form-data dicts.
 
+        Injects computed output properties (window indices) into the form data.
+        """
         for pulse_type in ['incident', 'transmitted', 'reflected']:
             form_widget = self._pulse_forms[pulse_type]
             form_data = self.form_builder.get_form_data(form_widget)
 
-            params = {}
+            # Inject computed window output properties
+            window = self.state.pulse_windows.get(pulse_type)
+            if window:
+                form_data[f"{DYN_NS}hasStartIndex"] = window[0]
+                form_data[f"{DYN_NS}hasEndIndex"] = window[1]
+                form_data[f"{DYN_NS}hasWindowLength"] = window[1] - window[0]
 
-            # Extract values with proper type conversions
-            if f"{DYN_NS}hasPulsePoints" in form_data:
-                params['pulse_points'] = form_data[f"{DYN_NS}hasPulsePoints"]
+            # Inject appliedToSeries link
+            if self.state.test_id:
+                form_data[f"{DYN_NS}appliedToSeries"] = f"dyn:{self.state.test_id}_{pulse_type}"
 
-            if f"{DYN_NS}hasKTrials" in form_data:
-                params['k_trials'] = form_data[f"{DYN_NS}hasKTrials"]
-
-            if f"{DYN_NS}hasDetectionPolarity" in form_data:
-                polarity_uri = form_data[f"{DYN_NS}hasDetectionPolarity"]
-                params['polarity'] = self._get_polarity_value(polarity_uri)
-
-            if f"{DYN_NS}hasMinSeparation" in form_data:
-                params['min_separation'] = form_data[f"{DYN_NS}hasMinSeparation"]
-
-            if f"{DYN_NS}hasDetectionLowerBound" in form_data:
-                params['lower_bound'] = form_data[f"{DYN_NS}hasDetectionLowerBound"]
-
-            if f"{DYN_NS}hasDetectionUpperBound" in form_data:
-                params['upper_bound'] = form_data[f"{DYN_NS}hasDetectionUpperBound"]
-
-            if f"{DYN_NS}hasSelectionMetric" in form_data:
-                metric_uri = form_data[f"{DYN_NS}hasSelectionMetric"]
-                params['detection_metric'] = self._get_metric_value(metric_uri)
-
-            self.state.detection_params[pulse_type] = params
+            self.state.detection_form_data[pulse_type] = form_data
 
     def _get_current_params(self, pulse_type: str) -> Dict:
         """Extract parameters for PulseDetector from ontology form.
@@ -316,8 +269,6 @@ class PulseDetectionPage(BaseSHPBPage):
         """
         form_widget = self._pulse_forms[pulse_type]
         form_data = self.form_builder.get_form_data(form_widget)
-
-        DYN_NS = "https://dynamat.utep.edu/ontology#"
 
         # Map ontology properties to PulseDetector kwargs
         params = {
@@ -339,56 +290,6 @@ class PulseDetectionPage(BaseSHPBPage):
         )
 
         return params
-
-    def _create_detection_params_individual(
-        self,
-        pulse_type: str,
-        params: Dict[str, Any],
-        window: Tuple[int, int]
-    ) -> str:
-        """
-        Generate URI and metadata for PulseDetectionParams individual.
-
-        Note: Currently logs the individual structure for provenance tracking.
-        Future enhancement: Save to RDF file when test is saved.
-
-        Args:
-            pulse_type: 'incident', 'transmitted', or 'reflected'
-            params: Detection parameters dict from _get_current_params()
-            window: Detected window (start_index, end_index)
-
-        Returns:
-            URI of detection params (e.g., 'dyn:DYNML_A356_0001_SHPBTest_inc_detect')
-        """
-        # Get test ID from state (set by equipment page)
-        test_id = getattr(self.state, 'test_id', None)
-        if not test_id:
-            test_id = f"SHPBTest_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-
-        # Create individual URI with pattern: {testid}_{pulse_type}_detect
-        pulse_suffix = pulse_type[:3]  # inc, tra, ref
-        individual_uri = f"https://dynamat.utep.edu/ontology#{test_id}_{pulse_suffix}_detect"
-
-        # Store detection metadata in state for later serialization
-        detection_metadata = {
-            'uri': individual_uri,
-            'pulse_type': pulse_type,
-            'pulse_points': params['pulse_points'],
-            'k_trials': params['k_trials'],
-            'polarity': params['polarity'],
-            'min_separation': params.get('min_separation'),
-            'lower_bound': params.get('lower_bound'),
-            'upper_bound': params.get('upper_bound'),
-            'metric': params['metric'],
-            'window_start': window[0],
-            'window_end': window[1],
-            'window_length': window[1] - window[0],
-        }
-
-        logger.info(f"Detection metadata generated: {individual_uri}")
-        logger.debug(f"  Parameters: {detection_metadata}")
-
-        return individual_uri
 
     def _detect_current_pulse(self) -> None:
         """Detect pulse for currently selected tab."""
@@ -453,16 +354,6 @@ class PulseDetectionPage(BaseSHPBPage):
             self.state.pulse_windows[pulse_type] = window
             self.detectors[pulse_type] = detector
 
-            # Create PulseDetectionParams individual for provenance
-            individual_uri = self._create_detection_params_individual(
-                pulse_type, params, window
-            )
-
-            # Store individual URI in state for later reference
-            if not hasattr(self.state, 'detection_params_uris'):
-                self.state.detection_params_uris = {}
-            self.state.detection_params_uris[pulse_type] = individual_uri
-
             # Update display
             self._update_result_label(pulse_type, window)
             self._update_plot()
@@ -480,13 +371,7 @@ class PulseDetectionPage(BaseSHPBPage):
         window: Optional[Tuple[int, int]],
         error: str = None
     ) -> None:
-        """Update result label for a pulse type.
-
-        Args:
-            pulse_type: Pulse type
-            window: Detected window or None
-            error: Error message if detection failed
-        """
+        """Update result label for a pulse type."""
         label = self.result_labels.get(pulse_type)
         if not label:
             return

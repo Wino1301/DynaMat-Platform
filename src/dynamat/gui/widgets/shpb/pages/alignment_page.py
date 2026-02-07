@@ -141,61 +141,13 @@ class AlignmentPage(BaseSHPBPage):
         return True
 
     def _restore_params(self) -> None:
-        """Restore parameters from state to ontology form."""
-        form_data = {}
-
-        form_data[f"{DYN_NS}hasKLinear"] = self.state.k_linear
-
-        # Segmentation params on AlignmentParams
-        form_data[f"{DYN_NS}hasCenteredSegmentPoints"] = self.state.segment_n_points
-        form_data[f"{DYN_NS}hasThresholdRatio"] = self.state.segment_thresh_ratio
-
-        # Fitness weights
-        weights = self.state.alignment_weights
-        form_data[f"{DYN_NS}hasCorrelationWeight"] = weights.get('corr', 0.3)
-        form_data[f"{DYN_NS}hasDisplacementWeight"] = weights.get('u', 0.3)
-        form_data[f"{DYN_NS}hasStrainRateWeight"] = weights.get('sr', 0.3)
-        form_data[f"{DYN_NS}hasStrainWeight"] = weights.get('e', 0.1)
-
-        # Search bounds
-        if self.state.search_bounds_t:
-            form_data[f"{DYN_NS}hasTransmittedSearchMin"] = self.state.search_bounds_t[0]
-            form_data[f"{DYN_NS}hasTransmittedSearchMax"] = self.state.search_bounds_t[1]
-
-        if self.state.search_bounds_r:
-            form_data[f"{DYN_NS}hasReflectedSearchMin"] = self.state.search_bounds_r[0]
-            form_data[f"{DYN_NS}hasReflectedSearchMax"] = self.state.search_bounds_r[1]
-
-        # Read-only results
-        if self.state.shift_transmitted is not None:
-            form_data[f"{DYN_NS}hasTransmittedShiftValue"] = self.state.shift_transmitted
-        if self.state.shift_reflected is not None:
-            form_data[f"{DYN_NS}hasReflectedShiftValue"] = self.state.shift_reflected
-        if self.state.alignment_front_idx is not None:
-            form_data[f"{DYN_NS}hasFrontIndex"] = self.state.alignment_front_idx
-
-        self.form_builder.set_form_data(self._form_widget, form_data)
+        """Restore parameters from state form data to ontology form."""
+        if self.state.alignment_form_data:
+            self.form_builder.set_form_data(self._form_widget, self.state.alignment_form_data)
 
     def _save_params(self) -> None:
-        """Save parameters from ontology form to state."""
-        form_data = self.form_builder.get_form_data(self._form_widget)
-
-        self.state.k_linear = form_data.get(f"{DYN_NS}hasKLinear", 0.35)
-
-        self.state.alignment_weights = {
-            'corr': form_data.get(f"{DYN_NS}hasCorrelationWeight", 0.3),
-            'u': form_data.get(f"{DYN_NS}hasDisplacementWeight", 0.3),
-            'sr': form_data.get(f"{DYN_NS}hasStrainRateWeight", 0.3),
-            'e': form_data.get(f"{DYN_NS}hasStrainWeight", 0.1),
-        }
-
-        t_min = form_data.get(f"{DYN_NS}hasTransmittedSearchMin", -100)
-        t_max = form_data.get(f"{DYN_NS}hasTransmittedSearchMax", 100)
-        self.state.search_bounds_t = (t_min, t_max)
-
-        r_min = form_data.get(f"{DYN_NS}hasReflectedSearchMin", -100)
-        r_max = form_data.get(f"{DYN_NS}hasReflectedSearchMax", 100)
-        self.state.search_bounds_r = (r_min, r_max)
+        """Save parameters from ontology form to state as form-data dict."""
+        self.state.alignment_form_data = self.form_builder.get_form_data(self._form_widget)
 
     def _run_alignment(self) -> None:
         """Run pulse alignment optimization."""
@@ -275,33 +227,35 @@ class AlignmentPage(BaseSHPBPage):
                 debug=True
             )
 
-            # Store results
+            # Store aligned pulse arrays
             self.state.aligned_pulses = {
                 'incident': aligned_inc,
                 'transmitted': aligned_trans,
                 'reflected': aligned_ref
             }
-            self.state.shift_transmitted = shift_t
-            self.state.shift_reflected = shift_r
             self.state.time_vector = time_vector
 
             # Calculate front index and linear region
             front_thresh = 0.05 * np.max(np.abs(aligned_inc))
-            front_idx = np.argmax(np.abs(aligned_inc) > front_thresh)
-            self.state.alignment_front_idx = int(front_idx)
+            front_idx = int(np.argmax(np.abs(aligned_inc) > front_thresh))
 
             linear_start = front_idx
             linear_end = int(front_idx + k_linear * len(aligned_inc))
-            self.state.linear_region = (linear_start, linear_end)
 
-            # Save parameters
-            self._save_params()
+            # Save form data with injected computed values
+            form_data = self.form_builder.get_form_data(self._form_widget)
+            form_data[f"{DYN_NS}hasTransmittedShiftValue"] = shift_t
+            form_data[f"{DYN_NS}hasReflectedShiftValue"] = shift_r
+            form_data[f"{DYN_NS}hasFrontIndex"] = front_idx
+            form_data[f"{DYN_NS}hasCenteredSegmentPoints"] = self.state.get_segmentation_param('hasSegmentPoints')
+            form_data[f"{DYN_NS}hasThresholdRatio"] = self.state.get_segmentation_param('hasSegmentThreshold')
+            self.state.alignment_form_data = form_data
 
-            # Update read-only fields in form with results
+            # Update read-only fields in form display
             result_data = {
                 f"{DYN_NS}hasTransmittedShiftValue": shift_t,
                 f"{DYN_NS}hasReflectedShiftValue": shift_r,
-                f"{DYN_NS}hasFrontIndex": int(front_idx),
+                f"{DYN_NS}hasFrontIndex": front_idx,
             }
             self.form_builder.set_form_data(self._form_widget, result_data)
 
@@ -322,11 +276,15 @@ class AlignmentPage(BaseSHPBPage):
 
     def _update_results_display(self) -> None:
         """Update display-only linear region label."""
-        if self.state.linear_region:
-            start, end = self.state.linear_region
-            self.linear_label.setText(f"Linear Region: [{start}, {end}]")
-        else:
-            self.linear_label.setText("Linear Region: --")
+        front_idx = self.state.get_alignment_param('hasFrontIndex')
+        k_linear = self.state.get_alignment_param('hasKLinear')
+        if front_idx is not None and k_linear is not None:
+            incident = self.state.aligned_pulses.get('incident')
+            if incident is not None:
+                linear_end = int(front_idx + k_linear * len(incident))
+                self.linear_label.setText(f"Linear Region: [{front_idx}, {linear_end}]")
+                return
+        self.linear_label.setText("Linear Region: --")
 
     def _update_plots(self) -> None:
         """Update plots with aligned pulses."""

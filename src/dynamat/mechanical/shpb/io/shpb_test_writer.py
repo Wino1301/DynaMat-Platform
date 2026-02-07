@@ -21,6 +21,7 @@ from dynamat.config import config
 
 from .test_metadata import SHPBTestMetadata
 from .csv_data_handler import CSVDataHandler
+from .state_instances import StateToInstancesConverter
 
 # Type hints only - avoid circular import at runtime
 if TYPE_CHECKING:
@@ -172,6 +173,76 @@ class SHPBTestWriter:
 
         except Exception as e:
             logger.error(f"Test ingestion failed: {e}", exc_info=True)
+            raise
+
+    def ingest_from_state(
+        self,
+        state,
+        raw_data_df: pd.DataFrame,
+        processed_results: Optional[Dict[str, np.ndarray]] = None
+    ) -> Tuple[Optional[Path], "ValidationResult"]:
+        """Ingest SHPB test from form-data-driven analysis state.
+
+        This is the form-data-only alternative to ingest_test(). Instead of
+        building SHPBTestMetadata with 120+ scalar fields, it reads directly
+        from the state's form-data dicts.
+
+        Args:
+            state: SHPBAnalysisState with form-data dicts populated
+            raw_data_df: DataFrame with columns 'time', 'incident', 'transmitted'
+            processed_results: Optional dict from StressStrainCalculator.calculate()
+
+        Returns:
+            Tuple of (test_file_path, validation_result)
+        """
+        logger.info(f"Starting state-based SHPB test ingestion for: {state.test_id}")
+
+        try:
+            # Step 1: Validate
+            csv_handler = CSVDataHandler(raw_data_df)
+            csv_handler.validate_structure()
+
+            # Step 2: Save CSV files
+            specimen_dir = self._get_specimen_directory(state.specimen_uri or '')
+            self._create_directory_structure(specimen_dir)
+
+            test_id_clean = state.test_id.replace('-', '_')
+            raw_filename = f"{test_id_clean}_raw.csv"
+            csv_path = specimen_dir / 'raw' / raw_filename
+            csv_handler.save_to_csv(csv_path)
+
+            processed_csv_path = None
+            if processed_results is not None:
+                processed_csv_path = self._save_processed_csv(
+                    processed_results, specimen_dir, state.test_id
+                )
+
+            # Step 3: Build all instances from state
+            converter = StateToInstancesConverter()
+            all_instances = converter.build_all_instances(
+                state, raw_data_df, processed_results
+            )
+
+            # Step 4: Save to TTL
+            test_file_path, validation_result = self._save_test_file(
+                all_instances, specimen_dir, state.test_id
+            )
+
+            if not test_file_path:
+                logger.warning("State-based test ingestion failed validation")
+                return None, validation_result
+
+            # Step 5: Link test to specimen
+            test_uri = f"dyn:{test_id_clean}"
+            self._link_test_to_specimen(
+                state.specimen_uri or '', test_uri, specimen_dir
+            )
+
+            logger.info(f"State-based test ingestion completed: {test_file_path}")
+            return test_file_path, validation_result
+
+        except Exception as e:
+            logger.error(f"State-based test ingestion failed: {e}", exc_info=True)
             raise
 
     def _get_specimen_directory(self, specimen_uri: str) -> Path:

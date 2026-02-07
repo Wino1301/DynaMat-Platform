@@ -150,22 +150,23 @@ class SegmentationPage(BaseSHPBPage):
         return True
 
     def _restore_params(self) -> None:
-        """Restore parameters from state to ontology form."""
-        form_data = {
-            f"{DYN_NS}hasSegmentPoints": self.state.segment_n_points,
-            f"{DYN_NS}hasSegmentThreshold": self.state.segment_thresh_ratio,
-        }
-        self.form_builder.set_form_data(self._form_widget, form_data)
+        """Restore parameters from state form data to ontology form."""
+        if self.state.segmentation_form_data:
+            self.form_builder.set_form_data(self._form_widget, self.state.segmentation_form_data)
 
     def _save_params(self) -> None:
-        """Save parameters from ontology form to state."""
+        """Save parameters from ontology form to state as form-data dict."""
+        self.state.segmentation_form_data = self.form_builder.get_form_data(self._form_widget)
+
+    def _get_n_points(self) -> int:
+        """Get segment points from form data."""
         form_data = self.form_builder.get_form_data(self._form_widget)
-        self.state.segment_n_points = form_data.get(
-            f"{DYN_NS}hasSegmentPoints", 25000
-        )
-        self.state.segment_thresh_ratio = form_data.get(
-            f"{DYN_NS}hasSegmentThreshold", 0.01
-        )
+        return form_data.get(f"{DYN_NS}hasSegmentPoints", 25000)
+
+    def _get_thresh_ratio(self) -> float:
+        """Get threshold ratio from form data."""
+        form_data = self.form_builder.get_form_data(self._form_widget)
+        return form_data.get(f"{DYN_NS}hasSegmentThreshold", 0.01)
 
     def _segment_pulses(self) -> None:
         """Segment all detected pulses."""
@@ -174,9 +175,8 @@ class SegmentationPage(BaseSHPBPage):
 
         try:
             # Get parameters from form
-            form_data = self.form_builder.get_form_data(self._form_widget)
-            n_points = form_data.get(f"{DYN_NS}hasSegmentPoints", 25000)
-            thresh_ratio = form_data.get(f"{DYN_NS}hasSegmentThreshold", 0.01)
+            n_points = self._get_n_points()
+            thresh_ratio = self._get_thresh_ratio()
 
             # Get raw signals
             incident_signal = self.state.get_raw_signal('incident')
@@ -202,9 +202,9 @@ class SegmentationPage(BaseSHPBPage):
                     signal = transmitted_signal
                     polarity = 'compressive'
 
-                # Get detector parameters
-                params = self.state.detection_params.get(pulse_type, {})
-                pulse_points = params.get('pulse_points', 15000)
+                # Get detector parameters from detection form data
+                detect_form = self.state.detection_form_data.get(pulse_type, {})
+                pulse_points = detect_form.get(f"{DYN_NS}hasPulsePoints", 15000)
 
                 # Create detector for segmentation
                 detector = PulseDetector(
@@ -222,16 +222,10 @@ class SegmentationPage(BaseSHPBPage):
                     debug=True
                 )
 
-                # Calculate centering shift
-                i0, i1 = window
-                half_pad = max(0, (n_points - (i1 - i0)) // 2)
-                start = max(0, i0 - half_pad)
-
                 # Store results
                 self.state.segmented_pulses[pulse_type] = segment
 
-                # Note: The shift is calculated internally in segment_and_center
-                # We approximate it here based on the energy centering
+                # Calculate centering shift approximation
                 idx = np.arange(len(segment))
                 energy = segment ** 2
                 if np.sum(energy) > 0:
@@ -244,9 +238,8 @@ class SegmentationPage(BaseSHPBPage):
 
                 self.logger.info(f"Segmented {pulse_type}: {len(segment)} points, shift={shift}")
 
-            # Update state
-            self.state.segment_n_points = n_points
-            self.state.segment_thresh_ratio = thresh_ratio
+            # Save form data with computed values
+            self._save_params()
 
             # Update display
             self._update_results_display()
@@ -293,7 +286,7 @@ class SegmentationPage(BaseSHPBPage):
         try:
             self.plot_widget.clear()
 
-            n_points = self.state.segment_n_points
+            n_points = self._get_n_points()
 
             # Create time vector for segment
             sampling_interval = self.state.sampling_interval or 1.0
