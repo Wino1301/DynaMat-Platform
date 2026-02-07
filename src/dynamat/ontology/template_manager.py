@@ -53,7 +53,7 @@ class TemplateManager:
             template_dir: Path to templates directory
         """
         self.ns_manager = namespace_manager
-        self.template_dir = template_dir or (config.PROJECT_ROOT / "templates")
+        self.template_dir = template_dir or config.TEMPLATE_DIR
         
         # Template namespace
         self.TEMPLATE = self.ns_manager.get_namespace('dyn')  # Use DYN for templates

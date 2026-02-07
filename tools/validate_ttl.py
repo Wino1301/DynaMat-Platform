@@ -18,10 +18,9 @@ import json
 from pathlib import Path
 from typing import Optional
 
-# Add project root to Python path
-PROJECT_ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
+# Import dynamat modules directly now that it's an installable package
 from dynamat.gui.core.form_validator import SHACLValidator, ValidationResult, ValidationSeverity
 from dynamat.ontology import OntologyManager
 from rdflib import Graph
@@ -128,7 +127,7 @@ def validate_ttl_file(
                 print_info("Shape file", str(shape_file))
         else:
             if not json_output:
-                shapes_dir = Path(PROJECT_ROOT) / "dynamat" / "ontology" / "shapes"
+                shapes_dir = PROJECT_ROOT / "src" / "dynamat" / "ontology" / "shapes"
                 print_info("Using shapes from", str(shapes_dir))
 
         # Perform validation

@@ -81,7 +81,7 @@ class SHACLValidator:
         """
         self.ns_manager = namespace_manager
         self.sparql_executor = sparql_executor
-        self.shapes_dir = shapes_dir or (config.PROJECT_ROOT / "dynamat" / "ontology" / "shapes")
+        self.shapes_dir = shapes_dir or (config.ONTOLOGY_DIR / "shapes")
         
         # Load SHACL shapes
         self.shapes_graph = Graph()

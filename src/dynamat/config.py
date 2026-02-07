@@ -24,7 +24,7 @@ class Config:
     DATA_DIR = PROJECT_ROOT / "data"
 
     # Ontology Directory (e.g., src/dynamat/ontology) - part of the installed package
-    ONTOLOGY_DIR = Path(__file__).parent.parent / "ontology"
+    ONTOLOGY_DIR = Path(__file__).parent / "ontology"
     TEMPLATE_DIR = ONTOLOGY_DIR / "templates"
     QUDT_CACHE_DIR = ONTOLOGY_DIR / "qudt" / "cache"
 
