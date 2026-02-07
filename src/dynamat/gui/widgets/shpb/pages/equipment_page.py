@@ -173,6 +173,7 @@ class EquipmentPage(BaseSHPBPage):
                 "hasMomentumTrap", "hasPulseShaper", "hasAlignmentParams",
                 "hasEquilibriumMetrics", "performedOn", "hasUser",
                 "hasIncidentStrainGauge", "hasTransmissionStrainGauge",
+                "hasTestType",
             }
             boolean_properties = {
                 "hasPulseShaping", "hasLubricationUsed",
@@ -184,11 +185,27 @@ class EquipmentPage(BaseSHPBPage):
                 "hasDataBitResolution",
             }
             string_properties = {
-                "hasTestID", "hasTestType", "hasLubricationType",
+                "hasTestID", "hasLubricationType",
                 "hasKTrials", "hasDeformationMode", "hasFailureMode",
                 "hasTestValidity", "hasWaveDispersion", "hasCompressionSign",
             }
             date_properties = {"hasTestDate", "hasAnalysisTimestamp"}
+
+            # Map object properties to their range class for sh:class validation
+            object_property_range = {
+                "hasStrikerBar": DYN.Bar,
+                "hasIncidentBar": DYN.Bar,
+                "hasTransmissionBar": DYN.Bar,
+                "hasMomentumTrap": DYN.MomentumTrap,
+                "hasPulseShaper": DYN.PulseShaper,
+                "hasAlignmentParams": DYN.AlignmentParams,
+                "hasEquilibriumMetrics": DYN.EquilibriumMetrics,
+                "performedOn": DYN.Specimen,
+                "hasUser": DYN.User,
+                "hasIncidentStrainGauge": DYN.StrainGauge,
+                "hasTransmissionStrainGauge": DYN.StrainGauge,
+                "hasTestType": DYN.TestType,
+            }
 
             for uri, value in form_data.items():
                 if value is None:
@@ -199,7 +216,12 @@ class EquipmentPage(BaseSHPBPage):
 
                 if prop_name in object_properties:
                     if isinstance(value, str) and value:
-                        g.add((instance, prop, URIRef(value)))
+                        obj_ref = URIRef(value)
+                        g.add((instance, prop, obj_ref))
+                        # Add type triple so sh:class constraints can validate
+                        range_class = object_property_range.get(prop_name)
+                        if range_class:
+                            g.add((obj_ref, RDF.type, range_class))
                 elif prop_name in boolean_properties:
                     g.add((instance, prop, Literal(bool(value), datatype=XSD.boolean)))
                 elif prop_name in integer_properties:

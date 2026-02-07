@@ -61,15 +61,67 @@ dyn:SHPBCompressionShape a sh:NodeShape ;
     ] ;
 
     # =========================================================================
+    # WARNINGS (Important for downstream operations — allow continue)
+    # =========================================================================
+
+    sh:property [
+        sh:path dyn:hasIncidentStrainGauge ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:class dyn:StrainGauge ;
+        sh:message "Incident strain gauge should be selected (needed for voltage-to-strain conversion)" ;
+        sh:severity sh:Warning ;
+    ] ;
+
+    sh:property [
+        sh:path dyn:hasTransmissionStrainGauge ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:class dyn:StrainGauge ;
+        sh:message "Transmission strain gauge should be selected (needed for voltage-to-strain conversion)" ;
+        sh:severity sh:Warning ;
+    ] ;
+
+    sh:property [
+        sh:path dyn:hasStrikerVelocity ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:double ;
+        sh:minExclusive 0.0 ;
+        sh:message "Striker velocity should be specified (needed for strain rate characterization)" ;
+        sh:severity sh:Warning ;
+    ] ;
+
+    sh:property [
+        sh:path dyn:hasTestType ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:class dyn:TestType ;
+        sh:message "Test type should be specified (calibration, elastic, or specimen test)" ;
+        sh:severity sh:Warning ;
+    ] ;
+
+    # =========================================================================
+    # INFO (Recommended but not critical — allow continue)
+    # =========================================================================
+
+    sh:property [
+        sh:path dyn:hasPulseShaper ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:class dyn:PulseShaper ;
+        sh:message "Consider specifying pulse shaper for complete test documentation" ;
+        sh:severity sh:Info ;
+    ] ;
+
+    sh:property [
+        sh:path dyn:hasMomentumTrap ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:class dyn:MomentumTrap ;
+        sh:message "Consider specifying momentum trap configuration for complete test documentation" ;
+        sh:severity sh:Info ;
+    ] ;
+
+    # =========================================================================
     # CARDINALITY CONSTRAINTS (Single-value properties)
     # =========================================================================
 
-    # Equipment configuration (optional)
-    sh:property [ sh:path dyn:hasMomentumTrap ; sh:maxCount 1 ; sh:class dyn:MomentumTrap ] ;
-    sh:property [ sh:path dyn:hasPulseShaper ; sh:maxCount 1 ; sh:class dyn:PulseShaper ] ;
-
     # Test conditions
-    sh:property [ sh:path dyn:hasStrikerVelocity ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path dyn:hasStrikerLength ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path dyn:hasIncidentBarLength ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path dyn:hasTransmissionBarLength ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
