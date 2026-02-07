@@ -1,0 +1,174 @@
+@prefix gui: <https://dynamat.utep.edu/gui/constraints#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+#################################################################
+# GUI CONSTRAINT VOCABULARY
+# Defines the language for expressing UI form constraints
+#################################################################
+
+#================================================================
+# Core Constraint Class
+#================================================================
+
+gui:Constraint a owl:Class ;
+    rdfs:label "UI Constraint" ;
+    rdfs:comment "Unified UI behavior constraint that can perform multiple operations: visibility (show/hide), calculations, and value generation. All operations within a constraint execute atomically when triggered." .
+
+#================================================================
+# Constraint Properties
+#================================================================
+
+gui:forClass a owl:ObjectProperty ;
+    rdfs:domain gui:Constraint ;
+    rdfs:range owl:Class ;
+    rdfs:label "for class" ;
+    rdfs:comment "The class this constraint applies to" .
+
+gui:triggers a rdf:Property ;
+    rdfs:domain gui:Constraint ;
+    rdfs:label "triggers" ;
+    rdfs:comment "Property(ies) that trigger this constraint" .
+
+gui:triggerLogic a owl:ObjectProperty ;
+    rdfs:domain gui:Constraint ;
+    rdfs:range gui:TriggerLogic ;
+    rdfs:label "trigger logic" ;
+    rdfs:comment "Logic gate for multiple triggers" .
+
+gui:whenValue a rdf:Property ;
+    rdfs:domain gui:Constraint ;
+    rdfs:label "when value" ;
+    rdfs:comment "Value(s) that activate the constraint" .
+
+# Visibility operation properties
+gui:showFields a rdf:Property ;
+    rdfs:domain gui:Constraint ;
+    rdfs:label "show fields" ;
+    rdfs:comment "Property(ies) to make visible when constraint is triggered" .
+
+gui:hideFields a rdf:Property ;
+    rdfs:domain gui:Constraint ;
+    rdfs:label "hide fields" ;
+    rdfs:comment "Property(ies) to hide when constraint is triggered" .
+
+gui:priority a owl:DatatypeProperty ;
+    rdfs:domain gui:Constraint ;
+    rdfs:range xsd:integer ;
+    rdfs:label "priority" ;
+    rdfs:comment "Evaluation priority (lower = higher priority)" .
+
+#================================================================
+# Filtering Properties for ObjectProperty Widgets
+#================================================================
+
+gui:applyToFields a rdf:Property ;
+  rdfs:domain gui:Constraint ;
+  rdfs:label "apply to fields" ;
+  rdfs:comment "List of specific fields where filtering should be applied. If not specified, filtering applies to all relevant fields." .
+
+gui:excludeClass a owl:ObjectProperty ;
+  rdfs:domain gui:Constraint ;
+  rdfs:range owl:Class ;
+  rdfs:label "exclude class" ;
+  rdfs:comment "For ObjectProperty widgets, exclude individuals that are instances of the specified class(es)" .
+
+gui:filterByClass a owl:ObjectProperty ;
+  rdfs:domain gui:Constraint ;
+  rdfs:range owl:Class ;
+  rdfs:label "filter by class" ;
+  rdfs:comment "For ObjectProperty widgets, only include individuals that are instances of the specified class(es)" .
+
+#================================================================
+# Generation Operation Properties
+#================================================================
+
+gui:generationTemplate a owl:DatatypeProperty ;
+    rdfs:domain gui:Constraint ;
+    rdfs:range xsd:string ;
+    rdfs:label "generation template" ;
+    rdfs:comment "Template string for value generation (e.g., 'SPN-{materialCode}-{sequence}')" .
+
+gui:generationTarget a owl:ObjectProperty ;
+    rdfs:domain gui:Constraint ;
+    rdfs:label "generation target" ;
+    rdfs:comment "Property where generated value will be stored" .
+
+gui:generationInputs a rdf:Property ;
+    rdfs:domain gui:Constraint ;
+    rdfs:label "generation inputs" ;
+    rdfs:comment "Properties used as template inputs" .
+
+#================================================================
+# Calculation Operation Properties
+#================================================================
+
+gui:calculationFunction a owl:DatatypeProperty ;
+    rdfs:domain gui:Constraint ;
+    rdfs:range xsd:string ;
+    rdfs:label "calculation function" ;
+    rdfs:comment "Name of calculation function to invoke (e.g., 'circular_area_from_diameter')" .
+
+gui:calculationTarget a owl:ObjectProperty ;
+    rdfs:domain gui:Constraint ;
+    rdfs:label "calculation target" ;
+    rdfs:comment "Property where calculated result will be stored" .
+
+gui:calculationInputs a rdf:Property ;
+    rdfs:domain gui:Constraint ;
+    rdfs:label "calculation inputs" ;
+    rdfs:comment "Properties used as calculation inputs" .
+
+#================================================================
+# Trigger Logic Gates
+#================================================================
+
+gui:TriggerLogic a owl:Class ;
+    rdfs:label "Trigger Logic Gate" .
+
+gui:ANY a gui:TriggerLogic ;
+    rdfs:label "ANY (OR)" ;
+    rdfs:comment "Activate if ANY trigger condition is met" .
+
+gui:ALL a gui:TriggerLogic ;
+    rdfs:label "ALL (AND)" ;
+    rdfs:comment "Activate only when ALL trigger conditions are met" .
+
+gui:XOR a gui:TriggerLogic ;
+    rdfs:label "XOR (Exclusive OR)" ;
+    rdfs:comment "Activate when exactly ONE trigger is met" .
+
+#================================================================
+# Special Values
+#================================================================
+
+gui:anyValue a owl:NamedIndividual ;
+    rdfs:label "Any Value" ;
+    rdfs:comment "Matches any non-empty value" .
+
+gui:noValue a owl:NamedIndividual ;
+    rdfs:label "No Value" ;
+    rdfs:comment "Matches when property is empty" .
+
+#================================================================
+# Population Operation Properties
+#================================================================
+
+gui:populateFields a rdf:Property ;
+    rdfs:domain gui:Constraint ;
+    rdfs:label "populate fields" ;
+    rdfs:comment "List of (property_uri, display_label) tuples specifying which fields to populate from selected individual's properties. Structure: ((prop1 label1) (prop2 label2) ...)" .
+
+gui:makeReadOnly a owl:DatatypeProperty ;
+    rdfs:domain gui:Constraint ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "make read only" ;
+    rdfs:comment "If true, populated fields become read-only; if false, they remain editable" .
+
+gui:targetWidget a owl:DatatypeProperty ;
+    rdfs:domain gui:Constraint ;
+    rdfs:range xsd:string ;
+    rdfs:label "target widget" ;
+    rdfs:comment "Specifies a custom widget type for population display (e.g., 'BarMaterialProperties', 'StrainGaugeProperties')" .

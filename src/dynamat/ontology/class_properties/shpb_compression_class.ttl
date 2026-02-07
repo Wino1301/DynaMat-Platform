@@ -1,0 +1,485 @@
+@prefix dc: <http://purl.org/dc/terms/> .
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix gui: <https://dynamat.utep.edu/ontology/gui#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix qkdv: <http://qudt.org/vocab/quantitykind/> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@base <http://www.w3.org/2002/07/owl#> .
+
+[ rdf:type owl:Ontology
+ ] .
+
+# NOTE: Annotation properties (gui:*, qudt:hasQuantityKind, dyn:hasUnit) are
+# defined in core/annotation_vocabulary.ttl - do not redeclare here.
+
+#################################################################
+#    Object Properties - Specimen to SHPB Test Linkage
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasSHPBCompressionTest
+dyn:hasSHPBCompressionTest rdf:type owl:ObjectProperty ;
+                           rdfs:domain dyn:Specimen ;
+                           rdfs:range dyn:SHPBCompression ;
+                           rdfs:comment "Links a specimen to SHPB compression tests performed on it"@en ;
+                           rdfs:label "SHPB Compression Test"@en ;
+                           gui:hasDisplayName "SHPB Tests" ;
+                           gui:hasFormGroup "TestHistory" ;
+                           gui:hasGroupOrder 0 ;
+                           gui:hasDisplayOrder 1 .
+
+
+# NOTE: Test Setup properties (hasTestDate, hasUser, hasTestType) are inherited from
+# MechanicalTest class defined in mechanical_testing_class.ttl and DynaMat_core.ttl
+# GUI annotations for those properties should be updated there if needed.
+
+
+# NOTE: Test Identification properties (hasTestID, performedOn, hasTestDate) are
+# inherited from MechanicalTest/Activity defined in DynaMat_core.ttl.
+# - hasTestID: Auto-populated from specimen ID (e.g., DYNML_A356_0001_SHPBTest)
+# - performedOn: Links to the specimen being tested (set read-only from wizard state)
+# - hasTestDate: Date of test execution
+# Do not redefine here to avoid duplicate form fields.
+
+
+#################################################################
+#    Object Properties - SHPB Equipment Configuration (Workflow Section 3)
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasStrikerBar
+dyn:hasStrikerBar rdf:type owl:ObjectProperty ,
+                           owl:FunctionalProperty ;
+                  rdfs:domain dyn:SHPBCompression ;
+                  rdfs:range dyn:Bar ;
+                  rdfs:comment "Striker bar used in SHPB test"@en ;
+                  rdfs:label "Striker Bar"@en ;
+                  gui:hasDisplayName "Striker Bar" ;
+                  gui:hasFormGroup "BarConfiguration" ;
+                  gui:hasGroupOrder 3 ;
+                  gui:hasDisplayOrder 1 .
+
+
+###  https://dynamat.utep.edu/ontology#hasIncidentBar
+dyn:hasIncidentBar rdf:type owl:ObjectProperty ,
+                            owl:FunctionalProperty ;
+                   rdfs:domain dyn:SHPBCompression ;
+                   rdfs:range dyn:Bar ;
+                   rdfs:comment "Incident bar used in SHPB test"@en ;
+                   rdfs:label "Incident Bar"@en ;
+                   gui:hasDisplayName "Incident Bar" ;
+                   gui:hasFormGroup "BarConfiguration" ;
+                   gui:hasGroupOrder 2 ;
+                   gui:hasDisplayOrder 2 .
+
+
+###  https://dynamat.utep.edu/ontology#hasTransmissionBar
+dyn:hasTransmissionBar rdf:type owl:ObjectProperty ,
+                                owl:FunctionalProperty ;
+                       rdfs:domain dyn:SHPBCompression ;
+                       rdfs:range dyn:Bar ;
+                       rdfs:comment "Transmission bar used in SHPB test"@en ;
+                       rdfs:label "Transmission Bar"@en ;
+                       gui:hasDisplayName "Transmission Bar" ;
+                       gui:hasFormGroup "BarConfiguration" ;
+                       gui:hasGroupOrder 2 ;
+                       gui:hasDisplayOrder 3 .
+
+
+###  https://dynamat.utep.edu/ontology#hasIncidentStrainGauge
+dyn:hasIncidentStrainGauge rdf:type owl:ObjectProperty ,
+                                    owl:FunctionalProperty ;
+                           rdfs:domain dyn:SHPBCompression ;
+                           rdfs:range dyn:StrainGauge ;
+                           rdfs:comment "Strain gauge on incident bar for measuring incident and reflected pulses"@en ;
+                           rdfs:label "Incident Strain Gauge"@en ;
+                           gui:hasDisplayName "Incident Strain Gauge" ;
+                           gui:hasFormGroup "StrainGaugeConfiguration" ;
+                           gui:hasGroupOrder 4 ;
+                           gui:hasDisplayOrder 1 .
+
+
+###  https://dynamat.utep.edu/ontology#hasTransmissionStrainGauge
+dyn:hasTransmissionStrainGauge rdf:type owl:ObjectProperty ,
+                                        owl:FunctionalProperty ;
+                               rdfs:domain dyn:SHPBCompression ;
+                               rdfs:range dyn:StrainGauge ;
+                               rdfs:comment "Strain gauge on transmission bar for measuring transmitted pulse"@en ;
+                               rdfs:label "Transmission Strain Gauge"@en ;
+                               gui:hasDisplayName "Transmission Strain Gauge" ;
+                               gui:hasFormGroup "StrainGaugeConfiguration" ;
+                               gui:hasGroupOrder 3 ;
+                               gui:hasDisplayOrder 2 .
+
+
+###  https://dynamat.utep.edu/ontology#hasMomentumTrap
+dyn:hasMomentumTrap rdf:type owl:ObjectProperty ,
+                             owl:FunctionalProperty ;
+                    rdfs:domain dyn:SHPBCompression ;
+                    rdfs:range dyn:MomentumTrap ;
+                    rdfs:comment "Momentum trap configuration used"@en ;
+                    rdfs:label "Momentum Trap"@en ;
+                    gui:hasDisplayName "Momentum Trap" ;
+                    gui:hasFormGroup "TestConditions" ;
+                    gui:hasGroupOrder 5 ;
+                    gui:hasDisplayOrder 5 .
+
+
+###  https://dynamat.utep.edu/ontology#hasPulseShaper
+dyn:hasPulseShaper rdf:type owl:ObjectProperty ,
+                            owl:FunctionalProperty ;
+                   rdfs:domain dyn:SHPBCompression ;
+                   rdfs:range dyn:PulseShaper ;
+                   rdfs:comment "Pulse shaper instance used (material accessed via hasMaterial)"@en ;
+                   rdfs:label "Pulse Shaper"@en ;
+                   gui:hasDisplayName "Pulse Shaper" ;
+                   gui:hasFormGroup "TestConditions" ;
+                   gui:hasGroupOrder 5 ;
+                   gui:hasDisplayOrder 4 .
+
+
+#################################################################
+#    Data Properties - SHPB Test Conditions (Workflow Section 3)
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasStrikerVelocity
+dyn:hasStrikerVelocity rdf:type owl:DatatypeProperty ;
+                       rdfs:subPropertyOf dyn:hasTestCondition ;
+                       rdf:type owl:FunctionalProperty ;
+                       rdfs:domain dyn:SHPBCompression ;
+                       rdfs:range xsd:double ;
+                       qudt:hasQuantityKind qkdv:Velocity ;
+                       rdfs:comment "Impact velocity of striker bar"@en ;
+                       rdfs:label "Striker Velocity"@en ;
+                       dyn:hasUnit "unit:M-PER-SEC" ;
+                       gui:hasDisplayName "Striker Velocity" ;
+                       gui:hasFormGroup "TestConditions" ;
+                       gui:hasGroupOrder 5 ;
+                       gui:hasDisplayOrder 1 .
+
+
+###  https://dynamat.utep.edu/ontology#hasStrikerLaunchPressure
+dyn:hasStrikerLaunchPressure rdf:type owl:DatatypeProperty ;
+                             rdfs:subPropertyOf dyn:hasTestCondition ;
+                             rdf:type owl:FunctionalProperty ;
+                             rdfs:domain dyn:SHPBCompression ;
+                             rdfs:range xsd:double ;
+                             qudt:hasQuantityKind qkdv:Pressure ;
+                             rdfs:comment "Gas pressure used to launch striker bar"@en ;
+                             rdfs:label "Striker Launch Pressure"@en ;
+                             dyn:hasUnit "unit:PSI" ;
+                             gui:hasDisplayName "Striker Launch Pressure" ;
+                             gui:hasFormGroup "TestConditions" ;
+                             gui:hasGroupOrder 5 ;
+                             gui:hasDisplayOrder 2 .
+
+
+###  https://dynamat.utep.edu/ontology#hasBarrelOffset
+dyn:hasBarrelOffset rdf:type owl:DatatypeProperty ;
+                    rdfs:subPropertyOf dyn:hasTestCondition ;
+                    rdf:type owl:FunctionalProperty ;
+                    rdfs:domain dyn:SHPBCompression ;
+                    rdfs:range xsd:double ;
+                    qudt:hasQuantityKind qkdv:Length ;
+                    rdfs:comment "Separation distance between barrel end and incident bar"@en ;
+                    rdfs:label "Barrel Offset"@en ;
+                    dyn:hasUnit "unit:MilliM" ;
+                    gui:hasDisplayName "Barrel Offset" ;
+                    gui:hasFormGroup "TestConditions" ;
+                    gui:hasGroupOrder 5 ;
+                    gui:hasDisplayOrder 3 .
+
+
+###  https://dynamat.utep.edu/ontology#hasMomentumTrapTailoredDistance
+dyn:hasMomentumTrapTailoredDistance rdf:type owl:DatatypeProperty ;
+                                    rdfs:subPropertyOf dyn:hasTestCondition ;
+                                    rdf:type owl:FunctionalProperty ;
+                                    rdfs:domain dyn:SHPBCompression ;
+                                    rdfs:range xsd:double ;
+                                    qudt:hasQuantityKind qkdv:Length ;
+                                    rdfs:comment "Distance from specimen to momentum trap (tailored for specific test configuration)"@en ;
+                                    rdfs:label "Momentum Trap Tailored Distance"@en ;
+                                    dyn:hasUnit "unit:MilliM" ;
+                                    gui:hasDisplayName "Momentum Trap Distance" ;
+                                    gui:hasFormGroup "TestConditions" ;
+                                    gui:hasGroupOrder 5 ;
+                                    gui:hasDisplayOrder 6 .
+
+
+###  https://dynamat.utep.edu/ontology#hasLubrication
+dyn:hasLubrication rdf:type owl:DatatypeProperty ,
+                            owl:FunctionalProperty ;
+                   rdfs:domain dyn:SHPBCompression ;
+                   rdfs:range xsd:boolean ;
+                   rdfs:comment "Whether lubrication/grease was used on specimen interfaces"@en ;
+                   rdfs:label "Lubrication Applied"@en ;
+                   gui:hasDisplayName "Lubrication Applied" ;
+                   gui:hasFormGroup "TestConditions" ;
+                   gui:hasGroupOrder 5 ;
+                   gui:hasDisplayOrder 7 .
+
+
+#################################################################
+#    Data Properties - Pulse Characteristics (Workflow Section 4 - Calculated/Read-Only)
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasPulseDuration
+dyn:hasPulseDuration rdf:type owl:DatatypeProperty ;
+                     rdfs:subPropertyOf dyn:hasTestCondition ;
+                     rdf:type owl:FunctionalProperty ;
+                     rdfs:domain dyn:SHPBCompression ;
+                     rdfs:range xsd:double ;
+                     qudt:hasQuantityKind qkdv:Time ;
+                     rdfs:comment "Duration of the stress pulse generated (calculated: 2L/C)"@en ;
+                     rdfs:label "Pulse Duration"@en ;
+                     dyn:hasUnit "unit:MicroSEC" .
+
+
+###  https://dynamat.utep.edu/ontology#hasPulseLength
+dyn:hasPulseLength rdf:type owl:DatatypeProperty ;
+                   rdfs:subPropertyOf dyn:hasTestCondition ;
+                   rdf:type owl:FunctionalProperty ;
+                   rdfs:domain dyn:SHPBCompression ;
+                   rdfs:range xsd:double ;
+                   qudt:hasQuantityKind qkdv:Length ;
+                   rdfs:comment "Physical length of the stress pulse in the bar (calculated: 2L)"@en ;
+                   rdfs:label "Pulse Length"@en ;
+                   dyn:hasUnit "unit:MilliM" .
+
+
+###  https://dynamat.utep.edu/ontology#hasPulseSpeed
+dyn:hasPulseSpeed rdf:type owl:DatatypeProperty ;
+                  rdfs:subPropertyOf dyn:hasTestCondition ;
+                  rdf:type owl:FunctionalProperty ;
+                  rdfs:domain dyn:SHPBCompression ;
+                  rdfs:range xsd:double ;
+                  qudt:hasQuantityKind qkdv:Velocity ;
+                  rdfs:comment "Propagation speed of the stress pulse in the bar (from bar properties)"@en ;
+                  rdfs:label "Pulse Speed"@en ;
+                  dyn:hasUnit "unit:M-PER-SEC" .
+
+
+###  https://dynamat.utep.edu/ontology#hasPulseStrainAmplitude
+dyn:hasPulseStrainAmplitude rdf:type owl:DatatypeProperty ;
+                            rdfs:subPropertyOf dyn:hasTestCondition ;
+                            rdf:type owl:FunctionalProperty ;
+                            rdfs:domain dyn:SHPBCompression ;
+                            rdfs:range xsd:double ;
+                            qudt:hasQuantityKind qkdv:Strain ;
+                            rdfs:comment "Maximum strain amplitude of the incident pulse (calculated: V/2C)"@en ;
+                            rdfs:label "Pulse Strain Amplitude"@en ;
+                            dyn:hasUnit "unit:UNITLESS" .
+
+
+###  https://dynamat.utep.edu/ontology#hasPulseStressAmplitude
+dyn:hasPulseStressAmplitude rdf:type owl:DatatypeProperty ;
+                            rdfs:subPropertyOf dyn:hasTestCondition ;
+                            rdf:type owl:FunctionalProperty ;
+                            rdfs:domain dyn:SHPBCompression ;
+                            rdfs:range xsd:double ;
+                            qudt:hasQuantityKind qkdv:Stress ;
+                            rdfs:comment "Maximum stress amplitude of the incident pulse (calculated: ρCV/2)"@en ;
+                            rdfs:label "Pulse Stress Amplitude"@en ;
+                            dyn:hasUnit "unit:MegaPA" .
+
+
+###  https://dynamat.utep.edu/ontology#hasPulseRiseTime
+dyn:hasPulseRiseTime rdf:type owl:DatatypeProperty ;
+                     rdfs:subPropertyOf dyn:hasTestCondition ;
+                     rdf:type owl:FunctionalProperty ;
+                     rdfs:domain dyn:SHPBCompression ;
+                     rdfs:range xsd:double ;
+                     qudt:hasQuantityKind qkdv:Time ;
+                     rdfs:comment "Time for pulse to rise from 10% to 90% of maximum amplitude"@en ;
+                     rdfs:label "Pulse Rise Time"@en ;
+                     dyn:hasUnit "unit:MicroSEC" .
+
+
+###  https://dynamat.utep.edu/ontology#hasSamplingInterval
+dyn:hasSamplingInterval rdf:type owl:DatatypeProperty ;
+                        rdfs:subPropertyOf dyn:hasTestCondition ;
+                        rdf:type owl:FunctionalProperty ;
+                        rdfs:domain dyn:SHPBCompression ;
+                        rdfs:range xsd:double ;
+                        qudt:hasQuantityKind qkdv:Time ;
+                        rdfs:comment "Time interval between consecutive samples in raw data"@en ;
+                        rdfs:label "Sampling Interval"@en ;
+                        dyn:hasUnit "unit:MicroSEC" .
+
+#################################################################
+#    Data Properties - Segmentation Configuration (Workflow Section 6)
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasSegmentNPoints
+dyn:hasSegmentNPoints rdf:type owl:DatatypeProperty ,
+                               owl:FunctionalProperty ;
+                      rdfs:domain dyn:SHPBCompression ;
+                      rdfs:range xsd:integer ;
+                      rdfs:comment "Fixed segment length in samples for all pulses (determines time window for analysis)"@en ;
+                      rdfs:label "Segment N Points"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasSegmentThreshRatio
+dyn:hasSegmentThreshRatio rdf:type owl:DatatypeProperty ,
+                                   owl:FunctionalProperty ;
+                          rdfs:domain dyn:SHPBCompression ;
+                          rdfs:range xsd:double ;
+                          rdfs:comment "Noise threshold ratio for segmentation (0 = keep all data, >0 = zero samples below threshold)"@en ;
+                          rdfs:label "Threshold Ratio"@en .
+
+
+#################################################################
+#    Data Properties - Tukey Window Configuration (Workflow Section 10)
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasTukeyAlpha
+dyn:hasTukeyAlpha rdf:type owl:DatatypeProperty ,
+                           owl:FunctionalProperty ;
+                  rdfs:domain dyn:SHPBCompression ;
+                  rdfs:range xsd:double ;
+                  rdfs:comment "Tukey window alpha parameter controlling taper fraction (0=rectangular, 1=Hann window, typical: 0.5-0.6)"@en ;
+                  rdfs:label "Tukey Alpha"@en .
+
+
+# NOTE: Validity Assessment properties (hasTestValidity, hasValidityCriteria) are inherited
+# from MechanicalTest class defined in mechanical_testing_class.ttl
+# GUI annotations for those properties should be updated there if needed.
+
+
+#################################################################
+#    Classes
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#Bar
+dyn:Bar rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#MomentumTrap
+dyn:MomentumTrap rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#PulseShaper
+dyn:PulseShaper rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#StrainGauge
+dyn:StrainGauge rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#SHPBCompression
+dyn:SHPBCompression rdf:type owl:Class ;
+                    rdfs:subClassOf dyn:MechanicalTest ;
+                    rdfs:label "SHPB Compression Test"@en ;
+                    rdfs:comment "Split Hopkinson Pressure Bar compression test for dynamic material characterization. Includes equipment configuration, test conditions, signal processing parameters, and analysis results."@en .
+
+
+###  https://dynamat.utep.edu/ontology#Specimen
+dyn:Specimen rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#PulseDetectionParams
+dyn:PulseDetectionParams rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#AlignmentParams
+dyn:AlignmentParams rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#EquilibriumMetrics
+dyn:EquilibriumMetrics rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#hasTestCondition (reference to parent property)
+dyn:hasTestCondition rdf:type owl:DatatypeProperty .
+
+
+#################################################################
+#    Object Properties - Processing Parameter Links (Workflow Sections 5, 7, 9)
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasIncidentDetectionParams
+dyn:hasIncidentDetectionParams rdf:type owl:ObjectProperty ,
+                                        owl:FunctionalProperty ;
+                               rdfs:domain dyn:SHPBCompression ;
+                               rdfs:range dyn:PulseDetectionParams ;
+                               rdfs:comment "Links test to incident pulse detection configuration"@en ;
+                               rdfs:label "Incident Detection Params"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasTransmittedDetectionParams
+dyn:hasTransmittedDetectionParams rdf:type owl:ObjectProperty ,
+                                           owl:FunctionalProperty ;
+                                  rdfs:domain dyn:SHPBCompression ;
+                                  rdfs:range dyn:PulseDetectionParams ;
+                                  rdfs:comment "Links test to transmitted pulse detection configuration"@en ;
+                                  rdfs:label "Transmitted Detection Params"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasReflectedDetectionParams
+dyn:hasReflectedDetectionParams rdf:type owl:ObjectProperty ,
+                                         owl:FunctionalProperty ;
+                                rdfs:domain dyn:SHPBCompression ;
+                                rdfs:range dyn:PulseDetectionParams ;
+                                rdfs:comment "Links test to reflected pulse detection configuration"@en ;
+                                rdfs:label "Reflected Detection Params"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasAlignmentParams
+dyn:hasAlignmentParams rdf:type owl:ObjectProperty ,
+                                owl:FunctionalProperty ;
+                       rdfs:domain dyn:SHPBCompression ;
+                       rdfs:range dyn:AlignmentParams ;
+                       rdfs:comment "Links test to pulse alignment configuration parameters"@en ;
+                       rdfs:label "Alignment Parameters"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasEquilibriumMetrics
+dyn:hasEquilibriumMetrics rdf:type owl:ObjectProperty ,
+                                   owl:FunctionalProperty ;
+                          rdfs:domain dyn:SHPBCompression ;
+                          rdfs:range dyn:EquilibriumMetrics ;
+                          rdfs:comment "Links test to force equilibrium assessment metrics"@en ;
+                          rdfs:label "Equilibrium Metrics"@en .
+
+
+#################################################################
+#    Data Properties - Analysis Metadata (Workflow Section 12)
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasAnalysisTimestamp
+dyn:hasAnalysisTimestamp rdf:type owl:DatatypeProperty ,
+                                  owl:FunctionalProperty ;
+                         rdfs:domain dyn:SHPBCompression ;
+                         rdfs:range xsd:dateTime ;
+                         rdfs:comment "Timestamp when SHPB analysis was performed and processed data was generated"@en ;
+                         rdfs:label "Analysis Timestamp"@en .
+
+
+#################################################################
+#    Series Linkage - Raw Input and Processed Output
+#################################################################
+
+# Raw input series (what the user loads via RawDataLoaderWidget)
+dyn:SHPBCompression dyn:hasRawSeries dyn:Time ,
+                                     dyn:IncidentPulse ,
+                                     dyn:TransmittedPulse .
+
+# Processed output series (what the analysis pipeline produces)
+dyn:SHPBCompression dyn:hasProcessedSeries dyn:WindowedTime ,
+                                           dyn:WindowedIncidentPulse ,
+                                           dyn:WindowedTransmittedPulse ,
+                                           dyn:WindowedReflectedPulse ,
+                                           dyn:Stress ,
+                                           dyn:TrueStress ,
+                                           dyn:Strain ,
+                                           dyn:TrueStrain ,
+                                           dyn:StrainRate ,
+                                           dyn:TrueStrainRate ,
+                                           dyn:BarForce ,
+                                           dyn:BarDisplacement .
+
+
+###  Generated by the OWL API (version 4.5.29.2024-05-13T12:11:03Z) https://github.com/owlcs/owlapi

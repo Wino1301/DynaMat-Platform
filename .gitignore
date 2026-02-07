@@ -77,9 +77,18 @@ docs/_missing_integrations/
 /temp/
 /tmp/
 
+# User Data
+user_data/
+
 # But keep important directories
 !examples/**/*.csv
 !tests/fixtures/*.csv
 *.log
 /dynamat/ontology/qudt/cache
 .claude/settings.local.json
+
+# Claude Code temporary files
+tmpclaude-*-cwd
+
+.gemini/
+gha-creds-*.json

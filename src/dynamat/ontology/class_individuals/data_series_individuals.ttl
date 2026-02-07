@@ -1,0 +1,352 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix gui: <https://dynamat.utep.edu/ontology/gui#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dc: <http://purl.org/dc/terms/> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@prefix qkdv: <http://qudt.org/vocab/quantitykind/> .
+
+# =============================================================================
+# DynaMat Platform - Data Series Type Individual Instances
+# For ontology/class_individuals/data_series_individuals.ttl
+# Defines individual instances of dyn:SeriesType for categorizing data series
+#
+# Each SeriesType individual includes CSV-to-RDF mapping metadata:
+#   - dyn:hasDefaultColumnName - default column name in CSV files
+#   - dyn:hasUnit - QUDT unit (URIRef, aligned with Specimen pattern)
+#   - qudt:hasQuantityKind - QUDT quantity kind (URIRef, aligned with Specimen pattern)
+#   - dyn:hasLegendTemplate - legend template (with {analysis_method} placeholder)
+#   - dyn:hasDefaultSeriesClass - dyn:RawSignal or dyn:ProcessedData
+#   NOTE: Derivation chains are handled at the instance level via dyn:derivedFrom
+#   The SHPB module uses Python-based derivation mapping (SHPB_DERIVATION_MAP)
+#   - dyn:requiresStrainGauge - whether strain gauge data is required
+# =============================================================================
+
+#################################################################
+#    Time Series Type
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#Time
+dyn:Time rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Time"@en ;
+    rdfs:comment "Time axis for data series"@en ;
+    dyn:hasDefaultColumnName "time" ;
+    qudt:hasQuantityKind qkdv:Time ;
+    dyn:hasUnit unit:MilliSEC ;
+    dyn:hasLegendTemplate "Time" ;
+    dyn:hasDefaultSeriesClass dyn:RawSignal ;
+    dyn:requiresStrainGauge false .
+
+
+#################################################################
+#    SHPB Pulse Series Types (Raw Signals)
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#IncidentPulse
+dyn:IncidentPulse rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Incident Pulse"@en ;
+    rdfs:comment "Incident strain wave pulse in SHPB test"@en ;
+    dyn:hasDefaultColumnName "incident" ;
+    qudt:hasQuantityKind qkdv:Voltage ;
+    dyn:hasUnit unit:V ;
+    dyn:hasLegendTemplate "Incident Pulse" ;
+    dyn:hasDefaultSeriesClass dyn:RawSignal ;
+    dyn:requiresStrainGauge true .
+
+
+###  https://dynamat.utep.edu/ontology#TransmittedPulse
+dyn:TransmittedPulse rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Transmitted Pulse"@en ;
+    rdfs:comment "Transmitted strain wave pulse in SHPB test"@en ;
+    dyn:hasDefaultColumnName "transmitted" ;
+    qudt:hasQuantityKind qkdv:Voltage ;
+    dyn:hasUnit unit:V ;
+    dyn:hasLegendTemplate "Transmitted Pulse" ;
+    dyn:hasDefaultSeriesClass dyn:RawSignal ;
+    dyn:requiresStrainGauge true .
+
+
+###  https://dynamat.utep.edu/ontology#ReflectedPulse
+dyn:ReflectedPulse rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Reflected Pulse"@en ;
+    rdfs:comment "Reflected strain wave pulse in SHPB test"@en ;
+    dyn:hasDefaultColumnName "reflected" ;
+    qudt:hasQuantityKind qkdv:Voltage ;
+    dyn:hasUnit unit:V ;
+    dyn:hasLegendTemplate "Reflected Pulse" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge true .
+
+
+#################################################################
+#    Stress-Related Series Types (Processed Data)
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#Stress
+dyn:Stress rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Stress"@en ;
+    rdfs:comment "Engineering stress (force per unit original cross-sectional area)"@en ;
+    dyn:hasDefaultColumnName "stress" ;
+    qudt:hasQuantityKind qkdv:Stress ;
+    dyn:hasUnit unit:MegaPA ;
+    dyn:hasLegendTemplate "Engineering Stress ({analysis_method})" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge false .
+
+
+###  https://dynamat.utep.edu/ontology#TrueStress
+dyn:TrueStress rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "True Stress"@en ;
+    rdfs:comment "True stress (force per unit instantaneous cross-sectional area)"@en ;
+    dyn:hasDefaultColumnName "true_stress" ;
+    qudt:hasQuantityKind qkdv:Stress ;
+    dyn:hasUnit unit:MegaPA ;
+    dyn:hasLegendTemplate "True Stress ({analysis_method})" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge false .
+
+
+#################################################################
+#    Strain-Related Series Types (Processed Data)
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#Strain
+dyn:Strain rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Strain"@en ;
+    rdfs:comment "Engineering strain (change in length per unit original length)"@en ;
+    dyn:hasDefaultColumnName "strain" ;
+    qudt:hasQuantityKind qkdv:Dimensionless ;
+    dyn:hasUnit unit:UNITLESS ;
+    dyn:hasLegendTemplate "Engineering Strain ({analysis_method})" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge false .
+
+
+###  https://dynamat.utep.edu/ontology#TrueStrain
+dyn:TrueStrain rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "True Strain"@en ;
+    rdfs:comment "True strain (logarithmic strain)"@en ;
+    dyn:hasDefaultColumnName "true_strain" ;
+    qudt:hasQuantityKind qkdv:Dimensionless ;
+    dyn:hasUnit unit:UNITLESS ;
+    dyn:hasLegendTemplate "True Strain ({analysis_method})" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge false .
+
+
+###  https://dynamat.utep.edu/ontology#StrainRate
+dyn:StrainRate rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Strain Rate"@en ;
+    rdfs:comment "Rate of strain change (engineering strain rate)"@en ;
+    dyn:hasDefaultColumnName "strain_rate" ;
+    qudt:hasQuantityKind qkdv:StrainRate ;
+    dyn:hasUnit unit:PER-SEC ;
+    dyn:hasLegendTemplate "Strain Rate ({analysis_method})" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge false .
+
+
+###  https://dynamat.utep.edu/ontology#TrueStrainRate
+dyn:TrueStrainRate rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "True Strain Rate"@en ;
+    rdfs:comment "Rate of true strain change"@en ;
+    dyn:hasDefaultColumnName "true_strain_rate" ;
+    qudt:hasQuantityKind qkdv:StrainRate ;
+    dyn:hasUnit unit:PER-SEC ;
+    dyn:hasLegendTemplate "True Strain Rate ({analysis_method})" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge false .
+
+
+#################################################################
+#    Force and Displacement Series Types (Processed Data)
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#Force
+dyn:Force rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Force"@en ;
+    rdfs:comment "Applied force"@en ;
+    dyn:hasDefaultColumnName "force" ;
+    qudt:hasQuantityKind qkdv:Force ;
+    dyn:hasUnit unit:N ;
+    dyn:hasLegendTemplate "Force" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge false .
+
+
+###  https://dynamat.utep.edu/ontology#BarForce
+dyn:BarForce rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Bar Force"@en ;
+    rdfs:comment "Force transmitted through SHPB bar"@en ;
+    dyn:hasDefaultColumnName "bar_force" ;
+    qudt:hasQuantityKind qkdv:Force ;
+    dyn:hasUnit unit:N ;
+    dyn:hasLegendTemplate "Bar Force ({analysis_method})" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge false .
+
+
+###  https://dynamat.utep.edu/ontology#Displacement
+dyn:Displacement rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Displacement"@en ;
+    rdfs:comment "Position or displacement measurement"@en ;
+    dyn:hasDefaultColumnName "displacement" ;
+    qudt:hasQuantityKind qkdv:Length ;
+    dyn:hasUnit unit:MilliM ;
+    dyn:hasLegendTemplate "Displacement" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge false .
+
+
+###  https://dynamat.utep.edu/ontology#BarDisplacement
+dyn:BarDisplacement rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Bar Displacement"@en ;
+    rdfs:comment "Displacement of SHPB bar interface"@en ;
+    dyn:hasDefaultColumnName "bar_displacement" ;
+    qudt:hasQuantityKind qkdv:Length ;
+    dyn:hasUnit unit:MilliM ;
+    dyn:hasLegendTemplate "Bar Displacement ({analysis_method})" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge false .
+
+
+#################################################################
+#    Temperature Series Type
+#################################################################
+
+#################################################################
+#    Windowed Series Types (Intermediate Processed Data)
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#WindowedTime
+dyn:WindowedTime rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Windowed Time"@en ;
+    rdfs:comment "Time axis for windowed/segmented pulse data"@en ;
+    dyn:hasDefaultColumnName "time_windowed" ;
+    qudt:hasQuantityKind qkdv:Time ;
+    dyn:hasUnit unit:MilliSEC ;
+    dyn:hasLegendTemplate "Time (Windowed)" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge false .
+
+
+###  https://dynamat.utep.edu/ontology#WindowedIncidentPulse
+dyn:WindowedIncidentPulse rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Windowed Incident Pulse"@en ;
+    rdfs:comment "Incident pulse extracted and normalized from raw oscilloscope data"@en ;
+    dyn:hasDefaultColumnName "incident_windowed" ;
+    qudt:hasQuantityKind qkdv:Dimensionless ;
+    dyn:hasUnit unit:UNITLESS ;
+    dyn:hasLegendTemplate "Incident Pulse (Windowed)" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge true .
+
+
+###  https://dynamat.utep.edu/ontology#WindowedTransmittedPulse
+dyn:WindowedTransmittedPulse rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Windowed Transmitted Pulse"@en ;
+    rdfs:comment "Transmitted pulse extracted and normalized from raw oscilloscope data"@en ;
+    dyn:hasDefaultColumnName "transmitted_windowed" ;
+    qudt:hasQuantityKind qkdv:Dimensionless ;
+    dyn:hasUnit unit:UNITLESS ;
+    dyn:hasLegendTemplate "Transmitted Pulse (Windowed)" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge true .
+
+
+###  https://dynamat.utep.edu/ontology#WindowedReflectedPulse
+dyn:WindowedReflectedPulse rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Windowed Reflected Pulse"@en ;
+    rdfs:comment "Reflected pulse extracted and normalized from raw oscilloscope data (measured on incident bar)"@en ;
+    dyn:hasDefaultColumnName "reflected_windowed" ;
+    qudt:hasQuantityKind qkdv:Dimensionless ;
+    dyn:hasUnit unit:UNITLESS ;
+    dyn:hasLegendTemplate "Reflected Pulse (Windowed)" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge true .
+
+
+#################################################################
+#    Temperature Series Type
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#Temperature
+dyn:Temperature rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Temperature"@en ;
+    rdfs:comment "Temperature measurement"@en ;
+    dyn:hasDefaultColumnName "temperature" ;
+    qudt:hasQuantityKind qkdv:Temperature ;
+    dyn:hasUnit unit:DEG_C ;
+    dyn:hasLegendTemplate "Temperature" ;
+    dyn:hasDefaultSeriesClass dyn:RawSignal ;
+    dyn:requiresStrainGauge false .
+
+
+#################################################################
+#    Material Property Series Types
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#Hardness
+dyn:Hardness rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Hardness"@en ;
+    rdfs:comment "Material hardness measurement (indentation)"@en ;
+    dyn:hasDefaultColumnName "hardness" ;
+    qudt:hasQuantityKind qkdv:Dimensionless ;
+    dyn:hasUnit unit:UNITLESS ;
+    dyn:hasLegendTemplate "Hardness" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge false .
+
+
+###  https://dynamat.utep.edu/ontology#Modulus
+dyn:Modulus rdf:type owl:NamedIndividual, dyn:SeriesType ;
+    rdfs:label "Modulus"@en ;
+    rdfs:comment "Elastic modulus (Young's modulus, shear modulus, etc.)"@en ;
+    dyn:hasDefaultColumnName "modulus" ;
+    qudt:hasQuantityKind qkdv:ModulusOfElasticity ;
+    dyn:hasUnit unit:GigaPA ;
+    dyn:hasLegendTemplate "Modulus" ;
+    dyn:hasDefaultSeriesClass dyn:ProcessedData ;
+    dyn:requiresStrainGauge false .
+
+
+#################################################################
+#    Column Separator Individuals
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#CommaSeparator
+dyn:CommaSeparator rdf:type owl:NamedIndividual, dyn:ColumnSeparator ;
+    rdfs:label "Comma (,)"@en ;
+    rdfs:comment "Comma-separated values (CSV standard)"@en ;
+    dyn:hasDelimiterCharacter "," ;
+    gui:hasDisplayOrder 1 .
+
+
+###  https://dynamat.utep.edu/ontology#TabSeparator
+dyn:TabSeparator rdf:type owl:NamedIndividual, dyn:ColumnSeparator ;
+    rdfs:label "Tab (\\t)"@en ;
+    rdfs:comment "Tab-separated values (TSV)"@en ;
+    dyn:hasDelimiterCharacter "\t" ;
+    gui:hasDisplayOrder 2 .
+
+
+###  https://dynamat.utep.edu/ontology#SemicolonSeparator
+dyn:SemicolonSeparator rdf:type owl:NamedIndividual, dyn:ColumnSeparator ;
+    rdfs:label "Semicolon (;)"@en ;
+    rdfs:comment "Semicolon-separated values (common in European locales)"@en ;
+    dyn:hasDelimiterCharacter ";" ;
+    gui:hasDisplayOrder 3 .
+
+
+###  https://dynamat.utep.edu/ontology#SpaceSeparator
+dyn:SpaceSeparator rdf:type owl:NamedIndividual, dyn:ColumnSeparator ;
+    rdfs:label "Space"@en ;
+    rdfs:comment "Space-separated values"@en ;
+    dyn:hasDelimiterCharacter " " ;
+    gui:hasDisplayOrder 4 .
+
+
+###  Generated by the OWL API (version 4.5.29.2024-05-13T12:11:03Z) https://github.com/owlcs/owlapi

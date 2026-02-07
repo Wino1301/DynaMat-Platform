@@ -1,0 +1,343 @@
+@prefix dc: <http://purl.org/dc/terms/> .
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix gui: <https://dynamat.utep.edu/ontology/gui#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix qkdv: <http://qudt.org/vocab/quantitykind/> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@base <http://www.w3.org/2002/07/owl#> .
+
+[ rdf:type owl:Ontology
+ ] .
+
+# NOTE: Annotation properties (gui:*, qudt:hasQuantityKind, dyn:hasUnit) are
+# defined in core/annotation_vocabulary.ttl - do not redeclare here.
+
+#################################################################
+#    Object Properties
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasStrainGauge
+dyn:hasStrainGauge rdf:type owl:ObjectProperty ;
+                   rdfs:domain dyn:MechanicalTest ;
+                   rdfs:range dyn:StrainGauge ;
+                   rdfs:comment "Strain gauge used in test"@en ;
+                   rdfs:label "Strain Gauge"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasTestValidity
+dyn:hasTestValidity rdf:type owl:ObjectProperty ,
+                             owl:FunctionalProperty ;
+                    rdfs:domain dyn:MechanicalTest ;
+                    rdfs:range dyn:TestValidity ;
+                    rdfs:comment "Overall assessment of test validity (ValidTest, QuestionableTest, or InvalidTest)"@en ;
+                    rdfs:label "Test Validity"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasValidityCriteria
+dyn:hasValidityCriteria rdf:type owl:ObjectProperty ;
+                        rdfs:domain dyn:MechanicalTest ;
+                        rdfs:range dyn:TestValidity ;
+                        rdfs:comment "Specific validity criteria achieved by the test (e.g., ForceEquilibrium, ConstantStrainRate)"@en ;
+                        rdfs:label "Validity Criteria"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasTestingMachine
+dyn:hasTestingMachine rdf:type owl:ObjectProperty ,
+                               owl:FunctionalProperty ;
+                      rdfs:domain dyn:QuasistaticTest ;
+                      rdfs:range dyn:Equipment ;
+                      rdfs:comment "Universal testing machine used"@en ;
+                      rdfs:label "Testing Machine"@en ;
+                      gui:hasDisplayName "Testing Machine" ;
+                      gui:hasDisplayOrder 1 ;
+                      gui:hasFormGroup "EquipmentConfiguration" .
+
+
+#################################################################
+#    Data properties
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasCalibrationResistance
+dyn:hasCalibrationResistance rdf:type owl:DatatypeProperty ,
+                                      owl:FunctionalProperty ;
+                             rdfs:domain dyn:MechanicalTest ;
+                             rdfs:range xsd:double ;
+                             qudt:hasQuantityKind qkdv:Resistance ;
+                             rdfs:comment "Resistance used for strain gauge calibration"@en ;
+                             rdfs:label "Calibration Resistance"@en ;
+                             dyn:hasUnit "unit:OHM" .
+
+
+###  https://dynamat.utep.edu/ontology#hasCalibrationVoltage
+dyn:hasCalibrationVoltage rdf:type owl:DatatypeProperty ,
+                                   owl:FunctionalProperty ;
+                          rdfs:domain dyn:MechanicalTest ;
+                          rdfs:range xsd:double ;
+                          qudt:hasQuantityKind qkdv:Voltage ;
+                          rdfs:comment "Voltage used for strain gauge calibration"@en ;
+                          rdfs:label "Calibration Voltage"@en ;
+                          dyn:hasUnit "unit:V" .
+
+
+###  https://dynamat.utep.edu/ontology#hasCompressionSign
+dyn:hasCompressionSign rdf:type owl:DatatypeProperty ,
+                                owl:FunctionalProperty ;
+                       rdfs:domain dyn:MechanicalTest ;
+                       rdfs:range xsd:string ;
+                       rdfs:comment "Sign convention for compression (positive or negative)"@en ;
+                       rdfs:label "Compression Sign"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasDataBitResolution
+dyn:hasDataBitResolution rdf:type owl:DatatypeProperty ,
+                                  owl:FunctionalProperty ;
+                         rdfs:domain dyn:MechanicalTest ;
+                         rdfs:range xsd:integer ;
+                         rdfs:comment "Bit resolution of data acquisition system"@en ;
+                         rdfs:label "Data Bit Resolution"@en .
+
+###  https://dynamat.utep.edu/ontology#hasDisplacementRate
+dyn:hasDisplacementRate rdf:type owl:DatatypeProperty ;
+                        rdfs:subPropertyOf dyn:hasTestCondition ;
+                        rdf:type owl:FunctionalProperty ;
+                        rdfs:domain dyn:QuasistaticTest ;
+                        rdfs:range xsd:double ;
+                        qudt:hasQuantityKind qkdv:Velocity ;
+                        rdfs:comment "Crosshead displacement rate"@en ;
+                        rdfs:label "Displacement Rate"@en ;
+                        dyn:hasUnit "unit:MilliM-PER-SEC" ;
+                        gui:hasDisplayName "Crosshead Speed" ;
+                        gui:hasDisplayOrder 2 ;
+                        gui:hasFormGroup "TestConditions" .
+
+
+###  https://dynamat.utep.edu/ontology#hasExtensometerType
+dyn:hasExtensometerType rdf:type owl:DatatypeProperty ,
+                                 owl:FunctionalProperty ;
+                        rdfs:domain dyn:TensileTest ;
+                        rdfs:range xsd:string ;
+                        rdfs:comment "Type of extensometer used for strain measurement"@en ;
+                        rdfs:label "Extensometer Type"@en ;
+                        gui:hasDisplayName "Extensometer Type" ;
+                        gui:hasDisplayOrder 1 ;
+                        gui:hasFormGroup "EquipmentConfiguration" .
+
+
+###  https://dynamat.utep.edu/ontology#hasFailureMode
+dyn:hasFailureMode rdf:type owl:DatatypeProperty ,
+                            owl:FunctionalProperty ;
+                   rdfs:domain dyn:MechanicalTest ;
+                   rdfs:range xsd:string ;
+                   rdfs:comment "Mode of specimen failure"@en ;
+                   rdfs:label "Failure Mode"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasGaugeFactor
+dyn:hasGaugeFactor rdf:type owl:DatatypeProperty ,
+                            owl:FunctionalProperty ;
+                   rdfs:domain dyn:MechanicalTest ;
+                   rdfs:range xsd:double ;
+                   rdfs:comment "Strain gauge sensitivity factor"@en ;
+                   rdfs:label "Gauge Factor"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasGaugeLength
+dyn:hasGaugeLength rdf:type owl:DatatypeProperty ;
+                   rdfs:subPropertyOf dyn:hasTestCondition ;
+                   rdf:type owl:FunctionalProperty ;
+                   rdfs:domain dyn:TensileTest ;
+                   rdfs:range xsd:double ;
+                   qudt:hasQuantityKind qkdv:Length ;
+                   rdfs:comment "Length of the gauge section for strain measurement"@en ;
+                   rdfs:label "Gauge Length"@en ;
+                   dyn:hasUnit "unit:MilliM" ;
+                   gui:hasDisplayName "Gauge Length" ;
+                   gui:hasDisplayOrder 1 ;
+                   gui:hasFormGroup "TestConditions" .
+
+
+###  https://dynamat.utep.edu/ontology#hasGaugeResistance
+dyn:hasGaugeResistance rdf:type owl:DatatypeProperty ,
+                                owl:FunctionalProperty ;
+                       rdfs:domain dyn:MechanicalTest ;
+                       rdfs:range xsd:double ;
+                       qudt:hasQuantityKind qkdv:Resistance ;
+                       rdfs:comment "Nominal resistance of strain gauge"@en ;
+                       rdfs:label "Gauge Resistance"@en ;
+                       dyn:hasUnit "unit:OHM" .
+
+###  https://dynamat.utep.edu/ontology#hasDistanceFromSpecimen
+dyn:hasDistanceFromSpecimen rdf:type owl:DatatypeProperty ,
+                                     owl:FunctionalProperty ;
+                            rdfs:domain dyn:StrainGauge ;
+                            rdfs:range xsd:double ;
+                            qudt:hasQuantityKind qkdv:Length ;
+                            rdfs:comment "Distance from strain gauge to specimen interface on the bar"@en ;
+                            rdfs:label "Distance from Specimen"@en ;
+                            dyn:hasUnit "unit:MilliM" .
+
+###  https://dynamat.utep.edu/ontology#hasHeatingRate
+dyn:hasHeatingRate rdf:type owl:DatatypeProperty ;
+                   rdfs:subPropertyOf dyn:hasTestCondition ;
+                   rdf:type owl:FunctionalProperty ;
+                   rdfs:domain dyn:MechanicalTest ;
+                   rdfs:range xsd:double ;
+                   qudt:hasQuantityKind qkdv:TemperaturePerTime ;
+                   rdfs:comment "Rate of temperature increase for elevated temperature tests"@en ;
+                   rdfs:label "Heating Rate"@en ;
+                   dyn:hasUnit "unit:DEG_C-PER-MIN" ;
+                   gui:hasDisplayName "Heating Rate" ;
+                   gui:hasDisplayOrder 2 ;
+                   gui:hasGroupOrder 6 ;
+                   gui:hasFormGroup "HighTemperatureTesting" .
+
+
+###  https://dynamat.utep.edu/ontology#hasLoadingRate
+dyn:hasLoadingRate rdf:type owl:DatatypeProperty ;
+                   rdfs:subPropertyOf dyn:hasTestCondition ;
+                   rdf:type owl:FunctionalProperty ;
+                   rdfs:domain dyn:QuasistaticTest ;
+                   rdfs:range xsd:double ;
+                   qudt:hasQuantityKind qkdv:PressurePerTime ;
+                   rdfs:comment "Rate of stress application (Pa/s)"@en ;
+                   rdfs:label "Loading Rate"@en ;
+                   dyn:hasUnit "unit:PA-PER-SEC" ;
+                   gui:hasDisplayName "Loading Rate" ;
+                   gui:hasDisplayOrder 1 ;
+                   gui:hasFormGroup "TestConditions" .
+
+
+###  https://dynamat.utep.edu/ontology#hasMaximumLoad
+dyn:hasMaximumLoad rdf:type owl:DatatypeProperty ;
+                   rdfs:subPropertyOf dyn:hasTestCondition ;
+                   rdf:type owl:FunctionalProperty ;
+                   rdfs:domain dyn:QuasistaticTest ;
+                   rdfs:range xsd:double ;
+                   qudt:hasQuantityKind qkdv:Force ;
+                   rdfs:comment "Maximum load to be applied during test"@en ;
+                   rdfs:label "Maximum Load"@en ;
+                   dyn:hasUnit "unit:N" ;
+                   gui:hasDisplayName "Maximum Load" ;
+                   gui:hasDisplayOrder 3 ;
+                   gui:hasFormGroup "TestConditions" .
+
+
+###  https://dynamat.utep.edu/ontology#hasTemperatureStabilizationTime
+dyn:hasTemperatureStabilizationTime rdf:type owl:DatatypeProperty ;
+                                    rdfs:subPropertyOf dyn:hasTestCondition ;
+                                    rdf:type owl:FunctionalProperty ;
+                                    rdfs:domain dyn:MechanicalTest ;
+                                    rdfs:range xsd:double ;
+                                    qudt:hasQuantityKind qkdv:Time ;
+                                    rdfs:comment "Time allowed for temperature stabilization before testing"@en ;
+                                    rdfs:label "Temperature Stabilization Time"@en ;
+                                    dyn:hasUnit "unit:MIN" ;
+                                    gui:hasDisplayName "Stabilization Time" ;
+                                    gui:hasDisplayOrder 3 ;
+                                    gui:hasGroupOrder 6 ;
+                                    gui:hasFormGroup "HighTemperatureTesting" .
+
+
+###  https://dynamat.utep.edu/ontology#hasTestCondition
+dyn:hasTestCondition rdf:type owl:DatatypeProperty .
+
+
+###  https://dynamat.utep.edu/ontology#hasTestTemperature
+dyn:hasTestTemperature rdf:type owl:DatatypeProperty ;
+                       rdfs:subPropertyOf dyn:hasTestCondition ;
+                       rdf:type owl:FunctionalProperty ;
+                       rdfs:domain dyn:MechanicalTest ;
+                       rdfs:range xsd:double ;
+                       qudt:hasQuantityKind qkdv:MeltingPoint ;
+                       rdfs:comment "Temperature during testing"@en ;
+                       rdfs:label "Test Temperature"@en ;
+                       dyn:hasUnit "unit:DEG_C" ;
+                       gui:hasDisplayName "Test Temperature" ;
+                       gui:hasDisplayOrder 1 ;
+                       gui:hasGroupOrder 6 ;
+                       gui:hasFormGroup "HighTemperatureTesting" .
+
+###  https://dynamat.utep.edu/ontology#hasTestType
+dyn:hasTestType rdf:type owl:ObjectProperty ,
+                         owl:FunctionalProperty ;
+                rdfs:domain dyn:MechanicalTest ;
+                rdfs:range dyn:TestType ;
+                rdfs:comment "Type of test performed: calibration, elastic, or specimen test"@en ;
+                rdfs:label "Test Type"@en ;
+                gui:hasDisplayName "Test Type" ;
+                gui:hasDisplayOrder 5 ;
+                gui:hasFormGroup "Identification" .
+
+
+###  https://dynamat.utep.edu/ontology#hasValidityNotes
+dyn:hasValidityNotes rdf:type owl:DatatypeProperty ;
+                     rdfs:domain dyn:MechanicalTest ;
+                     rdfs:range xsd:string ;
+                     rdfs:comment "Notes regarding test validity assessment"@en ;
+                     rdfs:label "Validity Notes"@en .
+
+
+#################################################################
+#    Classes
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#Bar
+dyn:Bar rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#Equipment
+dyn:Equipment rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#MechanicalTest
+dyn:MechanicalTest rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#MomentumTrap
+dyn:MomentumTrap rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#PulseShaper
+dyn:PulseShaper rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#QuasistaticTest
+dyn:QuasistaticTest rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#SHPBCompression
+dyn:SHPBCompression rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#StrainGauge
+dyn:StrainGauge rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#TensileTest
+dyn:TensileTest rdf:type owl:Class .
+
+
+###  https://dynamat.utep.edu/ontology#TestType
+dyn:TestType rdf:type owl:Class ;
+             rdfs:label "Test Type"@en ;
+             rdfs:comment "Category of mechanical test (specimen, calibration, or elastic)"@en .
+
+
+###  https://dynamat.utep.edu/ontology#TestValidity
+dyn:TestValidity rdf:type owl:Class ;
+                 rdfs:label "Test Validity"@en ;
+                 rdfs:comment "Assessment of test validity (valid, questionable, or invalid)"@en .
+
+
+###  https://dynamat.utep.edu/ontology#TestValidityCriteria
+dyn:TestValidityCriteria rdf:type owl:Class ;
+                         rdfs:label "Test Validity Criteria"@en ;
+                         rdfs:comment "Specific validity criteria that were met or failed (e.g., force equilibrium, constant strain rate)"@en .
+
+
+###  Generated by the OWL API (version 4.5.29.2024-05-13T12:11:03Z) https://github.com/owlcs/owlapi

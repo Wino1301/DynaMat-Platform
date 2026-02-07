@@ -10,7 +10,7 @@ DynaMat Platform is a desktop application for managing dynamic materials testing
 
 **Ontology-First Design**: Every piece of metadata, every relationship, every validation rule lives in the ontology. The GUI is just a view layer that interprets these semantic definitions.
 
-**Module Independence**: The ontology module, GUI module, and future analysis modules (SHPB toolkit, structure generation) are designed to work independently. You can query the ontology without the GUI, or build a different GUI using the same ontology.
+**Module Independence**: The ontology module, GUI module, and analysis modules (SHPB toolkit, future structure generation) are designed to work independently. You can query the ontology without the GUI, or build a different GUI using the same ontology.
 
 **FAIR Data Principles**: The platform emphasizes:
 - **Findable**: Semantic metadata makes all data queryable via SPARQL
@@ -27,6 +27,8 @@ This isn't just for Python developers—it's for lab users who want structured, 
 - **PyQt6**: Desktop GUI framework
 - **QUDT**: Unit ontology for measurements
 - **SHACL**: Validation shapes
+- **NumPy/SciPy**: Signal processing and numerical computation (SHPB module)
+- **Matplotlib/Plotly**: Visualization backends (configurable)
 
 ## Repository Structure
 
@@ -47,36 +49,64 @@ DynaMat-Platform/
 │   │   ├── dependencies/      # Dependency manager, calculation engine
 │   │   └── widgets/           # UI components
 │   │
+│   ├── mechanical/            # Mechanical testing analysis modules
+│   │   └── shpb/              # Split Hopkinson Pressure Bar toolkit
+│   │       ├── core/          # Signal processing pipeline
+│   │       │   ├── pulse_windows.py    # PulseDetector (detection & segmentation)
+│   │       │   ├── pulse_alignment.py  # PulseAligner (equilibrium optimization)
+│   │       │   ├── stress_strain.py    # StressStrainCalculator (1-wave/3-wave)
+│   │       │   └── tukey_window.py     # TukeyWindow (signal tapering)
+│   │       ├── io/            # Data import/export
+│   │       └── gui/           # SHPB-specific GUI components
+│   │
 │   └── config.py              # Configuration
 │
-├── specimens/                  # Specimen data database (SEPARATE from code)
-│   └── SPN-{MaterialID}-{XXX}/
-│       ├── SPN-*_specimen.ttl
-│       ├── SPN-*_TEST_DATE.ttl
-│       ├── raw/               # Raw data files
-│       └── processed/         # Processed results
+├── tools/                      # Development & validation tools
+│   ├── test_statistics_workflow.py   # Integration test for statistics tracking
+│   ├── test_instance_index.py        # Instance indexing tests
+│   ├── test_plot_widgets.py          # Plot widget tests
+│   ├── validate_ttl.py               # SHACL validation for TTL files
+│   ├── validate_constraints.py       # Constraint loading validation
+│   ├── validate_statistics.py        # Statistics structure validation
+│   ├── STATISTICS_SPEC.md            # Unified statistics specification
+│   └── validators/                   # Reusable validation functions
+│       └── statistics_validator.py
+│
+├── user_data/                  # User data directory (SEPARATE from code)
+│   ├── specimens/             # Specimen data database
+│   │   └── DYNML-{MaterialCode}-{XXXXX}/
+│   │       ├── DYNML-*_specimen.ttl
+│   │       ├── DYNML-*_TEST_DATE.ttl
+│   │       ├── raw/           # Raw data files
+│   │       └── processed/     # Processed results
+│   │
+│   └── individuals/           # User-defined individuals
+│
+├── notebooks/                  # Jupyter notebooks for analysis
+│   └── shpb/                  # SHPB analysis notebooks
 │
 ├── .claude/
 │   └── agents/
 │       └── ontology-semantic-validator.md  # Ontology validation guide
 │
-├── guides/                     # Jupyter notebooks
+├── guides/                     # Tutorial notebooks
 ├── main.py                     # Application entry point
 └── requirements.txt
 ```
 
-### Why Specimens are Separate from Code
+### Why User Data is Separate from Code
 
-The `specimens/` directory is intentionally **outside** the `dynamat/` package:
+The `user_data/` directory is intentionally **outside** the `dynamat/` package:
 
 **FAIR Data Management**:
-- **Version Control**: Specimen data evolves differently than code
-- **Data Portability**: Labs can share datasets by copying the folder
-- **Tool Independence**: Any RDF tool can read `specimens/`
+- **Version Control**: User data (specimens, custom individuals) evolves differently than code
+- **Data Portability**: Labs can share datasets by copying the `user_data/` folder
+- **Tool Independence**: Any RDF tool can read `user_data/specimens/` and `user_data/individuals/`
 - **Scalability**: Data growth doesn't bloat the code repository
 
 **File Organization**:
-Each specimen gets its own folder with TTL metadata files and CSV data files organized by processing stage.
+- `user_data/specimens/`: Each specimen gets its own folder (e.g., `DYNML-A356-00001/`) with TTL metadata files and CSV data files organized by processing stage
+- `user_data/individuals/`: User-defined individuals (custom materials, equipment configurations, etc.)
 
 ## How It Works: Ontology → GUI
 
@@ -151,7 +181,7 @@ For measurements (values with units):
 - SHACL-level: Complex constraints
 
 **Step 7**: Saves
-- System generates TTL file in `specimens/` directory
+- System generates TTL file in `user_data/specimens/` directory
 - Copies data files to appropriate subdirectories
 - All metadata is now queryable via SPARQL
 
@@ -275,17 +305,18 @@ The GUI automatically creates a UnitValueWidget when it sees `qudt:hasQuantityKi
 
 ### File Naming Conventions
 
-- Specimen files: `SPN-{MaterialCode}-{Number}_specimen.ttl`
-- Test files: `SPN-{MaterialCode}-{Number}_{TestType}_{Date}.ttl`
+- Specimen folders: `DYNML-{MaterialCode}-{XXXXX}/` (e.g., `DYNML-SS316A356-0001/`)
+- Specimen files: `DYNML-{MaterialCode}-{XXXXX}_specimen.ttl`
+- Test files: `DYNML-{MaterialCode}-{XXXXX}_{TestType}_{Date}.ttl`
 - Data files: `{description}_{date}.csv` in `raw/` or `processed/`
 
 ## Critical Reminders
 
 ### Don't:
 - Hard-code form fields (read from ontology)
-- Mix code and data (keep specimens/ separate)
+- Mix code and data (keep user_data/ separate)
 - Store values with units as strings (use measurement pattern)
-- Create instances in core ontology (they go in specimens/ or class_individuals/)
+- Create instances in core ontology (they go in user_data/specimens/ or class_individuals/)
 
 ### Do:
 - Use templates for consistency
@@ -366,8 +397,87 @@ See `.claude/agents/ontology-semantic-validator.md` for details.
 - Error messages if any
 - Whether you want direct solution or guided implementation
 
+## Module Documentation
+
+Each major module has its own comprehensive README with API reference, examples, and architecture details:
+
+| Module | README | Description |
+|--------|--------|-------------|
+| GUI | `dynamat/gui/README.md` | Widget factory, form building, constraint system (~43KB) |
+| Ontology | `dynamat/ontology/README.md` | OntologyManager, SPARQL queries, validation |
+| SHPB Core | `dynamat/mechanical/shpb/core/README.md` | Signal processing pipeline documentation |
+| SHPB I/O | `dynamat/mechanical/shpb/io/README.md` | Data import/export documentation |
+| Tools | `tools/STATISTICS_SPEC.md` | Unified statistics structure specification |
+
+### Working with the SHPB Module
+
+The SHPB (Split Hopkinson Pressure Bar) module provides a complete signal processing pipeline:
+
+```python
+from dynamat.mechanical.shpb.core import (
+    PulseDetector,          # Pulse detection and segmentation
+    PulseAligner,           # Multi-criteria pulse alignment
+    StressStrainCalculator, # Stress-strain computation (1-wave & 3-wave)
+    TukeyWindow,            # Signal tapering
+)
+
+# 1. Detect pulses
+detector = PulseDetector(pulse_points=15000, polarity="compressive")
+window = detector.find_window(signal, lower_bound=10000)
+
+# 2. Align pulses for equilibrium
+aligner = PulseAligner(bar_wave_speed=4953.3, specimen_height=6.5)
+inc, trs, ref, shift_t, shift_r = aligner.align(...)
+
+# 3. Calculate stress-strain curves
+calculator = StressStrainCalculator(
+    bar_area=283.53, bar_wave_speed=4953.3,
+    bar_elastic_modulus=199.99, specimen_area=126.68, specimen_height=6.5
+)
+results = calculator.calculate(inc, trs, ref, time)
+
+# 4. Assess equilibrium quality
+metrics = calculator.calculate_equilibrium_metrics(results)
+print(f"FBC={metrics['FBC']:.3f}, DSUF={metrics['DSUF']:.3f}")
+```
+
+See `dynamat/mechanical/shpb/core/README.md` for detailed API reference and examples.
+
+### Development Tools
+
+The `tools/` directory contains validation and testing utilities:
+
+**Integration Tests** (run with `python tools/<script>.py`):
+- `test_statistics_workflow.py` - Tests statistics tracking across all managers
+- `test_instance_index.py` - Tests InstanceQueryBuilder SPARQL indexing
+- `test_plot_widgets.py` - Tests DataSeriesWidget and plotting backends
+
+**Validation Tools**:
+- `validate_ttl.py` - SHACL validation for TTL files with detailed error reporting
+- `validate_constraints.py` - Constraint loading validation and debugging
+- `validate_statistics.py` - Statistics structure validation
+
+**Specifications**:
+- `STATISTICS_SPEC.md` - Unified statistics structure specification (707 lines)
+- `validators/statistics_validator.py` - Reusable validation functions
+
+**Running Tests**:
+```bash
+# Run all tests
+python tools/test_statistics_workflow.py
+python tools/test_instance_index.py
+python tools/test_plot_widgets.py
+
+# Validate TTL files
+python tools/validate_ttl.py user_data/specimens/DYNML-SS316A356-0001/
+
+# Validate constraints
+python tools/validate_constraints.py
+```
+
 ## Resources
 
+- **Module READMEs**: See table above for detailed API documentation
 - **Ontology Validator Agent**: `.claude/agents/ontology-semantic-validator.md` - Detailed ontology guidance
 - **Ontology Explorer**: `guides/Ontology_Explorer.ipynb` - Interactive exploration
 - **QUDT Units**: [qudt.org](http://www.qudt.org/) - Unit ontology reference
