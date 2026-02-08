@@ -295,7 +295,7 @@ class SHACLValidator:
             conforms, results_graph, results_text = validate(
                 data_graph=data_graph,
                 shacl_graph=self.shapes_graph,
-                ont_graph=None,  # Could include ontology for inference
+                ont_graph=None,  # Class hierarchy added to data_graph directly
                 inference='rdfs',  # Use RDFS inference
                 abort_on_first=False,  # Get all validation results
                 allow_infos=True,  # Include sh:Info severity

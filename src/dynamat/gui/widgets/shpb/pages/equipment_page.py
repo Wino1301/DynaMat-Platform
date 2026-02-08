@@ -149,7 +149,15 @@ class EquipmentPage(BaseSHPBPage):
         return True
 
     def _build_validation_graph(self) -> Optional[Graph]:
-        """Build partial RDF graph for SHACL validation of equipment data.
+        """Build partial RDF graph scoped to equipment-page fields only.
+
+        Only includes properties from the equipment page form groups:
+        Identification, BarConfiguration, StrainGaugeConfiguration,
+        and TestConditions.  Downstream properties (alignment, equilibrium,
+        detection params) are excluded so their shapes don't fire here.
+
+        External entities (specimen, user) get a type triple only — their
+        full data was already validated on their own pages/contexts.
 
         Returns:
             RDF graph with SHPBCompression instance, or None on error.
@@ -167,76 +175,116 @@ class EquipmentPage(BaseSHPBPage):
 
             form_data = self.state.equipment_form_data
 
-            # Property type mapping for SHPBCompression
-            object_properties = {
-                "hasStrikerBar", "hasIncidentBar", "hasTransmissionBar",
-                "hasMomentumTrap", "hasPulseShaper", "hasAlignmentParams",
-                "hasEquilibriumMetrics", "performedOn", "hasUser",
-                "hasIncidentStrainGauge", "hasTransmissionStrainGauge",
-                "hasTestType",
-            }
-            boolean_properties = {
-                "hasPulseShaping", "hasLubricationUsed",
-            }
-            integer_properties = {
-                "hasPulsePoints", "hasCenteredSegmentPoints",
-                "hasShiftValue", "hasMinSeparation", "hasFrontIndex",
-                "hasDetectionLowerBound", "hasDetectionUpperBound",
-                "hasDataBitResolution",
-            }
-            string_properties = {
-                "hasTestID", "hasLubricationType",
-                "hasKTrials", "hasDeformationMode", "hasFailureMode",
-                "hasTestValidity", "hasWaveDispersion", "hasCompressionSign",
-            }
-            date_properties = {"hasTestDate", "hasAnalysisTimestamp"}
+            # =================================================================
+            # Equipment-page property whitelist (by form group)
+            # =================================================================
 
-            # Map object properties to their range class for sh:class validation
-            object_property_range = {
+            # Object properties → expected rdf:type for sh:class validation
+            page_object_properties = {
+                # Identification
+                "performedOn": DYN.Specimen,
+                "hasUser": DYN.User,
+                "hasTestType": DYN.TestType,
+                # Bar Configuration
                 "hasStrikerBar": DYN.Bar,
                 "hasIncidentBar": DYN.Bar,
                 "hasTransmissionBar": DYN.Bar,
-                "hasMomentumTrap": DYN.MomentumTrap,
-                "hasPulseShaper": DYN.PulseShaper,
-                "hasAlignmentParams": DYN.AlignmentParams,
-                "hasEquilibriumMetrics": DYN.EquilibriumMetrics,
-                "performedOn": DYN.Specimen,
-                "hasUser": DYN.User,
+                # Strain Gauge Configuration
                 "hasIncidentStrainGauge": DYN.StrainGauge,
                 "hasTransmissionStrainGauge": DYN.StrainGauge,
-                "hasTestType": DYN.TestType,
+                # Test Conditions
+                "hasMomentumTrap": DYN.MomentumTrap,
+                "hasPulseShaper": DYN.PulseShaper,
             }
+
+            page_string_properties = {"hasTestID", "hasLubricationType"}
+            page_boolean_properties = {"hasPulseShaping", "hasLubricationUsed"}
+            page_date_properties = {"hasTestDate"}
+            # Everything else on this page is a double (striker velocity, etc.)
+            page_double_properties = {
+                "hasStrikerVelocity", "hasBarrelOffset",
+                "hasPulseShaperDiameter", "hasPulseShaperThickness",
+                "hasMomentumTrapTailoredDistance",
+                "hasIncidentStrainGaugeDistance",
+                "hasTransmissionStrainGaugeDistance",
+            }
+
+            # Union of all whitelisted property names
+            all_page_props = (
+                set(page_object_properties)
+                | page_string_properties
+                | page_boolean_properties
+                | page_date_properties
+                | page_double_properties
+            )
+
+            # =================================================================
+            # Inject user from main window context (not a form field)
+            # Uses sh:nodeKind sh:IRI in the shape — no rdf:type needed.
+            # =================================================================
+            current_user = self.get_current_user()
+            if current_user:
+                g.add((instance, DYN.hasUser, URIRef(current_user)))
+
+            # Properties validated elsewhere — only need the URI reference,
+            # no rdf:type triple (shape uses sh:nodeKind sh:IRI).
+            externally_validated = {"performedOn", "hasUser"}
+
+            # =================================================================
+            # Process form data — only whitelisted properties
+            # =================================================================
+            self.logger.debug(f"Building validation graph from {len(form_data)} form entries")
 
             for uri, value in form_data.items():
                 if value is None:
                     continue
 
                 prop_name = uri.split("#")[-1] if "#" in uri else uri.split("/")[-1]
+
+                if prop_name not in all_page_props:
+                    continue  # Skip downstream / non-equipment properties
+
+                # Already handled above from main window context
+                if prop_name == "hasUser":
+                    continue
+
                 prop = DYN[prop_name]
 
-                if prop_name in object_properties:
-                    if isinstance(value, str) and value:
-                        obj_ref = URIRef(value)
-                        g.add((instance, prop, obj_ref))
-                        # Add type triple so sh:class constraints can validate
-                        range_class = object_property_range.get(prop_name)
-                        if range_class:
-                            g.add((obj_ref, RDF.type, range_class))
-                elif prop_name in boolean_properties:
-                    g.add((instance, prop, Literal(bool(value), datatype=XSD.boolean)))
-                elif prop_name in integer_properties:
-                    g.add((instance, prop, Literal(int(value), datatype=XSD.integer)))
-                elif prop_name in string_properties:
-                    g.add((instance, prop, Literal(str(value), datatype=XSD.string)))
-                elif prop_name in date_properties:
-                    g.add((instance, prop, Literal(str(value), datatype=XSD.date)))
-                else:
-                    # Default to double for measurement properties
-                    try:
-                        g.add((instance, prop, Literal(float(value), datatype=XSD.double)))
-                    except (ValueError, TypeError):
-                        g.add((instance, prop, Literal(str(value), datatype=XSD.string)))
+                # Extract numeric value from UnitValueWidget dicts
+                raw_value = value
+                if isinstance(value, dict) and "value" in value:
+                    raw_value = value["value"]
 
+                if prop_name in page_object_properties:
+                    if isinstance(raw_value, str) and raw_value:
+                        obj_ref = URIRef(raw_value)
+                        g.add((instance, prop, obj_ref))
+                        # Externally-validated targets only need the URI
+                        # (shape uses sh:nodeKind sh:IRI, not sh:class)
+                        if prop_name not in externally_validated:
+                            range_class = page_object_properties[prop_name]
+                            g.add((obj_ref, RDF.type, range_class))
+                        self.logger.debug(f"  {prop_name} → {raw_value}")
+                    else:
+                        self.logger.debug(f"  {prop_name} skipped (raw_value={raw_value!r}, type={type(raw_value).__name__})")
+                elif prop_name in page_boolean_properties:
+                    g.add((instance, prop, Literal(bool(raw_value), datatype=XSD.boolean)))
+                elif prop_name in page_string_properties:
+                    g.add((instance, prop, Literal(str(raw_value), datatype=XSD.string)))
+                elif prop_name in page_date_properties:
+                    g.add((instance, prop, Literal(str(raw_value), datatype=XSD.date)))
+                elif prop_name in page_double_properties:
+                    if raw_value is None:
+                        continue
+                    try:
+                        g.add((instance, prop, Literal(float(raw_value), datatype=XSD.double)))
+                        self.logger.debug(f"  {prop_name} → {float(raw_value)}")
+                    except (ValueError, TypeError):
+                        self.logger.warning(
+                            f"Could not convert {prop_name}={raw_value!r} to double"
+                        )
+
+            self.logger.debug(f"Validation graph built with {len(g)} triples")
             return g
 
         except Exception as e:

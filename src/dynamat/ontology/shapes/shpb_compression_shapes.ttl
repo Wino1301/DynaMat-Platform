@@ -33,7 +33,51 @@ dyn:SHPBCompressionShape a sh:NodeShape ;
     rdfs:comment "Validation rules for SHPB compression test instances" ;
 
     # =========================================================================
-    # REQUIRED FIELDS (Critical for SHPB calculations)
+    # REQUIRED FIELDS — Inherited from MechanicalTest
+    # (Duplicated here so validation works on partial graphs without
+    #  needing the full OWL class hierarchy for RDFS inference.)
+    #
+    # NOTE: performedOn and hasUser use sh:nodeKind sh:IRI instead of
+    # sh:class because their targets (Specimen, User) are validated in
+    # their own contexts.  Using sh:class here would require adding
+    # rdf:type triples to the partial graph, which triggers SpecimenShape
+    # and UserShape on incomplete data.
+    # =========================================================================
+
+    sh:property [
+        sh:path dyn:hasTestID ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message "Test ID is required" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    sh:property [
+        sh:path dyn:performedOn ;
+        sh:nodeKind sh:IRI ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:message "Test must be performed on a specimen" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    sh:property [
+        sh:path dyn:hasTestDate ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:date ;
+        sh:message "Test date is required" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    sh:property [
+        sh:path dyn:hasUser ;
+        sh:nodeKind sh:IRI ;
+        sh:minCount 1 ;
+        sh:message "An operator must be assigned to the test" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    # =========================================================================
+    # REQUIRED FIELDS — SHPB-specific (Critical for calculations)
     # =========================================================================
 
     sh:property [
@@ -85,8 +129,8 @@ dyn:SHPBCompressionShape a sh:NodeShape ;
         sh:minCount 1 ; sh:maxCount 1 ;
         sh:datatype xsd:double ;
         sh:minExclusive 0.0 ;
-        sh:message "Striker velocity should be specified (needed for strain rate characterization)" ;
-        sh:severity sh:Warning ;
+        sh:message "Striker velocity is required (needed for strain rate characterization)" ;
+        sh:severity sh:Violation ;
     ] ;
 
     sh:property [
