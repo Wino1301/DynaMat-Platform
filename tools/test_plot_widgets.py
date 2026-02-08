@@ -15,9 +15,7 @@ import argparse
 from pathlib import Path
 import numpy as np
 
-# Add project root to Python path
-PROJECT_ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
+
 
 
 def test_series_metadata_resolver(ontology_manager, qudt_manager, verbose: bool = False):

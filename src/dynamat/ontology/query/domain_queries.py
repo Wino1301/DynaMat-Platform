@@ -297,10 +297,10 @@ class DomainQueries:
             filters.append(f'?test rdf:type dyn:{test_type}')
         if date_from:
             date_str = date_from.isoformat() if hasattr(date_from, 'isoformat') else str(date_from)
-            filters.append(f'?test dyn:hasDate ?date . FILTER(?date >= "{date_str}"^^xsd:date)')
+            filters.append(f'?test dyn:hasDate ?filterDate . FILTER(?filterDate >= "{date_str}"^^xsd:date)')
         if date_to:
             date_str = date_to.isoformat() if hasattr(date_to, 'isoformat') else str(date_to)
-            filters.append(f'?test dyn:hasDate ?date . FILTER(?date <= "{date_str}"^^xsd:date)')
+            filters.append(f'?test dyn:hasDate ?filterDate . FILTER(?filterDate <= "{date_str}"^^xsd:date)')
         
         filter_clause = " . ".join(filters) if filters else ""
         
@@ -316,7 +316,7 @@ class DomainQueries:
             
             {filter_clause}
         }}
-        ORDER BY ?date DESC
+        ORDER BY DESC(?date)
         """
         
         return self.sparql.execute_query(query)

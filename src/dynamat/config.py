@@ -59,9 +59,9 @@ class Config:
     PLOT_BACKEND = "matplotlib"  # Options: "plotly", "matplotlib"
 
     # Cache settings (for GUI forms, metadata, etc.)
-    USE_FORM_CACHE = False  # Enable/disable form widget caching
-    USE_METADATA_CACHE = False  # Enable/disable ontology metadata caching
-    USE_SCHEMA_CACHE = False  # Enable/disable GUI schema caching
+    USE_FORM_CACHE = True  # Enable/disable form widget caching
+    USE_METADATA_CACHE = True  # Enable/disable ontology metadata caching
+    USE_SCHEMA_CACHE = True  # Enable/disable GUI schema caching
 
     @classmethod
     def get_config_dict(cls):

@@ -167,7 +167,7 @@ dyn:hasStrikerLaunchPressure rdf:type owl:DatatypeProperty ;
                              rdf:type owl:FunctionalProperty ;
                              rdfs:domain dyn:SHPBCompression ;
                              rdfs:range xsd:double ;
-                             qudt:hasQuantityKind qkdv:Pressure ;
+                             qudt:hasQuantityKind qkdv:ForcePerArea ;
                              rdfs:comment "Gas pressure used to launch striker bar"@en ;
                              rdfs:label "Striker Launch Pressure"@en ;
                              dyn:hasUnit "unit:PSI" ;
@@ -280,7 +280,7 @@ dyn:hasPulseStressAmplitude rdf:type owl:DatatypeProperty ;
                             rdf:type owl:FunctionalProperty ;
                             rdfs:domain dyn:SHPBCompression ;
                             rdfs:range xsd:double ;
-                            qudt:hasQuantityKind qkdv:Stress ;
+                            qudt:hasQuantityKind qkdv:ForcePerArea ;
                             rdfs:comment "Maximum stress amplitude of the incident pulse (calculated: ρCV/2)"@en ;
                             rdfs:label "Pulse Stress Amplitude"@en ;
                             dyn:hasUnit "unit:MegaPA" .

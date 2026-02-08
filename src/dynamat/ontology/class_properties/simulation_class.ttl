@@ -322,7 +322,7 @@ dyn:hasValidationAccuracy rdf:type owl:DatatypeProperty, owl:FunctionalProperty 
 dyn:hasJC_A rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:MaterialModel ;
     rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Stress ;
+    qudt:hasQuantityKind qkdv:ForcePerArea ;
     rdfs:label "Johnson-Cook A Parameter"@en ;
     gui:hasDisplayName "A - Yield Strength (Pa)" ;
     gui:hasFormGroup "JohnsonCookParameters" ;
@@ -333,7 +333,7 @@ dyn:hasJC_A rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
 dyn:hasJC_B rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:MaterialModel ;
     rdfs:range xsd:double ;
-    qudt:hasQuantityKind qkdv:Stress ;
+    qudt:hasQuantityKind qkdv:ForcePerArea ;
     rdfs:label "Johnson-Cook B Parameter"@en ;
     gui:hasDisplayName "B - Hardening Modulus (Pa)" ;
     gui:hasFormGroup "JohnsonCookParameters" ;

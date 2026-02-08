@@ -32,6 +32,13 @@ dependencies = [
     "PyQt6-WebEngine>=6.7.0", # Added for PlotlyPlotWidget
 ]
 
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0",
+    "pytest-qt>=4.0.0",
+    "pytest-cov>=4.0.0",
+]
+
 [project.urls]
 "Homepage" = "https://github.com/utep-research/DynaMat-Platform"
 "Bug Tracker" = "https://github.com/utep-research/DynaMat-Platform/issues"

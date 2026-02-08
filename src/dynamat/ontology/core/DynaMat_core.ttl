@@ -125,7 +125,11 @@ dyn:hasUser rdf:type owl:ObjectProperty ;
             rdfs:domain dyn:Activity ;
             rdfs:range dyn:User ;
             rdfs:comment "Person who performed the activity (multiple users allowed)"@en ;
-            rdfs:label "User"@en .
+            rdfs:label "User"@en ;
+            gui:hasDisplayName "User" ;
+            gui:hasFormGroup "UserSelection" ;
+            gui:hasGroupOrder 1 ;
+            gui:hasDisplayOrder 4 .
 
 
 ###  https://dynamat.utep.edu/ontology#hasCreatedBy

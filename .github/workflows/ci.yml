@@ -1,0 +1,37 @@
+name: DynaMat CI
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+    
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # Install in editable mode with test dependencies
+        pip install -e .[test]
+        # Ensure pyshacl is installed for validation tests
+        pip install pyshacl
+        
+    - name: Run Tests
+      run: |
+        # Run ontology tests specifically, then all tests
+        pytest tests/ontology/ -v
+        pytest tests/ -v

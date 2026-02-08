@@ -68,6 +68,18 @@ class QUDTManager:
     # QUDT online sources
     QUDT_UNITS_URL = "https://qudt.org/2.1/vocab/unit"
     QUDT_QUANTITYKINDS_URL = "https://qudt.org/2.1/vocab/quantitykind"
+
+    # Engineering quantity kinds relevant to materials testing
+    RELEVANT_QUANTITY_KINDS = [
+        "Length", "Area", "Volume", "Mass", "Time", "Angle",
+        "Velocity", "Acceleration", "Force", "Pressure", "Stress", "Strain",
+        "StrainRate", "Frequency", "Energy", "Power",
+        "Temperature", "ThermodynamicTemperature", "MeltingPoint",
+        "Density", "ModulusOfElasticity", "ThermalConductivity", "SpecificHeatCapacity",
+        "Voltage", "ElectricCurrent", "Resistance",
+        "Dimensionless", "DimensionlessRatio", "VolumeRatio",
+        "ForcePerArea"  # Standard QUDT kind for Stress/Pressure units (Pa, MPa, psi)
+    ]
     
     def __init__(self, cache_dir: Optional[Path] = None):
         """
@@ -227,12 +239,19 @@ class QUDTManager:
     
     def _extract_units_from_graph(self, graph: Graph):
         """Extract unit information from RDF graph, handling duplicates properly."""
-        # Strategy: Query for all unit-quantityKind pairs, then aggregate by unit
+        # Build the quantity kind filter
+        qk_filter = ", ".join([f"qkdv:{qk}" for qk in self.RELEVANT_QUANTITY_KINDS])
+
+        # Strategy: Query for all unit-quantityKind pairs for relevant types
         query = """
         SELECT ?unit ?symbol ?label ?quantityKind ?conversionMultiplier ?conversionOffset WHERE {
             ?unit a qudt:Unit .
+            ?unit qudt:hasQuantityKind ?quantityKind .
+            
+            # Filter for relevant engineering types
+            FILTER(?quantityKind IN (""" + qk_filter + """))
 
-            # Symbol is required
+            # Symbol is highly desirable
             OPTIONAL { ?unit qudt:symbol ?symbol }
 
             # English labels only
@@ -240,9 +259,6 @@ class QUDTManager:
                 ?unit rdfs:label ?label .
                 FILTER(LANG(?label) = "en" || LANG(?label) = "")
             }
-
-            # Quantity kind (a unit can have multiple)
-            OPTIONAL { ?unit qudt:hasQuantityKind ?quantityKind }
 
             # Conversion multiplier to SI base unit
             OPTIONAL { ?unit qudt:conversionMultiplier ?conversionMultiplier }
@@ -252,7 +268,7 @@ class QUDTManager:
         }
         """
         
-        results = graph.query(query)
+        results = graph.query(query, initNs={"qudt": self.QUDT, "qkdv": self.QKDV})
 
         # First pass: collect all data per unit URI
         units_data = {}  # unit_uri -> {symbol, labels, quantity_kinds, conversion_multiplier, conversion_offset}
@@ -268,8 +284,8 @@ class QUDTManager:
                     'symbols': set(),
                     'labels': set(),
                     'quantity_kinds': set(),
-                    'conversion_multiplier': 1.0,  # Default if not specified
-                    'conversion_offset': 0.0  # Default if not specified
+                    'conversion_multiplier': None,
+                    'conversion_offset': None
                 }
 
             # Collect symbol
@@ -284,12 +300,11 @@ class QUDTManager:
             if row.quantityKind:
                 units_data[unit_uri]['quantity_kinds'].add(str(row.quantityKind).strip())
 
-            # Collect conversion multiplier (should be same for all rows with same unit)
-            if row.conversionMultiplier:
+            # Collect conversion factors (prefer non-None values)
+            if row.conversionMultiplier is not None:
                 units_data[unit_uri]['conversion_multiplier'] = float(row.conversionMultiplier)
 
-            # Collect conversion offset (should be same for all rows with same unit)
-            if row.conversionOffset:
+            if row.conversionOffset is not None:
                 units_data[unit_uri]['conversion_offset'] = float(row.conversionOffset)
         
         # Second pass: create QUDTUnit objects
@@ -309,14 +324,14 @@ class QUDTManager:
             # Create ONE QUDTUnit per unit with ALL its quantity kinds
             quantity_kinds_list = list(data['quantity_kinds']) if data['quantity_kinds'] else ['unknown']
 
-            # Create single unit instance with all quantity kinds
+            # Create single unit instance with all quantity kinds (default to 1.0/0.0 if missing)
             unit = QUDTUnit(
                 uri=unit_uri,
                 symbol=symbol,
                 label=label,
                 quantity_kinds=quantity_kinds_list,
-                conversion_multiplier=data['conversion_multiplier'],
-                conversion_offset=data['conversion_offset']
+                conversion_multiplier=data['conversion_multiplier'] if data['conversion_multiplier'] is not None else 1.0,
+                conversion_offset=data['conversion_offset'] if data['conversion_offset'] is not None else 0.0
             )
 
             # Store by URI (one instance per unit)
@@ -331,9 +346,8 @@ class QUDTManager:
                 if not any(u.uri == unit_uri for u in self.units_by_quantity_kind[qk]):
                     self.units_by_quantity_kind[qk].append(unit)
         
-        logger.info(f"Extracted {len(self.units_by_uri)} unique units from graph")
+        logger.info(f"Extracted {len(self.units_by_uri)} unique engineering units from graph")
         logger.info(f"Organized into {len(self.units_by_quantity_kind)} quantity kinds")
-    
     def _extract_symbol_from_uri(self, uri: str) -> str:
         """Extract a reasonable symbol from unit URI."""
         # Get the last part of the URI
@@ -393,7 +407,9 @@ class QUDTManager:
         if not self._is_loaded:
             self.load()
 
-        return self.units_by_uri.get(unit_uri)
+        # Normalize URI before lookup
+        normalized_uri = self._normalize_unit_uri(unit_uri)
+        return self.units_by_uri.get(normalized_uri)
 
     def convert_value(self, value: float, from_unit_uri: str, to_unit_uri: str) -> float:
         """
@@ -454,11 +470,14 @@ class QUDTManager:
             )
 
         # Perform conversion through SI base unit with full QUDT formula
+        # QUDT Formula: SI_value = (value + conversionOffset) * conversionMultiplier
+        
         # Step 1: Convert to SI base unit (handles both ratio and interval scales)
-        si_value = (value * from_unit.conversion_multiplier) + from_unit.conversion_offset
+        si_value = (value + from_unit.conversion_offset) * from_unit.conversion_multiplier
 
         # Step 2: Convert from SI base unit to target unit
-        target_value = (si_value - to_unit.conversion_offset) / to_unit.conversion_multiplier
+        # target_value = (si_value / to_multiplier) - to_offset
+        target_value = (si_value / to_unit.conversion_multiplier) - to_unit.conversion_offset
 
         logger.debug(
             f"Converted {value} {from_unit.symbol} → {target_value} {to_unit.symbol} "
