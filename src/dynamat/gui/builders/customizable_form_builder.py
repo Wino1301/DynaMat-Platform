@@ -6,7 +6,7 @@ form building with the ability to register custom GroupBuilder instances
 for specific form groups, enabling group-specific rendering logic.
 """
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Set
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QScrollArea
 
 from ...ontology import OntologyManager
@@ -75,7 +75,12 @@ class CustomizableFormBuilder:
         """
         self._group_builders.pop(group_name, None)
 
-    def build_form(self, class_uri: str, parent: Optional[QWidget] = None) -> QWidget:
+    def build_form(
+        self,
+        class_uri: str,
+        parent: Optional[QWidget] = None,
+        exclude_groups: Optional[Set[str]] = None,
+    ) -> QWidget:
         """
         Build a form with custom group builders where registered.
 
@@ -88,6 +93,7 @@ class CustomizableFormBuilder:
         Args:
             class_uri: URI of the class to build form for
             parent: Optional parent widget
+            exclude_groups: Optional set of group names to omit from the form
 
         Returns:
             QWidget containing the complete form with all groups
@@ -99,8 +105,15 @@ class CustomizableFormBuilder:
         if self._default_builder is None:
             self._default_builder = DefaultGroupBuilder(self.widget_factory)
 
+        # Filter out excluded groups
+        form_groups = metadata.form_groups
+        if exclude_groups:
+            form_groups = {
+                k: v for k, v in form_groups.items() if k not in exclude_groups
+            }
+
         # Build form with custom builders
-        return self._build_grouped_form(metadata.form_groups, parent)
+        return self._build_grouped_form(form_groups, parent)
 
     def _build_grouped_form(
         self,

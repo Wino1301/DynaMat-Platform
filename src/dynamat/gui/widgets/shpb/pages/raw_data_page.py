@@ -7,7 +7,13 @@ widget signals to the SHPB analysis state.
 import logging
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, List
+
+import numpy as np
+
+from PyQt6.QtWidgets import QGroupBox, QGridLayout, QLabel, QComboBox, QScrollArea, QWidget, QVBoxLayout
+from rdflib import Graph, Namespace, Literal, URIRef
+from rdflib.namespace import RDF, XSD
 
 from .base_page import BaseSHPBPage
 from .....config import config
@@ -34,12 +40,21 @@ class RawDataPage(BaseSHPBPage):
         self.setSubTitle("Select a CSV file and map the data columns.")
 
     def _setup_ui(self) -> None:
-        """Setup page UI with embedded RawDataLoaderWidget."""
+        """Setup scrollable page: Data File → Strain Gauge → Column Mapping → Preview."""
         layout = self._create_base_layout()
 
+        # Wrap everything in a scroll area for comfortable viewing
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+
+        # --- Raw Data Loader (provides Data File, Column Mapping, Preview) ---
         cfg = RawDataLoaderConfig(test_class_uri=_SHPB_CLASS_URI)
         self._loader = RawDataLoaderWidget(
-            cfg, self.ontology_manager, self.qudt_manager, self
+            cfg, self.ontology_manager, self.qudt_manager, content
         )
 
         # Connect signals
@@ -49,7 +64,31 @@ class RawDataPage(BaseSHPBPage):
             lambda msg: self.set_status(msg, is_error=True)
         )
 
-        layout.addWidget(self._loader)
+        # --- Strain Gauge group (inject between Data File and Column Mapping) ---
+        gauge_group = self._create_group_box("Strain Gauge Configuration")
+        gauge_layout = QGridLayout(gauge_group)
+
+        gauge_layout.addWidget(QLabel("Incident Bar Gauge:"), 0, 0)
+        self._incident_gauge_combo = QComboBox()
+        gauge_layout.addWidget(self._incident_gauge_combo, 0, 1)
+
+        gauge_layout.addWidget(QLabel("Transmission Bar Gauge:"), 1, 0)
+        self._transmission_gauge_combo = QComboBox()
+        gauge_layout.addWidget(self._transmission_gauge_combo, 1, 1)
+
+        gauge_layout.setColumnStretch(1, 1)
+        self._populate_gauge_combos()
+
+        # Insert gauge group into the loader's internal layout at index 1
+        # (between Data File [0] and Column Mapping [1→2])
+        loader_layout = self._loader.layout()
+        if loader_layout is not None:
+            loader_layout.insertWidget(1, gauge_group)
+
+        content_layout.addWidget(self._loader)
+
+        scroll.setWidget(content)
+        layout.addWidget(scroll)
         self._add_status_area()
 
     def initializePage(self) -> None:
@@ -65,6 +104,9 @@ class RawDataPage(BaseSHPBPage):
                 self._loader.set_default_directory(config.SPECIMENS_DIR)
         else:
             self._loader.set_default_directory(config.SPECIMENS_DIR)
+
+        # Restore gauge selections from state
+        self._restore_gauge_selection()
 
         # If data was previously loaded, reload it
         if self.state.csv_file_path:
@@ -82,7 +124,190 @@ class RawDataPage(BaseSHPBPage):
 
         # Ensure state is up to date
         self._save_to_state()
+
+        # Run SHACL validation on partial graph
+        validation_graph = self._build_validation_graph()
+        if validation_graph and not self._validate_page_data(
+            validation_graph, page_key="raw_data"
+        ):
+            return False
+
         return True
+
+    # ------------------------------------------------------------------
+    # Strain gauge helpers
+    # ------------------------------------------------------------------
+
+    def _populate_gauge_combos(self) -> None:
+        """Populate strain gauge combo boxes from ontology individuals."""
+        try:
+            query = """
+            PREFIX dyn: <https://dynamat.utep.edu/ontology#>
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            SELECT ?uri ?label WHERE {
+                ?uri a dyn:StrainGauge .
+                OPTIONAL { ?uri rdfs:label ?label }
+            } ORDER BY ?label
+            """
+            results = self.ontology_manager.sparql_executor.execute_query(query)
+
+            for combo in (self._incident_gauge_combo, self._transmission_gauge_combo):
+                combo.clear()
+                combo.addItem("-- Select gauge --", "")
+                for row in results:
+                    uri = str(row['uri'])
+                    label = str(row.get('label', uri.split('#')[-1]))
+                    combo.addItem(label, uri)
+
+        except Exception as e:
+            self.logger.warning(f"Could not load strain gauges: {e}")
+
+    def _restore_gauge_selection(self) -> None:
+        """Restore gauge combo selections from state."""
+        inc_uri = self.state.gauge_mapping.get('incident', '')
+        tra_uri = self.state.gauge_mapping.get('transmitted', '')
+
+        for combo, uri in [
+            (self._incident_gauge_combo, inc_uri),
+            (self._transmission_gauge_combo, tra_uri),
+        ]:
+            if uri:
+                idx = combo.findData(uri)
+                if idx >= 0:
+                    combo.setCurrentIndex(idx)
+
+    def _save_gauge_selection(self) -> None:
+        """Save gauge combo selections to state."""
+        self.state.gauge_mapping = {
+            'incident': self._incident_gauge_combo.currentData() or None,
+            'transmitted': self._transmission_gauge_combo.currentData() or None,
+        }
+
+    # ------------------------------------------------------------------
+    # Validation graph
+    # ------------------------------------------------------------------
+
+    def _build_validation_graph(self) -> Optional[Graph]:
+        """Build partial RDF graph for SHACL validation of raw data.
+
+        Creates:
+        - An AnalysisFile node with file metadata
+        - A RawSignal + DataSeries node per mapped column with
+          hasSamplingRate (computed from time column) and
+          measuredBy (from strain gauge selection)
+        - SeriesType individual type declarations
+
+        Returns:
+            RDF graph, or None on error.
+        """
+        try:
+            DYN = Namespace(DYN_NS)
+            g = Graph()
+            g.bind("dyn", DYN)
+
+            # Compute test_id from specimen_id (e.g. DYNML_A356_0001_SHPBTest)
+            test_id = (
+                f"{self.state.specimen_id}_SHPBTest"
+                if self.state.specimen_id
+                else "_val"
+            )
+
+            # AnalysisFile node
+            raw_file_uri = DYN[f"{test_id}_raw_csv"]
+            g.add((raw_file_uri, RDF.type, DYN.AnalysisFile))
+
+            file_path = (
+                str(self.state.csv_file_path)
+                if self.state.csv_file_path
+                else "raw_data.csv"
+            )
+            g.add((raw_file_uri, DYN.hasFilePath, Literal(file_path, datatype=XSD.string)))
+            g.add((raw_file_uri, DYN.hasFileFormat, Literal("csv", datatype=XSD.string)))
+
+            if self.state.total_samples is not None:
+                g.add((raw_file_uri, DYN.hasDataPointCount,
+                       Literal(self.state.total_samples, datatype=XSD.integer)))
+            if self.state.raw_df is not None:
+                g.add((raw_file_uri, DYN.hasColumnCount,
+                       Literal(len(self.state.raw_df.columns), datatype=XSD.integer)))
+
+            # Compute sampling rate from time column (Hz)
+            sampling_rate = self._compute_sampling_rate()
+
+            # Gauge URI mapping: which gauge(s) measured which signal
+            # Time is the shared acquisition clock — both gauges contribute
+            inc_gauge = self.state.gauge_mapping.get("incident")
+            tra_gauge = self.state.gauge_mapping.get("transmitted")
+            gauge_for_signal: Dict[str, list] = {
+                "time": [u for u in (inc_gauge, tra_gauge) if u],
+                "incident": [inc_gauge] if inc_gauge else [],
+                "transmitted": [tra_gauge] if tra_gauge else [],
+            }
+
+            # Map column_mapping keys to SeriesType individual URIs
+            series_type_map = {
+                "time": DYN.Time,
+                "incident": DYN.IncidentPulse,
+                "transmitted": DYN.TransmittedPulse,
+            }
+
+            for key, col_name in self.state.column_mapping.items():
+                series_uri = DYN[f"{test_id}_{key}"]
+                g.add((series_uri, RDF.type, DYN.RawSignal))
+                g.add((series_uri, RDF.type, DYN.DataSeries))
+                g.add((series_uri, DYN.hasColumnName, Literal(col_name, datatype=XSD.string)))
+                g.add((series_uri, DYN.hasDataFile, raw_file_uri))
+
+                series_type = series_type_map.get(key)
+                if series_type:
+                    g.add((series_uri, DYN.hasSeriesType, series_type))
+                    g.add((series_type, RDF.type, DYN.SeriesType))
+
+                # Sampling rate
+                if sampling_rate is not None:
+                    g.add((series_uri, DYN.hasSamplingRate,
+                           Literal(sampling_rate, datatype=XSD.double)))
+
+                # measuredBy → strain gauge(s)
+                for gauge_uri in gauge_for_signal.get(key, []):
+                    gauge_ref = URIRef(gauge_uri)
+                    g.add((series_uri, DYN.measuredBy, gauge_ref))
+                    g.add((gauge_ref, RDF.type, DYN.StrainGauge))
+                    g.add((gauge_ref, RDF.type, DYN.MeasurementEquipment))
+
+            return g
+
+        except Exception as e:
+            self.logger.error(f"Failed to build validation graph: {e}")
+            return None
+
+    def _compute_sampling_rate(self) -> Optional[float]:
+        """Compute sampling rate in Hz from the time column.
+
+        Uses the first two time values to determine the sampling interval,
+        then converts to Hz.  Falls back to ``state.sampling_interval``
+        if the time column is unavailable.
+
+        Returns:
+            Sampling rate in Hz, or None if undetermined.
+        """
+        try:
+            time_arr = self.state.get_raw_signal("time")
+            if time_arr is not None and len(time_arr) >= 2:
+                dt = float(time_arr[1] - time_arr[0])
+                if dt > 0:
+                    # time column is typically in seconds or milliseconds
+                    # if dt < 1e-3, it's likely in seconds already
+                    return 1.0 / dt
+
+            # Fallback: sampling_interval is in ms
+            if self.state.sampling_interval is not None and self.state.sampling_interval > 0:
+                return 1000.0 / self.state.sampling_interval
+
+        except Exception as e:
+            self.logger.warning(f"Could not compute sampling rate: {e}")
+
+        return None
 
     # ------------------------------------------------------------------
     # Signal handlers
@@ -132,3 +357,4 @@ class RawDataPage(BaseSHPBPage):
             self.state.unit_mapping = data.get('unit_mapping', {})
             self.state.sampling_interval = data.get('sampling_interval')
             self.state.total_samples = data['total_samples']
+        self._save_gauge_selection()

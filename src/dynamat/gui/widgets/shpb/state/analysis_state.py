@@ -49,6 +49,8 @@ class SHPBAnalysisState:
     total_samples: Optional[int] = None
     # Auto-computed file metadata (property_uri -> value)
     raw_file_metadata: Optional[Dict[str, Any]] = None
+    # Strain gauge URIs per signal  {'incident': uri, 'transmitted': uri}
+    gauge_mapping: Dict[str, Optional[str]] = field(default_factory=dict)
 
     # ==================== EQUIPMENT (dyn:SHPBCompression form) ====================
     equipment_form_data: Optional[Dict[str, Any]] = None
@@ -79,6 +81,12 @@ class SHPBAnalysisState:
     # ==================== TUKEY (dyn:TukeyWindowParams form) ====================
     tukey_form_data: Optional[Dict[str, Any]] = None
     tapered_pulses: Dict[str, np.ndarray] = field(default_factory=dict)
+
+    # ==================== CUMULATIVE VALIDATION GRAPHS ====================
+    # Each wizard page stores its partial RDF graph here under a key
+    # (e.g., "raw_data", "equipment", "pulse_detection").  The base-page
+    # validation merges all stored graphs to give each step a cumulative view.
+    page_graphs: Dict[str, Any] = field(default_factory=dict)
 
     # ==================== EXPORT ====================
     test_id: Optional[str] = None

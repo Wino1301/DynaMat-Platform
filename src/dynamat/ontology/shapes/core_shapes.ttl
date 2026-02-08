@@ -284,7 +284,7 @@ dyn:AnalysisFileShape a sh:NodeShape ;
         sh:maxCount 1 ;
         sh:name "File Format" ;
         sh:description "Format of the data file (CSV, HDF5, JSON)" ;
-        sh:in ("csv" "CSV" "hdf5" "HDF5" "json" "JSON") ;
+        sh:in ("csv"^^xsd:string "CSV"^^xsd:string "hdf5"^^xsd:string "HDF5"^^xsd:string "json"^^xsd:string "JSON"^^xsd:string) ;
     ] ;
     sh:property [
         sh:path dyn:hasFileSize ;

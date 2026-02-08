@@ -142,7 +142,9 @@ class AlignmentPage(BaseSHPBPage):
 
         # Run SHACL validation on partial graph
         validation_graph = self._build_validation_graph()
-        if validation_graph and not self._validate_page_data(validation_graph):
+        if validation_graph and not self._validate_page_data(
+            validation_graph, page_key="alignment"
+        ):
             return False
 
         return True

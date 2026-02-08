@@ -86,7 +86,7 @@ dyn:DataSeriesShape a sh:NodeShape ;
     sh:property [ sh:path dyn:hasSegmentShift ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
     sh:property [ sh:path dyn:hasThresholdRatio ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path dyn:isTrainingData ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
-    sh:property [ sh:path dyn:measuredBy ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:measuredBy ] ;
     sh:property [ sh:path dyn:derivedFrom ; sh:maxCount 1 ] .
 
 

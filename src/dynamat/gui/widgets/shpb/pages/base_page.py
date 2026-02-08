@@ -5,7 +5,7 @@ logging, and standard UI patterns.
 """
 
 import logging
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Dict
 
 from PyQt6.QtWidgets import (
     QWizardPage, QVBoxLayout, QHBoxLayout, QLabel,
@@ -229,23 +229,43 @@ class BaseSHPBPage(QWizardPage):
 
     # ==================== SHACL VALIDATION HELPERS ====================
 
-    def _validate_page_data(self, data_graph: Graph) -> bool:
-        """Validate page data against SHACL shapes.
+    def _validate_page_data(
+        self, data_graph: Graph, page_key: Optional[str] = None
+    ) -> bool:
+        """Validate page data against SHACL shapes using cumulative context.
 
-        Builds a partial RDF graph from page form data and validates it
-        against the loaded SHACL shapes. Shows a ValidationResultsDialog
-        if issues are found.
+        Merges all previously stored page graphs (from ``state.page_graphs``)
+        with the current page's *data_graph* to give SHACL a full view of
+        cross-page references (e.g. DataSeries nodes created by the raw-data
+        page can satisfy ``appliedToSeries`` constraints on the pulse-detection
+        page).
+
+        On successful validation the current page's graph is stored on state
+        under *page_key* so that subsequent pages benefit from it.
 
         Args:
-            data_graph: RDF graph containing page-specific instance data
+            data_graph: RDF graph containing this page's instance data.
+            page_key: Optional key under which to store *data_graph* in
+                ``state.page_graphs`` after a successful validation.
 
         Returns:
             True if navigation should proceed, False to block.
         """
         from ...validation_results_dialog import ValidationResultsDialog
 
+        # Build cumulative graph: all stored page graphs + current page
+        merged = Graph()
+        for key, stored_graph in self.state.page_graphs.items():
+            # Skip the current page's stale graph (will be replaced)
+            if key == page_key:
+                continue
+            for triple in stored_graph:
+                merged.add(triple)
+        for triple in data_graph:
+            merged.add(triple)
+
         validator = self._get_cached_validator()
-        result = validator.validate(data_graph)
+        result = validator.validate(merged)
 
         if result.has_blocking_issues():
             dialog = ValidationResultsDialog(result, parent=self)
@@ -253,7 +273,13 @@ class BaseSHPBPage(QWizardPage):
             return False
         elif result.has_any_issues():
             dialog = ValidationResultsDialog(result, parent=self)
-            return dialog.exec() == QDialog.DialogCode.Accepted
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                return False
+
+        # Validation passed (or warnings accepted) — store this page's graph
+        if page_key is not None:
+            self.state.page_graphs[page_key] = data_graph
+
         return True
 
     def _get_cached_validator(self) -> "SHACLValidator":

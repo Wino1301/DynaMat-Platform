@@ -152,9 +152,11 @@ class PulseDetectionPage(BaseSHPBPage):
         # Save parameters to state
         self._save_params()
 
-        # Run SHACL validation on partial graph
+        # Run SHACL validation on partial graph (cumulative with raw_data)
         validation_graph = self._build_validation_graph()
-        if validation_graph and not self._validate_page_data(validation_graph):
+        if validation_graph and not self._validate_page_data(
+            validation_graph, page_key="pulse_detection"
+        ):
             return False
 
         return True
@@ -162,7 +164,10 @@ class PulseDetectionPage(BaseSHPBPage):
     def _build_validation_graph(self) -> Optional[Graph]:
         """Build partial RDF graph for SHACL validation of pulse detection data.
 
-        Creates one PulseDetectionParams instance per pulse type.
+        Creates one PulseDetectionParams instance per pulse type with
+        ``appliedToSeries`` URI references.  The actual DataSeries and
+        AnalysisFile nodes are supplied by the raw-data page's graph via
+        the cumulative merge in ``_validate_page_data``.
 
         Returns:
             RDF graph with PulseDetectionParams instances, or None on error.
@@ -196,7 +201,22 @@ class PulseDetectionPage(BaseSHPBPage):
 
                     if prop_name in object_properties:
                         if isinstance(value, str) and value:
-                            g.add((instance, prop, URIRef(value)))
+                            # Expand prefixed URIs (e.g. "dyn:Foo") to full URIs
+                            if value.startswith("dyn:"):
+                                obj_uri = URIRef(DYN_NS + value[4:])
+                            elif value.startswith("http"):
+                                obj_uri = URIRef(value)
+                            else:
+                                obj_uri = URIRef(DYN_NS + value)
+                            g.add((instance, prop, obj_uri))
+
+                            # Declare type for referenced individuals
+                            # (DataSeries nodes come from the raw_data page graph)
+                            if prop_name == "hasDetectionPolarity":
+                                g.add((obj_uri, RDF.type, DYN.PolarityType))
+                            elif prop_name == "hasSelectionMetric":
+                                g.add((obj_uri, RDF.type, DYN.DetectionMetric))
+
                     elif prop_name in integer_properties:
                         try:
                             g.add((instance, prop, Literal(int(value), datatype=XSD.integer)))
@@ -304,6 +324,7 @@ class PulseDetectionPage(BaseSHPBPage):
         """Save parameters from all forms to state as form-data dicts.
 
         Injects computed output properties (window indices) into the form data.
+        Reflected detection is applied to the incident bar signal (same bar).
         """
         for pulse_type in ['incident', 'transmitted', 'reflected']:
             form_widget = self._pulse_forms[pulse_type]
@@ -317,8 +338,15 @@ class PulseDetectionPage(BaseSHPBPage):
                 form_data[f"{DYN_NS}hasWindowLength"] = window[1] - window[0]
 
             # Inject appliedToSeries link
-            if self.state.test_id:
-                form_data[f"{DYN_NS}appliedToSeries"] = f"dyn:{self.state.test_id}_{pulse_type}"
+            # Reflected detection is applied to the incident bar signal
+            # Compute test_id from specimen_id to match raw_data_page URIs
+            test_id = (
+                f"{self.state.specimen_id}_SHPBTest"
+                if self.state.specimen_id
+                else "_val"
+            )
+            series_key = 'incident' if pulse_type == 'reflected' else pulse_type
+            form_data[f"{DYN_NS}appliedToSeries"] = f"dyn:{test_id}_{series_key}"
 
             self.state.detection_form_data[pulse_type] = form_data
 

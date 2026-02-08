@@ -67,7 +67,8 @@ class EquipmentPage(BaseSHPBPage):
         try:
             self.form_widget = self.form_builder.build_form(
                 "https://dynamat.utep.edu/ontology#SHPBCompression",
-                parent=self
+                parent=self,
+                exclude_groups={"StrainGaugeConfiguration"},
             )
 
             if self.form_widget:
@@ -135,7 +136,9 @@ class EquipmentPage(BaseSHPBPage):
 
         # Run SHACL validation on partial graph
         validation_graph = self._build_validation_graph()
-        if validation_graph and not self._validate_page_data(validation_graph):
+        if validation_graph and not self._validate_page_data(
+            validation_graph, page_key="equipment"
+        ):
             return False
 
         # Extract equipment properties
@@ -189,9 +192,6 @@ class EquipmentPage(BaseSHPBPage):
                 "hasStrikerBar": DYN.Bar,
                 "hasIncidentBar": DYN.Bar,
                 "hasTransmissionBar": DYN.Bar,
-                # Strain Gauge Configuration
-                "hasIncidentStrainGauge": DYN.StrainGauge,
-                "hasTransmissionStrainGauge": DYN.StrainGauge,
                 # Test Conditions
                 "hasMomentumTrap": DYN.MomentumTrap,
                 "hasPulseShaper": DYN.PulseShaper,
@@ -205,8 +205,6 @@ class EquipmentPage(BaseSHPBPage):
                 "hasStrikerVelocity", "hasBarrelOffset",
                 "hasPulseShaperDiameter", "hasPulseShaperThickness",
                 "hasMomentumTrapTailoredDistance",
-                "hasIncidentStrainGaugeDistance",
-                "hasTransmissionStrainGaugeDistance",
             }
 
             # Union of all whitelisted property names
@@ -439,10 +437,10 @@ class EquipmentPage(BaseSHPBPage):
                         equipment[bar_type]['elastic_modulus'] = mat_props.get('hasElasticModulus')
                         equipment[bar_type]['density'] = mat_props.get('hasDensity')
 
-            # Extract gauge properties
+            # Extract gauge properties (selected on raw data page)
             gauge_uri_map = {
-                'incident_gauge': data.get(f"{DYN_NS}hasIncidentStrainGauge"),
-                'transmission_gauge': data.get(f"{DYN_NS}hasTransmissionStrainGauge"),
+                'incident_gauge': self.state.gauge_mapping.get('incident'),
+                'transmission_gauge': self.state.gauge_mapping.get('transmitted'),
             }
 
             for gauge_type, uri in gauge_uri_map.items():
