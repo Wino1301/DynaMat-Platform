@@ -46,19 +46,33 @@ def sample_properties():
             uri="http://example.org#prop1",
             name="property1",
             display_name="Property 1",
+            form_group="Test Group",
             display_order=1,
             group_order=1,
+            data_type="http://www.w3.org/2001/XMLSchema#string",
+            is_functional=False,
             is_required=True,
-            data_type="http://www.w3.org/2001/XMLSchema#string"
+            valid_values=[],
+            default_unit=None,
+            range_class=None,
+            domain_class="http://example.org#TestClass",
+            description="A sample property for testing."
         ),
         PropertyMetadata(
             uri="http://example.org#prop2",
             name="property2",
             display_name="Property 2",
+            form_group="Test Group",
             display_order=2,
             group_order=1,
+            data_type="http://www.w3.org/2001/XMLSchema#double",
+            is_functional=False,
             is_required=False,
-            data_type="http://www.w3.org/2001/XMLSchema#double"
+            valid_values=[],
+            default_unit=None,
+            range_class=None,
+            domain_class="http://example.org#TestClass",
+            description="Another sample property for testing."
         ),
     ]
 
