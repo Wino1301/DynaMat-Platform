@@ -88,6 +88,9 @@ class SHPBAnalysisState:
     # validation merges all stored graphs to give each step a cumulative view.
     page_graphs: Dict[str, Any] = field(default_factory=dict)
 
+    # ==================== LOAD STATE ====================
+    _loaded_from_previous: bool = False
+
     # ==================== EXPORT ====================
     test_id: Optional[str] = None
     export_form_data: Optional[Dict[str, Any]] = None  # validity, test_type
@@ -214,6 +217,9 @@ class SHPBAnalysisState:
         Args:
             stage: Stage number (1-12) to reset from
         """
+        if stage <= 1:
+            self._loaded_from_previous = False
+
         if stage <= 2:
             self.raw_df = None
             self.csv_file_path = None

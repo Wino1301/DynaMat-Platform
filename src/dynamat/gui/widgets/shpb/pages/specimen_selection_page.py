@@ -4,14 +4,16 @@ Allows user to select a specimen from the database using the EntitySelectorWidge
 """
 
 import logging
+from pathlib import Path
 from typing import Optional, Dict, Any
 
-from PyQt6.QtWidgets import QVBoxLayout, QGroupBox
+from PyQt6.QtWidgets import QVBoxLayout, QGroupBox, QMessageBox
 
 from .base_page import BaseSHPBPage
 from ...base.entity_selector import EntitySelectorConfig, EntitySelectorWidget
 from .....ontology.instance_query_builder import InstanceQueryBuilder
 from .....config import config
+from ..state.test_ttl_loader import TestTTLLoader
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +135,12 @@ class SpecimenSelectionPage(BaseSHPBPage):
             self._entity_selector.set_selected_entity(self.state.specimen_uri)
 
     def validatePage(self) -> bool:
-        """Validate before allowing Next."""
+        """Validate before allowing Next.
+
+        If the selected specimen has a linked SHPBCompression test and the
+        user hasn't already loaded it, offer to prefill the wizard state
+        from the previous test TTL.
+        """
         if not self.state.specimen_uri:
             self.show_warning("Selection Required", "Please select a specimen before continuing.")
             return False
@@ -142,7 +149,118 @@ class SpecimenSelectionPage(BaseSHPBPage):
             self.show_warning("Data Error", "Failed to load specimen data. Please try selecting again.")
             return False
 
+        # Check for existing SHPB test on this specimen
+        if not self.state._loaded_from_previous:
+            test_ref = self.state.specimen_data.get(f"{DYN_NS}hasSHPBCompressionTest")
+            if test_ref:
+                self._offer_load_previous(test_ref)
+
         return True
+
+    # ------------------------------------------------------------------
+    # Previous-test loading
+    # ------------------------------------------------------------------
+
+    def _offer_load_previous(self, test_ref) -> None:
+        """Show dialog asking whether to load a previous test.
+
+        Args:
+            test_ref: URI string (or list) of the linked SHPBCompression test.
+        """
+        # Normalize to single URI string
+        if isinstance(test_ref, list):
+            test_ref = test_ref[0]
+        test_uri = str(test_ref)
+
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Question)
+        msg.setWindowTitle("Previous Test Found")
+        msg.setText(
+            "This specimen has a previously completed SHPB test.\n\n"
+            "Would you like to load the previous test parameters?"
+        )
+        load_btn = msg.addButton("Load Previous Test", QMessageBox.ButtonRole.AcceptRole)
+        msg.addButton("Start New Analysis", QMessageBox.ButtonRole.RejectRole)
+        msg.exec()
+
+        if msg.clickedButton() != load_btn:
+            # User chose new analysis — mark as handled so we don't ask again
+            self.state._loaded_from_previous = True
+            return
+
+        # Discover the TTL file
+        ttl_path = self._find_test_ttl(test_uri)
+        if ttl_path is None:
+            self.show_warning(
+                "File Not Found",
+                "Could not locate the test TTL file for the previous analysis."
+            )
+            return
+
+        # Load TTL into state
+        loader = TestTTLLoader()
+        success = loader.load(ttl_path, self.state)
+
+        if success:
+            self.set_status("Loaded previous test parameters")
+            self.logger.info(f"Loaded previous test from {ttl_path}")
+        else:
+            self.show_warning(
+                "Load Failed",
+                "Failed to parse the previous test TTL. Starting with empty state."
+            )
+            self.state._loaded_from_previous = True
+
+    def _find_test_ttl(self, test_uri: str) -> Optional[Path]:
+        """Locate the TTL file for a test URI.
+
+        Tries:
+        1. Exact match: specimen_dir / {test_local_name}.ttl
+        2. Hyphen/underscore variants
+        3. Glob fallback: *SHPBTest*.ttl
+
+        Args:
+            test_uri: Full URI of the test individual.
+
+        Returns:
+            Path to TTL file, or None if not found.
+        """
+        if not self.state.specimen_id:
+            return None
+
+        specimen_dir = config.SPECIMENS_DIR / self.state.specimen_id
+
+        # Also try underscore variant of specimen ID for folder name
+        specimen_id_underscore = self.state.specimen_id.replace("-", "_")
+        alt_specimen_dir = config.SPECIMENS_DIR / specimen_id_underscore
+
+        for sdir in (specimen_dir, alt_specimen_dir):
+            if not sdir.exists():
+                continue
+
+            # Extract local name from URI
+            test_local = test_uri.split("#")[-1] if "#" in test_uri else test_uri.split("/")[-1]
+
+            # Try exact match
+            ttl_path = sdir / f"{test_local}.ttl"
+            if ttl_path.exists():
+                return ttl_path
+
+            # Try hyphen/underscore variants
+            for variant in (
+                test_local.replace("-", "_"),
+                test_local.replace("_", "-"),
+            ):
+                ttl_path = sdir / f"{variant}.ttl"
+                if ttl_path.exists():
+                    return ttl_path
+
+            # Glob fallback
+            matches = list(sdir.glob("*SHPBTest*.ttl"))
+            if matches:
+                return matches[0]
+
+        return None
 
     def _initialize_query_builder(self) -> None:
         """Initialize the instance query builder."""
