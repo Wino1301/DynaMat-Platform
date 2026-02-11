@@ -20,10 +20,12 @@ from rdflib import Graph, Namespace, Literal, URIRef
 from rdflib.namespace import RDF, XSD
 
 from .base_page import BaseSHPBPage
+from .....mechanical.shpb.core.pulse_characteristics import PulseCharacteristics
 from .....mechanical.shpb.io.specimen_loader import SpecimenLoader
 from .....config import config
 from ....builders.customizable_form_builder import CustomizableFormBuilder
 from ....dependencies import DependencyManager
+from ...base.property_display import PropertyDisplayWidget
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +56,7 @@ class EquipmentPage(BaseSHPBPage):
         self.form_widget: Optional[QWidget] = None
         self.form_builder: Optional[CustomizableFormBuilder] = None
         self.dependency_manager: Optional[DependencyManager] = None
+        self.pulse_chars_widget: Optional[PropertyDisplayWidget] = None
 
     def _setup_ui(self) -> None:
         """Setup page UI using customizable form builder."""
@@ -94,6 +97,11 @@ class EquipmentPage(BaseSHPBPage):
             error_label = QLabel(f"Error creating form: {str(e)}")
             error_label.setStyleSheet("color: red;")
             layout.addWidget(error_label)
+
+        # Pulse characteristics display (computed from equipment + raw data)
+        self.pulse_chars_widget = PropertyDisplayWidget(title="Pulse Characteristics")
+        self.pulse_chars_widget.setVisible(False)
+        layout.addWidget(self.pulse_chars_widget)
 
         self._add_status_area()
 
@@ -148,6 +156,9 @@ class EquipmentPage(BaseSHPBPage):
                 "Could not extract equipment properties. Please verify selections."
             )
             return False
+
+        # Compute and display pulse characteristics from equipment + raw data
+        self._compute_pulse_characteristics()
 
         return True
 
@@ -468,3 +479,105 @@ class EquipmentPage(BaseSHPBPage):
         except Exception as e:
             self.logger.error(f"Failed to extract equipment properties: {e}")
             return False
+
+    def _compute_pulse_characteristics(self) -> None:
+        """Compute pulse characteristics from equipment properties and display them.
+
+        Reads striker length, bar wave speed, bar density from extracted
+        equipment properties, striker velocity from form data, and sampling
+        interval from state.  Stores the result dict in
+        ``state.pulse_characteristics`` and displays in the
+        PropertyDisplayWidget.
+        """
+        equipment = self.state.equipment_properties
+        form_data = self.state.equipment_form_data
+
+        if not equipment or not form_data:
+            return
+
+        try:
+            striker_length = equipment.get('striker_bar', {}).get('length')
+            bar_wave_speed = equipment.get('incident_bar', {}).get('wave_speed')
+            bar_density = equipment.get('incident_bar', {}).get('density')
+
+            velocity_data = form_data.get(f"{DYN_NS}hasStrikerVelocity")
+            if isinstance(velocity_data, dict):
+                striker_velocity = velocity_data.get('value')
+            else:
+                striker_velocity = velocity_data
+
+            sampling_interval = self.state.sampling_interval
+
+            missing = []
+            if not striker_length:
+                missing.append("striker length")
+            if not bar_wave_speed:
+                missing.append("bar wave speed")
+            if not bar_density:
+                missing.append("bar density")
+            if not striker_velocity:
+                missing.append("striker velocity")
+            if not sampling_interval:
+                missing.append("sampling interval")
+
+            if missing:
+                self.logger.warning(
+                    f"Cannot compute pulse characteristics, missing: {', '.join(missing)}"
+                )
+                return
+
+            calc = PulseCharacteristics(
+                striker_length_mm=float(striker_length),
+                bar_wave_speed_m_s=float(bar_wave_speed),
+                bar_density_kg_m3=float(bar_density),
+            )
+            result = calc.calculate(
+                striker_velocity_m_s=float(striker_velocity),
+                sampling_interval_ms=float(sampling_interval),
+            )
+
+            self.state.pulse_characteristics = result.to_dict()
+
+            # Display in PropertyDisplayWidget
+            display_data = {
+                f"{DYN_NS}hasPulseDuration": {
+                    'value': result.pulse_duration_ms,
+                    'label': 'Pulse Duration',
+                    'unit': 'unit:MilliSEC',
+                },
+                f"{DYN_NS}hasPulseLength": {
+                    'value': result.pulse_length_mm,
+                    'label': 'Pulse Length',
+                    'unit': 'unit:MilliM',
+                },
+                f"{DYN_NS}hasPulseSpeed": {
+                    'value': result.pulse_speed_m_s,
+                    'label': 'Pulse Speed',
+                    'unit': 'unit:M-PER-SEC',
+                },
+                f"{DYN_NS}hasPulsePoints": {
+                    'value': result.pulse_points,
+                    'label': 'Pulse Points (samples)',
+                },
+                f"{DYN_NS}hasPulseStressAmplitude": {
+                    'value': result.pulse_stress_amplitude_mpa,
+                    'label': 'Stress Amplitude',
+                    'unit': 'unit:MegaPA',
+                },
+                f"{DYN_NS}hasPulseStrainAmplitude": {
+                    'value': result.pulse_strain_amplitude,
+                    'label': 'Strain Amplitude',
+                },
+            }
+
+            if self.pulse_chars_widget:
+                self.pulse_chars_widget.setData(display_data)
+                self.pulse_chars_widget.setVisible(True)
+
+            self.logger.info(
+                f"Pulse characteristics: duration={result.pulse_duration_ms:.4f} ms, "
+                f"points={result.pulse_points}"
+            )
+
+        except Exception as e:
+            self.logger.error(f"Failed to compute pulse characteristics: {e}")

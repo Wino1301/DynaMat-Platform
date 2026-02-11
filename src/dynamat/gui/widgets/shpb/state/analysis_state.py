@@ -56,6 +56,11 @@ class SHPBAnalysisState:
     equipment_form_data: Optional[Dict[str, Any]] = None
     equipment_properties: Optional[Dict[str, Any]] = None  # Cached bar/gauge props
 
+    # ==================== PULSE CHARACTERISTICS (computed from equipment) ====================
+    # Keys: pulse_duration, pulse_length, pulse_speed, pulse_strain_amplitude,
+    #        pulse_stress_amplitude, pulse_points
+    pulse_characteristics: Optional[Dict[str, Any]] = None
+
     # ==================== PULSE DETECTION (3x dyn:PulseDetectionParams forms) ====================
     detection_form_data: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     # {'incident': {prop_uri->val}, 'transmitted': {...}, 'reflected': {...}}
@@ -229,6 +234,7 @@ class SHPBAnalysisState:
         if stage <= 3:
             self.equipment_form_data = None
             self.equipment_properties = None
+            self.pulse_characteristics = None
 
         if stage <= 5:
             self.detection_form_data = {}

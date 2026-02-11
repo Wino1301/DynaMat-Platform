@@ -89,3 +89,32 @@ gui:shpb_c006 a gui:Constraint ;
     gui:targetWidget "TransmissionStrainGaugeProperties" ;
     gui:priority 10 .
 
+#================================================================
+# 4.0 Pulse Characteristics (Computed from Equipment)
+# Note: The actual computation is handled in EquipmentPage code
+# because it requires cross-entity queries (bar properties from
+# ontology individuals) and cross-page data (sampling interval).
+# This constraint documents the dependency relationship and
+# indicates that pulse_points flows to PulseDetectionParams forms.
+#================================================================
+
+gui:shpb_c010 a gui:Constraint ;
+    rdfs:label "Pulse Characteristics" ;
+    rdfs:comment "When striker velocity is provided and equipment is fully configured, computes theoretical pulse characteristics (duration, length, speed, strain/stress amplitude, pulse points) from striker geometry and bar material properties. Pulse points auto-fills hasPulsePoints in PulseDetectionParams forms. Computed in EquipmentPage._compute_pulse_characteristics() since inputs span multiple ontology individuals and the raw data page." ;
+    dc:created "2025-02-10"^^xsd:date ;
+    gui:forClass dyn:SHPBCompression ;
+    gui:triggers dyn:hasStrikerVelocity ;
+    gui:triggerLogic gui:ALL ;
+    gui:whenValue gui:anyValue ;
+    gui:populateFields (
+        (dyn:hasPulseDuration "Pulse Duration")
+        (dyn:hasPulseLength "Pulse Length")
+        (dyn:hasPulseSpeed "Pulse Speed")
+        (dyn:hasPulsePoints "Pulse Points")
+        (dyn:hasPulseStressAmplitude "Stress Amplitude")
+        (dyn:hasPulseStrainAmplitude "Strain Amplitude")
+    ) ;
+    gui:makeReadOnly true ;
+    gui:targetWidget "PulseCharacteristics" ;
+    gui:priority 10 .
+

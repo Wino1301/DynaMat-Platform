@@ -8,7 +8,7 @@ import numpy as np
 
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QGroupBox, QGridLayout, QSplitter, QFrame, QTabWidget, QWidget
+    QGroupBox, QGridLayout, QSplitter, QFrame, QTabWidget, QWidget,
 )
 from PyQt6.QtCore import Qt
 from rdflib import Graph, Namespace, Literal, URIRef
@@ -58,6 +58,7 @@ class PulseDetectionPage(BaseSHPBPage):
         # Left side: Parameters
         params_frame = QFrame()
         params_layout = QVBoxLayout(params_frame)
+        params_layout.setSpacing(6)
 
         # Tab widget for each pulse type with ontology-generated forms
         self.pulse_tabs = QTabWidget()
@@ -89,6 +90,7 @@ class PulseDetectionPage(BaseSHPBPage):
         # Detection results
         results_group = self._create_group_box("Detection Results")
         results_layout = QGridLayout(results_group)
+        results_layout.setSpacing(4)
 
         self.result_labels = {}
         for row, pulse_type in enumerate(['incident', 'transmitted', 'reflected']):
@@ -132,6 +134,9 @@ class PulseDetectionPage(BaseSHPBPage):
         # Restore parameters from state
         self._restore_params()
 
+        # Auto-fill pulse points from equipment-computed characteristics
+        self._fill_pulse_points_from_state()
+
         # Update plot with raw signals
         self._update_plot()
 
@@ -165,8 +170,9 @@ class PulseDetectionPage(BaseSHPBPage):
         """Build partial RDF graph for SHACL validation of pulse detection data.
 
         Creates one PulseDetectionParams instance per pulse type with
-        ``appliedToSeries`` URI references.  The actual DataSeries and
-        AnalysisFile nodes are supplied by the raw-data page's graph via
+        ``appliedToSeries`` URI references, plus pulse characteristic
+        properties on the SHPBCompression test node.  The actual DataSeries
+        and AnalysisFile nodes are supplied by the raw-data page's graph via
         the cumulative merge in ``_validate_page_data``.
 
         Returns:
@@ -230,11 +236,63 @@ class PulseDetectionPage(BaseSHPBPage):
                         except (ValueError, TypeError):
                             g.add((instance, prop, Literal(str(value), datatype=XSD.string)))
 
+            # Add pulse characteristics to the SHPBCompression test node
+            chars = self.state.pulse_characteristics
+            if chars:
+                test_id = (
+                    f"{self.state.specimen_id}_SHPBTest"
+                    if self.state.specimen_id
+                    else "_val_test"
+                )
+                test_node = DYN[test_id]
+                g.add((test_node, RDF.type, DYN.SHPBCompression))
+
+                char_map = {
+                    'hasPulseDuration': chars.get('pulse_duration'),
+                    'hasPulseLength': chars.get('pulse_length'),
+                    'hasPulseSpeed': chars.get('pulse_speed'),
+                    'hasPulseStrainAmplitude': chars.get('pulse_strain_amplitude'),
+                    'hasPulseStressAmplitude': chars.get('pulse_stress_amplitude'),
+                }
+                for prop_name, value in char_map.items():
+                    if value is not None:
+                        g.add((test_node, DYN[prop_name],
+                               Literal(float(value), datatype=XSD.double)))
+
             return g
 
         except Exception as e:
             self.logger.error(f"Failed to build validation graph: {e}")
             return None
+
+    def _fill_pulse_points_from_state(self) -> None:
+        """Auto-fill hasPulsePoints in all three detection tab forms from state.
+
+        Reads ``pulse_points`` from ``state.pulse_characteristics`` (computed
+        on the equipment page) and sets the value in each detection form.
+        """
+        chars = self.state.pulse_characteristics
+        if not chars:
+            return
+
+        pulse_points = chars.get('pulse_points')
+        if pulse_points is None:
+            return
+
+        pulse_points_uri = f"{DYN_NS}hasPulsePoints"
+        for pulse_type in ['incident', 'transmitted', 'reflected']:
+            form_widget = self._pulse_forms.get(pulse_type)
+            if not form_widget:
+                continue
+
+            form_fields = getattr(form_widget, 'form_fields', {})
+            field = form_fields.get(pulse_points_uri)
+            if field and hasattr(field, 'widget'):
+                widget = field.widget
+                if hasattr(widget, 'setValue'):
+                    widget.setValue(int(pulse_points))
+                elif hasattr(widget, 'setText'):
+                    widget.setText(str(pulse_points))
 
     def _parse_k_trials(self, k_str: str) -> Tuple[float, ...]:
         """Parse comma-separated k_trials string to tuple."""
@@ -323,12 +381,22 @@ class PulseDetectionPage(BaseSHPBPage):
     def _save_params(self) -> None:
         """Save parameters from all forms to state as form-data dicts.
 
-        Injects computed output properties (window indices) into the form data.
-        Reflected detection is applied to the incident bar signal (same bar).
+        Injects computed output properties (window indices) and pulse_points
+        into the form data. Reflected detection is applied to the incident
+        bar signal (same bar).
         """
+        # Get computed pulse_points if available
+        computed_pulse_points = None
+        if self.state.pulse_characteristics:
+            computed_pulse_points = self.state.pulse_characteristics.get('pulse_points')
+
         for pulse_type in ['incident', 'transmitted', 'reflected']:
             form_widget = self._pulse_forms[pulse_type]
             form_data = self.form_builder.get_form_data(form_widget)
+
+            # Inject computed pulse_points from pulse characteristics
+            if computed_pulse_points is not None:
+                form_data[f"{DYN_NS}hasPulsePoints"] = computed_pulse_points
 
             # Inject computed window output properties
             window = self.state.pulse_windows.get(pulse_type)

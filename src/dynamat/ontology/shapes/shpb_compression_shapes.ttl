@@ -181,12 +181,40 @@ dyn:SHPBCompressionShape a sh:NodeShape ;
     sh:property [ sh:path dyn:hasPulseShaperDiameter ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path dyn:hasPulseShaperThickness ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
 
-    # Pulse characteristics
-    sh:property [ sh:path dyn:hasPulseDuration ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
-    sh:property [ sh:path dyn:hasPulseLength ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    # Pulse characteristics (calculated from equipment — Warning severity)
+    sh:property [
+        sh:path dyn:hasPulseDuration ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:double ;
+        sh:minExclusive 0.0 ;
+        sh:message "Pulse duration should be calculated (2L/C) from striker geometry" ;
+        sh:severity sh:Warning ;
+    ] ;
+    sh:property [
+        sh:path dyn:hasPulseLength ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:double ;
+        sh:minExclusive 0.0 ;
+        sh:message "Pulse length should be calculated (2L) from striker geometry" ;
+        sh:severity sh:Warning ;
+    ] ;
+    sh:property [
+        sh:path dyn:hasPulseStrainAmplitude ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:double ;
+        sh:minExclusive 0.0 ;
+        sh:message "Pulse strain amplitude should be calculated (V/2C)" ;
+        sh:severity sh:Warning ;
+    ] ;
+    sh:property [
+        sh:path dyn:hasPulseStressAmplitude ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:double ;
+        sh:minExclusive 0.0 ;
+        sh:message "Pulse stress amplitude should be calculated (rhoCV/2)" ;
+        sh:severity sh:Warning ;
+    ] ;
     sh:property [ sh:path dyn:hasPulseSpeed ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
-    sh:property [ sh:path dyn:hasPulseStrainAmplitude ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
-    sh:property [ sh:path dyn:hasPulseStressAmplitude ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path dyn:hasPulseRiseTime ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path dyn:hasPulsePoints ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
 
