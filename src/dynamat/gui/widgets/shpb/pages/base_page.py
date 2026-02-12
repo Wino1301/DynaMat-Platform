@@ -5,7 +5,7 @@ logging, and standard UI patterns.
 """
 
 import logging
-from typing import Optional, TYPE_CHECKING, Dict
+from typing import Optional, TYPE_CHECKING, Dict, Any, Set, List, Tuple
 
 from PyQt6.QtWidgets import (
     QWizardPage, QVBoxLayout, QHBoxLayout, QLabel,
@@ -14,13 +14,15 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 
-from rdflib import Graph
+from rdflib import Graph, Namespace, URIRef
+from rdflib.namespace import RDF
 
 if TYPE_CHECKING:
     from ..state.analysis_state import SHPBAnalysisState
     from ....ontology import OntologyManager
     from ....ontology.qudt import QUDTManager
     from ....core.form_validator import SHACLValidator
+    from ....parsers.instance_writer import InstanceWriter
 
 
 class BaseSHPBPage(QWizardPage):
@@ -226,6 +228,110 @@ class BaseSHPBPage(QWizardPage):
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         return reply == QMessageBox.StandardButton.Yes
+
+    # ==================== INSTANCE WRITER HELPERS ====================
+
+    DYN_NS = "https://dynamat.utep.edu/ontology#"
+
+    @property
+    def _instance_writer(self) -> "InstanceWriter":
+        """Lazy-loaded InstanceWriter for building validation graphs."""
+        if not hasattr(self, '_writer_cache'):
+            from ....parsers.instance_writer import InstanceWriter
+            self._writer_cache = InstanceWriter(self.ontology_manager, self.qudt_manager)
+        return self._writer_cache
+
+    def _get_range_class(self, class_uri: str, property_local_name: str) -> Optional[str]:
+        """Get rdfs:range class URI for an object property from cached metadata.
+
+        Args:
+            class_uri: Full URI of the OWL class (e.g. "https://dynamat.utep.edu/ontology#SHPBCompression")
+            property_local_name: Local name of the property (e.g. "hasStrikerBar")
+
+        Returns:
+            Full range class URI, or None if not found.
+        """
+        if not hasattr(self, '_metadata_cache'):
+            self._metadata_cache: Dict[str, Any] = {}
+        if class_uri not in self._metadata_cache:
+            self._metadata_cache[class_uri] = self.ontology_manager.get_class_metadata_for_form(class_uri)
+        metadata = self._metadata_cache[class_uri]
+        for prop in metadata.properties:
+            if prop.name == property_local_name and prop.range_class:
+                return prop.range_class
+        return None
+
+    def _build_graph_from_form_data(
+        self,
+        form_data: Dict[str, Any],
+        class_uri: str,
+        instance_id: str,
+        exclude_properties: Optional[Set[str]] = None,
+        extra_triples: Optional[List[Tuple]] = None,
+        skip_range_types: Optional[Set[str]] = None,
+    ) -> Graph:
+        """Build an RDF graph from form data using InstanceWriter.
+
+        This delegates type conversion, URI resolution, and unit conversion
+        to InstanceWriter.create_single_instance(), then post-processes
+        object property targets to add rdf:type triples needed by SHACL.
+
+        Args:
+            form_data: Property URI -> value dict (from FormDataHandler).
+            class_uri: Full OWL class URI for the instance.
+            instance_id: Instance identifier (e.g. "_val_equipment").
+            exclude_properties: Set of property local names to skip.
+            extra_triples: Additional (s, p, o) triples to inject.
+            skip_range_types: Property local names whose object targets
+                should NOT get an rdf:type triple (e.g. externally validated).
+
+        Returns:
+            Populated RDF Graph.
+        """
+        exclude_properties = exclude_properties or set()
+        skip_range_types = skip_range_types or set()
+
+        # Filter form data by excluded property local names
+        filtered_data: Dict[str, Any] = {}
+        for uri, value in form_data.items():
+            prop_name = uri.split("#")[-1] if "#" in uri else uri.split("/")[-1]
+            if prop_name not in exclude_properties:
+                filtered_data[uri] = value
+
+        # Build graph via InstanceWriter
+        graph = Graph()
+        self._instance_writer._setup_namespaces(graph)
+        instance_ref = self._instance_writer.create_single_instance(
+            graph, filtered_data, class_uri, instance_id
+        )
+
+        # Post-process: add rdf:type for object property targets
+        DYN = Namespace(self.DYN_NS)
+        for uri, value in filtered_data.items():
+            if value is None or value == "":
+                continue
+            prop_name = uri.split("#")[-1] if "#" in uri else uri.split("/")[-1]
+            if prop_name in skip_range_types:
+                continue
+
+            # Check if the value was resolved to a URIRef (object property)
+            rdf_value = self._instance_writer._convert_to_rdf_value(value)
+            if isinstance(rdf_value, URIRef) and rdf_value != instance_ref:
+                range_class = self._get_range_class(class_uri, prop_name)
+                if range_class:
+                    range_ref = self._instance_writer._resolve_uri(range_class)
+                    graph.add((rdf_value, RDF.type, range_ref))
+
+        # Add extra triples
+        if extra_triples:
+            for triple in extra_triples:
+                graph.add(triple)
+
+        self.logger.debug(
+            f"Built graph from form data: {len(graph)} triples, "
+            f"class={class_uri}, instance={instance_id}"
+        )
+        return graph
 
     # ==================== SHACL VALIDATION HELPERS ====================
 

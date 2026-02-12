@@ -46,18 +46,21 @@ class DependencyManager(QObject):
     generation_performed = pyqtSignal(str, str)  # property_uri, result
     error_occurred = pyqtSignal(str, str)  # constraint_uri, error_message
     
-    def __init__(self, ontology_manager: OntologyManager, 
-                 constraint_dir: Optional[Path] = None):
+    def __init__(self, ontology_manager: OntologyManager,
+                 constraint_dir: Optional[Path] = None,
+                 qudt_manager=None):
         """
         Initialize dependency manager.
-        
+
         Args:
             ontology_manager: OntologyManager instance
             constraint_dir: Path to constraint TTL files directory
+            qudt_manager: Optional QUDTManager for unit conversions in calculations
         """
         super().__init__()
-        
+
         self.ontology_manager = ontology_manager
+        self.qudt_manager = qudt_manager
         self.logger = logging.getLogger(__name__)
         
         # Initialize components
@@ -939,36 +942,297 @@ class DependencyManager(QObject):
                 field.widget.setEnabled(enabled)
     
     def _action_calculate(self, constraint: Constraint):
-        """Perform calculation operation."""
+        """Perform calculation operation with nested input resolution and unit conversion."""
         try:
-            # Get input values (pass property URIs directly)
-            input_values = {}
-            for input_prop in constraint.calculation_inputs:
-                if input_prop in self.active_form.form_fields:
-                    field = self.active_form.form_fields[input_prop]
-                    value = self._extract_widget_value(field.widget)
-                    input_values[input_prop] = value
-                    self.logger.debug(f"Calculation input: {input_prop} = {value}")
+            # Resolve all inputs (flat and nested) into SI values
+            input_values = self._resolve_calculation_inputs(constraint.calculation_inputs)
 
-            # Perform calculation
+            if input_values is None:
+                self.logger.debug(
+                    f"Skipping calculation {constraint.calculation_function}: "
+                    f"could not resolve all inputs"
+                )
+                return
+
+            # Perform calculation (engine works in SI)
             result = self.calculation_engine.calculate(
                 constraint.calculation_function,
                 **input_values
             )
 
             if result is not None:
-                # Set result in target field
-                self._set_widget_value(constraint.calculation_target, result)
-                self.logger.info(
-                    f"Calculation result: {constraint.calculation_function} = {result} "
-                    f"-> {constraint.calculation_target}"
+                # Convert SI result to target property's display unit
+                display_result = self._convert_result_to_target_unit(
+                    result, constraint.calculation_target
                 )
-                self.calculation_performed.emit(constraint.calculation_target, result)
+
+                # Set result in target field
+                self._set_widget_value(constraint.calculation_target, display_result)
+                self.logger.info(
+                    f"Calculation result: {constraint.calculation_function} = {result} (SI) "
+                    f"-> {display_result} (display) -> {constraint.calculation_target}"
+                )
+                self.calculation_performed.emit(constraint.calculation_target, float(display_result))
                 self._signal_emission_counts['calculation_performed'] += 1
 
         except Exception as e:
             self.logger.error(f"Calculation failed: {e}", exc_info=True)
             self.error_occurred.emit(constraint.uri, str(e))
+
+    def _resolve_calculation_inputs(self, inputs: List) -> Optional[Dict[str, float]]:
+        """
+        Resolve all calculation inputs to SI values.
+
+        Handles two input types:
+        - Flat str (URI): Extract value from form widget, convert to SI
+        - Nested tuple: Follow property path from form field through individuals
+
+        Returns:
+            Dict mapping param names to SI float values, or None if any input missing
+        """
+        resolved = {}
+
+        for inp in inputs:
+            if isinstance(inp, tuple):
+                # Nested tuple: (form_field, ...path..., param_name)
+                result = self._resolve_nested_input(inp)
+                if result is None:
+                    return None
+                param_name, value = result
+                resolved[param_name] = value
+            else:
+                # Flat URI: direct form field
+                result = self._resolve_flat_input(inp)
+                if result is None:
+                    return None
+                param_name, value = result
+                resolved[param_name] = value
+
+        return resolved
+
+    def _resolve_flat_input(self, property_uri: str) -> Optional[tuple]:
+        """
+        Resolve a flat form field input to (param_name, si_value).
+
+        Extracts widget value, looks up the property's dyn:hasUnit,
+        and converts the value to SI.
+        """
+        if property_uri not in self.active_form.form_fields:
+            self.logger.debug(f"Flat input {property_uri} not in form fields")
+            return None
+
+        field = self.active_form.form_fields[property_uri]
+        raw_value = self._extract_widget_value(field.widget)
+
+        if raw_value is None or raw_value == "" or raw_value == 0:
+            self.logger.debug(f"Flat input {property_uri} has no value")
+            return None
+
+        # Handle UnitValueWidget dict values
+        if isinstance(raw_value, dict):
+            raw_value = raw_value.get('value', raw_value)
+
+        try:
+            numeric_value = float(raw_value)
+        except (ValueError, TypeError):
+            self.logger.debug(f"Flat input {property_uri} not numeric: {raw_value}")
+            return None
+
+        # Convert to SI using property's unit
+        si_value = self._convert_to_si(numeric_value, property_uri)
+
+        # Use URI local name as param name
+        param_name = property_uri.split('#')[-1].split('/')[-1]
+        self.logger.debug(f"Flat input resolved: {param_name} = {si_value} (SI)")
+        return (param_name, si_value)
+
+    def _resolve_nested_input(self, path_tuple: tuple) -> Optional[tuple]:
+        """
+        Resolve a nested property path input to (param_name, si_value).
+
+        Path tuple: (form_field_uri, ...intermediate_props..., param_name_str)
+        - First element: form field URI to get the selected individual
+        - Middle elements: property URIs forming the resolution path
+        - Last element: string literal param name for the calc function
+
+        Example: ("dyn:hasStrikerBar", "dyn:hasLength", "striker_length")
+          1. Get selected individual from hasStrikerBar combo
+          2. Query individual for hasLength value
+          3. Return ("striker_length", si_value)
+        """
+        if len(path_tuple) < 3:
+            self.logger.warning(f"Nested input too short: {path_tuple}")
+            return None
+
+        form_field_uri = path_tuple[0]
+        property_path = list(path_tuple[1:-1])  # intermediate property URIs
+        param_name = path_tuple[-1]  # string param name
+
+        # Get the selected individual URI from the form field
+        if form_field_uri not in self.active_form.form_fields:
+            self.logger.debug(f"Nested input form field {form_field_uri} not found")
+            return None
+
+        field = self.active_form.form_fields[form_field_uri]
+        individual_uri = self._extract_widget_value(field.widget)
+
+        if not individual_uri or not str(individual_uri).strip():
+            self.logger.debug(f"No individual selected for {form_field_uri}")
+            return None
+
+        individual_uri = str(individual_uri)
+
+        # Follow property path through individuals
+        current_uri = individual_uri
+        for i, prop_uri in enumerate(property_path):
+            # Query the current individual for this property
+            prop_values = self.ontology_manager.get_individual_property_values(
+                current_uri, [prop_uri]
+            )
+            value = prop_values.get(prop_uri)
+
+            if value is None:
+                # Try with local name variant
+                local_name = prop_uri.split('#')[-1].split('/')[-1]
+                for key, val in prop_values.items():
+                    if local_name in key:
+                        value = val
+                        break
+
+            if value is None:
+                self.logger.debug(
+                    f"Nested path broken at step {i}: {prop_uri} on {current_uri}"
+                )
+                return None
+
+            if i < len(property_path) - 1:
+                # Intermediate hop: value is a URI to follow
+                current_uri = str(value)
+            else:
+                # Final hop: value is the numeric result
+                try:
+                    numeric_value = float(value)
+                except (ValueError, TypeError):
+                    self.logger.debug(f"Nested path final value not numeric: {value}")
+                    return None
+
+                # Convert to SI using the final property's unit
+                last_prop_uri = prop_uri
+                si_value = self._convert_to_si(numeric_value, last_prop_uri)
+
+                self.logger.debug(
+                    f"Nested input resolved: {param_name} = {si_value} (SI) "
+                    f"via {form_field_uri} -> {' -> '.join(property_path)}"
+                )
+                return (param_name, si_value)
+
+        return None
+
+    def _get_property_unit(self, property_uri: str) -> Optional[str]:
+        """
+        Get the dyn:hasUnit annotation for a property.
+
+        Returns:
+            Unit URI string (e.g., "unit:MicroSEC") or None
+        """
+        from rdflib import URIRef
+
+        DYN = "https://dynamat.utep.edu/ontology#"
+
+        # Normalize property URI
+        if not property_uri.startswith('http'):
+            if ':' in property_uri:
+                _, local = property_uri.split(':', 1)
+                property_uri = f"{DYN}{local}"
+            else:
+                property_uri = f"{DYN}{property_uri}"
+
+        try:
+            prop_ref = URIRef(property_uri)
+            has_unit = URIRef(f"{DYN}hasUnit")
+
+            unit_value = self.ontology_manager.graph.value(prop_ref, has_unit)
+            if unit_value:
+                return str(unit_value)
+        except Exception as e:
+            self.logger.debug(f"Could not get unit for {property_uri}: {e}")
+
+        return None
+
+    def _convert_to_si(self, value: float, property_uri: str) -> float:
+        """
+        Convert a value from its property's storage unit to SI base unit.
+
+        Uses QUDT convert_value with SI target unit derived from the quantity kind.
+        Falls back to returning the value unchanged if no QUDT manager or no unit.
+        """
+        if not self.qudt_manager:
+            return value
+
+        unit_str = self._get_property_unit(property_uri)
+        if not unit_str:
+            return value
+
+        # Map known storage units to SI base units for conversion
+        si_unit_map = {
+            'unit:MicroSEC': 'unit:SEC',
+            'unit:MilliSEC': 'unit:SEC',
+            'unit:MilliM': 'unit:M',
+            'unit:M-PER-SEC': 'unit:M-PER-SEC',  # already SI
+            'unit:MegaPA': 'unit:PA',
+            'unit:PA': 'unit:PA',  # already SI
+            'unit:PSI': 'unit:PA',
+            'unit:UNITLESS': 'unit:UNITLESS',  # no conversion
+            'unit:KiloGM-PER-M3': 'unit:KiloGM-PER-M3',  # already SI
+            'unit:M': 'unit:M',  # already SI
+            'unit:SEC': 'unit:SEC',  # already SI
+        }
+
+        si_unit = si_unit_map.get(unit_str)
+        if not si_unit or si_unit == unit_str:
+            return value
+
+        try:
+            return self.qudt_manager.convert_value(value, unit_str, si_unit)
+        except Exception as e:
+            self.logger.debug(f"SI conversion failed for {unit_str}: {e}")
+            return value
+
+    def _convert_result_to_target_unit(self, si_value: float, target_property_uri: str) -> float:
+        """
+        Convert an SI result to the target property's display unit.
+
+        Falls back to returning the SI value unchanged if no QUDT manager or no unit.
+        """
+        if not self.qudt_manager:
+            return si_value
+
+        unit_str = self._get_property_unit(target_property_uri)
+        if not unit_str:
+            return si_value
+
+        # Map target units back from SI
+        si_source_map = {
+            'unit:MicroSEC': 'unit:SEC',
+            'unit:MilliSEC': 'unit:SEC',
+            'unit:MilliM': 'unit:M',
+            'unit:M-PER-SEC': 'unit:M-PER-SEC',
+            'unit:MegaPA': 'unit:PA',
+            'unit:PA': 'unit:PA',
+            'unit:UNITLESS': 'unit:UNITLESS',
+            'unit:M': 'unit:M',
+            'unit:SEC': 'unit:SEC',
+        }
+
+        si_unit = si_source_map.get(unit_str)
+        if not si_unit or si_unit == unit_str:
+            return si_value
+
+        try:
+            return self.qudt_manager.convert_value(si_value, si_unit, unit_str)
+        except Exception as e:
+            self.logger.debug(f"Result conversion failed for {unit_str}: {e}")
+            return si_value
     
     def _action_generate(self, constraint: Constraint, trigger_values: Dict[str, Any]):
         """Generate value from template operation."""

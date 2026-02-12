@@ -67,7 +67,8 @@ class PropertyMetadata:
     quantity_kind: Optional[str] = None
     compatible_units: Optional[List[UnitInfo]] = field(default_factory=list)
     is_measurement_property: bool = False
-    
+    default_value: Optional[Any] = None
+
     def __post_init__(self):
         """Validate and normalize after creation"""
         self.data_type = self.data_type.lower()
@@ -319,7 +320,7 @@ class GUISchemaBuilder:
         query = """
         SELECT DISTINCT ?property ?propertyName ?label ?displayName ?description
                         ?formGroup ?range ?displayOrder ?groupOrder ?required ?isReadOnly
-                        ?defaultUnit ?quantityKind ?minValue ?maxValue ?widgetType WHERE {{ 
+                        ?defaultUnit ?quantityKind ?minValue ?maxValue ?widgetType ?defaultValue WHERE {{
             {{
                 ?property rdfs:domain <{class_uri}> .
             }}
@@ -348,6 +349,9 @@ class GUISchemaBuilder:
 
             # Widget hints
             OPTIONAL {{ ?property dyn:hasWidgetType ?widgetType . }}
+
+            # Default values
+            OPTIONAL {{ ?property gui:hasDefaultValue ?defaultValue . }}
             
         }}
         ORDER BY ?groupOrder ?displayOrder ?propertyName
@@ -404,7 +408,8 @@ class GUISchemaBuilder:
                 widget_type=result.get('widgetType'),
                 min_value=float(result['minValue']) if result.get('minValue') else None,
                 max_value=float(result['maxValue']) if result.get('maxValue') else None,
-                group_order=int(result.get('groupOrder', 999))
+                group_order=int(result.get('groupOrder', 999)),
+                default_value=result.get('defaultValue')
             )
             
             # Set measurement property flag and units

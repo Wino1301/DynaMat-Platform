@@ -16,16 +16,14 @@ import logging
 from typing import Optional
 
 from PyQt6.QtWidgets import QVBoxLayout, QLabel, QWidget, QComboBox, QLineEdit
-from rdflib import Graph, Namespace, Literal, URIRef
-from rdflib.namespace import RDF, XSD
+from rdflib import Graph, Namespace, URIRef
+from rdflib.namespace import RDF
 
 from .base_page import BaseSHPBPage
-from .....mechanical.shpb.core.pulse_characteristics import PulseCharacteristics
 from .....mechanical.shpb.io.specimen_loader import SpecimenLoader
 from .....config import config
 from ....builders.customizable_form_builder import CustomizableFormBuilder
 from ....dependencies import DependencyManager
-from ...base.property_display import PropertyDisplayWidget
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +54,6 @@ class EquipmentPage(BaseSHPBPage):
         self.form_widget: Optional[QWidget] = None
         self.form_builder: Optional[CustomizableFormBuilder] = None
         self.dependency_manager: Optional[DependencyManager] = None
-        self.pulse_chars_widget: Optional[PropertyDisplayWidget] = None
 
     def _setup_ui(self) -> None:
         """Setup page UI using customizable form builder."""
@@ -78,8 +75,11 @@ class EquipmentPage(BaseSHPBPage):
                 layout.addWidget(self.form_widget)
                 self.logger.info("Equipment form created from ontology")
 
-                # Setup dependency manager for constraints
-                self.dependency_manager = DependencyManager(self.ontology_manager)
+                # Setup dependency manager for constraints (with QUDT for unit conversion)
+                self.dependency_manager = DependencyManager(
+                    self.ontology_manager,
+                    qudt_manager=self.qudt_manager,
+                )
                 self.dependency_manager.setup_dependencies(
                     self.form_widget,
                     "https://dynamat.utep.edu/ontology#SHPBCompression"
@@ -97,11 +97,6 @@ class EquipmentPage(BaseSHPBPage):
             error_label = QLabel(f"Error creating form: {str(e)}")
             error_label.setStyleSheet("color: red;")
             layout.addWidget(error_label)
-
-        # Pulse characteristics display (computed from equipment + raw data)
-        self.pulse_chars_widget = PropertyDisplayWidget(title="Pulse Characteristics")
-        self.pulse_chars_widget.setVisible(False)
-        layout.addWidget(self.pulse_chars_widget)
 
         self._add_status_area()
 
@@ -157,8 +152,8 @@ class EquipmentPage(BaseSHPBPage):
             )
             return False
 
-        # Compute and display pulse characteristics from equipment + raw data
-        self._compute_pulse_characteristics()
+        # Store pulse characteristics in state for detection page
+        self._store_pulse_characteristics()
 
         return True
 
@@ -166,12 +161,10 @@ class EquipmentPage(BaseSHPBPage):
         """Build partial RDF graph scoped to equipment-page fields only.
 
         Only includes properties from the equipment page form groups:
-        Identification, BarConfiguration, StrainGaugeConfiguration,
-        and TestConditions.  Downstream properties (alignment, equilibrium,
-        detection params) are excluded so their shapes don't fire here.
-
-        External entities (specimen, user) get a type triple only — their
-        full data was already validated on their own pages/contexts.
+        Identification, BarConfiguration, and TestConditions.
+        Downstream properties (alignment, equilibrium, detection params,
+        segmentation, tukey, data series, strain gauges, pulse
+        characteristics) are excluded so their shapes don't fire here.
 
         Returns:
             RDF graph with SHPBCompression instance, or None on error.
@@ -181,120 +174,44 @@ class EquipmentPage(BaseSHPBPage):
 
         try:
             DYN = Namespace(DYN_NS)
-            g = Graph()
-            g.bind("dyn", DYN)
 
-            instance = DYN["_val_equipment"]
-            g.add((instance, RDF.type, DYN.SHPBCompression))
-
-            form_data = self.state.equipment_form_data
-
-            # =================================================================
-            # Equipment-page property whitelist (by form group)
-            # =================================================================
-
-            # Object properties → expected rdf:type for sh:class validation
-            page_object_properties = {
-                # Identification
-                "performedOn": DYN.Specimen,
-                "hasUser": DYN.User,
-                "hasTestType": DYN.TestType,
-                # Bar Configuration
-                "hasStrikerBar": DYN.Bar,
-                "hasIncidentBar": DYN.Bar,
-                "hasTransmissionBar": DYN.Bar,
-                # Test Conditions
-                "hasMomentumTrap": DYN.MomentumTrap,
-                "hasPulseShaper": DYN.PulseShaper,
+            # Downstream properties not on this page
+            exclude = {
+                # Alignment
+                "hasAlignmentParams",
+                # Equilibrium
+                "hasEquilibriumMetrics",
+                # Detection
+                "hasPulseDetectionParams",
+                # Segmentation
+                "hasSegmentationParams",
+                # Tukey
+                "hasTukeyWindowParams",
+                # Data series
+                "hasDataSeries", "hasAnalysisFile",
+                # Strain gauges (set on raw data page)
+                "hasIncidentStrainGauge", "hasTransmissionStrainGauge",
+                # User is injected separately below
+                "hasUser",
             }
 
-            page_string_properties = {"hasTestID", "hasLubricationType"}
-            page_boolean_properties = {"hasPulseShaping", "hasLubricationUsed"}
-            page_date_properties = {"hasTestDate"}
-            # Everything else on this page is a double (striker velocity, etc.)
-            page_double_properties = {
-                "hasStrikerVelocity", "hasBarrelOffset",
-                "hasPulseShaperDiameter", "hasPulseShaperThickness",
-                "hasMomentumTrapTailoredDistance",
-            }
-
-            # Union of all whitelisted property names
-            all_page_props = (
-                set(page_object_properties)
-                | page_string_properties
-                | page_boolean_properties
-                | page_date_properties
-                | page_double_properties
-            )
-
-            # =================================================================
-            # Inject user from main window context (not a form field)
-            # Uses sh:nodeKind sh:IRI in the shape — no rdf:type needed.
-            # =================================================================
+            # Build extra triples: inject user from main window context
+            extra_triples = []
             current_user = self.get_current_user()
             if current_user:
-                g.add((instance, DYN.hasUser, URIRef(current_user)))
+                instance_uri = URIRef(self._instance_writer._create_instance_uri("_val_equipment"))
+                extra_triples.append(
+                    (instance_uri, DYN.hasUser, URIRef(current_user))
+                )
 
-            # Properties validated elsewhere — only need the URI reference,
-            # no rdf:type triple (shape uses sh:nodeKind sh:IRI).
-            externally_validated = {"performedOn", "hasUser"}
-
-            # =================================================================
-            # Process form data — only whitelisted properties
-            # =================================================================
-            self.logger.debug(f"Building validation graph from {len(form_data)} form entries")
-
-            for uri, value in form_data.items():
-                if value is None:
-                    continue
-
-                prop_name = uri.split("#")[-1] if "#" in uri else uri.split("/")[-1]
-
-                if prop_name not in all_page_props:
-                    continue  # Skip downstream / non-equipment properties
-
-                # Already handled above from main window context
-                if prop_name == "hasUser":
-                    continue
-
-                prop = DYN[prop_name]
-
-                # Extract numeric value from UnitValueWidget dicts
-                raw_value = value
-                if isinstance(value, dict) and "value" in value:
-                    raw_value = value["value"]
-
-                if prop_name in page_object_properties:
-                    if isinstance(raw_value, str) and raw_value:
-                        obj_ref = URIRef(raw_value)
-                        g.add((instance, prop, obj_ref))
-                        # Externally-validated targets only need the URI
-                        # (shape uses sh:nodeKind sh:IRI, not sh:class)
-                        if prop_name not in externally_validated:
-                            range_class = page_object_properties[prop_name]
-                            g.add((obj_ref, RDF.type, range_class))
-                        self.logger.debug(f"  {prop_name} → {raw_value}")
-                    else:
-                        self.logger.debug(f"  {prop_name} skipped (raw_value={raw_value!r}, type={type(raw_value).__name__})")
-                elif prop_name in page_boolean_properties:
-                    g.add((instance, prop, Literal(bool(raw_value), datatype=XSD.boolean)))
-                elif prop_name in page_string_properties:
-                    g.add((instance, prop, Literal(str(raw_value), datatype=XSD.string)))
-                elif prop_name in page_date_properties:
-                    g.add((instance, prop, Literal(str(raw_value), datatype=XSD.date)))
-                elif prop_name in page_double_properties:
-                    if raw_value is None:
-                        continue
-                    try:
-                        g.add((instance, prop, Literal(float(raw_value), datatype=XSD.double)))
-                        self.logger.debug(f"  {prop_name} → {float(raw_value)}")
-                    except (ValueError, TypeError):
-                        self.logger.warning(
-                            f"Could not convert {prop_name}={raw_value!r} to double"
-                        )
-
-            self.logger.debug(f"Validation graph built with {len(g)} triples")
-            return g
+            return self._build_graph_from_form_data(
+                self.state.equipment_form_data,
+                f"{DYN_NS}SHPBCompression",
+                "_val_equipment",
+                exclude_properties=exclude,
+                extra_triples=extra_triples,
+                skip_range_types={"performedOn", "hasUser"},
+            )
 
         except Exception as e:
             self.logger.error(f"Failed to build validation graph: {e}")
@@ -480,104 +397,59 @@ class EquipmentPage(BaseSHPBPage):
             self.logger.error(f"Failed to extract equipment properties: {e}")
             return False
 
-    def _compute_pulse_characteristics(self) -> None:
-        """Compute pulse characteristics from equipment properties and display them.
+    def _store_pulse_characteristics(self) -> None:
+        """Store pulse characteristics in state for cross-page use (detection page).
 
-        Reads striker length, bar wave speed, bar density from extracted
-        equipment properties, striker velocity from form data, and sampling
-        interval from state.  Stores the result dict in
-        ``state.pulse_characteristics`` and displays in the
-        PropertyDisplayWidget.
+        Reads the 5 constraint-computed values from form data and computes
+        pulse_points from equipment properties + state.sampling_interval.
+        The detection page reads state.pulse_characteristics to auto-fill
+        hasPulsePoints in its PulseDetectionParams forms.
         """
-        equipment = self.state.equipment_properties
         form_data = self.state.equipment_form_data
-
-        if not equipment or not form_data:
+        if not form_data:
             return
 
-        try:
+        chars = {}
+
+        # Extract the 5 computed pulse values from form data
+        prop_map = {
+            f"{DYN_NS}hasPulseDuration": 'pulse_duration',
+            f"{DYN_NS}hasPulseLength": 'pulse_length',
+            f"{DYN_NS}hasPulseSpeed": 'pulse_speed',
+            f"{DYN_NS}hasPulseStrainAmplitude": 'pulse_strain_amplitude',
+            f"{DYN_NS}hasPulseStressAmplitude": 'pulse_stress_amplitude',
+        }
+
+        for uri, key in prop_map.items():
+            value = form_data.get(uri)
+            if isinstance(value, dict):
+                value = value.get('value')
+            if value is not None:
+                try:
+                    chars[key] = float(value)
+                except (ValueError, TypeError):
+                    pass
+
+        # Compute pulse_points from equipment properties + sampling interval
+        # Uses same approach as PulseCharacteristics: 2*L_mm / C_m_s gives ms
+        equipment = self.state.equipment_properties
+        sampling_interval = self.state.sampling_interval
+
+        if equipment and sampling_interval:
             striker_length = equipment.get('striker_bar', {}).get('length')
             bar_wave_speed = equipment.get('incident_bar', {}).get('wave_speed')
-            bar_density = equipment.get('incident_bar', {}).get('density')
 
-            velocity_data = form_data.get(f"{DYN_NS}hasStrikerVelocity")
-            if isinstance(velocity_data, dict):
-                striker_velocity = velocity_data.get('value')
-            else:
-                striker_velocity = velocity_data
+            if striker_length and bar_wave_speed:
+                try:
+                    pulse_duration_ms = (2.0 * float(striker_length)) / float(bar_wave_speed)
+                    chars['pulse_points'] = int(pulse_duration_ms / float(sampling_interval))
+                except (ValueError, TypeError, ZeroDivisionError):
+                    pass
 
-            sampling_interval = self.state.sampling_interval
-
-            missing = []
-            if not striker_length:
-                missing.append("striker length")
-            if not bar_wave_speed:
-                missing.append("bar wave speed")
-            if not bar_density:
-                missing.append("bar density")
-            if not striker_velocity:
-                missing.append("striker velocity")
-            if not sampling_interval:
-                missing.append("sampling interval")
-
-            if missing:
-                self.logger.warning(
-                    f"Cannot compute pulse characteristics, missing: {', '.join(missing)}"
-                )
-                return
-
-            calc = PulseCharacteristics(
-                striker_length_mm=float(striker_length),
-                bar_wave_speed_m_s=float(bar_wave_speed),
-                bar_density_kg_m3=float(bar_density),
-            )
-            result = calc.calculate(
-                striker_velocity_m_s=float(striker_velocity),
-                sampling_interval_ms=float(sampling_interval),
-            )
-
-            self.state.pulse_characteristics = result.to_dict()
-
-            # Display in PropertyDisplayWidget
-            display_data = {
-                f"{DYN_NS}hasPulseDuration": {
-                    'value': result.pulse_duration_ms,
-                    'label': 'Pulse Duration',
-                    'unit': 'unit:MilliSEC',
-                },
-                f"{DYN_NS}hasPulseLength": {
-                    'value': result.pulse_length_mm,
-                    'label': 'Pulse Length',
-                    'unit': 'unit:MilliM',
-                },
-                f"{DYN_NS}hasPulseSpeed": {
-                    'value': result.pulse_speed_m_s,
-                    'label': 'Pulse Speed',
-                    'unit': 'unit:M-PER-SEC',
-                },
-                f"{DYN_NS}hasPulsePoints": {
-                    'value': result.pulse_points,
-                    'label': 'Pulse Points (samples)',
-                },
-                f"{DYN_NS}hasPulseStressAmplitude": {
-                    'value': result.pulse_stress_amplitude_mpa,
-                    'label': 'Stress Amplitude',
-                    'unit': 'unit:MegaPA',
-                },
-                f"{DYN_NS}hasPulseStrainAmplitude": {
-                    'value': result.pulse_strain_amplitude,
-                    'label': 'Strain Amplitude',
-                },
-            }
-
-            if self.pulse_chars_widget:
-                self.pulse_chars_widget.setData(display_data)
-                self.pulse_chars_widget.setVisible(True)
-
+        if chars:
+            self.state.pulse_characteristics = chars
             self.logger.info(
-                f"Pulse characteristics: duration={result.pulse_duration_ms:.4f} ms, "
-                f"points={result.pulse_points}"
+                f"Pulse characteristics stored: {len(chars)} values, "
+                f"points={chars.get('pulse_points', 'N/A')}"
             )
 
-        except Exception as e:
-            self.logger.error(f"Failed to compute pulse characteristics: {e}")

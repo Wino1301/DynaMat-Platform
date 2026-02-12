@@ -90,31 +90,84 @@ gui:shpb_c006 a gui:Constraint ;
     gui:priority 10 .
 
 #================================================================
-# 4.0 Pulse Characteristics (Computed from Equipment)
-# Note: The actual computation is handled in EquipmentPage code
-# because it requires cross-entity queries (bar properties from
-# ontology individuals) and cross-page data (sampling interval).
-# This constraint documents the dependency relationship and
-# indicates that pulse_points flows to PulseDetectionParams forms.
+# 4.0 Pulse Characteristics (Calculated from Equipment)
+# Six ontology-driven calculation constraints that resolve inputs
+# from nested individual properties (bar → length, bar → material → wave speed)
+# and compute theoretical pulse characteristics.
 #================================================================
 
-gui:shpb_c010 a gui:Constraint ;
-    rdfs:label "Pulse Characteristics" ;
-    rdfs:comment "When striker velocity is provided and equipment is fully configured, computes theoretical pulse characteristics (duration, length, speed, strain/stress amplitude, pulse points) from striker geometry and bar material properties. Pulse points auto-fills hasPulsePoints in PulseDetectionParams forms. Computed in EquipmentPage._compute_pulse_characteristics() since inputs span multiple ontology individuals and the raw data page." ;
-    dc:created "2025-02-10"^^xsd:date ;
+gui:shpb_calc_001 a gui:Constraint ;
+    rdfs:label "Pulse Duration Calculation" ;
+    rdfs:comment "Compute pulse duration T = 2L/C from striker length and bar wave speed." ;
+    dc:created "2025-02-12"^^xsd:date ;
     gui:forClass dyn:SHPBCompression ;
     gui:triggers dyn:hasStrikerVelocity ;
-    gui:triggerLogic gui:ALL ;
     gui:whenValue gui:anyValue ;
-    gui:populateFields (
-        (dyn:hasPulseDuration "Pulse Duration")
-        (dyn:hasPulseLength "Pulse Length")
-        (dyn:hasPulseSpeed "Pulse Speed")
-        (dyn:hasPulsePoints "Pulse Points")
-        (dyn:hasPulseStressAmplitude "Stress Amplitude")
-        (dyn:hasPulseStrainAmplitude "Strain Amplitude")
+    gui:calculationFunction "pulse_duration" ;
+    gui:calculationTarget dyn:hasPulseDuration ;
+    gui:calculationInputs (
+        (dyn:hasStrikerBar dyn:hasLength "striker_length")
+        (dyn:hasIncidentBar dyn:hasMaterial dyn:hasWaveSpeed "bar_wave_speed")
     ) ;
-    gui:makeReadOnly true ;
-    gui:targetWidget "PulseCharacteristics" ;
-    gui:priority 10 .
+    gui:priority 8 .
+
+gui:shpb_calc_002 a gui:Constraint ;
+    rdfs:label "Pulse Length Calculation" ;
+    rdfs:comment "Compute pulse spatial length = 2L from striker length." ;
+    dc:created "2025-02-12"^^xsd:date ;
+    gui:forClass dyn:SHPBCompression ;
+    gui:triggers dyn:hasStrikerVelocity ;
+    gui:whenValue gui:anyValue ;
+    gui:calculationFunction "pulse_length" ;
+    gui:calculationTarget dyn:hasPulseLength ;
+    gui:calculationInputs (
+        (dyn:hasStrikerBar dyn:hasLength "striker_length")
+    ) ;
+    gui:priority 8 .
+
+gui:shpb_calc_003 a gui:Constraint ;
+    rdfs:label "Pulse Speed Calculation" ;
+    rdfs:comment "Pulse speed equals bar wave speed C." ;
+    dc:created "2025-02-12"^^xsd:date ;
+    gui:forClass dyn:SHPBCompression ;
+    gui:triggers dyn:hasStrikerVelocity ;
+    gui:whenValue gui:anyValue ;
+    gui:calculationFunction "pulse_speed" ;
+    gui:calculationTarget dyn:hasPulseSpeed ;
+    gui:calculationInputs (
+        (dyn:hasIncidentBar dyn:hasMaterial dyn:hasWaveSpeed "bar_wave_speed")
+    ) ;
+    gui:priority 8 .
+
+gui:shpb_calc_004 a gui:Constraint ;
+    rdfs:label "Pulse Strain Amplitude Calculation" ;
+    rdfs:comment "Compute strain amplitude = V / (2C) from striker velocity and bar wave speed." ;
+    dc:created "2025-02-12"^^xsd:date ;
+    gui:forClass dyn:SHPBCompression ;
+    gui:triggers dyn:hasStrikerVelocity ;
+    gui:whenValue gui:anyValue ;
+    gui:calculationFunction "pulse_strain_amplitude" ;
+    gui:calculationTarget dyn:hasPulseStrainAmplitude ;
+    gui:calculationInputs (
+        (dyn:hasIncidentBar dyn:hasMaterial dyn:hasWaveSpeed "bar_wave_speed")
+        dyn:hasStrikerVelocity
+    ) ;
+    gui:priority 8 .
+
+gui:shpb_calc_005 a gui:Constraint ;
+    rdfs:label "Pulse Stress Amplitude Calculation" ;
+    rdfs:comment "Compute stress amplitude = rho*C*V/2 from striker velocity, bar wave speed and density." ;
+    dc:created "2025-02-12"^^xsd:date ;
+    gui:forClass dyn:SHPBCompression ;
+    gui:triggers dyn:hasStrikerVelocity ;
+    gui:whenValue gui:anyValue ;
+    gui:calculationFunction "pulse_stress_amplitude" ;
+    gui:calculationTarget dyn:hasPulseStressAmplitude ;
+    gui:calculationInputs (
+        (dyn:hasIncidentBar dyn:hasMaterial dyn:hasWaveSpeed "bar_wave_speed")
+        (dyn:hasIncidentBar dyn:hasMaterial dyn:hasDensity "bar_density")
+        dyn:hasStrikerVelocity
+    ) ;
+    gui:priority 8 .
+
 

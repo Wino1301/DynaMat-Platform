@@ -92,6 +92,12 @@ gui:allowsUserCreation rdf:type owl:AnnotationProperty ;
                        rdfs:domain owl:Class ;
                        rdfs:range xsd:boolean .
 
+###  https://dynamat.utep.edu/ontology/gui#hasDefaultValue
+gui:hasDefaultValue rdf:type owl:AnnotationProperty ;
+                    rdfs:comment "Default value for form fields. Applied to spinboxes and text inputs on initial load."@en ;
+                    rdfs:label "Default Value"@en ;
+                    rdfs:range rdfs:Literal .
+
 #################################################################
 #    3. Measurement Annotations - Units and Quantities
 #################################################################

@@ -11,8 +11,8 @@ from PyQt6.QtWidgets import (
     QGroupBox, QGridLayout, QSplitter, QFrame, QTabWidget, QWidget,
 )
 from PyQt6.QtCore import Qt
-from rdflib import Graph, Namespace, Literal, URIRef
-from rdflib.namespace import RDF, XSD
+from rdflib import Graph, Namespace, URIRef
+from rdflib.namespace import RDF
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.pulse_windows import PulseDetector
@@ -169,25 +169,24 @@ class PulseDetectionPage(BaseSHPBPage):
     def _build_validation_graph(self) -> Optional[Graph]:
         """Build partial RDF graph for SHACL validation of pulse detection data.
 
-        Creates one PulseDetectionParams instance per pulse type with
-        ``appliedToSeries`` URI references, plus pulse characteristic
-        properties on the SHPBCompression test node.  The actual DataSeries
-        and AnalysisFile nodes are supplied by the raw-data page's graph via
-        the cumulative merge in ``_validate_page_data``.
+        Creates one PulseDetectionParams instance per pulse type using
+        InstanceWriter.  Pulse characteristics are now form fields on the
+        equipment page and included in its validation graph via cumulative
+        merge, so they are not duplicated here.
 
         Returns:
             RDF graph with PulseDetectionParams instances, or None on error.
         """
         try:
             DYN = Namespace(DYN_NS)
-            g = Graph()
-            g.bind("dyn", DYN)
+            DETECTION_CLASS = f"{DYN_NS}PulseDetectionParams"
+            graph = Graph()
+            self._instance_writer._setup_namespaces(graph)
 
-            object_properties = {"hasDetectionPolarity", "hasSelectionMetric", "appliedToSeries"}
-            integer_properties = {
-                "hasDetectionLowerBound", "hasDetectionUpperBound",
-                "hasPulsePoints", "hasMinSeparation",
-                "hasStartIndex", "hasEndIndex", "hasWindowLength",
+            # Object properties needing rdf:type on their targets
+            range_type_map = {
+                "hasDetectionPolarity": DYN.PolarityType,
+                "hasSelectionMetric": DYN.DetectionMetric,
             }
 
             for pulse_type in ["incident", "transmitted", "reflected"]:
@@ -195,71 +194,20 @@ class PulseDetectionPage(BaseSHPBPage):
                 if not form_data:
                     continue
 
-                instance = DYN[f"_val_{pulse_type}_detection"]
-                g.add((instance, RDF.type, DYN.PulseDetectionParams))
-
-                for uri, value in form_data.items():
-                    if value is None:
-                        continue
-
-                    prop_name = uri.split("#")[-1] if "#" in uri else uri.split("/")[-1]
-                    prop = DYN[prop_name]
-
-                    if prop_name in object_properties:
-                        if isinstance(value, str) and value:
-                            # Expand prefixed URIs (e.g. "dyn:Foo") to full URIs
-                            if value.startswith("dyn:"):
-                                obj_uri = URIRef(DYN_NS + value[4:])
-                            elif value.startswith("http"):
-                                obj_uri = URIRef(value)
-                            else:
-                                obj_uri = URIRef(DYN_NS + value)
-                            g.add((instance, prop, obj_uri))
-
-                            # Declare type for referenced individuals
-                            # (DataSeries nodes come from the raw_data page graph)
-                            if prop_name == "hasDetectionPolarity":
-                                g.add((obj_uri, RDF.type, DYN.PolarityType))
-                            elif prop_name == "hasSelectionMetric":
-                                g.add((obj_uri, RDF.type, DYN.DetectionMetric))
-
-                    elif prop_name in integer_properties:
-                        try:
-                            g.add((instance, prop, Literal(int(value), datatype=XSD.integer)))
-                        except (ValueError, TypeError):
-                            pass
-                    elif prop_name == "hasKTrials":
-                        g.add((instance, prop, Literal(str(value), datatype=XSD.string)))
-                    else:
-                        try:
-                            g.add((instance, prop, Literal(float(value), datatype=XSD.double)))
-                        except (ValueError, TypeError):
-                            g.add((instance, prop, Literal(str(value), datatype=XSD.string)))
-
-            # Add pulse characteristics to the SHPBCompression test node
-            chars = self.state.pulse_characteristics
-            if chars:
-                test_id = (
-                    f"{self.state.specimen_id}_SHPBTest"
-                    if self.state.specimen_id
-                    else "_val_test"
+                inst_id = f"_val_{pulse_type}_detection"
+                instance_ref = self._instance_writer.create_single_instance(
+                    graph, form_data, DETECTION_CLASS, inst_id
                 )
-                test_node = DYN[test_id]
-                g.add((test_node, RDF.type, DYN.SHPBCompression))
 
-                char_map = {
-                    'hasPulseDuration': chars.get('pulse_duration'),
-                    'hasPulseLength': chars.get('pulse_length'),
-                    'hasPulseSpeed': chars.get('pulse_speed'),
-                    'hasPulseStrainAmplitude': chars.get('pulse_strain_amplitude'),
-                    'hasPulseStressAmplitude': chars.get('pulse_stress_amplitude'),
-                }
-                for prop_name, value in char_map.items():
-                    if value is not None:
-                        g.add((test_node, DYN[prop_name],
-                               Literal(float(value), datatype=XSD.double)))
+                # Add rdf:type for object property targets
+                for prop_name, range_class in range_type_map.items():
+                    uri = f"{DYN_NS}{prop_name}"
+                    value = form_data.get(uri)
+                    if value and isinstance(value, str):
+                        obj_ref = self._instance_writer._resolve_uri(value)
+                        graph.add((obj_ref, RDF.type, range_class))
 
-            return g
+            return graph
 
         except Exception as e:
             self.logger.error(f"Failed to build validation graph: {e}")

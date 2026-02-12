@@ -235,7 +235,12 @@ dyn:hasPulseDuration rdf:type owl:DatatypeProperty ;
                      qudt:hasQuantityKind qkdv:Time ;
                      rdfs:comment "Duration of the stress pulse generated (calculated: 2L/C)"@en ;
                      rdfs:label "Pulse Duration"@en ;
-                     dyn:hasUnit "unit:MicroSEC" .
+                     dyn:hasUnit "unit:MicroSEC" ;
+                     gui:hasDisplayName "Pulse Duration" ;
+                     gui:hasFormGroup "PulseCharacteristics" ;
+                     gui:hasGroupOrder 6 ;
+                     gui:hasDisplayOrder 1 ;
+                     gui:isReadOnly true .
 
 
 ###  https://dynamat.utep.edu/ontology#hasPulseLength
@@ -247,7 +252,12 @@ dyn:hasPulseLength rdf:type owl:DatatypeProperty ;
                    qudt:hasQuantityKind qkdv:Length ;
                    rdfs:comment "Physical length of the stress pulse in the bar (calculated: 2L)"@en ;
                    rdfs:label "Pulse Length"@en ;
-                   dyn:hasUnit "unit:MilliM" .
+                   dyn:hasUnit "unit:MilliM" ;
+                   gui:hasDisplayName "Pulse Length" ;
+                   gui:hasFormGroup "PulseCharacteristics" ;
+                   gui:hasGroupOrder 6 ;
+                   gui:hasDisplayOrder 2 ;
+                   gui:isReadOnly true .
 
 
 ###  https://dynamat.utep.edu/ontology#hasPulseSpeed
@@ -259,7 +269,12 @@ dyn:hasPulseSpeed rdf:type owl:DatatypeProperty ;
                   qudt:hasQuantityKind qkdv:Velocity ;
                   rdfs:comment "Propagation speed of the stress pulse in the bar (from bar properties)"@en ;
                   rdfs:label "Pulse Speed"@en ;
-                  dyn:hasUnit "unit:M-PER-SEC" .
+                  dyn:hasUnit "unit:M-PER-SEC" ;
+                  gui:hasDisplayName "Pulse Speed" ;
+                  gui:hasFormGroup "PulseCharacteristics" ;
+                  gui:hasGroupOrder 6 ;
+                  gui:hasDisplayOrder 3 ;
+                  gui:isReadOnly true .
 
 
 ###  https://dynamat.utep.edu/ontology#hasPulseStrainAmplitude
@@ -271,7 +286,12 @@ dyn:hasPulseStrainAmplitude rdf:type owl:DatatypeProperty ;
                             qudt:hasQuantityKind qkdv:Strain ;
                             rdfs:comment "Maximum strain amplitude of the incident pulse (calculated: V/2C)"@en ;
                             rdfs:label "Pulse Strain Amplitude"@en ;
-                            dyn:hasUnit "unit:UNITLESS" .
+                            dyn:hasUnit "unit:UNITLESS" ;
+                            gui:hasDisplayName "Strain Amplitude" ;
+                            gui:hasFormGroup "PulseCharacteristics" ;
+                            gui:hasGroupOrder 6 ;
+                            gui:hasDisplayOrder 4 ;
+                            gui:isReadOnly true .
 
 
 ###  https://dynamat.utep.edu/ontology#hasPulseStressAmplitude
@@ -283,7 +303,12 @@ dyn:hasPulseStressAmplitude rdf:type owl:DatatypeProperty ;
                             qudt:hasQuantityKind qkdv:ForcePerArea ;
                             rdfs:comment "Maximum stress amplitude of the incident pulse (calculated: ρCV/2)"@en ;
                             rdfs:label "Pulse Stress Amplitude"@en ;
-                            dyn:hasUnit "unit:MegaPA" .
+                            dyn:hasUnit "unit:MegaPA" ;
+                            gui:hasDisplayName "Stress Amplitude" ;
+                            gui:hasFormGroup "PulseCharacteristics" ;
+                            gui:hasGroupOrder 6 ;
+                            gui:hasDisplayOrder 5 ;
+                            gui:isReadOnly true .
 
 
 ###  https://dynamat.utep.edu/ontology#hasPulseRiseTime

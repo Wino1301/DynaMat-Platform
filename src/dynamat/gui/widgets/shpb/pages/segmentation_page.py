@@ -10,8 +10,7 @@ from PyQt6.QtWidgets import (
     QGroupBox, QGridLayout, QSplitter, QFrame, QWidget
 )
 from PyQt6.QtCore import Qt
-from rdflib import Graph, Namespace, Literal
-from rdflib.namespace import RDF, XSD
+from rdflib import Graph
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.pulse_windows import PulseDetector
@@ -168,29 +167,11 @@ class SegmentationPage(BaseSHPBPage):
             return None
 
         try:
-            DYN = Namespace(DYN_NS)
-            g = Graph()
-            g.bind("dyn", DYN)
-
-            instance = DYN["_val_segmentation"]
-            g.add((instance, RDF.type, DYN.SegmentationParams))
-
-            form_data = self.state.segmentation_form_data
-
-            # hasSegmentPoints -> xsd:integer
-            seg_points = form_data.get(f"{DYN_NS}hasSegmentPoints")
-            if seg_points is not None:
-                g.add((instance, DYN.hasSegmentPoints,
-                       Literal(int(seg_points), datatype=XSD.integer)))
-
-            # hasSegmentThreshold -> xsd:double
-            threshold = form_data.get(f"{DYN_NS}hasSegmentThreshold")
-            if threshold is not None:
-                g.add((instance, DYN.hasSegmentThreshold,
-                       Literal(float(threshold), datatype=XSD.double)))
-
-            return g
-
+            return self._build_graph_from_form_data(
+                self.state.segmentation_form_data,
+                f"{DYN_NS}SegmentationParams",
+                "_val_segmentation",
+            )
         except Exception as e:
             self.logger.error(f"Failed to build validation graph: {e}")
             return None

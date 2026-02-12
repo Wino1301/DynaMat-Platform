@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (
     QTabWidget, QWidget
 )
 from PyQt6.QtCore import Qt
+from rdflib import Graph
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.stress_strain import StressStrainCalculator
@@ -168,7 +169,33 @@ class ResultsPage(BaseSHPBPage):
             )
             return False
 
+        # Run SHACL validation on equilibrium metrics graph
+        validation_graph = self._build_validation_graph()
+        if validation_graph and not self._validate_page_data(
+            validation_graph, page_key="results"
+        ):
+            return False
+
         return True
+
+    def _build_validation_graph(self) -> Optional[Graph]:
+        """Build partial RDF graph for SHACL validation of equilibrium metrics.
+
+        Returns:
+            RDF graph with EquilibriumMetrics instance, or None if no data.
+        """
+        if not self.state.equilibrium_form_data:
+            return None
+
+        try:
+            return self._build_graph_from_form_data(
+                self.state.equilibrium_form_data,
+                f"{DYN_NS}EquilibriumMetrics",
+                "_val_equilibrium",
+            )
+        except Exception as e:
+            self.logger.error(f"Failed to build validation graph: {e}")
+            return None
 
     def _calculate_results(self) -> None:
         """Calculate stress-strain results."""

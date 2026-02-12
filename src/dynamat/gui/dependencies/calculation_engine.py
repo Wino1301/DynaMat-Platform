@@ -20,6 +20,8 @@ import math
 from typing import Dict, Any, Optional, List
 from enum import Enum
 
+from dynamat.mechanical.shpb.core.pulse_characteristics import PulseCharacteristics
+
 logger = logging.getLogger(__name__)
 
 
@@ -90,6 +92,13 @@ class CalculationEngine:
             
             # Unit conversions
             'convert_units': self._convert_units,
+
+            # Pulse characteristics (SI inputs → SI outputs)
+            'pulse_duration': self._calc_pulse_duration,
+            'pulse_length': self._calc_pulse_length,
+            'pulse_speed': self._calc_pulse_speed,
+            'pulse_strain_amplitude': self._calc_pulse_strain_amplitude,
+            'pulse_stress_amplitude': self._calc_pulse_stress_amplitude,
         }
         
         # Unit conversion factors (to SI base units)
@@ -350,6 +359,135 @@ class CalculationEngine:
             raise ValueError("Area must be positive")
         return stress * area
     
+    # ============================================================================
+    # PULSE CHARACTERISTICS METHODS (SI in → SI out)
+    # ============================================================================
+    # These methods delegate to PulseCharacteristics for consistent formulas
+
+    def _calc_pulse_duration(self, **kwargs) -> float:
+        """Pulse duration T = 2L / C (SI: meters, m/s → seconds).
+
+        Delegates to PulseCharacteristics for consistent formula.
+        """
+        striker_length_m = kwargs.get('striker_length')
+        bar_wave_speed_m_s = kwargs.get('bar_wave_speed')
+
+        if striker_length_m is None or bar_wave_speed_m_s is None:
+            raise ValueError("striker_length and bar_wave_speed required")
+
+        # Convert to units expected by PulseCharacteristics (mm, m/s)
+        calc = PulseCharacteristics(
+            striker_length_mm=striker_length_m * 1000.0,
+            bar_wave_speed_m_s=bar_wave_speed_m_s,
+            bar_density_kg_m3=1.0  # Not used for duration calculation
+        )
+
+        # Calculate (velocity and sampling_interval not used for duration)
+        result = calc.calculate(
+            striker_velocity_m_s=1.0,  # Not used for duration
+            sampling_interval_ms=1.0   # Not used for duration
+        )
+
+        # Convert from ms to seconds
+        return result.pulse_duration_ms / 1000.0
+
+    def _calc_pulse_length(self, **kwargs) -> float:
+        """Pulse spatial length = 2L (SI: meters → meters).
+
+        Delegates to PulseCharacteristics for consistent formula.
+        """
+        striker_length_m = kwargs.get('striker_length')
+
+        if striker_length_m is None:
+            raise ValueError("striker_length required")
+
+        calc = PulseCharacteristics(
+            striker_length_mm=striker_length_m * 1000.0,
+            bar_wave_speed_m_s=1.0,    # Not used for length calculation
+            bar_density_kg_m3=1.0      # Not used for length calculation
+        )
+
+        result = calc.calculate(
+            striker_velocity_m_s=1.0,  # Not used for length
+            sampling_interval_ms=1.0   # Not used for length
+        )
+
+        # Convert from mm to meters
+        return result.pulse_length_mm / 1000.0
+
+    def _calc_pulse_speed(self, **kwargs) -> float:
+        """Pulse speed = bar wave speed C (SI: m/s → m/s).
+
+        Delegates to PulseCharacteristics for consistent formula.
+        """
+        bar_wave_speed_m_s = kwargs.get('bar_wave_speed')
+
+        if bar_wave_speed_m_s is None:
+            raise ValueError("bar_wave_speed required")
+
+        calc = PulseCharacteristics(
+            striker_length_mm=1.0,     # Not used for speed calculation
+            bar_wave_speed_m_s=bar_wave_speed_m_s,
+            bar_density_kg_m3=1.0      # Not used for speed calculation
+        )
+
+        result = calc.calculate(
+            striker_velocity_m_s=1.0,  # Not used for speed
+            sampling_interval_ms=1.0   # Not used for speed
+        )
+
+        return result.pulse_speed_m_s
+
+    def _calc_pulse_strain_amplitude(self, **kwargs) -> float:
+        """Strain amplitude = V / (2C) (SI: m/s, m/s → unitless).
+
+        Delegates to PulseCharacteristics for consistent formula.
+        """
+        bar_wave_speed_m_s = kwargs.get('bar_wave_speed')
+        striker_velocity_m_s = kwargs.get('hasStrikerVelocity')
+
+        if bar_wave_speed_m_s is None or striker_velocity_m_s is None:
+            raise ValueError("bar_wave_speed and hasStrikerVelocity required")
+
+        calc = PulseCharacteristics(
+            striker_length_mm=1.0,     # Not used for strain amplitude
+            bar_wave_speed_m_s=bar_wave_speed_m_s,
+            bar_density_kg_m3=1.0      # Not used for strain amplitude
+        )
+
+        result = calc.calculate(
+            striker_velocity_m_s=striker_velocity_m_s,
+            sampling_interval_ms=1.0   # Not used for strain amplitude
+        )
+
+        return result.pulse_strain_amplitude
+
+    def _calc_pulse_stress_amplitude(self, **kwargs) -> float:
+        """Stress amplitude = ρCV/2 (SI: kg/m³, m/s, m/s → Pa).
+
+        Delegates to PulseCharacteristics for consistent formula.
+        """
+        bar_wave_speed_m_s = kwargs.get('bar_wave_speed')
+        bar_density_kg_m3 = kwargs.get('bar_density')
+        striker_velocity_m_s = kwargs.get('hasStrikerVelocity')
+
+        if None in (bar_wave_speed_m_s, bar_density_kg_m3, striker_velocity_m_s):
+            raise ValueError("bar_wave_speed, bar_density, and hasStrikerVelocity required")
+
+        calc = PulseCharacteristics(
+            striker_length_mm=1.0,     # Not used for stress amplitude
+            bar_wave_speed_m_s=bar_wave_speed_m_s,
+            bar_density_kg_m3=bar_density_kg_m3
+        )
+
+        result = calc.calculate(
+            striker_velocity_m_s=striker_velocity_m_s,
+            sampling_interval_ms=1.0   # Not used for stress amplitude
+        )
+
+        # Convert from MPa to Pa
+        return result.pulse_stress_amplitude_mpa * 1e6
+
     # ============================================================================
     # UNIT CONVERSION METHODS
     # ============================================================================

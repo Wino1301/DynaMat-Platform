@@ -12,8 +12,8 @@ from typing import Optional, Dict, List
 import numpy as np
 
 from PyQt6.QtWidgets import QGroupBox, QGridLayout, QLabel, QComboBox, QScrollArea, QWidget, QVBoxLayout
-from rdflib import Graph, Namespace, Literal, URIRef
-from rdflib.namespace import RDF, XSD
+from rdflib import Graph, Namespace, URIRef
+from rdflib.namespace import RDF
 
 from .base_page import BaseSHPBPage
 from .....config import config
@@ -191,21 +191,21 @@ class RawDataPage(BaseSHPBPage):
         """Build partial RDF graph for SHACL validation of raw data.
 
         Creates:
-        - An AnalysisFile node with file metadata
+        - An AnalysisFile node with file metadata (via InstanceWriter)
         - A RawSignal + DataSeries node per mapped column with
-          hasSamplingRate (computed from time column) and
-          measuredBy (from strain gauge selection)
+          hasSamplingRate and measuredBy
         - SeriesType individual type declarations
+        - Strain gauge links on the equipment node
 
         Returns:
             RDF graph, or None on error.
         """
         try:
             DYN = Namespace(DYN_NS)
+            writer = self._instance_writer
             g = Graph()
-            g.bind("dyn", DYN)
+            writer._setup_namespaces(g)
 
-            # Compute test_id from specimen_id (e.g. DYNML_A356_0001_SHPBTest)
             test_id = (
                 f"{self.state.specimen_id}_SHPBTest"
                 if self.state.specimen_id
@@ -213,29 +213,28 @@ class RawDataPage(BaseSHPBPage):
             )
 
             # AnalysisFile node
-            raw_file_uri = DYN[f"{test_id}_raw_csv"]
-            g.add((raw_file_uri, RDF.type, DYN.AnalysisFile))
-
             file_path = (
                 str(self.state.csv_file_path)
                 if self.state.csv_file_path
                 else "raw_data.csv"
             )
-            g.add((raw_file_uri, DYN.hasFilePath, Literal(file_path, datatype=XSD.string)))
-            g.add((raw_file_uri, DYN.hasFileFormat, Literal("csv", datatype=XSD.string)))
-
+            file_form_data = {
+                f"{DYN_NS}hasFilePath": file_path,
+                f"{DYN_NS}hasFileFormat": "csv",
+            }
             if self.state.total_samples is not None:
-                g.add((raw_file_uri, DYN.hasDataPointCount,
-                       Literal(self.state.total_samples, datatype=XSD.integer)))
+                file_form_data[f"{DYN_NS}hasDataPointCount"] = self.state.total_samples
             if self.state.raw_df is not None:
-                g.add((raw_file_uri, DYN.hasColumnCount,
-                       Literal(len(self.state.raw_df.columns), datatype=XSD.integer)))
+                file_form_data[f"{DYN_NS}hasColumnCount"] = len(self.state.raw_df.columns)
 
-            # Compute sampling rate from time column (Hz)
+            raw_file_ref = writer.create_single_instance(
+                g, file_form_data, f"{DYN_NS}AnalysisFile", f"{test_id}_raw_csv"
+            )
+
+            # Compute sampling rate from time column
             sampling_rate = self._compute_sampling_rate()
 
-            # Gauge URI mapping: which gauge(s) measured which signal
-            # Time is the shared acquisition clock — both gauges contribute
+            # Gauge URI mapping
             inc_gauge = self.state.gauge_mapping.get("incident")
             tra_gauge = self.state.gauge_mapping.get("transmitted")
             gauge_for_signal: Dict[str, list] = {
@@ -244,36 +243,58 @@ class RawDataPage(BaseSHPBPage):
                 "transmitted": [tra_gauge] if tra_gauge else [],
             }
 
-            # Map column_mapping keys to SeriesType individual URIs
+            # SeriesType individual URIs
             series_type_map = {
-                "time": DYN.Time,
-                "incident": DYN.IncidentPulse,
-                "transmitted": DYN.TransmittedPulse,
+                "time": f"{DYN_NS}Time",
+                "incident": f"{DYN_NS}IncidentPulse",
+                "transmitted": f"{DYN_NS}TransmittedPulse",
             }
 
             for key, col_name in self.state.column_mapping.items():
-                series_uri = DYN[f"{test_id}_{key}"]
-                g.add((series_uri, RDF.type, DYN.RawSignal))
-                g.add((series_uri, RDF.type, DYN.DataSeries))
-                g.add((series_uri, DYN.hasColumnName, Literal(col_name, datatype=XSD.string)))
-                g.add((series_uri, DYN.hasDataFile, raw_file_uri))
+                series_form_data: Dict = {
+                    f"{DYN_NS}hasColumnName": col_name,
+                    f"{DYN_NS}hasDataFile": str(raw_file_ref),
+                }
+                series_type_uri = series_type_map.get(key)
+                if series_type_uri:
+                    series_form_data[f"{DYN_NS}hasSeriesType"] = series_type_uri
 
-                series_type = series_type_map.get(key)
-                if series_type:
-                    g.add((series_uri, DYN.hasSeriesType, series_type))
-                    g.add((series_type, RDF.type, DYN.SeriesType))
-
-                # Sampling rate
                 if sampling_rate is not None:
-                    g.add((series_uri, DYN.hasSamplingRate,
-                           Literal(sampling_rate, datatype=XSD.double)))
+                    series_form_data[f"{DYN_NS}hasSamplingRate"] = sampling_rate
 
-                # measuredBy → strain gauge(s)
-                for gauge_uri in gauge_for_signal.get(key, []):
+                # measuredBy → strain gauge(s) as list
+                gauges = gauge_for_signal.get(key, [])
+                if gauges:
+                    series_form_data[f"{DYN_NS}measuredBy"] = gauges if len(gauges) > 1 else gauges[0]
+
+                series_ref = writer.create_single_instance(
+                    g, series_form_data, f"{DYN_NS}RawSignal", f"{test_id}_{key}"
+                )
+                # Also declare as DataSeries
+                g.add((series_ref, RDF.type, DYN.DataSeries))
+
+                # Declare SeriesType individual
+                if series_type_uri:
+                    st_ref = URIRef(series_type_uri)
+                    g.add((st_ref, RDF.type, DYN.SeriesType))
+
+                # Declare gauge types
+                for gauge_uri in gauges:
                     gauge_ref = URIRef(gauge_uri)
-                    g.add((series_uri, DYN.measuredBy, gauge_ref))
                     g.add((gauge_ref, RDF.type, DYN.StrainGauge))
                     g.add((gauge_ref, RDF.type, DYN.MeasurementEquipment))
+
+            # Strain gauge → SHPBCompression link triples
+            # Same subject URI as equipment page, without rdf:type
+            equipment_node = DYN["_val_equipment"]
+            if inc_gauge:
+                gauge_ref = URIRef(inc_gauge)
+                g.add((equipment_node, DYN.hasIncidentStrainGauge, gauge_ref))
+                g.add((gauge_ref, RDF.type, DYN.StrainGauge))
+            if tra_gauge:
+                gauge_ref = URIRef(tra_gauge)
+                g.add((equipment_node, DYN.hasTransmissionStrainGauge, gauge_ref))
+                g.add((gauge_ref, RDF.type, DYN.StrainGauge))
 
             return g
 

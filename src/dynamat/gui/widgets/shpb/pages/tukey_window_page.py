@@ -10,8 +10,7 @@ from PyQt6.QtWidgets import (
     QGroupBox, QGridLayout, QSplitter, QFrame, QWidget
 )
 from PyQt6.QtCore import Qt
-from rdflib import Graph, Namespace, Literal
-from rdflib.namespace import RDF, XSD
+from rdflib import Graph
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.tukey_window import TukeyWindow
@@ -179,29 +178,11 @@ class TukeyWindowPage(BaseSHPBPage):
             return None
 
         try:
-            DYN = Namespace(DYN_NS)
-            g = Graph()
-            g.bind("dyn", DYN)
-
-            instance = DYN["_val_tukey_window"]
-            g.add((instance, RDF.type, DYN.TukeyWindowParams))
-
-            form_data = self.state.tukey_form_data
-
-            # isTukeyEnabled -> xsd:boolean
-            enabled = form_data.get(f"{DYN_NS}isTukeyEnabled")
-            if enabled is not None:
-                g.add((instance, DYN.isTukeyEnabled,
-                       Literal(bool(enabled), datatype=XSD.boolean)))
-
-            # hasTukeyAlphaParam -> xsd:double
-            alpha = form_data.get(f"{DYN_NS}hasTukeyAlphaParam")
-            if alpha is not None:
-                g.add((instance, DYN.hasTukeyAlphaParam,
-                       Literal(float(alpha), datatype=XSD.double)))
-
-            return g
-
+            return self._build_graph_from_form_data(
+                self.state.tukey_form_data,
+                f"{DYN_NS}TukeyWindowParams",
+                "_val_tukey_window",
+            )
         except Exception as e:
             self.logger.error(f"Failed to build validation graph: {e}")
             return None

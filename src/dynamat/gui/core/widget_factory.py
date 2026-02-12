@@ -291,6 +291,9 @@ class WidgetFactory:
         if hasattr(prop, 'placeholder') and prop.placeholder:
             widget.setPlaceholderText(prop.placeholder)
 
+        if hasattr(prop, 'default_value') and prop.default_value is not None:
+            widget.setText(str(prop.default_value))
+
         return widget
     
     def _create_text_area_widget(self, prop: PropertyMetadata) -> QTextEdit:
@@ -368,6 +371,15 @@ class WidgetFactory:
             widget.addItem("(Error loading data)", "")
             # Track combo population failure
             self._combo_population_stats['failed'] += 1
+
+        # Apply default value if specified (match by URI stored in item data)
+        if hasattr(prop, 'default_value') and prop.default_value is not None:
+            default_uri = str(prop.default_value)
+            for i in range(widget.count()):
+                item_data = str(widget.itemData(i)) if widget.itemData(i) else ""
+                if item_data == default_uri:
+                    widget.setCurrentIndex(i)
+                    break
 
         return widget
 

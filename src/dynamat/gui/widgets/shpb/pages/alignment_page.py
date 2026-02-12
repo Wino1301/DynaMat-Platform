@@ -10,8 +10,7 @@ from PyQt6.QtWidgets import (
     QGroupBox, QGridLayout, QSplitter, QFrame, QTabWidget, QWidget
 )
 from PyQt6.QtCore import Qt
-from rdflib import Graph, Namespace, Literal
-from rdflib.namespace import RDF, XSD
+from rdflib import Graph
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.pulse_alignment import PulseAligner
@@ -159,43 +158,11 @@ class AlignmentPage(BaseSHPBPage):
             return None
 
         try:
-            DYN = Namespace(DYN_NS)
-            g = Graph()
-            g.bind("dyn", DYN)
-
-            instance = DYN["_val_alignment"]
-            g.add((instance, RDF.type, DYN.AlignmentParams))
-
-            form_data = self.state.alignment_form_data
-
-            integer_properties = {
-                "hasReflectedSearchMin", "hasReflectedSearchMax",
-                "hasTransmittedSearchMin", "hasTransmittedSearchMax",
-                "hasTransmittedShiftValue", "hasReflectedShiftValue",
-                "hasFrontIndex", "hasCenteredSegmentPoints",
-            }
-
-            for uri, value in form_data.items():
-                if value is None:
-                    continue
-
-                prop_name = uri.split("#")[-1] if "#" in uri else uri.split("/")[-1]
-                prop = DYN[prop_name]
-
-                if prop_name in integer_properties:
-                    try:
-                        g.add((instance, prop, Literal(int(value), datatype=XSD.integer)))
-                    except (ValueError, TypeError):
-                        pass
-                else:
-                    # Weights, k_linear, threshold ratio are all doubles
-                    try:
-                        g.add((instance, prop, Literal(float(value), datatype=XSD.double)))
-                    except (ValueError, TypeError):
-                        g.add((instance, prop, Literal(str(value), datatype=XSD.string)))
-
-            return g
-
+            return self._build_graph_from_form_data(
+                self.state.alignment_form_data,
+                f"{DYN_NS}AlignmentParams",
+                "_val_alignment",
+            )
         except Exception as e:
             self.logger.error(f"Failed to build validation graph: {e}")
             return None

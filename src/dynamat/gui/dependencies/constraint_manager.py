@@ -75,7 +75,7 @@ class Constraint:
     # Calculation operation
     calculation_function: Optional[str] = None
     calculation_target: Optional[str] = None
-    calculation_inputs: Optional[List[str]] = None
+    calculation_inputs: Optional[List] = None  # str (flat URI) or tuple (nested path)
 
     # Generation operation
     generation_template: Optional[str] = None
@@ -259,7 +259,7 @@ class ConstraintManager:
             # Parse calculation operation
             calc_func_uri = self.graph.value(constraint_ref, self.GUI.calculationFunction)
             calc_target_uri = self.graph.value(constraint_ref, self.GUI.calculationTarget)
-            calc_inputs = self._get_all_values(constraint_ref, self.GUI.calculationInputs)
+            calc_inputs = self._get_calculation_inputs(constraint_ref)
 
             calculation_function = str(calc_func_uri) if calc_func_uri else None
             calculation_target = str(calc_target_uri) if calc_target_uri else None
@@ -414,6 +414,56 @@ class ConstraintManager:
             self.logger.error(f"Failed to parse populateFields: {e}", exc_info=True)
 
         return populate_fields
+
+    def _get_calculation_inputs(self, subject: URIRef) -> List:
+        """
+        Parse gui:calculationInputs supporting mixed flat URIs and nested tuples.
+
+        Flat item (URI):
+            dyn:hasStrikerVelocity  →  "https://dynamat.utep.edu/ontology#hasStrikerVelocity"
+
+        Nested tuple (RDF list):
+            (dyn:hasStrikerBar dyn:hasLength "striker_length")
+            → ("https://...#hasStrikerBar", "https://...#hasLength", "striker_length")
+
+        Returns:
+            List of str (flat URI) or tuple (nested path ending with param name string)
+        """
+        from rdflib import RDF, Literal
+        from rdflib.collection import Collection
+
+        inputs = []
+
+        calc_inputs_obj = self.graph.value(subject, self.GUI.calculationInputs)
+        if not calc_inputs_obj:
+            return inputs
+
+        try:
+            # Parse the outer RDF list
+            outer_collection = Collection(self.graph, calc_inputs_obj)
+
+            for item in outer_collection:
+                # Check if this item is itself an RDF list (nested tuple)
+                if (item, RDF.first, None) in self.graph:
+                    inner_collection = Collection(self.graph, item)
+                    inner_items = list(inner_collection)
+
+                    if len(inner_items) >= 2:
+                        # Last item should be a Literal (param name), preceding are URIs (path)
+                        path_elements = [str(el) for el in inner_items]
+                        inputs.append(tuple(path_elements))
+                        self.logger.debug(
+                            f"Parsed nested calculation input: {path_elements}"
+                        )
+                else:
+                    # Flat URI reference (direct form field)
+                    inputs.append(str(item))
+                    self.logger.debug(f"Parsed flat calculation input: {item}")
+
+        except Exception as e:
+            self.logger.error(f"Failed to parse calculationInputs: {e}", exc_info=True)
+
+        return inputs
 
     # ============================================================================
     # PUBLIC API

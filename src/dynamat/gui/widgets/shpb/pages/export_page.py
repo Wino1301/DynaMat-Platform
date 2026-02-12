@@ -1,18 +1,26 @@
-"""Export Page - Save SHPB test results to RDF."""
+"""Export Page - Save SHPB test results to RDF.
+
+Merges all cumulative page_graphs, renames validation-time instance IDs
+to production IDs, runs final SHACL validation, and serializes to TTL.
+"""
 
 import logging
+from pathlib import Path
 from typing import Optional
 from datetime import datetime
 
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QGroupBox, QGridLayout, QLineEdit, QComboBox,
-    QTextEdit, QCheckBox, QScrollArea, QWidget, QFrame
+    QTextEdit, QCheckBox, QScrollArea, QWidget, QFrame,
+    QMessageBox,
 )
 from PyQt6.QtCore import Qt
+from rdflib import Graph, Namespace, URIRef
+from rdflib.namespace import RDF
 
 from .base_page import BaseSHPBPage
-from .....mechanical.shpb.io.shpb_test_writer import SHPBTestWriter
+from .....mechanical.shpb.io.csv_data_handler import CSVDataHandler
 from .....config import config
 
 logger = logging.getLogger(__name__)
@@ -28,7 +36,7 @@ class ExportPage(BaseSHPBPage):
     - Set test type (specimen, calibration, elastic)
     - Display validity assessment
     - Override validity if needed
-    - Export to RDF/TTL
+    - Export to RDF/TTL by merging all page_graphs
     """
 
     def __init__(self, state, ontology_manager, qudt_manager=None, parent=None):
@@ -36,8 +44,6 @@ class ExportPage(BaseSHPBPage):
 
         self.setTitle("Export Test")
         self.setSubTitle("Review and save the SHPB test results.")
-
-        self.test_writer: Optional[SHPBTestWriter] = None
 
     def _setup_ui(self) -> None:
         """Setup page UI."""
@@ -200,8 +206,292 @@ class ExportPage(BaseSHPBPage):
             if hasattr(self, '_assessed_criteria'):
                 self.state.export_form_data[f"{DYN_NS}hasValidityCriteria"] = self._assessed_criteria
 
+        # Build export validation graph and store it
+        validation_graph = self._build_validation_graph()
+        if validation_graph:
+            self.state.page_graphs["export"] = validation_graph
+
         # Export test
         return self._export_test()
+
+    # ------------------------------------------------------------------
+    # Validation graph
+    # ------------------------------------------------------------------
+
+    def _build_validation_graph(self) -> Optional[Graph]:
+        """Build graph with export metadata and sub-instance links on the test node.
+
+        Adds export-specific properties (validity, test type, notes, timestamp)
+        and links to all sub-instances (alignment, equilibrium, detection params,
+        segmentation, tukey, data series) on the equipment/test node.
+
+        Returns:
+            RDF graph with export metadata, or None on error.
+        """
+        try:
+            DYN = Namespace(DYN_NS)
+            writer = self._instance_writer
+            graph = Graph()
+            writer._setup_namespaces(graph)
+
+            test_node = URIRef(writer._create_instance_uri("_val_equipment"))
+
+            # Add export metadata
+            if self.state.export_form_data:
+                for uri, value in self.state.export_form_data.items():
+                    if value is None or value == "":
+                        continue
+                    prop_ref = writer._resolve_uri(uri)
+                    rdf_value = writer._convert_to_rdf_value(value)
+                    graph.add((test_node, prop_ref, rdf_value))
+
+            # Add timestamp
+            graph.add((test_node, DYN.hasAnalysisTimestamp,
+                        writer._convert_to_rdf_value(datetime.now().isoformat())))
+
+            # Link to sub-instances
+            sub_links = {
+                "hasAlignmentParams": "_val_alignment",
+                "hasEquilibriumMetrics": "_val_equilibrium",
+                "hasSegmentationParams": "_val_segmentation",
+                "hasTukeyWindowParams": "_val_tukey_window",
+            }
+            for prop_name, inst_id in sub_links.items():
+                # Only add link if the page graph exists
+                page_key = {
+                    "_val_alignment": "alignment",
+                    "_val_equilibrium": "results",
+                    "_val_segmentation": "segmentation",
+                    "_val_tukey_window": "tukey_window",
+                }.get(inst_id)
+                if page_key and page_key in self.state.page_graphs:
+                    target = URIRef(writer._create_instance_uri(inst_id))
+                    graph.add((test_node, DYN[prop_name], target))
+
+            # Link detection params (3x)
+            if "pulse_detection" in self.state.page_graphs:
+                for pulse_type in ["incident", "transmitted", "reflected"]:
+                    target = URIRef(writer._create_instance_uri(f"_val_{pulse_type}_detection"))
+                    graph.add((test_node, DYN.hasPulseDetectionParams, target))
+
+            # Link DataSeries from raw_data page graph
+            if "raw_data" in self.state.page_graphs:
+                raw_graph = self.state.page_graphs["raw_data"]
+                for s in raw_graph.subjects(RDF.type, DYN.DataSeries):
+                    graph.add((test_node, DYN.hasDataSeries, s))
+                # Link AnalysisFile
+                for s in raw_graph.subjects(RDF.type, DYN.AnalysisFile):
+                    graph.add((test_node, DYN.hasAnalysisFile, s))
+
+            return graph
+
+        except Exception as e:
+            self.logger.error(f"Failed to build validation graph: {e}")
+            return None
+
+    # ------------------------------------------------------------------
+    # Instance ID renaming
+    # ------------------------------------------------------------------
+
+    def _rename_instance_ids(self, graph: Graph, test_id: str) -> Graph:
+        """Rename validation-time instance IDs to production IDs.
+
+        Replaces ``_val_`` prefixed URIs with the actual test ID.
+
+        Args:
+            graph: Merged graph with _val_ prefixed URIs.
+            test_id: Production test ID.
+
+        Returns:
+            New graph with renamed URIs.
+        """
+        DYN = Namespace(DYN_NS)
+        test_id_clean = test_id.replace('-', '_')
+
+        # Build URI replacement map
+        replacements = {
+            str(DYN["_val_equipment"]): str(DYN[test_id_clean]),
+            str(DYN["_val_alignment"]): str(DYN[f"{test_id_clean}_alignment"]),
+            str(DYN["_val_equilibrium"]): str(DYN[f"{test_id_clean}_equilibrium"]),
+            str(DYN["_val_segmentation"]): str(DYN[f"{test_id_clean}_segmentation"]),
+            str(DYN["_val_tukey_window"]): str(DYN[f"{test_id_clean}_tukey"]),
+        }
+        for pulse_type in ["incident", "transmitted", "reflected"]:
+            replacements[str(DYN[f"_val_{pulse_type}_detection"])] = str(
+                DYN[f"{test_id_clean}_{pulse_type}_detect"]
+            )
+
+        final = Graph()
+        self._instance_writer._setup_namespaces(final)
+
+        for s, p, o in graph:
+            new_s = URIRef(replacements.get(str(s), str(s)))
+            new_o = URIRef(replacements[str(o)]) if isinstance(o, URIRef) and str(o) in replacements else o
+            final.add((new_s, p, new_o))
+
+        return final
+
+    # ------------------------------------------------------------------
+    # Export
+    # ------------------------------------------------------------------
+
+    def _export_test(self) -> bool:
+        """Merge all page_graphs, rename instance IDs, validate, serialize.
+
+        Also saves CSV files (raw + processed) to the specimen directory.
+
+        Returns:
+            True if export successful.
+        """
+        self.show_progress()
+        self.set_status("Exporting test...")
+
+        try:
+            writer = self._instance_writer
+            test_id = self.state.test_id
+
+            # Merge all page graphs
+            merged = Graph()
+            writer._setup_namespaces(merged)
+
+            for key, page_graph in self.state.page_graphs.items():
+                for triple in page_graph:
+                    merged.add(triple)
+
+            # Rename _val_ prefixed URIs to production test ID
+            final = self._rename_instance_ids(merged, test_id)
+
+            # Resolve specimen directory and save CSV
+            specimen_id = self.state.specimen_id
+            if not specimen_id:
+                raise ValueError("No specimen ID available")
+
+            specimen_dir = config.SPECIMENS_DIR / specimen_id
+            if not specimen_dir.exists():
+                raise FileNotFoundError(f"Specimen directory not found: {specimen_dir}")
+
+            # Save raw CSV
+            raw_dir = specimen_dir / "raw"
+            raw_dir.mkdir(parents=True, exist_ok=True)
+
+            raw_df = self.state.raw_df
+            if raw_df is None:
+                raise ValueError("Raw data not available")
+
+            # Rename columns to standard names
+            column_mapping = self.state.column_mapping
+            rename_map = {source: target for target, source in column_mapping.items() if source}
+            export_df = raw_df.rename(columns=rename_map)
+
+            required_cols = ['time', 'incident', 'transmitted']
+            missing = [c for c in required_cols if c not in export_df.columns]
+            if missing:
+                raise ValueError(f"Missing columns for export: {missing}")
+
+            csv_handler = CSVDataHandler(export_df)
+            csv_handler.validate_structure()
+
+            test_id_clean = test_id.replace('-', '_')
+            csv_path = raw_dir / f"{test_id_clean}_raw.csv"
+            csv_handler.save_to_csv(csv_path)
+
+            # Save processed CSV if results available
+            if self.state.calculation_results:
+                import pandas as pd
+                processed_dir = specimen_dir / "processed"
+                processed_dir.mkdir(parents=True, exist_ok=True)
+                processed_path = processed_dir / f"{test_id_clean}_processed.csv"
+                pd.DataFrame(self.state.calculation_results).to_csv(
+                    processed_path, index=False, float_format='%.6e'
+                )
+
+            # Final SHACL validation
+            validator = self._get_cached_validator()
+            result = validator.validate(final)
+
+            if result.has_blocking_issues():
+                from ...validation_results_dialog import ValidationResultsDialog
+                dialog = ValidationResultsDialog(result, parent=self)
+                dialog.exec()
+                return False
+
+            # Serialize to TTL
+            output_path = specimen_dir / f"{test_id_clean}.ttl"
+            writer._save_graph(final, output_path)
+
+            # Link test to specimen
+            self._link_test_to_specimen(specimen_dir, test_id_clean)
+
+            # Success
+            self.state.exported_file_path = str(output_path)
+
+            self.set_status(f"Exported successfully: {output_path}")
+            self.logger.info(f"Test exported to {output_path}")
+
+            # Get validity from export form data for display
+            validity = (self.state.export_form_data or {}).get(
+                f"{DYN_NS}hasTestValidity", "Unknown"
+            )
+
+            # Show warnings if any
+            if result.has_any_issues():
+                self.show_warning(
+                    "Export Complete with Warnings",
+                    f"Test saved to:\n{output_path}\n\n"
+                    f"Warnings:\n{result.get_summary()}"
+                )
+            else:
+                QMessageBox.information(
+                    self,
+                    "Export Successful",
+                    f"Test saved successfully!\n\n"
+                    f"File: {output_path}\n\n"
+                    f"Test ID: {self.state.test_id}\n"
+                    f"Validity: {validity}"
+                )
+
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Export failed: {e}", exc_info=True)
+            self.set_status(f"Export failed: {e}", is_error=True)
+            self.show_error("Export Failed", str(e))
+            return False
+
+        finally:
+            self.hide_progress()
+
+    def _link_test_to_specimen(self, specimen_dir: Path, test_id_clean: str) -> None:
+        """Link test to specimen by updating specimen TTL.
+
+        Args:
+            specimen_dir: Specimen directory path.
+            test_id_clean: Cleaned test ID (underscores, no hyphens).
+        """
+        specimen_id = self.state.specimen_id
+        if not specimen_id:
+            return
+
+        specimen_ttl = specimen_dir / f"{specimen_id}_specimen.ttl"
+        if not specimen_ttl.exists():
+            self.logger.warning(f"Specimen TTL not found: {specimen_ttl}")
+            return
+
+        try:
+            test_uri = f"dyn:{test_id_clean}"
+            self._instance_writer.update_instance(
+                instance_uri=self.state.specimen_uri or f"dyn:{specimen_id.replace('-', '_')}",
+                updates={'dyn:hasSHPBCompressionTest': test_uri},
+                ttl_file=specimen_ttl,
+                skip_validation=True,
+            )
+            self.logger.info(f"Linked test {test_uri} to specimen")
+        except Exception as e:
+            self.logger.error(f"Failed to link test to specimen: {e}")
+
+    # ------------------------------------------------------------------
+    # UI helpers (unchanged)
+    # ------------------------------------------------------------------
 
     def _generate_test_id(self) -> None:
         """Generate a unique test ID."""
@@ -211,7 +501,6 @@ class ExportPage(BaseSHPBPage):
         date_str = test_date or datetime.now().strftime("%Y%m%d")
         date_str = date_str.replace("-", "")
 
-        # Simple counter-based approach
         test_id = f"{specimen_id}_SHPB_{date_str}"
 
         self.test_id_edit.setText(test_id)
@@ -329,93 +618,3 @@ class ExportPage(BaseSHPBPage):
             self.output_label.setText(str(output_path))
         else:
             self.output_label.setText("(will be determined on export)")
-
-    def _export_test(self) -> bool:
-        """Export test to RDF/TTL using form-data-driven state.
-
-        Returns:
-            True if export successful
-        """
-        self.show_progress()
-        self.set_status("Exporting test...")
-
-        try:
-            # Initialize test writer
-            if self.test_writer is None:
-                self.test_writer = SHPBTestWriter(
-                    self.ontology_manager,
-                    self.qudt_manager
-                )
-
-            # Get raw DataFrame
-            raw_df = self.state.raw_df
-            if raw_df is None:
-                raise ValueError("Raw data not available")
-
-            # Rename columns to standard names
-            column_mapping = self.state.column_mapping
-            rename_map = {}
-            for target, source in column_mapping.items():
-                if source:
-                    rename_map[source] = target
-
-            export_df = raw_df.rename(columns=rename_map)
-
-            # Ensure we have required columns
-            required_cols = ['time', 'incident', 'transmitted']
-            missing = [c for c in required_cols if c not in export_df.columns]
-            if missing:
-                raise ValueError(f"Missing columns for export: {missing}")
-
-            # Export using form-data-driven state
-            saved_path, validation_result = self.test_writer.ingest_from_state(
-                state=self.state,
-                raw_data_df=export_df,
-                processed_results=self.state.calculation_results
-            )
-
-            if saved_path is None:
-                # Validation failed
-                error_msg = validation_result.get_summary() if validation_result else "Unknown validation error"
-                self.show_error("Export Failed", f"Validation errors:\n\n{error_msg}")
-                return False
-
-            # Success
-            self.state.exported_file_path = saved_path
-
-            self.set_status(f"Exported successfully: {saved_path}")
-            self.logger.info(f"Test exported to {saved_path}")
-
-            # Get validity from export form data for display
-            validity = (self.state.export_form_data or {}).get(
-                f"{DYN_NS}hasTestValidity", "Unknown"
-            )
-
-            # Show warnings if any
-            if validation_result and validation_result.has_any_issues():
-                self.show_warning(
-                    "Export Complete with Warnings",
-                    f"Test saved to:\n{saved_path}\n\n"
-                    f"Warnings:\n{validation_result.get_summary()}"
-                )
-            else:
-                from PyQt6.QtWidgets import QMessageBox
-                QMessageBox.information(
-                    self,
-                    "Export Successful",
-                    f"Test saved successfully!\n\n"
-                    f"File: {saved_path}\n\n"
-                    f"Test ID: {self.state.test_id}\n"
-                    f"Validity: {validity}"
-                )
-
-            return True
-
-        except Exception as e:
-            self.logger.error(f"Export failed: {e}", exc_info=True)
-            self.set_status(f"Export failed: {e}", is_error=True)
-            self.show_error("Export Failed", str(e))
-            return False
-
-        finally:
-            self.hide_progress()

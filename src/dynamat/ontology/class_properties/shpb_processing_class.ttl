@@ -153,7 +153,8 @@ dyn:hasPulsePoints rdf:type owl:DatatypeProperty ,
                    gui:hasDisplayName "Pulse Points (samples)" ;
                    gui:hasFormGroup "DetectionConfig" ;
                    gui:hasGroupOrder 1 ;
-                   gui:hasDisplayOrder 1 .
+                   gui:hasDisplayOrder 1 ;
+                   gui:hasDefaultValue 15000 .
 
 
 ###  https://dynamat.utep.edu/ontology#hasKTrials
@@ -166,7 +167,8 @@ dyn:hasKTrials rdf:type owl:DatatypeProperty ,
                gui:hasDisplayName "K Trials (thresholds)" ;
                gui:hasFormGroup "DetectionConfig" ;
                gui:hasGroupOrder 1 ;
-               gui:hasDisplayOrder 2 .
+               gui:hasDisplayOrder 2 ;
+               gui:hasDefaultValue "6000,4000,2000" .
 
 
 ###  https://dynamat.utep.edu/ontology#hasDetectionPolarity
@@ -179,7 +181,8 @@ dyn:hasDetectionPolarity rdf:type owl:ObjectProperty ,
                          gui:hasDisplayName "Polarity" ;
                          gui:hasFormGroup "DetectionConfig" ;
                          gui:hasGroupOrder 1 ;
-                         gui:hasDisplayOrder 3 .
+                         gui:hasDisplayOrder 3 ;
+                         gui:hasDefaultValue dyn:CompressivePolarity .
 
 
 ###  https://dynamat.utep.edu/ontology#hasMinSeparation
@@ -192,7 +195,8 @@ dyn:hasMinSeparation rdf:type owl:DatatypeProperty ,
                      gui:hasDisplayName "Min Separation (samples)" ;
                      gui:hasFormGroup "DetectionConfig" ;
                      gui:hasGroupOrder 1 ;
-                     gui:hasDisplayOrder 4 .
+                     gui:hasDisplayOrder 4 ;
+                     gui:hasDefaultValue 12000 .
 
 
 ###  https://dynamat.utep.edu/ontology#hasDetectionLowerBound
@@ -205,7 +209,8 @@ dyn:hasDetectionLowerBound rdf:type owl:DatatypeProperty ,
                            gui:hasDisplayName "Lower Bound (samples)" ;
                            gui:hasFormGroup "SearchBounds" ;
                            gui:hasGroupOrder 2 ;
-                           gui:hasDisplayOrder 1 .
+                           gui:hasDisplayOrder 1 ;
+                           gui:hasDefaultValue 10000 .
 
 
 ###  https://dynamat.utep.edu/ontology#hasDetectionUpperBound
@@ -218,7 +223,8 @@ dyn:hasDetectionUpperBound rdf:type owl:DatatypeProperty ,
                            gui:hasDisplayName "Upper Bound (samples)" ;
                            gui:hasFormGroup "SearchBounds" ;
                            gui:hasGroupOrder 2 ;
-                           gui:hasDisplayOrder 2 .
+                           gui:hasDisplayOrder 2 ;
+                           gui:hasDefaultValue 115000 .
 
 
 ###  https://dynamat.utep.edu/ontology#hasSelectionMetric
@@ -231,7 +237,8 @@ dyn:hasSelectionMetric rdf:type owl:ObjectProperty ,
                        gui:hasDisplayName "Selection Metric" ;
                        gui:hasFormGroup "SearchBounds" ;
                        gui:hasGroupOrder 2 ;
-                       gui:hasDisplayOrder 3 .
+                       gui:hasDisplayOrder 3 ;
+                       gui:hasDefaultValue dyn:MedianMetric .
 
 
 ###  https://dynamat.utep.edu/ontology#hasStartIndex
@@ -275,7 +282,8 @@ dyn:hasKLinear rdf:type owl:DatatypeProperty ,
                gui:hasDisplayName "K Linear" ;
                gui:hasFormGroup "AlignmentConfig" ;
                gui:hasGroupOrder 1 ;
-               gui:hasDisplayOrder 1 .
+               gui:hasDisplayOrder 1 ;
+               gui:hasDefaultValue 0.35 .
 
 
 ###  https://dynamat.utep.edu/ontology#hasCorrelationWeight
@@ -288,7 +296,8 @@ dyn:hasCorrelationWeight rdf:type owl:DatatypeProperty ,
                          gui:hasDisplayName "Correlation Weight" ;
                          gui:hasFormGroup "FitnessWeights" ;
                          gui:hasGroupOrder 2 ;
-                         gui:hasDisplayOrder 1 .
+                         gui:hasDisplayOrder 1 ;
+                         gui:hasDefaultValue 0.3 .
 
 
 ###  https://dynamat.utep.edu/ontology#hasDisplacementWeight
@@ -301,7 +310,8 @@ dyn:hasDisplacementWeight rdf:type owl:DatatypeProperty ,
                           gui:hasDisplayName "Displacement Weight" ;
                           gui:hasFormGroup "FitnessWeights" ;
                           gui:hasGroupOrder 2 ;
-                          gui:hasDisplayOrder 2 .
+                          gui:hasDisplayOrder 2 ;
+                          gui:hasDefaultValue 0.3 .
 
 
 ###  https://dynamat.utep.edu/ontology#hasStrainRateWeight
@@ -314,7 +324,8 @@ dyn:hasStrainRateWeight rdf:type owl:DatatypeProperty ,
                         gui:hasDisplayName "Strain Rate Weight" ;
                         gui:hasFormGroup "FitnessWeights" ;
                         gui:hasGroupOrder 2 ;
-                        gui:hasDisplayOrder 3 .
+                        gui:hasDisplayOrder 3 ;
+                        gui:hasDefaultValue 0.3 .
 
 
 ###  https://dynamat.utep.edu/ontology#hasStrainWeight
@@ -327,7 +338,8 @@ dyn:hasStrainWeight rdf:type owl:DatatypeProperty ,
                     gui:hasDisplayName "Strain Weight" ;
                     gui:hasFormGroup "FitnessWeights" ;
                     gui:hasGroupOrder 2 ;
-                    gui:hasDisplayOrder 4 .
+                    gui:hasDisplayOrder 4 ;
+                    gui:hasDefaultValue 0.1 .
 
 
 ###  https://dynamat.utep.edu/ontology#hasTransmittedSearchMin
@@ -340,7 +352,9 @@ dyn:hasTransmittedSearchMin rdf:type owl:DatatypeProperty ,
                             gui:hasDisplayName "Transmitted Min (samples)" ;
                             gui:hasFormGroup "ShiftSearchBounds" ;
                             gui:hasGroupOrder 3 ;
-                            gui:hasDisplayOrder 1 .
+                            gui:hasDisplayOrder 1 ;
+                            gui:hasDefaultValue -100 ;
+                            dyn:hasMinValue -10000 .
 
 
 ###  https://dynamat.utep.edu/ontology#hasTransmittedSearchMax
@@ -353,7 +367,9 @@ dyn:hasTransmittedSearchMax rdf:type owl:DatatypeProperty ,
                             gui:hasDisplayName "Transmitted Max (samples)" ;
                             gui:hasFormGroup "ShiftSearchBounds" ;
                             gui:hasGroupOrder 3 ;
-                            gui:hasDisplayOrder 2 .
+                            gui:hasDisplayOrder 2 ;
+                            gui:hasDefaultValue 100 ;
+                            dyn:hasMinValue -10000 .
 
 
 ###  https://dynamat.utep.edu/ontology#hasReflectedSearchMin
@@ -366,7 +382,9 @@ dyn:hasReflectedSearchMin rdf:type owl:DatatypeProperty ,
                           gui:hasDisplayName "Reflected Min (samples)" ;
                           gui:hasFormGroup "ShiftSearchBounds" ;
                           gui:hasGroupOrder 3 ;
-                          gui:hasDisplayOrder 3 .
+                          gui:hasDisplayOrder 3 ;
+                          gui:hasDefaultValue -100 ;
+                          dyn:hasMinValue -10000 .
 
 
 ###  https://dynamat.utep.edu/ontology#hasReflectedSearchMax
@@ -379,7 +397,9 @@ dyn:hasReflectedSearchMax rdf:type owl:DatatypeProperty ,
                           gui:hasDisplayName "Reflected Max (samples)" ;
                           gui:hasFormGroup "ShiftSearchBounds" ;
                           gui:hasGroupOrder 3 ;
-                          gui:hasDisplayOrder 4 .
+                          gui:hasDisplayOrder 4 ;
+                          gui:hasDefaultValue 100 ;
+                          dyn:hasMinValue -10000 .
 
 
 ###  https://dynamat.utep.edu/ontology#hasTransmittedShiftValue
@@ -420,7 +440,8 @@ dyn:hasCenteredSegmentPoints rdf:type owl:DatatypeProperty ,
                              gui:hasDisplayName "Segment Points" ;
                              gui:hasFormGroup "AlignmentConfig" ;
                              gui:hasGroupOrder 1 ;
-                             gui:hasDisplayOrder 2 .
+                             gui:hasDisplayOrder 2 ;
+                             gui:hasDefaultValue 25000 .
 
 
 ###  https://dynamat.utep.edu/ontology#hasThresholdRatio
@@ -433,7 +454,8 @@ dyn:hasThresholdRatio rdf:type owl:DatatypeProperty ,
                       gui:hasDisplayName "Threshold Ratio" ;
                       gui:hasFormGroup "AlignmentConfig" ;
                       gui:hasGroupOrder 1 ;
-                      gui:hasDisplayOrder 3 .
+                      gui:hasDisplayOrder 3 ;
+                      gui:hasDefaultValue 0.01 .
 
 
 ###  https://dynamat.utep.edu/ontology#hasFrontIndex
@@ -628,7 +650,8 @@ dyn:hasSegmentPoints rdf:type owl:DatatypeProperty ,
                      gui:hasDisplayName "Segment Length (n_points)" ;
                      gui:hasFormGroup "SegmentationConfig" ;
                      gui:hasGroupOrder 1 ;
-                     gui:hasDisplayOrder 1 .
+                     gui:hasDisplayOrder 1 ;
+                     gui:hasDefaultValue 25000 .
 
 
 ###  https://dynamat.utep.edu/ontology#hasSegmentThreshold
@@ -641,7 +664,8 @@ dyn:hasSegmentThreshold rdf:type owl:DatatypeProperty ,
                         gui:hasDisplayName "Threshold Ratio" ;
                         gui:hasFormGroup "SegmentationConfig" ;
                         gui:hasGroupOrder 1 ;
-                        gui:hasDisplayOrder 2 .
+                        gui:hasDisplayOrder 2 ;
+                        gui:hasDefaultValue 0.01 .
 
 
 #################################################################
@@ -658,7 +682,8 @@ dyn:isTukeyEnabled rdf:type owl:DatatypeProperty ,
                    gui:hasDisplayName "Apply Tukey Window" ;
                    gui:hasFormGroup "WindowConfig" ;
                    gui:hasGroupOrder 1 ;
-                   gui:hasDisplayOrder 1 .
+                   gui:hasDisplayOrder 1 ;
+                   gui:hasDefaultValue true .
 
 
 ###  https://dynamat.utep.edu/ontology#hasTukeyAlphaParam
@@ -671,7 +696,8 @@ dyn:hasTukeyAlphaParam rdf:type owl:DatatypeProperty ,
                        gui:hasDisplayName "Alpha" ;
                        gui:hasFormGroup "WindowConfig" ;
                        gui:hasGroupOrder 1 ;
-                       gui:hasDisplayOrder 2 .
+                       gui:hasDisplayOrder 2 ;
+                       gui:hasDefaultValue 0.5 .
 
 
 ###  Generated by the OWL API (version 4.5.29.2024-05-13T12:11:03Z) https://github.com/owlcs/owlapi
