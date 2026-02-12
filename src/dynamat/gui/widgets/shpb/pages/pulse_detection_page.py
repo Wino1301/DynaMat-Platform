@@ -187,6 +187,7 @@ class PulseDetectionPage(BaseSHPBPage):
             range_type_map = {
                 "hasDetectionPolarity": DYN.PolarityType,
                 "hasSelectionMetric": DYN.DetectionMetric,
+                "appliedToSeries": DYN.DataSeries,
             }
 
             for pulse_type in ["incident", "transmitted", "reflected"]:
@@ -356,13 +357,16 @@ class PulseDetectionPage(BaseSHPBPage):
             # Inject appliedToSeries link
             # Reflected detection is applied to the incident bar signal
             # Compute test_id from specimen_id to match raw_data_page URIs
-            test_id = (
+            # Note: _create_instance_uri replaces hyphens with underscores,
+            # so we must apply the same normalization here.
+            raw_id = (
                 f"{self.state.specimen_id}_SHPBTest"
                 if self.state.specimen_id
                 else "_val"
             )
+            clean_id = raw_id.replace(" ", "_").replace("-", "_")
             series_key = 'incident' if pulse_type == 'reflected' else pulse_type
-            form_data[f"{DYN_NS}appliedToSeries"] = f"dyn:{test_id}_{series_key}"
+            form_data[f"{DYN_NS}appliedToSeries"] = f"dyn:{clean_id}_{series_key}"
 
             self.state.detection_form_data[pulse_type] = form_data
 
@@ -516,21 +520,24 @@ class PulseDetectionPage(BaseSHPBPage):
             if time is None:
                 return
 
-            # Plot raw signals
+            # Plot raw signals (both are Voltage signals on the same y-axis)
             if incident is not None:
                 self.plot_widget.add_ontology_trace(
                     time, incident,
                     x_series_type_uri='dyn:Time',
-                    y_series_type_uri='dyn:IncidentPulse',
                     label="Incident Bar", color="blue"
                 )
 
             if transmitted is not None:
                 self.plot_widget.add_ontology_trace(
                     time, transmitted,
-                    y_series_type_uri='dyn:TransmittedPulse',
                     label="Transmitted Bar", color="red"
                 )
+
+            # Set y-axis label from the shared quantity kind (Voltage)
+            unit_symbol = self.plot_widget.resolver.resolve_unit_symbol('unit:V')
+            ylabel = f"Voltage ({unit_symbol})" if unit_symbol else "Voltage"
+            self.plot_widget.set_ylabel(ylabel)
 
             # Overlay detected windows
             colors = {'incident': 'cyan', 'transmitted': 'orange', 'reflected': 'magenta'}

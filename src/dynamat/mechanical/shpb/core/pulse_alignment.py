@@ -421,3 +421,32 @@ class PulseAligner:
         ref_aligned = self._shift_signal(reflected, shift_r)
 
         return inc_aligned, trs_aligned, ref_aligned, shift_t, shift_r
+
+    @staticmethod
+    def compute_aligned_time(
+        incident: np.ndarray,
+        dt: float,
+        front_thresh: float = 0.08,
+    ) -> Tuple[np.ndarray, int]:
+        """Center time axis on incident pulse rise (t=0 at threshold crossing).
+
+        Parameters
+        ----------
+        incident : np.ndarray
+            Aligned incident pulse.
+        dt : float
+            Sampling interval (ms).
+        front_thresh : float, default 0.08
+            Fraction of max |incident| used to locate the pulse front.
+
+        Returns
+        -------
+        time_aligned : np.ndarray
+            Time vector with t=0 at the pulse front.
+        front_idx : int
+            Sample index where the pulse front was detected.
+        """
+        inc_abs = np.abs(incident)
+        front_idx = int(np.argmax(inc_abs > front_thresh * inc_abs.max()))
+        time_aligned = (np.arange(len(incident)) - front_idx) * dt
+        return time_aligned, front_idx

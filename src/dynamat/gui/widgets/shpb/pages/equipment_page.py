@@ -68,7 +68,7 @@ class EquipmentPage(BaseSHPBPage):
             self.form_widget = self.form_builder.build_form(
                 "https://dynamat.utep.edu/ontology#SHPBCompression",
                 parent=self,
-                exclude_groups={"StrainGaugeConfiguration"},
+                exclude_groups={"StrainGaugeConfiguration", "UserSelection"},
             )
 
             if self.form_widget:

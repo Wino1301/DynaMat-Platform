@@ -16,7 +16,7 @@
 #################################################################
 
 # Striker Bars
-dyn:StrikerBar_C350_18in_0375in rdf:type owl:NamedIndividual, dyn:Bar ;
+dyn:StrikerBar_C350_18in_0375in rdf:type owl:NamedIndividual, dyn:StrikerBar ;
     rdfs:label "Striker Bar C350 18in"@en ;
     dyn:hasName "Steel C350 Striker Bar 18in"@en ;
     dyn:hasMaterial dyn:C350_Maraging ;
@@ -25,7 +25,7 @@ dyn:StrikerBar_C350_18in_0375in rdf:type owl:NamedIndividual, dyn:Bar ;
     dyn:hasCrossSection "71.25574"^^xsd:double ;  # mm2 (calculated from diameter)
     dyn:hasDescription "18 inch steel C350 striker bar for SHPB compression tests"@en .
 
-dyn:StrikerBar_C350_12in_0375in rdf:type owl:NamedIndividual, dyn:Bar ;
+dyn:StrikerBar_C350_12in_0375in rdf:type owl:NamedIndividual, dyn:StrikerBar ;
     rdfs:label "Striker Bar C350 12in"@en ;
     dyn:hasName "Steel C350 Striker Bar 12in"@en ;
     dyn:hasMaterial dyn:C350_Maraging ;
@@ -35,7 +35,7 @@ dyn:StrikerBar_C350_12in_0375in rdf:type owl:NamedIndividual, dyn:Bar ;
     dyn:hasDescription "12-inch steel C350 striker bar for SHPB compression tests"@en .
 
 # Incident Bars
-dyn:IncidentBar_C350_8ft_0375in rdf:type owl:NamedIndividual, dyn:Bar ;
+dyn:IncidentBar_C350_8ft_0375in rdf:type owl:NamedIndividual, dyn:IncidentBar ;
     rdfs:label "Incident Bar C350 6ft"@en ;
     dyn:hasName "Steel C350 Incident Bar 6ft"@en ;
     dyn:hasMaterial dyn:C350_Maraging ;
@@ -45,7 +45,7 @@ dyn:IncidentBar_C350_8ft_0375in rdf:type owl:NamedIndividual, dyn:Bar ;
     dyn:hasDescription "8-foot steel C350 incident bar for SHPB compression tests"@en .
 
 # Transmission Bars
-dyn:TransmissionBar_C350_6ft_0375in rdf:type owl:NamedIndividual, dyn:Bar ;
+dyn:TransmissionBar_C350_6ft_0375in rdf:type owl:NamedIndividual, dyn:TransmissionBar ;
     rdfs:label "Transmission Bar C350 6ft"@en ;
     dyn:hasName "Steel C350 Transmission Bar 6ft"@en ;
     dyn:hasMaterial dyn:C350_Maraging ;

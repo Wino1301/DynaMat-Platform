@@ -458,17 +458,32 @@ dyn:hasThresholdRatio rdf:type owl:DatatypeProperty ,
                       gui:hasDefaultValue 0.01 .
 
 
+###  https://dynamat.utep.edu/ontology#hasFrontThreshold
+dyn:hasFrontThreshold rdf:type owl:DatatypeProperty ,
+                               owl:FunctionalProperty ;
+                      rdfs:domain dyn:AlignmentParams ;
+                      rdfs:range xsd:double ;
+                      rdfs:comment "Fraction of max |incident| amplitude used to locate the pulse front for t=0 centering (typically 0.08)"@en ;
+                      rdfs:label "Front Threshold"@en ;
+                      gui:hasDisplayName "Front Threshold" ;
+                      gui:hasFormGroup "AlignmentResults" ;
+                      gui:hasGroupOrder 4 ;
+                      gui:hasDisplayOrder 3 ;
+                      gui:isReadOnly true ;
+                      gui:hasDefaultValue 0.08 .
+
+
 ###  https://dynamat.utep.edu/ontology#hasFrontIndex
 dyn:hasFrontIndex rdf:type owl:DatatypeProperty ,
                            owl:FunctionalProperty ;
                   rdfs:domain dyn:AlignmentParams ;
                   rdfs:range xsd:integer ;
-                  rdfs:comment "Sample index where t=0 is set (typically incident pulse rise at 8% threshold)"@en ;
+                  rdfs:comment "Sample index where t=0 is set (incident pulse rise at hasFrontThreshold fraction of max amplitude)"@en ;
                   rdfs:label "Front Index"@en ;
                   gui:hasDisplayName "Front Index (t=0)" ;
                   gui:hasFormGroup "AlignmentResults" ;
                   gui:hasGroupOrder 4 ;
-                  gui:hasDisplayOrder 3 ;
+                  gui:hasDisplayOrder 4 ;
                   gui:isReadOnly true .
 
 

@@ -54,7 +54,7 @@ dyn:hasSHPBCompressionTest rdf:type owl:ObjectProperty ;
 dyn:hasStrikerBar rdf:type owl:ObjectProperty ,
                            owl:FunctionalProperty ;
                   rdfs:domain dyn:SHPBCompression ;
-                  rdfs:range dyn:Bar ;
+                  rdfs:range dyn:StrikerBar ;
                   rdfs:comment "Striker bar used in SHPB test"@en ;
                   rdfs:label "Striker Bar"@en ;
                   gui:hasDisplayName "Striker Bar" ;
@@ -67,7 +67,7 @@ dyn:hasStrikerBar rdf:type owl:ObjectProperty ,
 dyn:hasIncidentBar rdf:type owl:ObjectProperty ,
                             owl:FunctionalProperty ;
                    rdfs:domain dyn:SHPBCompression ;
-                   rdfs:range dyn:Bar ;
+                   rdfs:range dyn:IncidentBar ;
                    rdfs:comment "Incident bar used in SHPB test"@en ;
                    rdfs:label "Incident Bar"@en ;
                    gui:hasDisplayName "Incident Bar" ;
@@ -80,7 +80,7 @@ dyn:hasIncidentBar rdf:type owl:ObjectProperty ,
 dyn:hasTransmissionBar rdf:type owl:ObjectProperty ,
                                 owl:FunctionalProperty ;
                        rdfs:domain dyn:SHPBCompression ;
-                       rdfs:range dyn:Bar ;
+                       rdfs:range dyn:TransmissionBar ;
                        rdfs:comment "Transmission bar used in SHPB test"@en ;
                        rdfs:label "Transmission Bar"@en ;
                        gui:hasDisplayName "Transmission Bar" ;
@@ -379,7 +379,30 @@ dyn:hasTukeyAlpha rdf:type owl:DatatypeProperty ,
 #################################################################
 
 ###  https://dynamat.utep.edu/ontology#Bar
-dyn:Bar rdf:type owl:Class .
+dyn:Bar rdf:type owl:Class ;
+        rdfs:label "Bar"@en ;
+        rdfs:comment "Base class for all SHPB bars"@en .
+
+
+###  https://dynamat.utep.edu/ontology#StrikerBar
+dyn:StrikerBar rdf:type owl:Class ;
+               rdfs:subClassOf dyn:Bar ;
+               rdfs:label "Striker Bar"@en ;
+               rdfs:comment "Striker bar that impacts the incident bar to generate the stress pulse"@en .
+
+
+###  https://dynamat.utep.edu/ontology#IncidentBar
+dyn:IncidentBar rdf:type owl:Class ;
+                rdfs:subClassOf dyn:Bar ;
+                rdfs:label "Incident Bar"@en ;
+                rdfs:comment "Incident (input) bar that transmits the stress pulse to the specimen"@en .
+
+
+###  https://dynamat.utep.edu/ontology#TransmissionBar
+dyn:TransmissionBar rdf:type owl:Class ;
+                    rdfs:subClassOf dyn:Bar ;
+                    rdfs:label "Transmission Bar"@en ;
+                    rdfs:comment "Transmission (output) bar that receives the stress pulse through the specimen"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#MomentumTrap

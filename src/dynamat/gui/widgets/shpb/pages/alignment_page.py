@@ -254,25 +254,28 @@ class AlignmentPage(BaseSHPBPage):
                 debug=True
             )
 
-            # Store aligned pulse arrays
+            # Compute aligned time axis (t=0 at incident pulse rise)
+            FRONT_THRESH = 0.08
+            time_aligned, front_idx = PulseAligner.compute_aligned_time(
+                aligned_inc, sampling_interval, front_thresh=FRONT_THRESH
+            )
+
+            # Store aligned pulse arrays and windowed time
             self.state.aligned_pulses = {
                 'incident': aligned_inc,
                 'transmitted': aligned_trans,
                 'reflected': aligned_ref
             }
-            self.state.time_vector = time_vector
+            self.state.time_vector = time_aligned
 
-            # Calculate front index and linear region
-            front_thresh = 0.05 * np.max(np.abs(aligned_inc))
-            front_idx = int(np.argmax(np.abs(aligned_inc) > front_thresh))
-
-            linear_start = front_idx
+            # Linear region from front index
             linear_end = int(front_idx + k_linear * len(aligned_inc))
 
             # Save form data with injected computed values
             form_data = self.form_builder.get_form_data(self._form_widget)
             form_data[f"{DYN_NS}hasTransmittedShiftValue"] = shift_t
             form_data[f"{DYN_NS}hasReflectedShiftValue"] = shift_r
+            form_data[f"{DYN_NS}hasFrontThreshold"] = FRONT_THRESH
             form_data[f"{DYN_NS}hasFrontIndex"] = front_idx
             form_data[f"{DYN_NS}hasCenteredSegmentPoints"] = self.state.get_segmentation_param('hasSegmentPoints')
             form_data[f"{DYN_NS}hasThresholdRatio"] = self.state.get_segmentation_param('hasSegmentThreshold')
@@ -282,6 +285,7 @@ class AlignmentPage(BaseSHPBPage):
             result_data = {
                 f"{DYN_NS}hasTransmittedShiftValue": shift_t,
                 f"{DYN_NS}hasReflectedShiftValue": shift_r,
+                f"{DYN_NS}hasFrontThreshold": FRONT_THRESH,
                 f"{DYN_NS}hasFrontIndex": front_idx,
             }
             self.form_builder.set_form_data(self._form_widget, result_data)
@@ -346,8 +350,19 @@ class AlignmentPage(BaseSHPBPage):
                         color=colors.get(pulse_type, 'gray')
                     )
 
-            self.aligned_plot.set_xlabel("Time (ms)")
-            self.aligned_plot.set_ylabel("Signal")
+            self.aligned_plot.set_xlabel(
+                self.aligned_plot.resolver.get_axis_label('dyn:Time')
+            )
+            unit_symbol = self.aligned_plot.resolver.resolve_unit_symbol('unit:V')
+            self.aligned_plot.set_ylabel(
+                f"Voltage ({unit_symbol})" if unit_symbol else "Voltage"
+            )
+            # Reference line at t = 0
+            self.aligned_plot.add_reference_line(
+                orientation='v', value=0.0,
+                color='k', linestyle='--', linewidth=1, alpha=0.5
+            )
+
             self.aligned_plot.enable_grid()
             self.aligned_plot.enable_legend()
             self.aligned_plot.refresh()
@@ -372,28 +387,36 @@ class AlignmentPage(BaseSHPBPage):
             if incident is None or transmitted is None or reflected is None:
                 return
 
-            # Calculate equilibrium signals
-            # Front face: incident + reflected
-            # Back face: transmitted
-            front = incident + reflected
-            back = transmitted
+            # Equilibrium check: incident vs transmitted - reflected
+            t_minus_r = transmitted - reflected
 
             self.equilibrium_plot.add_trace(
-                time[:len(front)],
-                front,
-                label="Front Face (I+R)",
+                time[:len(incident)],
+                incident,
+                label="Incident",
                 color="blue"
             )
 
             self.equilibrium_plot.add_trace(
-                time[:len(back)],
-                back,
-                label="Back Face (T)",
+                time[:len(t_minus_r)],
+                t_minus_r,
+                label="Transmitted \u2212 Reflected",
                 color="red"
             )
 
-            self.equilibrium_plot.set_xlabel("Time (ms)")
-            self.equilibrium_plot.set_ylabel("Signal")
+            # Reference line at t = 0
+            self.equilibrium_plot.add_reference_line(
+                orientation='v', value=0.0,
+                color='k', linestyle='--', linewidth=1, alpha=0.5
+            )
+
+            self.equilibrium_plot.set_xlabel(
+                self.equilibrium_plot.resolver.get_axis_label('dyn:Time')
+            )
+            unit_symbol = self.equilibrium_plot.resolver.resolve_unit_symbol('unit:V')
+            self.equilibrium_plot.set_ylabel(
+                f"Voltage ({unit_symbol})" if unit_symbol else "Voltage"
+            )
             self.equilibrium_plot.enable_grid()
             self.equilibrium_plot.enable_legend()
             self.equilibrium_plot.refresh()

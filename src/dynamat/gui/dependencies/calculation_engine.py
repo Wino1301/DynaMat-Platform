@@ -388,8 +388,8 @@ class CalculationEngine:
             sampling_interval_ms=1.0   # Not used for duration
         )
 
-        # Convert from ms to seconds
-        return result.pulse_duration_ms / 1000.0
+        # Convert from ms to seconds, then to display units (/1e3)
+        return result.pulse_duration_ms / 1e6
 
     def _calc_pulse_length(self, **kwargs) -> float:
         """Pulse spatial length = 2L (SI: meters → meters).
@@ -412,8 +412,8 @@ class CalculationEngine:
             sampling_interval_ms=1.0   # Not used for length
         )
 
-        # Convert from mm to meters
-        return result.pulse_length_mm / 1000.0
+        # Convert from mm to meters, then to display units (/1e3)
+        return result.pulse_length_mm / 1e6
 
     def _calc_pulse_speed(self, **kwargs) -> float:
         """Pulse speed = bar wave speed C (SI: m/s → m/s).
@@ -485,8 +485,8 @@ class CalculationEngine:
             sampling_interval_ms=1.0   # Not used for stress amplitude
         )
 
-        # Convert from MPa to Pa
-        return result.pulse_stress_amplitude_mpa * 1e6
+        # Convert from MPa to display units (*1e3)
+        return result.pulse_stress_amplitude_mpa * 1e9
 
     # ============================================================================
     # UNIT CONVERSION METHODS

@@ -335,8 +335,13 @@ class SegmentationPage(BaseSHPBPage):
                         color=colors.get(pulse_type, 'gray')
                     )
 
-            self.plot_widget.set_xlabel("Time (ms)")
-            self.plot_widget.set_ylabel("Signal")
+            self.plot_widget.set_xlabel(
+                self.plot_widget.resolver.get_axis_label('dyn:Time')
+            )
+            unit_symbol = self.plot_widget.resolver.resolve_unit_symbol('unit:V')
+            self.plot_widget.set_ylabel(
+                f"Voltage ({unit_symbol})" if unit_symbol else "Voltage"
+            )
             self.plot_widget.enable_grid()
             self.plot_widget.enable_legend()
             self.plot_widget.refresh()

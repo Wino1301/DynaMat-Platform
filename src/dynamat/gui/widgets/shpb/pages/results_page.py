@@ -144,6 +144,58 @@ class ResultsPage(BaseSHPBPage):
             self.strain_rate_plot = None
             self.plot_tabs.addTab(QLabel("Plot unavailable"), "Strain Rate")
 
+        # Stress vs time plot
+        try:
+            self.stress_time_plot = create_plot_widget(
+                self.ontology_manager,
+                self.qudt_manager,
+                show_toolbar=True
+            )
+            self.plot_tabs.addTab(self.stress_time_plot, "Stress vs Time")
+        except Exception as e:
+            logger.warning(f"Could not create stress vs time plot: {e}")
+            self.stress_time_plot = None
+            self.plot_tabs.addTab(QLabel("Plot unavailable"), "Stress vs Time")
+
+        # Strain vs time plot
+        try:
+            self.strain_time_plot = create_plot_widget(
+                self.ontology_manager,
+                self.qudt_manager,
+                show_toolbar=True
+            )
+            self.plot_tabs.addTab(self.strain_time_plot, "Strain vs Time")
+        except Exception as e:
+            logger.warning(f"Could not create strain vs time plot: {e}")
+            self.strain_time_plot = None
+            self.plot_tabs.addTab(QLabel("Plot unavailable"), "Strain vs Time")
+
+        # Bar displacement plot
+        try:
+            self.displacement_plot = create_plot_widget(
+                self.ontology_manager,
+                self.qudt_manager,
+                show_toolbar=True
+            )
+            self.plot_tabs.addTab(self.displacement_plot, "Bar Displacement")
+        except Exception as e:
+            logger.warning(f"Could not create displacement plot: {e}")
+            self.displacement_plot = None
+            self.plot_tabs.addTab(QLabel("Plot unavailable"), "Bar Displacement")
+
+        # Bar force plot
+        try:
+            self.force_plot = create_plot_widget(
+                self.ontology_manager,
+                self.qudt_manager,
+                show_toolbar=True
+            )
+            self.plot_tabs.addTab(self.force_plot, "Bar Force")
+        except Exception as e:
+            logger.warning(f"Could not create force plot: {e}")
+            self.force_plot = None
+            self.plot_tabs.addTab(QLabel("Plot unavailable"), "Bar Force")
+
         right_layout.addWidget(self.plot_tabs)
         splitter.addWidget(right_frame)
         splitter.setSizes([350, 650])
@@ -358,65 +410,305 @@ class ResultsPage(BaseSHPBPage):
         if not results:
             return
 
-        # Stress-strain plot
-        if self.stress_strain_plot:
-            try:
-                self.stress_strain_plot.clear()
+        self._update_stress_strain_plot(results)
+        self._update_strain_rate_plot(results)
+        self._update_stress_time_plot(results)
+        self._update_strain_time_plot(results)
+        self._update_displacement_plot(results)
+        self._update_force_plot(results)
 
-                strain_1w = results.get('strain_1w', [])
-                stress_1w = results.get('stress_1w', [])
-                strain_3w = results.get('strain_3w', [])
-                stress_3w = results.get('stress_3w', [])
+    def _update_stress_strain_plot(self, results: Dict) -> None:
+        """Update stress-strain plot with engineering and true curves."""
+        if not self.stress_strain_plot:
+            return
 
-                if len(strain_1w) > 0 and len(stress_1w) > 0:
-                    self.stress_strain_plot.add_ontology_trace(
-                        np.abs(strain_1w),
-                        np.abs(stress_1w),
-                        x_series_type_uri='dyn:Strain',
-                        y_series_type_uri='dyn:Stress',
-                        analysis_method='1-wave',
-                        label="1-Wave",
-                        color="blue"
-                    )
+        try:
+            self.stress_strain_plot.clear()
 
-                if len(strain_3w) > 0 and len(stress_3w) > 0:
-                    self.stress_strain_plot.add_ontology_trace(
-                        np.abs(strain_3w),
-                        np.abs(stress_3w),
-                        y_series_type_uri='dyn:Stress',
-                        analysis_method='3-wave',
-                        label="3-Wave",
-                        color="red"
-                    )
+            # Engineering 1-wave (solid blue)
+            strain_1w = results.get('strain_1w', [])
+            stress_1w = results.get('stress_1w', [])
+            if len(strain_1w) > 0 and len(stress_1w) > 0:
+                self.stress_strain_plot.add_ontology_trace(
+                    strain_1w, stress_1w,
+                    x_series_type_uri='dyn:Strain',
+                    y_series_type_uri='dyn:Stress',
+                    label="1-wave", color="blue", linewidth=2
+                )
 
-                self.stress_strain_plot.enable_grid()
-                self.stress_strain_plot.enable_legend()
-                self.stress_strain_plot.refresh()
+            # Engineering 3-wave (dashed blue)
+            strain_3w = results.get('strain_3w', [])
+            stress_3w = results.get('stress_3w', [])
+            if len(strain_3w) > 0 and len(stress_3w) > 0:
+                self.stress_strain_plot.add_trace(
+                    strain_3w, stress_3w,
+                    label="3-wave", color="blue",
+                    linestyle='--', linewidth=2, alpha=0.7
+                )
 
-            except Exception as e:
-                self.logger.error(f"Failed to update stress-strain plot: {e}")
+            # True 1-wave (solid red)
+            true_strain_1w = results.get('true_strain_1w', [])
+            true_stress_1w = results.get('true_stress_1w', [])
+            if len(true_strain_1w) > 0 and len(true_stress_1w) > 0:
+                self.stress_strain_plot.add_trace(
+                    true_strain_1w, true_stress_1w,
+                    label="True (1-wave)", color="red", linewidth=2
+                )
 
-        # Strain rate plot
-        if self.strain_rate_plot:
-            try:
-                self.strain_rate_plot.clear()
+            # True 3-wave (dashed red)
+            true_strain_3w = results.get('true_strain_3w', [])
+            true_stress_3w = results.get('true_stress_3w', [])
+            if len(true_strain_3w) > 0 and len(true_stress_3w) > 0:
+                self.stress_strain_plot.add_trace(
+                    true_strain_3w, true_stress_3w,
+                    label="True (3-wave)", color="red",
+                    linestyle='--', linewidth=2, alpha=0.7
+                )
 
-                time = results.get('time', [])
-                strain_rate_1w = results.get('strain_rate_1w', [])
+            self.stress_strain_plot.enable_grid()
+            self.stress_strain_plot.enable_legend()
+            self.stress_strain_plot.refresh()
 
-                if len(time) > 0 and len(strain_rate_1w) > 0:
-                    self.strain_rate_plot.add_ontology_trace(
-                        time,
-                        np.abs(strain_rate_1w),
-                        x_series_type_uri='dyn:Time',
-                        y_series_type_uri='dyn:StrainRate',
-                        label="Strain Rate",
-                        color="green"
-                    )
+        except Exception as e:
+            self.logger.error(f"Failed to update stress-strain plot: {e}")
 
-                self.strain_rate_plot.enable_grid()
-                self.strain_rate_plot.enable_legend()
-                self.strain_rate_plot.refresh()
+    def _update_strain_rate_plot(self, results: Dict) -> None:
+        """Update strain rate vs time plot."""
+        if not self.strain_rate_plot:
+            return
 
-            except Exception as e:
-                self.logger.error(f"Failed to update strain rate plot: {e}")
+        try:
+            self.strain_rate_plot.clear()
+
+            time = results.get('time', [])
+            if len(time) == 0:
+                return
+
+            # Engineering 1-wave (solid blue)
+            sr_1w = results.get('strain_rate_1w', [])
+            if len(sr_1w) > 0:
+                self.strain_rate_plot.add_ontology_trace(
+                    time[:len(sr_1w)], sr_1w,
+                    x_series_type_uri='dyn:Time',
+                    y_series_type_uri='dyn:StrainRate',
+                    label="1-wave", color="blue", linewidth=1.5
+                )
+
+            # Engineering 3-wave (dashed blue)
+            sr_3w = results.get('strain_rate_3w', [])
+            if len(sr_3w) > 0:
+                self.strain_rate_plot.add_trace(
+                    time[:len(sr_3w)], sr_3w,
+                    label="3-wave", color="blue",
+                    linestyle='--', linewidth=2, alpha=0.7
+                )
+
+            # True 1-wave (solid red)
+            true_sr_1w = results.get('true_strain_rate_1w', [])
+            if len(true_sr_1w) > 0:
+                self.strain_rate_plot.add_trace(
+                    time[:len(true_sr_1w)], true_sr_1w,
+                    label="True 1-wave", color="red", linewidth=1.5
+                )
+
+            # True 3-wave (dashed red)
+            true_sr_3w = results.get('true_strain_rate_3w', [])
+            if len(true_sr_3w) > 0:
+                self.strain_rate_plot.add_trace(
+                    time[:len(true_sr_3w)], true_sr_3w,
+                    label="True 3-wave", color="red",
+                    linestyle='--', linewidth=2, alpha=0.7
+                )
+
+            self.strain_rate_plot.enable_grid()
+            self.strain_rate_plot.enable_legend()
+            self.strain_rate_plot.refresh()
+
+        except Exception as e:
+            self.logger.error(f"Failed to update strain rate plot: {e}")
+
+    def _update_stress_time_plot(self, results: Dict) -> None:
+        """Update stress vs time plot."""
+        if not self.stress_time_plot:
+            return
+
+        try:
+            self.stress_time_plot.clear()
+
+            time = results.get('time', [])
+            if len(time) == 0:
+                return
+
+            # Engineering 1-wave (solid blue)
+            stress_1w = results.get('stress_1w', [])
+            if len(stress_1w) > 0:
+                self.stress_time_plot.add_ontology_trace(
+                    time[:len(stress_1w)], stress_1w,
+                    x_series_type_uri='dyn:Time',
+                    y_series_type_uri='dyn:Stress',
+                    label="1-wave", color="blue", linewidth=1.5
+                )
+
+            # Engineering 3-wave (dashed blue)
+            stress_3w = results.get('stress_3w', [])
+            if len(stress_3w) > 0:
+                self.stress_time_plot.add_trace(
+                    time[:len(stress_3w)], stress_3w,
+                    label="3-wave", color="blue",
+                    linestyle='--', linewidth=1.5, alpha=0.7
+                )
+
+            # True 1-wave (solid red)
+            true_stress_1w = results.get('true_stress_1w', [])
+            if len(true_stress_1w) > 0:
+                self.stress_time_plot.add_trace(
+                    time[:len(true_stress_1w)], true_stress_1w,
+                    label="True 1-wave", color="red", linewidth=1.5
+                )
+
+            # True 3-wave (dashed red)
+            true_stress_3w = results.get('true_stress_3w', [])
+            if len(true_stress_3w) > 0:
+                self.stress_time_plot.add_trace(
+                    time[:len(true_stress_3w)], true_stress_3w,
+                    label="True 3-wave", color="red",
+                    linestyle='--', linewidth=1.5, alpha=0.7
+                )
+
+            self.stress_time_plot.enable_grid()
+            self.stress_time_plot.enable_legend()
+            self.stress_time_plot.refresh()
+
+        except Exception as e:
+            self.logger.error(f"Failed to update stress vs time plot: {e}")
+
+    def _update_strain_time_plot(self, results: Dict) -> None:
+        """Update strain vs time plot with engineering and true curves."""
+        if not self.strain_time_plot:
+            return
+
+        try:
+            self.strain_time_plot.clear()
+
+            time = results.get('time', [])
+            if len(time) == 0:
+                return
+
+            # Engineering 1-wave (solid blue)
+            strain_1w = results.get('strain_1w', [])
+            if len(strain_1w) > 0:
+                self.strain_time_plot.add_ontology_trace(
+                    time[:len(strain_1w)], strain_1w,
+                    x_series_type_uri='dyn:Time',
+                    y_series_type_uri='dyn:Strain',
+                    label="1-wave", color="blue", linewidth=1.5
+                )
+
+            # Engineering 3-wave (dashed blue)
+            strain_3w = results.get('strain_3w', [])
+            if len(strain_3w) > 0:
+                self.strain_time_plot.add_trace(
+                    time[:len(strain_3w)], strain_3w,
+                    label="3-wave", color="blue",
+                    linestyle='--', linewidth=1.5, alpha=0.7
+                )
+
+            # True 1-wave (solid red)
+            true_strain_1w = results.get('true_strain_1w', [])
+            if len(true_strain_1w) > 0:
+                self.strain_time_plot.add_trace(
+                    time[:len(true_strain_1w)], true_strain_1w,
+                    label="True 1-wave", color="red", linewidth=1.5
+                )
+
+            # True 3-wave (dashed red)
+            true_strain_3w = results.get('true_strain_3w', [])
+            if len(true_strain_3w) > 0:
+                self.strain_time_plot.add_trace(
+                    time[:len(true_strain_3w)], true_strain_3w,
+                    label="True 3-wave", color="red",
+                    linestyle='--', linewidth=1.5, alpha=0.7
+                )
+
+            self.strain_time_plot.enable_grid()
+            self.strain_time_plot.enable_legend()
+            self.strain_time_plot.refresh()
+
+        except Exception as e:
+            self.logger.error(f"Failed to update strain vs time plot: {e}")
+
+    def _update_displacement_plot(self, results: Dict) -> None:
+        """Update bar displacement vs time plot."""
+        if not self.displacement_plot:
+            return
+
+        try:
+            self.displacement_plot.clear()
+
+            time = results.get('time', [])
+            if len(time) == 0:
+                return
+
+            # 1-wave (solid blue)
+            disp_1w = results.get('bar_displacement_1w', [])
+            if len(disp_1w) > 0:
+                self.displacement_plot.add_ontology_trace(
+                    time[:len(disp_1w)], disp_1w,
+                    x_series_type_uri='dyn:Time',
+                    y_series_type_uri='dyn:BarDisplacement',
+                    label="1-wave", color="blue", linewidth=1.5
+                )
+
+            # 3-wave (dashed blue)
+            disp_3w = results.get('bar_displacement_3w', [])
+            if len(disp_3w) > 0:
+                self.displacement_plot.add_trace(
+                    time[:len(disp_3w)], disp_3w,
+                    label="3-wave", color="blue",
+                    linestyle='--', linewidth=1.5, alpha=0.7
+                )
+
+            self.displacement_plot.enable_grid()
+            self.displacement_plot.enable_legend()
+            self.displacement_plot.refresh()
+
+        except Exception as e:
+            self.logger.error(f"Failed to update displacement plot: {e}")
+
+    def _update_force_plot(self, results: Dict) -> None:
+        """Update bar force vs time plot."""
+        if not self.force_plot:
+            return
+
+        try:
+            self.force_plot.clear()
+
+            time = results.get('time', [])
+            if len(time) == 0:
+                return
+
+            # 1-wave (solid blue)
+            force_1w = results.get('bar_force_1w', [])
+            if len(force_1w) > 0:
+                self.force_plot.add_ontology_trace(
+                    time[:len(force_1w)], force_1w,
+                    x_series_type_uri='dyn:Time',
+                    y_series_type_uri='dyn:BarForce',
+                    label="1-wave", color="blue", linewidth=1.5
+                )
+
+            # 3-wave (dashed blue)
+            force_3w = results.get('bar_force_3w', [])
+            if len(force_3w) > 0:
+                self.force_plot.add_trace(
+                    time[:len(force_3w)], force_3w,
+                    label="3-wave", color="blue",
+                    linestyle='--', linewidth=1.5, alpha=0.7
+                )
+
+            self.force_plot.enable_grid()
+            self.force_plot.enable_legend()
+            self.force_plot.refresh()
+
+        except Exception as e:
+            self.logger.error(f"Failed to update force plot: {e}")
