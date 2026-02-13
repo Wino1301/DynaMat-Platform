@@ -299,20 +299,8 @@ class TukeyWindowPage(BaseSHPBPage):
                     color="red"
                 )
 
-            # Plot window shape
-            if self.tukey_window and original is not None:
-                window = self.tukey_window.generate(len(original))
-                # Scale window to match signal range for visualization
-                scale = np.max(np.abs(original)) if np.max(np.abs(original)) > 0 else 1
-                self.plot_widget.add_trace(
-                    time[:len(window)],
-                    window * scale,
-                    label="Window Shape",
-                    color="green"
-                )
-
             self.plot_widget.set_xlabel("Time (ms)")
-            self.plot_widget.set_ylabel("Signal")
+            self.plot_widget.set_ylabel("Voltage (V)")
             self.plot_widget.enable_grid()
             self.plot_widget.enable_legend()
             self.plot_widget.refresh()

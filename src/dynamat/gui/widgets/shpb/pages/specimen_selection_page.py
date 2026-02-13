@@ -115,8 +115,19 @@ class SpecimenSelectionPage(BaseSHPBPage):
         self._add_status_area()
 
     def initializePage(self) -> None:
-        """Initialize page when it becomes current."""
+        """Initialize page when it becomes current.
+
+        Resets all downstream state so each visit starts fresh.
+        This ensures the previous-test dialog re-triggers and stale
+        data from a prior run does not leak into a new analysis.
+        """
         super().initializePage()
+
+        # Reset all state so the wizard starts clean from this page
+        self.state.reset_from_stage(1)
+        self.state.specimen_uri = None
+        self.state.specimen_id = None
+        self.state.specimen_data = None
 
         # Initialize query builder if needed
         if self.query_builder is None:

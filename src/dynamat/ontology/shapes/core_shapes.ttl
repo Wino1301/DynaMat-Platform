@@ -177,7 +177,7 @@ dyn:SpecimenShape a sh:NodeShape ;
     ] ;
     sh:property [
         sh:path dyn:hasMaterial ;
-        sh:class dyn:Material ;
+        sh:nodeKind sh:IRI ;  # Use IRI check instead of sh:class to support subclass hierarchy (AluminiumAlloy → Metal → Material)
         sh:maxCount 1 ;
         sh:name "Material" ;
         sh:description "Material composition of the specimen" ;
