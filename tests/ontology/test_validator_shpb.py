@@ -21,19 +21,19 @@ class TestSHPBValidator:
         
         # Add required SHPB components
         g.add((test_uri, dyn.hasIncidentBar, dyn.IncidentBar_C350_6ft))
-        g.add((dyn.IncidentBar_C350_6ft, RDF.type, dyn.Bar))  # Type the bar
+        g.add((dyn.IncidentBar_C350_6ft, RDF.type, dyn.IncidentBar))  # Type the bar
         
         g.add((test_uri, dyn.hasTransmissionBar, dyn.TransmissionBar_C350_6ft))
-        g.add((dyn.TransmissionBar_C350_6ft, RDF.type, dyn.Bar)) # Type the bar
+        g.add((dyn.TransmissionBar_C350_6ft, RDF.type, dyn.TransmissionBar)) # Type the bar
         
         g.add((test_uri, dyn.hasStrikerBar, dyn.StrikerBar_C350_18in))
-        g.add((dyn.StrikerBar_C350_18in, RDF.type, dyn.Bar)) # Type the bar
+        g.add((dyn.StrikerBar_C350_18in, RDF.type, dyn.StrikerBar)) # Type the bar
         
         # Add required striker velocity
         g.add((test_uri, dyn.hasStrikerVelocity, Literal(15.0, datatype=XSD.double)))
         
-        g.add((test_uri, dyn.hasTestType, dyn.MaterialSpecimenTest))
-        g.add((dyn.MaterialSpecimenTest, RDF.type, dyn.MechanicalTestType)) # Type the test type
+        g.add((test_uri, dyn.hasTestType, dyn.SpecimenTest))
+        g.add((dyn.SpecimenTest, RDF.type, dyn.TestType)) # Type the test type
         
         # Add the specimen so reference is valid
         g.add((specimen_uri, RDF.type, dyn.Specimen))
