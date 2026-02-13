@@ -302,7 +302,13 @@ dyn:AlignmentParamsShape a sh:NodeShape ;
     sh:property [ sh:path dyn:hasCorrelationWeight ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path dyn:hasDisplacementWeight ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path dyn:hasStrainRateWeight ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
-    sh:property [ sh:path dyn:hasStrainWeight ; sh:maxCount 1 ; sh:datatype xsd:double ] .
+    sh:property [ sh:path dyn:hasStrainWeight ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasReflectedShiftValue ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasTransmittedShiftValue ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasFrontThreshold ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasFrontIndex ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasCenteredSegmentPoints ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
+    sh:property [ sh:path dyn:hasThresholdRatio ; sh:maxCount 1 ; sh:datatype xsd:double ] .
 
 
 #################################################################

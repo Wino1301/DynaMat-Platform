@@ -190,6 +190,7 @@ class PulseDetectionPage(BaseSHPBPage):
                 "appliedToSeries": DYN.DataSeries,
             }
 
+            detection_refs = {}
             for pulse_type in ["incident", "transmitted", "reflected"]:
                 form_data = self.state.detection_form_data.get(pulse_type, {})
                 if not form_data:
@@ -199,6 +200,7 @@ class PulseDetectionPage(BaseSHPBPage):
                 instance_ref = self._instance_writer.create_single_instance(
                     graph, form_data, DETECTION_CLASS, inst_id
                 )
+                detection_refs[pulse_type] = instance_ref
 
                 # Add rdf:type for object property targets
                 for prop_name, range_class in range_type_map.items():
@@ -465,6 +467,28 @@ class PulseDetectionPage(BaseSHPBPage):
             # Store results
             self.state.pulse_windows[pulse_type] = window
             self.detectors[pulse_type] = detector
+
+            # Inject actually-used parameters back into the form so all
+            # three detection param instances have the same completeness
+            actual_params = {
+                f"{DYN_NS}hasPulsePoints": params['pulse_points'],
+                f"{DYN_NS}hasKTrials": ','.join(str(k) for k in params['k_trials']),
+            }
+            if params.get('lower_bound') is not None:
+                actual_params[f"{DYN_NS}hasDetectionLowerBound"] = params['lower_bound']
+            if params.get('upper_bound') is not None:
+                actual_params[f"{DYN_NS}hasDetectionUpperBound"] = params['upper_bound']
+
+            polarity_uri = self._find_polarity_uri(params['polarity'])
+            if polarity_uri:
+                actual_params[f"{DYN_NS}hasDetectionPolarity"] = polarity_uri
+            metric_uri = self._find_metric_uri(params['metric'])
+            if metric_uri:
+                actual_params[f"{DYN_NS}hasSelectionMetric"] = metric_uri
+            if params.get('min_separation') is not None:
+                actual_params[f"{DYN_NS}hasMinSeparation"] = params['min_separation']
+
+            self.form_builder.set_form_data(self._pulse_forms[pulse_type], actual_params)
 
             # Update display
             self._update_result_label(pulse_type, window)

@@ -309,46 +309,10 @@ dyn:AnalysisFileShape a sh:NodeShape ;
     ] .
 
 #################################################################
-#    DataSeries Shape
+#    DataSeries Shape — see data_series_shapes.ttl for full definition
 #################################################################
-
-dyn:DataSeriesShape a sh:NodeShape ;
-    sh:targetClass dyn:DataSeries ;
-    sh:property [
-        sh:path dyn:hasSeriesType ;
-        sh:class dyn:SeriesType ;
-        sh:maxCount 1 ;
-        sh:name "Series Type" ;
-        sh:description "Type of physical quantity represented by this data series" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasColumnName ;
-        sh:datatype xsd:string ;
-        sh:maxCount 1 ;
-        sh:name "Column Name" ;
-        sh:description "Name of the column in the CSV file" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasDataPointCount ;
-        sh:datatype xsd:integer ;
-        sh:maxCount 1 ;
-        sh:name "Data Point Count" ;
-        sh:description "Number of data points in the series" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasSeriesUnit ;
-        sh:datatype xsd:string ;
-        sh:maxCount 1 ;
-        sh:name "Unit" ;
-        sh:description "QUDT unit URI for this series" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasDataFile ;
-        sh:class dyn:AnalysisFile ;
-        sh:maxCount 1 ;
-        sh:name "Data File" ;
-        sh:description "File containing this data series" ;
-    ] .
+# Removed: dyn:DataSeriesShape was split into data_series_shapes.ttl
+# which is the authoritative source for DataSeries validation.
 
 #################################################################
 #    Material Shape

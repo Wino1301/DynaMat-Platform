@@ -243,21 +243,35 @@ class RawDataPage(BaseSHPBPage):
                 "transmitted": [tra_gauge] if tra_gauge else [],
             }
 
-            # SeriesType individual URIs
-            series_type_map = {
-                "time": f"{DYN_NS}Time",
-                "incident": f"{DYN_NS}IncidentPulse",
-                "transmitted": f"{DYN_NS}TransmittedPulse",
-            }
+            # Load ontology-driven series metadata
+            from .....mechanical.shpb.io.series_config import get_series_metadata
+            series_metadata = get_series_metadata()
 
             for key, col_name in self.state.column_mapping.items():
+                meta = series_metadata.get(key, {})
+
                 series_form_data: Dict = {
                     f"{DYN_NS}hasColumnName": col_name,
                     f"{DYN_NS}hasDataFile": str(raw_file_ref),
                 }
-                series_type_uri = series_type_map.get(key)
-                if series_type_uri:
-                    series_form_data[f"{DYN_NS}hasSeriesType"] = series_type_uri
+
+                # Add column index from raw_df column position
+                if self.state.raw_df is not None and col_name in self.state.raw_df.columns:
+                    col_idx = list(self.state.raw_df.columns).index(col_name)
+                    series_form_data[f"{DYN_NS}hasColumnIndex"] = col_idx
+
+                # Ontology-driven metadata
+                if meta.get('series_type'):
+                    series_form_data[f"{DYN_NS}hasSeriesType"] = meta['series_type']
+                if meta.get('unit'):
+                    series_form_data[f"{DYN_NS}hasSeriesUnit"] = meta['unit']
+                if meta.get('quantity_kind'):
+                    series_form_data[f"{DYN_NS}hasQuantityKind"] = meta['quantity_kind']
+                if meta.get('legend_name'):
+                    series_form_data[f"{DYN_NS}hasLegendName"] = meta['legend_name']
+
+                if self.state.total_samples is not None:
+                    series_form_data[f"{DYN_NS}hasDataPointCount"] = self.state.total_samples
 
                 if sampling_rate is not None:
                     series_form_data[f"{DYN_NS}hasSamplingRate"] = sampling_rate
@@ -273,7 +287,11 @@ class RawDataPage(BaseSHPBPage):
                 # Also declare as DataSeries
                 g.add((series_ref, RDF.type, DYN.DataSeries))
 
+                # Store URI in state for cross-page linking
+                self.state.raw_series_uris[key] = str(series_ref)
+
                 # Declare SeriesType individual
+                series_type_uri = meta.get('series_type')
                 if series_type_uri:
                     st_ref = URIRef(series_type_uri)
                     g.add((st_ref, RDF.type, DYN.SeriesType))

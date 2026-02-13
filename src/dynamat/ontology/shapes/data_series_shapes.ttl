@@ -70,8 +70,8 @@ dyn:DataSeriesShape a sh:NodeShape ;
     sh:property [ sh:path dyn:hasColumnIndex ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
     sh:property [ sh:path dyn:hasLegendName ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
     sh:property [ sh:path dyn:hasAnalysisMethod ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
-    sh:property [ sh:path dyn:hasSeriesUnit ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
-    sh:property [ sh:path dyn:hasQuantityKind ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path dyn:hasSeriesUnit ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
+    sh:property [ sh:path dyn:hasQuantityKind ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
     sh:property [ sh:path dyn:hasDataPointCount ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
     sh:property [ sh:path dyn:hasProcessingMethod ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
     sh:property [ sh:path dyn:hasFilterApplied ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
@@ -87,7 +87,7 @@ dyn:DataSeriesShape a sh:NodeShape ;
     sh:property [ sh:path dyn:hasThresholdRatio ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path dyn:isTrainingData ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
     sh:property [ sh:path dyn:measuredBy ] ;
-    sh:property [ sh:path dyn:derivedFrom ; sh:maxCount 1 ] .
+    sh:property [ sh:path dyn:derivedFrom ] .
 
 
 #################################################################

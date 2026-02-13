@@ -51,6 +51,9 @@ class SHPBAnalysisState:
     raw_file_metadata: Optional[Dict[str, Any]] = None
     # Strain gauge URIs per signal  {'incident': uri, 'transmitted': uri}
     gauge_mapping: Dict[str, Optional[str]] = field(default_factory=dict)
+    # Series URI tracking for cross-page linking (populated by page graph builders)
+    # e.g. {'time': 'dyn:..._time', 'incident': 'dyn:..._incident', ...}
+    raw_series_uris: Dict[str, str] = field(default_factory=dict)
 
     # ==================== EQUIPMENT (dyn:SHPBCompression form) ====================
     equipment_form_data: Optional[Dict[str, Any]] = None
@@ -86,6 +89,11 @@ class SHPBAnalysisState:
     # ==================== TUKEY (dyn:TukeyWindowParams form) ====================
     tukey_form_data: Optional[Dict[str, Any]] = None
     tapered_pulses: Dict[str, np.ndarray] = field(default_factory=dict)
+
+    # Windowed + processed series URIs (populated by results page)
+    windowed_series_uris: Dict[str, str] = field(default_factory=dict)
+    processed_series_uris: Dict[str, str] = field(default_factory=dict)
+    processed_file_uri: Optional[str] = None
 
     # ==================== CUMULATIVE VALIDATION GRAPHS ====================
     # Each wizard page stores its partial RDF graph here under a key
@@ -230,6 +238,7 @@ class SHPBAnalysisState:
             self.csv_file_path = None
             self.column_mapping = {}
             self.raw_file_metadata = None
+            self.raw_series_uris = {}
 
         if stage <= 3:
             self.equipment_form_data = None
@@ -254,6 +263,9 @@ class SHPBAnalysisState:
             self.enriched_results = None
             self.calculation_results = None
             self.equilibrium_form_data = None
+            self.windowed_series_uris = {}
+            self.processed_series_uris = {}
+            self.processed_file_uri = None
 
         if stage <= 10:
             self.tukey_form_data = None

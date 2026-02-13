@@ -11,10 +11,14 @@ from PyQt6.QtWidgets import (
     QTabWidget, QWidget
 )
 from PyQt6.QtCore import Qt
-from rdflib import Graph
+from rdflib import Graph, Namespace, URIRef
+from rdflib.namespace import RDF
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.stress_strain import StressStrainCalculator
+from .....mechanical.shpb.io.series_config import (
+    get_series_metadata, get_windowed_series_metadata, SHPB_DERIVATION_MAP
+)
 from ...base.plotting import create_plot_widget
 from ....builders.customizable_form_builder import CustomizableFormBuilder
 
@@ -231,22 +235,216 @@ class ResultsPage(BaseSHPBPage):
         return True
 
     def _build_validation_graph(self) -> Optional[Graph]:
-        """Build partial RDF graph for SHACL validation of equilibrium metrics.
+        """Build partial RDF graph for SHACL validation.
+
+        Merges EquilibriumMetrics instance with windowed + processed DataSeries
+        and the processed AnalysisFile.
 
         Returns:
-            RDF graph with EquilibriumMetrics instance, or None if no data.
+            RDF graph with all results instances, or None if no data.
         """
         if not self.state.equilibrium_form_data:
             return None
 
         try:
-            return self._build_graph_from_form_data(
+            # Build equilibrium metrics graph
+            eq_graph = self._build_graph_from_form_data(
                 self.state.equilibrium_form_data,
                 f"{DYN_NS}EquilibriumMetrics",
                 "_val_equilibrium",
             )
+
+            # Build series graph (windowed + processed + analysis file)
+            series_graph = self._build_series_graph()
+
+            if series_graph and eq_graph:
+                for triple in series_graph:
+                    eq_graph.add(triple)
+
+            return eq_graph
         except Exception as e:
             self.logger.error(f"Failed to build validation graph: {e}")
+            return None
+
+    def _build_series_graph(self) -> Optional[Graph]:
+        """Build RDF graph for windowed + processed DataSeries and AnalysisFile.
+
+        Creates:
+        - 1 processed AnalysisFile instance
+        - 4 windowed DataSeries (time, incident, transmitted, reflected)
+        - 16 processed DataSeries (8 x 1-wave + 8 x 3-wave)
+
+        All metadata is ontology-driven via get_series_metadata() and
+        get_windowed_series_metadata().
+
+        Returns:
+            RDF graph with all series instances, or None on error.
+        """
+        if not self.state.calculation_results:
+            return None
+
+        try:
+            DYN = Namespace(DYN_NS)
+            writer = self._instance_writer
+            g = Graph()
+            writer._setup_namespaces(g)
+
+            test_id = (
+                f"{self.state.specimen_id}_SHPBTest"
+                if self.state.specimen_id
+                else "_val"
+            )
+
+            results = self.state.calculation_results
+
+            # Determine data point count from results
+            first_key = next(iter(results))
+            n_points = len(results[first_key])
+
+            # ---- Processed AnalysisFile ----
+            processed_file_form = {
+                f"{DYN_NS}hasFilePath": "processed_results.csv",
+                f"{DYN_NS}hasFileFormat": "csv",
+                f"{DYN_NS}hasDataPointCount": n_points,
+                f"{DYN_NS}hasColumnCount": len(results),
+            }
+            processed_file_ref = writer.create_single_instance(
+                g, processed_file_form, f"{DYN_NS}AnalysisFile",
+                f"{test_id}_processed_csv"
+            )
+            self.state.processed_file_uri = str(processed_file_ref)
+
+            # ---- Windowed DataSeries (4 instances) ----
+            windowed_meta = get_windowed_series_metadata()
+
+            # Gauge URI mapping for windowed series
+            inc_gauge = self.state.gauge_mapping.get('incident')
+            tra_gauge = self.state.gauge_mapping.get('transmitted')
+            gauge_for_windowed = {
+                'incident_windowed': inc_gauge,
+                'transmitted_windowed': tra_gauge,
+                'reflected_windowed': inc_gauge,  # Reflected is on incident bar
+            }
+
+            proc_col_idx = 0  # Column index counter for processed CSV
+
+            for series_name, meta in windowed_meta.items():
+                raw_source = meta.get('raw_source')
+                raw_uri = self.state.raw_series_uris.get(raw_source) if raw_source else None
+
+                form_data: Dict = {
+                    f"{DYN_NS}hasSeriesType": meta['series_type'],
+                    f"{DYN_NS}hasColumnName": series_name,
+                    f"{DYN_NS}hasLegendName": meta['legend_name'],
+                    f"{DYN_NS}hasDataFile": str(processed_file_ref),
+                    f"{DYN_NS}hasDataPointCount": n_points,
+                    f"{DYN_NS}hasProcessingMethod": "Pulse windowing and segmentation",
+                    f"{DYN_NS}hasFilterApplied": False,
+                }
+                if meta.get('unit'):
+                    form_data[f"{DYN_NS}hasSeriesUnit"] = meta['unit']
+                if meta.get('quantity_kind'):
+                    form_data[f"{DYN_NS}hasQuantityKind"] = meta['quantity_kind']
+                if raw_uri:
+                    form_data[f"{DYN_NS}derivedFrom"] = raw_uri
+
+                # Strain gauge link
+                gauge_uri = gauge_for_windowed.get(series_name)
+                if gauge_uri and meta.get('requires_gauge'):
+                    form_data[f"{DYN_NS}measuredBy"] = gauge_uri
+
+                form_data[f"{DYN_NS}hasColumnIndex"] = proc_col_idx
+                proc_col_idx += 1
+
+                ref = writer.create_single_instance(
+                    g, form_data, f"{DYN_NS}ProcessedData",
+                    f"{test_id}_{series_name}"
+                )
+                g.add((ref, RDF.type, DYN.DataSeries))
+
+                # Declare SeriesType individual
+                st_ref = URIRef(meta['series_type'])
+                g.add((st_ref, RDF.type, DYN.SeriesType))
+
+                self.state.windowed_series_uris[series_name] = str(ref)
+
+            # ---- Processed DataSeries (16 instances) ----
+            series_meta = get_series_metadata()
+
+            for col_name, data_array in results.items():
+                # Skip raw columns - already handled
+                if col_name in ('time', 'incident', 'transmitted', 'reflected'):
+                    continue
+
+                meta = series_meta.get(col_name)
+                if not meta:
+                    continue
+
+                # Determine analysis method and base series name
+                if col_name.endswith('_1w'):
+                    method = '1-wave'
+                    base_name = col_name[:-3]
+                elif col_name.endswith('_3w'):
+                    method = '3-wave'
+                    base_name = col_name[:-3]
+                else:
+                    method = meta.get('analysis_method')
+                    base_name = col_name
+
+                # Build derivedFrom from SHPB_DERIVATION_MAP
+                derived_uris = []
+                if method:
+                    sources = SHPB_DERIVATION_MAP.get(method, {}).get(base_name, [])
+                    for source in sources:
+                        w_key = f"{source}_windowed"
+                        if w_key in self.state.windowed_series_uris:
+                            derived_uris.append(self.state.windowed_series_uris[w_key])
+
+                form_data: Dict = {
+                    f"{DYN_NS}hasSeriesType": meta['series_type'],
+                    f"{DYN_NS}hasLegendName": meta['legend_name'],
+                    f"{DYN_NS}hasColumnName": col_name,
+                    f"{DYN_NS}hasDataFile": str(processed_file_ref),
+                    f"{DYN_NS}hasDataPointCount": len(data_array),
+                    f"{DYN_NS}hasProcessingMethod": "SHPB stress-strain calculation",
+                    f"{DYN_NS}hasFilterApplied": False,
+                }
+                if meta.get('unit'):
+                    form_data[f"{DYN_NS}hasSeriesUnit"] = meta['unit']
+                if meta.get('quantity_kind'):
+                    form_data[f"{DYN_NS}hasQuantityKind"] = meta['quantity_kind']
+                if method:
+                    form_data[f"{DYN_NS}hasAnalysisMethod"] = method
+
+                # derivedFrom: single or multiple
+                if len(derived_uris) == 1:
+                    form_data[f"{DYN_NS}derivedFrom"] = derived_uris[0]
+                elif len(derived_uris) > 1:
+                    form_data[f"{DYN_NS}derivedFrom"] = derived_uris
+
+                form_data[f"{DYN_NS}hasColumnIndex"] = proc_col_idx
+                proc_col_idx += 1
+
+                ref = writer.create_single_instance(
+                    g, form_data, f"{DYN_NS}ProcessedData",
+                    f"{test_id}_{col_name}"
+                )
+                g.add((ref, RDF.type, DYN.DataSeries))
+
+                # Declare SeriesType individual
+                st_ref = URIRef(meta['series_type'])
+                g.add((st_ref, RDF.type, DYN.SeriesType))
+
+                self.state.processed_series_uris[col_name] = str(ref)
+
+            self.logger.info(
+                f"Built series graph: {len(self.state.windowed_series_uris)} windowed, "
+                f"{len(self.state.processed_series_uris)} processed"
+            )
+            return g
+
+        except Exception as e:
+            self.logger.error(f"Failed to build series graph: {e}", exc_info=True)
             return None
 
     def _calculate_results(self) -> None:

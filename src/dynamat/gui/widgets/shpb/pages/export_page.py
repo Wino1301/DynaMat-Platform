@@ -5,9 +5,10 @@ to production IDs, runs final SHACL validation, and serializes to TTL.
 """
 
 import logging
+import os
 from pathlib import Path
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, date
 
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
@@ -71,11 +72,9 @@ class ExportPage(BaseSHPBPage):
         id_layout.addWidget(generate_btn, 0, 2)
 
         id_layout.addWidget(QLabel("Test Type:"), 1, 0)
-        self.test_type_combo = QComboBox()
-        self.test_type_combo.addItem("Specimen Test", "specimen")
-        self.test_type_combo.addItem("Calibration Test", "calibration")
-        self.test_type_combo.addItem("Elastic Test", "elastic")
-        id_layout.addWidget(self.test_type_combo, 1, 1, 1, 2)
+        self.test_type_label = QLabel("--")
+        self.test_type_label.setStyleSheet("font-weight: bold;")
+        id_layout.addWidget(self.test_type_label, 1, 1, 1, 2)
 
         content_layout.addWidget(id_group)
 
@@ -169,6 +168,15 @@ class ExportPage(BaseSHPBPage):
         else:
             self.test_id_edit.setText(self.state.test_id)
 
+        # Show test type from equipment page (read-only)
+        test_type = self.state.get_equipment_value('hasTestType')
+        display_map = {
+            'specimen': 'Specimen Test',
+            'calibration': 'Calibration Test',
+            'elastic': 'Elastic Test',
+        }
+        self.test_type_label.setText(display_map.get(test_type, test_type or '--'))
+
         # Assess validity from metrics
         self._assess_validity()
 
@@ -191,9 +199,9 @@ class ExportPage(BaseSHPBPage):
             return False
 
         # Save to state as form data
+        # NOTE: hasTestType is set by the equipment page, not duplicated here
         self.state.test_id = test_id
         self.state.export_form_data = {
-            f"{DYN_NS}hasTestType": self.test_type_combo.currentData(),
             f"{DYN_NS}hasValidityNotes": self.notes_edit.toPlainText(),
         }
 
@@ -274,14 +282,22 @@ class ExportPage(BaseSHPBPage):
                     target = URIRef(writer._create_instance_uri(f"_val_{pulse_type}_detection"))
                     graph.add((test_node, DYN.hasPulseDetectionParams, target))
 
-            # Link DataSeries from raw_data page graph
+            # Link ALL DataSeries to test node from state URI dicts
+            for uri in self.state.raw_series_uris.values():
+                graph.add((test_node, DYN.hasDataSeries, URIRef(uri)))
+            for uri in self.state.windowed_series_uris.values():
+                graph.add((test_node, DYN.hasDataSeries, URIRef(uri)))
+            for uri in self.state.processed_series_uris.values():
+                graph.add((test_node, DYN.hasDataSeries, URIRef(uri)))
+
+            # Link AnalysisFiles
             if "raw_data" in self.state.page_graphs:
                 raw_graph = self.state.page_graphs["raw_data"]
-                for s in raw_graph.subjects(RDF.type, DYN.DataSeries):
-                    graph.add((test_node, DYN.hasDataSeries, s))
-                # Link AnalysisFile
                 for s in raw_graph.subjects(RDF.type, DYN.AnalysisFile):
                     graph.add((test_node, DYN.hasAnalysisFile, s))
+            if self.state.processed_file_uri:
+                graph.add((test_node, DYN.hasAnalysisFile,
+                           URIRef(self.state.processed_file_uri)))
 
             return graph
 
@@ -308,6 +324,13 @@ class ExportPage(BaseSHPBPage):
         DYN = Namespace(DYN_NS)
         test_id_clean = test_id.replace('-', '_')
 
+        # Derive old test_id from specimen_id (matches raw_data_page pattern)
+        old_test_id = (
+            f"{self.state.specimen_id}_SHPBTest"
+            if self.state.specimen_id
+            else "_val"
+        ).replace(" ", "_").replace("-", "_")
+
         # Build URI replacement map
         replacements = {
             str(DYN["_val_equipment"]): str(DYN[test_id_clean]),
@@ -320,6 +343,34 @@ class ExportPage(BaseSHPBPage):
             replacements[str(DYN[f"_val_{pulse_type}_detection"])] = str(
                 DYN[f"{test_id_clean}_{pulse_type}_detect"]
             )
+
+        # Raw series URIs (e.g., old_test_id_time -> test_id_clean_time)
+        for key in ('time', 'incident', 'transmitted'):
+            replacements[str(DYN[f"{old_test_id}_{key}"])] = str(
+                DYN[f"{test_id_clean}_{key}"]
+            )
+
+        # Raw AnalysisFile
+        replacements[str(DYN[f"{old_test_id}_raw_csv"])] = str(
+            DYN[f"{test_id_clean}_raw_csv"]
+        )
+
+        # Windowed series
+        for key in self.state.windowed_series_uris:
+            replacements[str(DYN[f"{old_test_id}_{key}"])] = str(
+                DYN[f"{test_id_clean}_{key}"]
+            )
+
+        # Processed series
+        for key in self.state.processed_series_uris:
+            replacements[str(DYN[f"{old_test_id}_{key}"])] = str(
+                DYN[f"{test_id_clean}_{key}"]
+            )
+
+        # Processed AnalysisFile
+        replacements[str(DYN[f"{old_test_id}_processed_csv"])] = str(
+            DYN[f"{test_id_clean}_processed_csv"]
+        )
 
         final = Graph()
         self._instance_writer._setup_namespaces(final)
@@ -395,6 +446,20 @@ class ExportPage(BaseSHPBPage):
             csv_path = raw_dir / f"{test_id_clean}_raw.csv"
             csv_handler.save_to_csv(csv_path)
 
+            # Update raw AnalysisFile with actual saved file path and metadata
+            DYN = Namespace(DYN_NS)
+            raw_file_id = f"{test_id_clean}_raw_csv"
+            raw_file_node = URIRef(writer._create_instance_uri(raw_file_id))
+            final.remove((raw_file_node, DYN.hasFilePath, None))
+            final.add((
+                raw_file_node,
+                DYN.hasFilePath,
+                writer._convert_to_rdf_value(str(csv_path)),
+            ))
+            final.add((raw_file_node, DYN.hasFileName, writer._convert_to_rdf_value(csv_path.name)))
+            final.add((raw_file_node, DYN.hasFileSize, writer._convert_to_rdf_value(os.path.getsize(csv_path))))
+            final.add((raw_file_node, DYN.hasCreatedDate, writer._convert_to_rdf_value(date.today().isoformat())))
+
             # Save processed CSV if results available
             if self.state.calculation_results:
                 import pandas as pd
@@ -404,6 +469,38 @@ class ExportPage(BaseSHPBPage):
                 pd.DataFrame(self.state.calculation_results).to_csv(
                     processed_path, index=False, float_format='%.6e'
                 )
+
+                # Update processed AnalysisFile with actual file path in the graph
+                # Remove placeholder hasFilePath first (set at validation time)
+                processed_file_id = f"{test_id_clean}_processed_csv"
+                processed_file_node = URIRef(
+                    writer._create_instance_uri(processed_file_id)
+                )
+                final.remove((processed_file_node, DYN.hasFilePath, None))
+                final.add((
+                    processed_file_node,
+                    DYN.hasFilePath,
+                    writer._convert_to_rdf_value(str(processed_path)),
+                ))
+                final.add((processed_file_node, DYN.hasFileName, writer._convert_to_rdf_value(processed_path.name)))
+                final.add((processed_file_node, DYN.hasFileSize, writer._convert_to_rdf_value(os.path.getsize(processed_path))))
+                final.add((processed_file_node, DYN.hasCreatedDate, writer._convert_to_rdf_value(date.today().isoformat())))
+
+            # Strip class declarations for ontology-defined individuals.
+            # These were added for SHACL validation but should be inferred
+            # from the ontology, not duplicated in the export file.
+            INFRASTRUCTURE_TYPES = [
+                DYN.SeriesType, DYN.PolarityType, DYN.DetectionMetric,
+                DYN.MeasurementEquipment, DYN.StrainGauge, DYN.TestType,
+                DYN.IncidentBar, DYN.TransmissionBar, DYN.StrikerBar,
+                DYN.PulseShaper, DYN.MomentumTrap,
+            ]
+            for infra_type in INFRASTRUCTURE_TYPES:
+                for s in list(final.subjects(RDF.type, infra_type)):
+                    # Only remove if this node has no other properties besides rdf:type
+                    other_preds = set(final.predicates(s)) - {RDF.type}
+                    if not other_preds:
+                        final.remove((s, RDF.type, infra_type))
 
             # Final SHACL validation
             validator = self._get_cached_validator()
