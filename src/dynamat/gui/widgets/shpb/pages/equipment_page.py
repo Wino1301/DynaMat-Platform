@@ -68,7 +68,7 @@ class EquipmentPage(BaseSHPBPage):
             self.form_widget = self.form_builder.build_form(
                 "https://dynamat.utep.edu/ontology#SHPBCompression",
                 parent=self,
-                exclude_groups={"StrainGaugeConfiguration", "UserSelection"},
+                exclude_groups={"StrainGaugeConfiguration", "UserSelection", "ValidityAssessment"},
             )
 
             if self.form_widget:
@@ -185,8 +185,6 @@ class EquipmentPage(BaseSHPBPage):
                 "hasPulseDetectionParams",
                 # Segmentation
                 "hasSegmentationParams",
-                # Tukey
-                "hasTukeyWindowParams",
                 # Data series
                 "hasDataSeries", "hasAnalysisFile",
                 # Strain gauges (set on raw data page)

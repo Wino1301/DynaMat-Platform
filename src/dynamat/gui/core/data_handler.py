@@ -113,15 +113,20 @@ class FormDataHandler:
     # MAIN FORM DATA OPERATIONS
     # ============================================================================
     
-    def extract_form_data(self, form_widget: QWidget) -> Dict[str, Any]:
+    def extract_form_data(
+        self, form_widget: QWidget, *, ignore_visibility: bool = False
+    ) -> Dict[str, Any]:
         """
         Extract all data from a form widget.
 
-        Only extracts data from visible widgets. Hidden widgets (due to dependencies
-        or conditional display) are automatically excluded.
+        By default only extracts data from visible widgets so that hidden
+        fields (due to dependencies or conditional display) are excluded.
 
         Args:
-            form_widget: The form widget containing form fields
+            form_widget: The form widget containing form fields.
+            ignore_visibility: When True, extract values from all fields
+                regardless of widget visibility.  Use this when reading a
+                form that lives on an inactive QTabWidget tab.
 
         Returns:
             Dictionary mapping property URI to value
@@ -138,7 +143,7 @@ class FormDataHandler:
                         widget = form_field.widget
 
                         # VISIBILITY CHECK: Skip if widget or its parent is hidden
-                        if not self._is_widget_visible(widget):
+                        if not ignore_visibility and not self._is_widget_visible(widget):
                             logger.debug(f"Skipping {property_uri}: widget not visible")
                             continue
 
@@ -160,7 +165,8 @@ class FormDataHandler:
         except Exception as e:
             logger.error(f"Error extracting form data: {e}")
 
-        logger.info(f"Extracted data for {len(data)} properties (visibility-filtered)")
+        mode = "all fields" if ignore_visibility else "visibility-filtered"
+        logger.info(f"Extracted data for {len(data)} properties ({mode})")
         return data
     
     def populate_form_data(self, form_widget: QWidget, data: Dict[str, Any]) -> bool:
@@ -526,23 +532,78 @@ class FormDataHandler:
         widget.setPlainText(str(value))
         return True
     
+    @staticmethod
+    def _extract_local_name(uri: str) -> str:
+        """Extract the local name (fragment) from a URI or prefixed name.
+
+        Examples:
+            "https://dynamat.utep.edu/ontology#TensilePolarity" -> "TensilePolarity"
+            "dyn:TensilePolarity" -> "TensilePolarity"
+            "TensilePolarity" -> "TensilePolarity"
+        """
+        if '#' in uri:
+            return uri.rsplit('#', 1)[-1]
+        if ':' in uri:
+            return uri.rsplit(':', 1)[-1]
+        return uri
+
     def _set_combo_box_value(self, widget: QComboBox, value: Any) -> bool:
-        """Set value for QComboBox."""
-        # Try to find by data first
+        """Set value for QComboBox.
+
+        Matching strategy (first match wins):
+        1. Exact item-data match (fast path for identical URIs).
+        2. Local-name match — compare the fragment/suffix of the value
+           against each item's data fragment.  Handles full-URI vs
+           prefixed-URI mismatches (e.g. ``dyn:X`` vs
+           ``https://…/ontology#X``).
+        3. Exact display-text match (case-sensitive).
+        4. Case-insensitive display-text match — covers legacy TTL files
+           that store plain strings like ``"tensile"`` vs label ``"Tensile"``.
+        5. Case-insensitive local-name vs display-text — covers plain
+           string values like ``"tensile"`` matching combo text ``"Tensile"``.
+        6. Editable combo fallback — set as free text.
+        """
+        str_value = str(value)
+
+        # 1. Exact item-data match
         for i in range(widget.count()):
             if widget.itemData(i) == value:
                 widget.setCurrentIndex(i)
                 return True
 
-        # Try to find by text
-        index = widget.findText(str(value))
+        # 2. Local-name match on item data (handles URI format mismatches)
+        value_local = self._extract_local_name(str_value)
+        for i in range(widget.count()):
+            item_data = widget.itemData(i)
+            if item_data:
+                if self._extract_local_name(str(item_data)) == value_local:
+                    widget.setCurrentIndex(i)
+                    return True
+
+        # 3. Exact display-text match
+        index = widget.findText(str_value)
         if index >= 0:
             widget.setCurrentIndex(index)
             return True
 
-        # Set as editable text if not found
+        # 4. Case-insensitive display-text match
+        lower_value = str_value.lower()
+        for i in range(widget.count()):
+            if widget.itemText(i).lower() == lower_value:
+                widget.setCurrentIndex(i)
+                return True
+
+        # 5. Case-insensitive local-name vs display-text
+        lower_local = value_local.lower()
+        if lower_local != lower_value:
+            for i in range(widget.count()):
+                if widget.itemText(i).lower() == lower_local:
+                    widget.setCurrentIndex(i)
+                    return True
+
+        # 6. Editable combo fallback
         if widget.isEditable():
-            widget.setCurrentText(str(value))
+            widget.setCurrentText(str_value)
             return True
 
         return False

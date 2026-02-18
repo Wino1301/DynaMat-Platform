@@ -162,14 +162,12 @@ class InstanceWriter:
             # Check if it's a URI
             if value.startswith("http") or value.startswith("dyn:") or value.startswith("unit:") or value.startswith("qkdv:"):
                 return self._resolve_uri(value)
-            # ISO datetime string - extract date part
+            # ISO datetime string - store as xsd:dateTime
             elif 'T' in value and len(value) > 10:
                 try:
-                    # Try to parse as ISO datetime
-                    dt = datetime.fromisoformat(value)
-                    # Extract just the date part and store as xsd:date
-                    date_str = dt.strftime("%Y-%m-%d")
-                    return Literal(date_str, datatype=XSD.date)
+                    # Validate as ISO datetime
+                    datetime.fromisoformat(value)
+                    return Literal(value, datatype=XSD.dateTime)
                 except (ValueError, AttributeError):
                     pass
             # Date string (YYYY-MM-DD format)

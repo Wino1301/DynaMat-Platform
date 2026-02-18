@@ -86,7 +86,7 @@ class SHPBAnalysisState:
     calculation_results: Optional[Dict[str, np.ndarray]] = None
     equilibrium_form_data: Optional[Dict[str, Any]] = None  # dyn:EquilibriumMetrics
 
-    # ==================== TUKEY (dyn:TukeyWindowParams form) ====================
+    # ==================== TUKEY (alpha stored directly on SHPBCompression) =====
     tukey_form_data: Optional[Dict[str, Any]] = None
     tapered_pulses: Dict[str, np.ndarray] = field(default_factory=dict)
 
@@ -232,12 +232,19 @@ class SHPBAnalysisState:
         """
         if stage <= 1:
             self._loaded_from_previous = False
+            # Clear cumulative validation graphs from all stages
+            self.page_graphs = {}
 
         if stage <= 2:
             self.raw_df = None
             self.csv_file_path = None
+            self.csv_separator = ","
             self.column_mapping = {}
+            self.unit_mapping = {}
+            self.sampling_interval = None
+            self.total_samples = None
             self.raw_file_metadata = None
+            self.gauge_mapping = {}
             self.raw_series_uris = {}
 
         if stage <= 3:
@@ -272,5 +279,6 @@ class SHPBAnalysisState:
             self.tapered_pulses = {}
 
         if stage <= 12:
+            self.test_id = None
             self.export_form_data = None
             self.exported_file_path = None

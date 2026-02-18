@@ -322,18 +322,24 @@ class FormManager:
     # FORM DATA OPERATIONS
     # ============================================================================
     
-    def get_form_data(self, form_widget: QWidget) -> Dict[str, Any]:
+    def get_form_data(
+        self, form_widget: QWidget, *, ignore_visibility: bool = False
+    ) -> Dict[str, Any]:
         """
         Extract data from a form widget.
-        
+
         Args:
-            form_widget: Form widget created by this manager
-            
+            form_widget: Form widget created by this manager.
+            ignore_visibility: When True, extract values from all fields
+                regardless of widget visibility (e.g. inactive QTabWidget tabs).
+
         Returns:
             Dictionary of form data
         """
         try:
-            return self.data_handler.extract_form_data(form_widget)
+            return self.data_handler.extract_form_data(
+                form_widget, ignore_visibility=ignore_visibility
+            )
         except Exception as e:
             logger.error(f"Error getting form data: {e}")
             return {}

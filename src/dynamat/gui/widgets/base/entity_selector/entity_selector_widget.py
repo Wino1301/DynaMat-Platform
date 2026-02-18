@@ -324,6 +324,10 @@ class EntitySelectorWidget(QWidget):
         Args:
             instances: List of instance metadata dicts
         """
+        # Block signals during repopulation to prevent spurious
+        # itemSelectionChanged events that fire with stale row data.
+        self._table.blockSignals(True)
+        self._table.clearSelection()
         self._table.setRowCount(len(instances))
         self._table.setSortingEnabled(False)
 
@@ -344,6 +348,11 @@ class EntitySelectorWidget(QWidget):
                 self._table.setItem(row, col, item)
 
         self._table.setSortingEnabled(True)
+        self._table.blockSignals(False)
+
+        # Clear details panel since no row is selected after repopulation
+        if self._details_panel:
+            self._details_panel.clear()
 
     def _format_cell_value(self, value: Any) -> str:
         """Format a value for table cell display."""

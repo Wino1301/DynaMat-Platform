@@ -172,17 +172,29 @@ class TukeyWindowPage(BaseSHPBPage):
         """Build partial RDF graph for SHACL validation of Tukey window data.
 
         Returns:
-            RDF graph with TukeyWindowParams instance, or None on error.
+            RDF graph with Tukey alpha on the test node, or None on error.
         """
         if not self.state.tukey_form_data:
             return None
 
         try:
-            return self._build_graph_from_form_data(
-                self.state.tukey_form_data,
-                f"{DYN_NS}TukeyWindowParams",
-                "_val_tukey_window",
-            )
+            writer = self._instance_writer
+            graph = Graph()
+            writer._setup_namespaces(graph)
+
+            # Add to test node instead of separate sub-instance
+            test_node = URIRef(writer._create_instance_uri("_val_equipment"))
+            # Ensure the node has the target class for SHACL validation
+            graph.add((test_node, RDF.type, URIRef(f"{DYN_NS}SHPBCompression")))
+
+            tukey = self.state.tukey_form_data
+            if tukey.get(f"{DYN_NS}isTukeyEnabled"):
+                alpha = tukey.get(f"{DYN_NS}hasTukeyAlphaParam")
+                if alpha is not None:
+                    graph.add((test_node, URIRef(f"{DYN_NS}hasTukeyAlphaParam"),
+                               writer._convert_to_rdf_value(alpha)))
+
+            return graph
         except Exception as e:
             self.logger.error(f"Failed to build validation graph: {e}")
             return None

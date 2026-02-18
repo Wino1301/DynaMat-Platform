@@ -72,21 +72,13 @@ class TestSHPBValidator:
         report = validator.validate_graph(g)
         assert report.conforms is True
 
-    def test_lubrication_rule(self, ontology_manager, valid_shpb_graph):
-        """Test rule: Lubrication type required if lubrication is used."""
+    def test_lubrication_boolean(self, ontology_manager, valid_shpb_graph):
+        """Test that dyn:hasLubrication is a plain boolean — no type property required."""
         g, test_uri = valid_shpb_graph
         dyn = ontology_manager.DYN
         validator = ontology_manager.create_validator()
 
-        # Enable lubrication
-        g.add((test_uri, dyn.hasLubricationUsed, Literal(True)))
-        
-        # Missing type
-        report = validator.validate_graph(g)
-        assert report.conforms is False
-        assert any("Lubrication type must be specified" in r.message for r in report.results)
-
-        # Type present
-        g.add((test_uri, dyn.hasLubricationType, Literal("Moly Grease")))
+        # Adding a boolean lubrication flag must not cause violations
+        g.add((test_uri, dyn.hasLubrication, Literal(True)))
         report = validator.validate_graph(g)
         assert report.conforms is True

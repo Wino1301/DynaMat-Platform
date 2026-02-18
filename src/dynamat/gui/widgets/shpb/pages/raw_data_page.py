@@ -108,9 +108,11 @@ class RawDataPage(BaseSHPBPage):
         # Restore gauge selections from state
         self._restore_gauge_selection()
 
-        # If data was previously loaded, reload it
+        # If data was previously loaded, reload it; otherwise clear widgets
         if self.state.csv_file_path:
             self._loader.load_file(self.state.csv_file_path)
+        else:
+            self._loader.clear()
 
     def validatePage(self) -> bool:
         """Validate before allowing Next."""

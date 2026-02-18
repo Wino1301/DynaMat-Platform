@@ -1,15 +1,19 @@
 """Alignment Page - Optimize pulse alignment for equilibrium."""
 
+import io
 import logging
+from contextlib import redirect_stdout
 from typing import Optional, Dict
 
 import numpy as np
 
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QGroupBox, QGridLayout, QSplitter, QFrame, QTabWidget, QWidget
+    QGroupBox, QGridLayout, QSplitter, QFrame, QTabWidget, QWidget,
+    QPlainTextEdit,
 )
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
 from rdflib import Graph
 
 from .base_page import BaseSHPBPage
@@ -20,6 +24,21 @@ from ....builders.customizable_form_builder import CustomizableFormBuilder
 logger = logging.getLogger(__name__)
 
 DYN_NS = "https://dynamat.utep.edu/ontology#"
+
+
+class _TextWidgetLogHandler(logging.Handler):
+    """Logging handler that appends records to a QPlainTextEdit widget."""
+
+    def __init__(self, widget: QPlainTextEdit) -> None:
+        super().__init__()
+        self._widget = widget
+        self.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            self._widget.appendPlainText(self.format(record))
+        except Exception:
+            self.handleError(record)
 
 
 class AlignmentPage(BaseSHPBPage):
@@ -40,6 +59,7 @@ class AlignmentPage(BaseSHPBPage):
 
         self.aligner: Optional[PulseAligner] = None
         self.plot_tabs: Optional[QTabWidget] = None
+        self.log_display: Optional[QPlainTextEdit] = None
 
         # Ontology-driven form
         self.form_builder = CustomizableFormBuilder(ontology_manager)
@@ -72,7 +92,16 @@ class AlignmentPage(BaseSHPBPage):
         align_btn.clicked.connect(self._run_alignment)
         params_layout.addWidget(align_btn)
 
-        params_layout.addStretch()
+        # Log / results display — fills remaining left-panel space
+        self.log_display = QPlainTextEdit()
+        self.log_display.setReadOnly(True)
+        self.log_display.setPlaceholderText(
+            "Alignment log and results will appear here after running alignment."
+        )
+        log_font = QFont("Courier New", 8)
+        self.log_display.setFont(log_font)
+        self.log_display.setMinimumHeight(80)
+        params_layout.addWidget(self.log_display, 1)  # stretch=1
 
         splitter.addWidget(params_frame)
 
@@ -125,6 +154,7 @@ class AlignmentPage(BaseSHPBPage):
         # If already aligned, show results
         if self.state.has_aligned_pulses():
             self._update_results_display()
+            self._restore_log_display()
             self._update_plots()
 
     def validatePage(self) -> bool:
@@ -173,13 +203,59 @@ class AlignmentPage(BaseSHPBPage):
             self.form_builder.set_form_data(self._form_widget, self.state.alignment_form_data)
 
     def _save_params(self) -> None:
-        """Save parameters from ontology form to state as form-data dict."""
-        self.state.alignment_form_data = self.form_builder.get_form_data(self._form_widget)
+        """Save parameters from ontology form to state as form-data dict.
+
+        Merges widget values with previously injected computed values
+        (e.g. shift values from alignment) that the form may not capture.
+        """
+        form_data = self.form_builder.get_form_data(self._form_widget)
+        # Preserve computed values already in state that the form may not capture
+        if self.state.alignment_form_data:
+            for key, value in self.state.alignment_form_data.items():
+                if key not in form_data and value is not None:
+                    form_data[key] = value
+        self.state.alignment_form_data = form_data
+
+    def _append_log(self, message: str) -> None:
+        """Append a line to the log display."""
+        if self.log_display is not None:
+            self.log_display.appendPlainText(message)
+
+    def _restore_log_display(self) -> None:
+        """Repopulate log display from saved state when re-entering the page."""
+        if not self.state.alignment_form_data or self.log_display is None:
+            return
+
+        d = self.state.alignment_form_data
+        shift_t = d.get(f"{DYN_NS}hasTransmittedShiftValue")
+        shift_r = d.get(f"{DYN_NS}hasReflectedShiftValue")
+        front_idx = d.get(f"{DYN_NS}hasFrontIndex")
+        k_linear = d.get(f"{DYN_NS}hasKLinear", 0.35)
+
+        if shift_t is None or shift_r is None:
+            return
+
+        lines = ["=== Previous Alignment Results ===",
+                 f"Transmitted shift: {int(shift_t):+d} samples",
+                 f"Reflected shift:   {int(shift_r):+d} samples"]
+
+        if front_idx is not None:
+            incident = (self.state.aligned_pulses or {}).get('incident')
+            if incident is not None:
+                linear_end = int(front_idx + k_linear * len(incident))
+                lines += [f"Front index:       {int(front_idx)}",
+                          f"Linear region:     [{int(front_idx)}, {linear_end}]"]
+
+        self.log_display.setPlainText("\n".join(lines))
 
     def _run_alignment(self) -> None:
         """Run pulse alignment optimization."""
         self.show_progress()
         self.set_status("Running alignment optimization...")
+
+        if self.log_display is not None:
+            self.log_display.clear()
+        self._append_log("Starting pulse alignment optimization...")
 
         try:
             # Get parameters from form
@@ -201,6 +277,19 @@ class AlignmentPage(BaseSHPBPage):
                 form_data.get(f"{DYN_NS}hasReflectedSearchMax", 100),
             )
 
+            self._append_log(f"\n=== Parameters ===")
+            self._append_log(f"k_linear:      {k_linear}")
+            self._append_log(
+                f"Weights:       corr={weights['corr']:.2f}  u={weights['u']:.2f}"
+                f"  sr={weights['sr']:.2f}  e={weights['e']:.2f}"
+            )
+            self._append_log(
+                f"Bounds T:      [{search_bounds_t[0]}, {search_bounds_t[1]}]"
+            )
+            self._append_log(
+                f"Bounds R:      [{search_bounds_r[0]}, {search_bounds_r[1]}]"
+            )
+
             # Get equipment properties
             equipment = self.state.equipment_properties
             if not equipment:
@@ -213,9 +302,7 @@ class AlignmentPage(BaseSHPBPage):
 
             # Get specimen height
             specimen_data = self.state.specimen_data or {}
-            specimen_height = specimen_data.get(
-                f'{DYN_NS}hasOriginalHeight'
-            )
+            specimen_height = specimen_data.get(f'{DYN_NS}hasOriginalHeight')
 
             if isinstance(specimen_height, dict):
                 specimen_height = specimen_height.get('value')
@@ -243,16 +330,37 @@ class AlignmentPage(BaseSHPBPage):
                 weights=weights
             )
 
-            # Run alignment
-            aligned_inc, aligned_trans, aligned_ref, shift_t, shift_r = self.aligner.align(
-                incident,
-                transmitted,
-                reflected,
-                time_vector,
-                search_bounds_t=search_bounds_t,
-                search_bounds_r=search_bounds_r,
-                debug=True
+            # Attach a temporary log handler and capture scipy's disp output
+            log_handler = _TextWidgetLogHandler(self.log_display)
+            log_handler.setLevel(logging.DEBUG)
+            aligner_logger = logging.getLogger(
+                'dynamat.mechanical.shpb.core.pulse_alignment'
             )
+            aligner_logger.addHandler(log_handler)
+
+            self._append_log("\n=== Optimization ===")
+            stdout_buf = io.StringIO()
+            try:
+                with redirect_stdout(stdout_buf):
+                    aligned_inc, aligned_trans, aligned_ref, shift_t, shift_r = (
+                        self.aligner.align(
+                            incident,
+                            transmitted,
+                            reflected,
+                            time_vector,
+                            search_bounds_t=search_bounds_t,
+                            search_bounds_r=search_bounds_r,
+                            debug=True,
+                        )
+                    )
+            finally:
+                aligner_logger.removeHandler(log_handler)
+
+            # Flush any scipy disp lines (differential_evolution uses print())
+            scipy_out = stdout_buf.getvalue().strip()
+            if scipy_out:
+                for line in scipy_out.splitlines():
+                    self._append_log(line)
 
             # Compute aligned time axis (t=0 at incident pulse rise)
             FRONT_THRESH = 0.08
@@ -278,7 +386,6 @@ class AlignmentPage(BaseSHPBPage):
             form_data[f"{DYN_NS}hasFrontThreshold"] = FRONT_THRESH
             form_data[f"{DYN_NS}hasFrontIndex"] = front_idx
             form_data[f"{DYN_NS}hasCenteredSegmentPoints"] = self.state.get_segmentation_param('hasSegmentPoints')
-            form_data[f"{DYN_NS}hasThresholdRatio"] = self.state.get_segmentation_param('hasSegmentThreshold')
             self.state.alignment_form_data = form_data
 
             # Update read-only fields in form display
@@ -290,6 +397,13 @@ class AlignmentPage(BaseSHPBPage):
             }
             self.form_builder.set_form_data(self._form_widget, result_data)
 
+            # Show results summary in log
+            self._append_log("\n=== Results ===")
+            self._append_log(f"Transmitted shift: {shift_t:+d} samples")
+            self._append_log(f"Reflected shift:   {shift_r:+d} samples")
+            self._append_log(f"Front index:       {front_idx}")
+            self._append_log(f"Linear region:     [{front_idx}, {linear_end}]")
+
             # Update display
             self._update_results_display()
             self._update_plots()
@@ -299,6 +413,7 @@ class AlignmentPage(BaseSHPBPage):
 
         except Exception as e:
             self.logger.error(f"Alignment failed: {e}")
+            self._append_log(f"\nERROR: {e}")
             self.set_status(f"Error: {e}", is_error=True)
             self.show_error("Alignment Failed", str(e))
 

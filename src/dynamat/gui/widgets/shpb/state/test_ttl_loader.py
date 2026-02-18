@@ -194,7 +194,8 @@ class TestTTLLoader:
                 f"{DYN_NS}hasTestValidity",
                 f"{DYN_NS}hasValidityCriteria",
                 f"{DYN_NS}hasValidityNotes",
-                f"{DYN_NS}hasTestType",
+                f"{DYN_NS}hasValidityOverrideReason",
+                f"{DYN_NS}isValidityOverridden",
             ):
                 continue
 
@@ -242,8 +243,8 @@ class TestTTLLoader:
             break  # Only one expected
 
     def _load_tukey_form_data(self, state: SHPBAnalysisState) -> None:
-        """Extract hasTukeyAlpha from main test instance into state.tukey_form_data."""
-        alpha = self._get_literal(self._test_uri, DYN.hasTukeyAlpha)
+        """Extract hasTukeyAlphaParam from main test instance into state.tukey_form_data."""
+        alpha = self._get_literal(self._test_uri, DYN.hasTukeyAlphaParam)
         if alpha is not None:
             state.tukey_form_data = {
                 f"{DYN_NS}isTukeyEnabled": True,
@@ -269,6 +270,14 @@ class TestTTLLoader:
         test_type = self._get_object(self._test_uri, DYN.hasTestType)
         if test_type:
             form_data[f"{DYN_NS}hasTestType"] = str(test_type)
+
+        override_reason = self._get_literal(self._test_uri, DYN.hasValidityOverrideReason)
+        if override_reason is not None:
+            form_data[f"{DYN_NS}hasValidityOverrideReason"] = str(override_reason)
+
+        override_flag = self._get_literal(self._test_uri, DYN.isValidityOverridden)
+        if override_flag is not None:
+            form_data[f"{DYN_NS}isValidityOverridden"] = bool(override_flag)
 
         if form_data:
             state.export_form_data = form_data

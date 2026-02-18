@@ -37,7 +37,7 @@ template:shpb_standard_example rdf:type dyn:SHPBCompression, owl:NamedIndividual
     dyn:hasIncidentBarLength 1828.8 ;       # mm (6 ft)
     dyn:hasTransmissionBarLength 1828.8 ;   # mm (6 ft)
     dyn:hasBarrelOffset 0.0 ;               # mm
-    dyn:hasLubricationUsed false ;
+    dyn:hasLubrication false ;
     dyn:hasPulseShaping false ;
     
     # Data acquisition

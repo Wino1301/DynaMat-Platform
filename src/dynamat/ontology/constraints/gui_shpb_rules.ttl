@@ -171,3 +171,23 @@ gui:shpb_calc_005 a gui:Constraint ;
     gui:priority 8 .
 
 
+#================================================================
+# 5.0 Export Page – Validity Override Visibility
+# When the analyst enables the validity override, reveal the
+# manual validity selector and override reason fields.
+# These fields are hidden by default and auto-populated from
+# equilibrium metrics (FBC, SEQI, DSUF).
+#================================================================
+
+gui:export_c001 a gui:Constraint ;
+    rdfs:label "Show validity override fields when override is enabled" ;
+    rdfs:comment "Reveals hasTestValidity and hasValidityOverrideReason when dyn:isValidityOverridden is true. Fields are hidden by default and populated by auto-assessment; only shown when analyst explicitly overrides." ;
+    dc:created "2026-02-17"^^xsd:date ;
+    gui:forClass dyn:SHPBCompression ;
+    gui:triggers dyn:isValidityOverridden ;
+    gui:triggerLogic gui:ALL ;
+    gui:whenValue "true"^^xsd:boolean ;
+    gui:showFields (dyn:hasTestValidity dyn:hasValidityOverrideReason) ;
+    gui:priority 5 .
+
+

@@ -260,7 +260,6 @@ class FormDataConverter:
                 'dyn:hasTransmittedShiftValue': int(m.shift_transmitted) if m.shift_transmitted is not None else None,
                 'dyn:hasReflectedShiftValue': int(m.shift_reflected) if m.shift_reflected is not None else None,
                 'dyn:hasCenteredSegmentPoints': int(m.segment_n_points) if m.segment_n_points is not None else None,
-                'dyn:hasThresholdRatio': m.segment_thresh_ratio,
                 'dyn:hasFrontIndex': int(m.alignment_front_idx) if m.alignment_front_idx is not None else None,
             })
             instance_id = m.alignment_params_uri.replace('dyn:', '')

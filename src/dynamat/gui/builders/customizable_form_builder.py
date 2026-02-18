@@ -80,6 +80,8 @@ class CustomizableFormBuilder:
         class_uri: str,
         parent: Optional[QWidget] = None,
         exclude_groups: Optional[Set[str]] = None,
+        include_groups: Optional[Set[str]] = None,
+        use_scroll_area: bool = True,
     ) -> QWidget:
         """
         Build a form with custom group builders where registered.
@@ -94,6 +96,10 @@ class CustomizableFormBuilder:
             class_uri: URI of the class to build form for
             parent: Optional parent widget
             exclude_groups: Optional set of group names to omit from the form
+            include_groups: Optional set of group names to include (all others omitted).
+                Applied after exclude_groups.
+            use_scroll_area: If True (default) wraps content in a QScrollArea.
+                Set to False when embedding into an outer scroll context.
 
         Returns:
             QWidget containing the complete form with all groups
@@ -105,20 +111,25 @@ class CustomizableFormBuilder:
         if self._default_builder is None:
             self._default_builder = DefaultGroupBuilder(self.widget_factory)
 
-        # Filter out excluded groups
+        # Filter groups
         form_groups = metadata.form_groups
         if exclude_groups:
             form_groups = {
                 k: v for k, v in form_groups.items() if k not in exclude_groups
             }
+        if include_groups:
+            form_groups = {
+                k: v for k, v in form_groups.items() if k in include_groups
+            }
 
         # Build form with custom builders
-        return self._build_grouped_form(form_groups, parent)
+        return self._build_grouped_form(form_groups, parent, use_scroll_area=use_scroll_area)
 
     def _build_grouped_form(
         self,
         form_groups: Dict[str, list],
-        parent: Optional[QWidget] = None
+        parent: Optional[QWidget] = None,
+        use_scroll_area: bool = True,
     ) -> QWidget:
         """
         Build grouped form using custom builders where registered.
@@ -126,6 +137,7 @@ class CustomizableFormBuilder:
         Args:
             form_groups: Dict mapping group names to property lists
             parent: Optional parent widget
+            use_scroll_area: Wrap content in a QScrollArea when True.
 
         Returns:
             QWidget containing the complete form
@@ -135,9 +147,6 @@ class CustomizableFormBuilder:
         layout = QVBoxLayout(form_widget)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # Create scroll area
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
         content = QWidget()
         content_layout = QVBoxLayout(content)
 
@@ -166,9 +175,13 @@ class CustomizableFormBuilder:
         # Add stretch at bottom
         content_layout.addStretch()
 
-        # Set up scroll area
-        scroll.setWidget(content)
-        layout.addWidget(scroll)
+        if use_scroll_area:
+            scroll = QScrollArea()
+            scroll.setWidgetResizable(True)
+            scroll.setWidget(content)
+            layout.addWidget(scroll)
+        else:
+            layout.addWidget(content)
 
         # Attach form fields to widget for data extraction
         form_widget.form_fields = all_form_fields
@@ -195,19 +208,25 @@ class CustomizableFormBuilder:
         # Sort by group order
         return sorted(form_groups.keys(), key=lambda g: group_orders.get(g, 0))
 
-    def get_form_data(self, form_widget: QWidget) -> Dict[str, any]:
+    def get_form_data(
+        self, form_widget: QWidget, *, ignore_visibility: bool = False
+    ) -> Dict[str, any]:
         """
         Extract data from form widget.
 
         This is a convenience method that delegates to FormManager.
 
         Args:
-            form_widget: Form widget created by build_form()
+            form_widget: Form widget created by build_form().
+            ignore_visibility: When True, extract values from all fields
+                regardless of widget visibility (e.g. inactive QTabWidget tabs).
 
         Returns:
             Dict mapping property URIs to values
         """
-        return self.form_manager.get_form_data(form_widget)
+        return self.form_manager.get_form_data(
+            form_widget, ignore_visibility=ignore_visibility
+        )
 
     def set_form_data(self, form_widget: QWidget, data: Dict[str, any]):
         """

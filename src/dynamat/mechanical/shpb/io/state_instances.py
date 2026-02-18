@@ -142,13 +142,7 @@ class StateToInstancesConverter:
                 f'{test_id_clean}_equilibrium'
             ))
 
-        # 8. Tukey window params
-        if state.tukey_form_data:
-            instances.append((
-                apply_type_conversion_to_dict(dict(state.tukey_form_data)),
-                'dyn:TukeyWindowParams',
-                f'{test_id_clean}_tukey'
-            ))
+        # 8. Tukey alpha is stored directly on SHPBCompression (no sub-instance)
 
         # 9. Processed AnalysisFile + DataSeries (if results provided)
         if processed_results is not None:

@@ -151,6 +151,21 @@ dyn:ForceEquilibrium rdf:type owl:NamedIndividual, dyn:TestValidityCriteria ;
     dyn:hasName "Force Equilibrium Achieved"@en ;
     dyn:hasDescription "Force equilibrium achieved between incident and transmission bars"@en .
 
+dyn:SEQIAbove90 rdf:type owl:NamedIndividual, dyn:TestValidityCriteria ;
+    rdfs:label "SEQI Above 90%"@en ;
+    dyn:hasName "Stress Equilibrium Quality Index > 0.90"@en ;
+    dyn:hasDescription "Stress Equilibrium Quality Index (SEQI) exceeds the 0.90 threshold"@en .
+
+dyn:FBCAbove95 rdf:type owl:NamedIndividual, dyn:TestValidityCriteria ;
+    rdfs:label "FBC Above 95%"@en ;
+    dyn:hasName "Force Balance Coefficient > 0.95"@en ;
+    dyn:hasDescription "Force Balance Coefficient (FBC) exceeds the 0.95 threshold"@en .
+
+dyn:DSUFAbove98 rdf:type owl:NamedIndividual, dyn:TestValidityCriteria ;
+    rdfs:label "DSUF Above 98%"@en ;
+    dyn:hasName "Dynamic Stress Uniformity Factor > 0.98"@en ;
+    dyn:hasDescription "Dynamic Stress Uniformity Factor (DSUF / R²) exceeds the 0.98 threshold"@en .
+
 #################################################################
 #    Data Acquisition Systems
 #################################################################

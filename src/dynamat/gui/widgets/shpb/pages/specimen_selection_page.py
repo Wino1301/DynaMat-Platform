@@ -7,6 +7,7 @@ import logging
 from pathlib import Path
 from typing import Optional, Dict, Any
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QVBoxLayout, QGroupBox, QMessageBox
 
 from .base_page import BaseSHPBPage
@@ -42,6 +43,10 @@ class SpecimenSelectionPage(BaseSHPBPage):
 
         # Entity selector widget
         self._entity_selector: Optional[EntitySelectorWidget] = None
+
+        # Track the last specimen URI that was forwarded from this page so
+        # that returning via Back always resets _loaded_from_previous.
+        self._forwarded_specimen_uri: Optional[str] = None
 
     def _setup_ui(self) -> None:
         """Setup page UI."""
@@ -117,6 +122,7 @@ class SpecimenSelectionPage(BaseSHPBPage):
     def initializePage(self) -> None:
         """Initialize page when it becomes current.
 
+        Called by QWizard on next()/restart() — NOT on back().
         Resets all downstream state so each visit starts fresh.
         This ensures the previous-test dialog re-triggers and stale
         data from a prior run does not leak into a new analysis.
@@ -128,12 +134,14 @@ class SpecimenSelectionPage(BaseSHPBPage):
         self.state.specimen_uri = None
         self.state.specimen_id = None
         self.state.specimen_data = None
+        self._forwarded_specimen_uri = None
 
         # Initialize query builder if needed
         if self.query_builder is None:
             self._initialize_query_builder()
 
-        # Set query builder on entity selector
+        # Set query builder on entity selector (triggers refresh which
+        # clears the table selection — see _populate_table).
         if self._entity_selector and self.query_builder:
             self._entity_selector.set_query_builder(self.query_builder)
 
@@ -141,9 +149,27 @@ class SpecimenSelectionPage(BaseSHPBPage):
             if self._entity_selector._filter_panel:
                 self._entity_selector._filter_panel.load_filter_options_from_ontology()
 
-        # If specimen already selected, highlight it
-        if self.state.specimen_uri and self._entity_selector:
-            self._entity_selector.set_selected_entity(self.state.specimen_uri)
+            # Ensure no stale visual selection persists after refresh
+            self._entity_selector.clear_selection()
+
+    def cleanupPage(self) -> None:
+        """Called when the user navigates away from this page via Back.
+
+        NOT called on Next — only on Back from the *next* page.
+        We use this to reset ``_loaded_from_previous`` so that
+        returning to this page always re-prompts the dialog.
+        """
+        super().cleanupPage()
+
+    def _reset_for_reentry(self) -> None:
+        """Reset transient flags when the page becomes visible again.
+
+        Handles the case where the user navigated forward (dialog was
+        answered) and then came back — the dialog must re-appear so the
+        user can reconsider their choice.
+        """
+        self.state._loaded_from_previous = False
+        self._forwarded_specimen_uri = None
 
     def validatePage(self) -> bool:
         """Validate before allowing Next.
@@ -160,23 +186,38 @@ class SpecimenSelectionPage(BaseSHPBPage):
             self.show_warning("Data Error", "Failed to load specimen data. Please try selecting again.")
             return False
 
+        # If the specimen changed since the last time we advanced,
+        # wipe downstream state and force re-prompt.
+        if self.state.specimen_uri != self._forwarded_specimen_uri:
+            self.state.reset_from_stage(2)
+            self.state._loaded_from_previous = False
+
         # Check for existing SHPB test on this specimen
         if not self.state._loaded_from_previous:
             test_ref = self.state.specimen_data.get(f"{DYN_NS}hasSHPBCompressionTest")
             if test_ref:
-                self._offer_load_previous(test_ref)
+                choice = self._offer_load_previous(test_ref)
+                if choice is None:
+                    # Dialog was dismissed without a selection — block navigation
+                    return False
 
+        # Record which specimen we forwarded with
+        self._forwarded_specimen_uri = self.state.specimen_uri
         return True
 
     # ------------------------------------------------------------------
     # Previous-test loading
     # ------------------------------------------------------------------
 
-    def _offer_load_previous(self, test_ref) -> None:
+    def _offer_load_previous(self, test_ref) -> Optional[bool]:
         """Show dialog asking whether to load a previous test.
 
         Args:
             test_ref: URI string (or list) of the linked SHPBCompression test.
+
+        Returns:
+            True if previous test was loaded, False if user chose new analysis,
+            None if dialog was dismissed without a valid choice.
         """
         # Normalize to single URI string
         if isinstance(test_ref, list):
@@ -190,15 +231,30 @@ class SpecimenSelectionPage(BaseSHPBPage):
             "This specimen has a previously completed SHPB test.\n\n"
             "Would you like to load the previous test parameters?"
         )
-        load_btn = msg.addButton("Load Previous Test", QMessageBox.ButtonRole.AcceptRole)
-        msg.addButton("Start New Analysis", QMessageBox.ButtonRole.RejectRole)
+        # Use ActionRole for both buttons so Qt does not auto-assign
+        # either as the escape button when the user presses Escape / X.
+        load_btn = msg.addButton("Load Previous Test", QMessageBox.ButtonRole.ActionRole)
+        new_btn = msg.addButton("Start New Analysis", QMessageBox.ButtonRole.ActionRole)
+        # Remove the window close button so the user must click a button
+        msg.setWindowFlags(
+            msg.windowFlags() & ~Qt.WindowType.WindowCloseButtonHint
+        )
         msg.exec()
 
-        if msg.clickedButton() != load_btn:
-            # User chose new analysis — mark as handled so we don't ask again
-            self.state._loaded_from_previous = True
-            return
+        clicked = msg.clickedButton()
 
+        # Safety net: if dialog was somehow dismissed without a click
+        if clicked is None or clicked not in (load_btn, new_btn):
+            return None
+
+        if clicked == new_btn:
+            # User explicitly chose new analysis — clear any stale downstream
+            # state and mark as handled so we don't ask again.
+            self.state.reset_from_stage(2)
+            self.state._loaded_from_previous = True
+            return False
+
+        # User chose to load previous test
         # Discover the TTL file
         ttl_path = self._find_test_ttl(test_uri)
         if ttl_path is None:
@@ -206,7 +262,7 @@ class SpecimenSelectionPage(BaseSHPBPage):
                 "File Not Found",
                 "Could not locate the test TTL file for the previous analysis."
             )
-            return
+            return None
 
         # Load TTL into state
         loader = TestTTLLoader()
@@ -215,12 +271,13 @@ class SpecimenSelectionPage(BaseSHPBPage):
         if success:
             self.set_status("Loaded previous test parameters")
             self.logger.info(f"Loaded previous test from {ttl_path}")
+            return True
         else:
             self.show_warning(
                 "Load Failed",
                 "Failed to parse the previous test TTL. Starting with empty state."
             )
-            self.state._loaded_from_previous = True
+            return None
 
     def _find_test_ttl(self, test_uri: str) -> Optional[Path]:
         """Locate the TTL file for a test URI.
@@ -325,6 +382,13 @@ class SpecimenSelectionPage(BaseSHPBPage):
             if not specimen_uri:
                 self.logger.warning("No URI in specimen metadata")
                 return
+
+            # When the specimen changes, reset flags and downstream state
+            # so validatePage re-checks for a previous test on the new
+            # specimen and stale form data does not leak forward.
+            if specimen_uri != self.state.specimen_uri:
+                self.state._loaded_from_previous = False
+                self.state.reset_from_stage(2)
 
             # Load full specimen data if not already loaded
             if 'file_path' not in specimen_metadata or len(specimen_metadata) < 10:

@@ -134,8 +134,9 @@ class PulseDetectionPage(BaseSHPBPage):
         # Restore parameters from state
         self._restore_params()
 
-        # Auto-fill pulse points from equipment-computed characteristics
-        self._fill_pulse_points_from_state()
+        # Apply per-pulse-type defaults that the ontology cannot express
+        # (ontology defines one default per class, not per instance)
+        self._apply_pulse_type_defaults()
 
         # Update plot with raw signals
         self._update_plot()
@@ -216,34 +217,51 @@ class PulseDetectionPage(BaseSHPBPage):
             self.logger.error(f"Failed to build validation graph: {e}")
             return None
 
-    def _fill_pulse_points_from_state(self) -> None:
-        """Auto-fill hasPulsePoints in all three detection tab forms from state.
+    def _apply_pulse_type_defaults(self) -> None:
+        """Apply per-pulse-type defaults that the ontology cannot express.
 
-        Reads ``pulse_points`` from ``state.pulse_characteristics`` (computed
-        on the equipment page) and sets the value in each detection form.
+        The ontology defines a single default per class property (e.g.
+        ``CompressivePolarity`` for ``hasDetectionPolarity``).  This method
+        overrides those defaults where the pulse type demands a different
+        value — most importantly, setting reflected polarity to tensile.
+
+        It also propagates the equipment-computed ``pulse_points`` into all
+        three detection forms.  Only values that are still at the ontology
+        default (i.e. not already customised by the user or loaded from a
+        saved experiment) are overridden.
         """
+        overrides: Dict[str, Dict[str, Any]] = {}
+
+        # --- Reflected polarity → Tensile ---
+        tensile_uri = self._find_polarity_uri("tensile")
+        if tensile_uri:
+            reflected_form = self._pulse_forms.get('reflected')
+            if reflected_form:
+                current = self.form_builder.get_form_data(
+                    reflected_form, ignore_visibility=True
+                )
+                current_polarity = current.get(f"{DYN_NS}hasDetectionPolarity")
+                # Only override if still at the compressive default
+                compressive_uri = self._find_polarity_uri("compressive")
+                if not current_polarity or current_polarity == compressive_uri:
+                    overrides.setdefault('reflected', {})[
+                        f"{DYN_NS}hasDetectionPolarity"
+                    ] = tensile_uri
+
+        # --- Pulse points from equipment characteristics ---
         chars = self.state.pulse_characteristics
-        if not chars:
-            return
+        if chars:
+            pulse_points = chars.get('pulse_points')
+            if pulse_points is not None:
+                pp_uri = f"{DYN_NS}hasPulsePoints"
+                for pulse_type in ['incident', 'transmitted', 'reflected']:
+                    overrides.setdefault(pulse_type, {})[pp_uri] = int(pulse_points)
 
-        pulse_points = chars.get('pulse_points')
-        if pulse_points is None:
-            return
-
-        pulse_points_uri = f"{DYN_NS}hasPulsePoints"
-        for pulse_type in ['incident', 'transmitted', 'reflected']:
+        # Apply all overrides
+        for pulse_type, data in overrides.items():
             form_widget = self._pulse_forms.get(pulse_type)
-            if not form_widget:
-                continue
-
-            form_fields = getattr(form_widget, 'form_fields', {})
-            field = form_fields.get(pulse_points_uri)
-            if field and hasattr(field, 'widget'):
-                widget = field.widget
-                if hasattr(widget, 'setValue'):
-                    widget.setValue(int(pulse_points))
-                elif hasattr(widget, 'setText'):
-                    widget.setText(str(pulse_points))
+            if form_widget and data:
+                self.form_builder.set_form_data(form_widget, data)
 
     def _parse_k_trials(self, k_str: str) -> Tuple[float, ...]:
         """Parse comma-separated k_trials string to tuple."""
@@ -332,6 +350,9 @@ class PulseDetectionPage(BaseSHPBPage):
     def _save_params(self) -> None:
         """Save parameters from all forms to state as form-data dicts.
 
+        Uses ``ignore_visibility=True`` to read all tabs regardless of
+        which one is currently active in the QTabWidget.
+
         Injects computed output properties (window indices) and pulse_points
         into the form data. Reflected detection is applied to the incident
         bar signal (same bar).
@@ -343,7 +364,9 @@ class PulseDetectionPage(BaseSHPBPage):
 
         for pulse_type in ['incident', 'transmitted', 'reflected']:
             form_widget = self._pulse_forms[pulse_type]
-            form_data = self.form_builder.get_form_data(form_widget)
+            form_data = self.form_builder.get_form_data(
+                form_widget, ignore_visibility=True
+            )
 
             # Inject computed pulse_points from pulse characteristics
             if computed_pulse_points is not None:
@@ -382,7 +405,9 @@ class PulseDetectionPage(BaseSHPBPage):
             Parameters dictionary
         """
         form_widget = self._pulse_forms[pulse_type]
-        form_data = self.form_builder.get_form_data(form_widget)
+        form_data = self.form_builder.get_form_data(
+            form_widget, ignore_visibility=True
+        )
 
         # Map ontology properties to PulseDetector kwargs
         params = {

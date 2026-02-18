@@ -387,7 +387,7 @@ class SHPBReanalyzer:
         alignment_query = """
         PREFIX dyn: <https://dynamat.utep.edu/ontology#>
         SELECT ?kLinear ?weightCorr ?weightU ?weightSR ?weightE
-               ?tMin ?tMax ?rMin ?rMax ?shiftT ?shiftR ?nPoints ?threshRatio WHERE {
+               ?tMin ?tMax ?rMin ?rMax ?shiftT ?shiftR ?nPoints WHERE {
             ?test dyn:hasAlignmentParams ?params .
             OPTIONAL { ?params dyn:hasKLinear ?kLinear }
             OPTIONAL { ?params dyn:hasCorrelationWeight ?weightCorr }
@@ -401,7 +401,6 @@ class SHPBReanalyzer:
             OPTIONAL { ?params dyn:hasTransmittedShiftValue ?shiftT }
             OPTIONAL { ?params dyn:hasReflectedShiftValue ?shiftR }
             OPTIONAL { ?params dyn:hasCenteredSegmentPoints ?nPoints }
-            OPTIONAL { ?params dyn:hasThresholdRatio ?threshRatio }
         }
         """
         results = list(self._test_graph.query(alignment_query))
@@ -418,9 +417,22 @@ class SHPBReanalyzer:
                 'shift_t': int(r[9]) if r[9] else None,
                 'shift_r': int(r[10]) if r[10] else None,
                 'n_points': int(r[11]) if r[11] else 25000,
-                'thresh_ratio': float(r[12]) if r[12] else 0.0,
             }
             logger.debug(f"Alignment params: {self._alignment_params}")
+
+        # Extract thresh_ratio from SegmentationParams
+        seg_query = """
+        PREFIX dyn: <https://dynamat.utep.edu/ontology#>
+        SELECT ?thresh WHERE {
+            ?test dyn:hasSegmentationParams ?seg .
+            OPTIONAL { ?seg dyn:hasSegmentThreshold ?thresh }
+        }
+        """
+        seg_results = list(self._test_graph.query(seg_query))
+        if seg_results and seg_results[0][0]:
+            self._alignment_params['thresh_ratio'] = float(seg_results[0][0])
+        else:
+            self._alignment_params.setdefault('thresh_ratio', 0.0)
 
     def _extract_detection_params(self):
         """Extract pulse detection parameters from TTL."""

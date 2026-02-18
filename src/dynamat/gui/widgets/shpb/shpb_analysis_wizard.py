@@ -9,7 +9,7 @@ from typing import Optional
 from pathlib import Path
 
 from PyQt6.QtWidgets import QWizard, QMessageBox
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import pyqtSignal, QTimer
 
 from ....ontology import OntologyManager
 from ....ontology.qudt import QUDTManager
@@ -190,15 +190,21 @@ class SHPBAnalysisWizard(QWizard):
         if result == QWizard.DialogCode.Accepted:
             if self.state.exported_file_path:
                 self.logger.info(f"Analysis completed: {self.state.exported_file_path}")
-                self.analysis_completed.emit(self.state.exported_file_path)
+                self.analysis_completed.emit(Path(self.state.exported_file_path))
             else:
                 self.logger.warning("Wizard accepted but no file was exported")
+            # Defer restart to avoid competing with wizard completion logic
+            QTimer.singleShot(0, self._restart_for_new_analysis)
         else:
             self.logger.info("Analysis cancelled by user")
             self.analysis_cancelled.emit()
 
     def _on_page_changed(self, page_id: int) -> None:
         """Handle page navigation.
+
+        ``currentIdChanged`` fires for BOTH next() and back().
+        ``initializePage`` only fires on next()/restart(), so pages
+        that need to react to back-navigation listen here.
 
         Args:
             page_id: ID of the new current page
@@ -216,6 +222,11 @@ class SHPBAnalysisWizard(QWizard):
         }
         self.logger.info(f"Navigated to page: {page_names.get(page_id, page_id)}")
 
+        # Notify specimen page so it can reset _loaded_from_previous
+        # when the user navigates back to it.
+        if page_id == self.PAGE_SPECIMEN:
+            self.specimen_page._reset_for_reentry()
+
     def reset_analysis(self) -> None:
         """Reset wizard to initial state for new analysis."""
         # Confirm reset if analysis is in progress
@@ -228,18 +239,20 @@ class SHPBAnalysisWizard(QWizard):
             if reply != QMessageBox.StandardButton.Yes:
                 return
 
-        # Reset state
+        self._restart_for_new_analysis()
+
+    def _restart_for_new_analysis(self) -> None:
+        """Reset state and restart wizard without confirmation (used after export)."""
         self.state = SHPBAnalysisState()
 
-        # Update all pages with new state
         for page_id in self.pageIds():
             page = self.page(page_id)
             if hasattr(page, 'state'):
                 page.state = self.state
 
-        # Restart wizard
         self.restart()
-
+        # QDialog.accept() hides the widget; re-show it so it stays embedded
+        self.show()
         self.logger.info("Analysis reset to initial state")
 
     def get_current_user(self) -> Optional[str]:
