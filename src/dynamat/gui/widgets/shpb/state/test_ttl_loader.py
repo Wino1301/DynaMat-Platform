@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 
 import pandas as pd
-from rdflib import Graph, Namespace, Literal, URIRef
+from rdflib import Graph, Namespace, Literal, URIRef, BNode
 from rdflib.namespace import RDF
 
 from .analysis_state import SHPBAnalysisState
@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 DYN_NS = "https://dynamat.utep.edu/ontology#"
 DYN = Namespace(DYN_NS)
+QUDT = Namespace("http://qudt.org/schema/qudt/")
 
 # Properties on SHPBCompression that link to sub-instances (not equipment form data)
 _SUB_INSTANCE_PREDICATES = {
@@ -289,7 +290,8 @@ class TestTTLLoader:
     def _extract_properties(self, subject: URIRef) -> Dict[str, Any]:
         """Extract all properties of a subject into a URI-keyed dict.
 
-        Skips rdf:type triples.
+        Skips rdf:type triples.  For QuantityValue BNodes, returns
+        measurement dicts compatible with UnitValueWidget/InstanceWriter.
         """
         props = {}
         for pred, obj in self._graph.predicate_objects(subject):
@@ -299,10 +301,16 @@ class TestTTLLoader:
         return props
 
     def _get_literal(self, subject: URIRef, predicate: URIRef) -> Any:
-        """Get a single literal value for subject+predicate."""
+        """Get a single literal value for subject+predicate.
+
+        For QuantityValue BNodes, extracts and returns the numeric value.
+        """
         for obj in self._graph.objects(subject, predicate):
             if isinstance(obj, Literal):
                 return obj.toPython()
+            if self._is_quantity_value(obj):
+                qv = self._extract_quantity_value(obj)
+                return qv.get('value')
         return None
 
     def _get_object(self, subject: URIRef, predicate: URIRef) -> Optional[URIRef]:
@@ -311,9 +319,48 @@ class TestTTLLoader:
             return obj
         return None
 
-    @staticmethod
-    def _python_value(obj) -> Any:
-        """Convert an RDF term to a Python value."""
+    def _python_value(self, obj) -> Any:
+        """Convert an RDF term to a Python value.
+
+        Handles QuantityValue BNodes by returning measurement dicts.
+        """
         if isinstance(obj, Literal):
             return obj.toPython()
+        if self._is_quantity_value(obj):
+            return self._extract_quantity_value(obj)
         return str(obj)
+
+    def _is_quantity_value(self, node) -> bool:
+        """Check if an RDF node is a qudt:QuantityValue blank node."""
+        if not isinstance(node, BNode):
+            return False
+        return (node, RDF.type, QUDT.QuantityValue) in self._graph
+
+    def _extract_quantity_value(self, bnode: BNode) -> Dict[str, Any]:
+        """Extract measurement dict from a QuantityValue BNode.
+
+        Returns dict compatible with UnitValueWidget.getData() format:
+        {'value': float, 'unit': str, 'reference_unit': str, 'quantity_kind': str}
+        """
+        result = {}
+
+        for obj in self._graph.objects(bnode, QUDT.numericValue):
+            if isinstance(obj, Literal):
+                result['value'] = float(obj.toPython())
+                break
+
+        for obj in self._graph.objects(bnode, QUDT.unit):
+            result['unit'] = str(obj)
+            result['reference_unit'] = str(obj)
+            break
+
+        for obj in self._graph.objects(bnode, QUDT.hasQuantityKind):
+            result['quantity_kind'] = str(obj)
+            break
+
+        for obj in self._graph.objects(bnode, QUDT.standardUncertainty):
+            if isinstance(obj, Literal):
+                result['uncertainty'] = float(obj.toPython())
+                break
+
+        return result

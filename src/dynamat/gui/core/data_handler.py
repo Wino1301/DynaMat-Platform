@@ -498,6 +498,10 @@ class FormDataHandler:
             if hasattr(widget, 'reference_unit_uri') and widget.reference_unit_uri:
                 data['reference_unit'] = widget.reference_unit_uri
 
+            # Add quantity_kind for QuantityValue BNode serialization
+            if hasattr(widget, 'quantity_kind') and widget.quantity_kind:
+                data['quantity_kind'] = widget.quantity_kind
+
             return data
         except Exception as e:
             logger.error(f"Error extracting unit value widget: {e}")

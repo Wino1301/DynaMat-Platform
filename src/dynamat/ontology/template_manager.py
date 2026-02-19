@@ -11,8 +11,10 @@ from typing import Dict, List, Optional, Any, Union, Tuple
 from datetime import datetime
 from dataclasses import dataclass
 
-from rdflib import Graph, URIRef, Literal
+from rdflib import Graph, Namespace, URIRef, Literal, BNode
 from rdflib.namespace import RDF, RDFS, OWL, XSD
+
+QUDT = Namespace("http://qudt.org/schema/qudt/")
 
 from .core.namespace_manager import NamespaceManager
 from ..config import config
@@ -292,6 +294,20 @@ default configurations for common {category} setups.
                     values[pred_name] = str(obj)
                 elif isinstance(obj, Literal):
                     values[pred_name] = obj.toPython()
+                elif isinstance(obj, BNode) and (obj, RDF.type, QUDT.QuantityValue) in graph:
+                    qv = {}
+                    for v in graph.objects(obj, QUDT.numericValue):
+                        if isinstance(v, Literal):
+                            qv['value'] = float(v.toPython())
+                            break
+                    for v in graph.objects(obj, QUDT.unit):
+                        qv['unit'] = str(v)
+                        qv['reference_unit'] = str(v)
+                        break
+                    for v in graph.objects(obj, QUDT.hasQuantityKind):
+                        qv['quantity_kind'] = str(v)
+                        break
+                    values[pred_name] = qv
                 else:
                     values[pred_name] = str(obj)
         

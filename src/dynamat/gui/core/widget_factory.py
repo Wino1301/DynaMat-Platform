@@ -520,7 +520,8 @@ class WidgetFactory:
                 default_unit=default_unit,
                 available_units=compatible_units,
                 property_uri=prop.uri,
-                reference_unit_uri=default_unit  # Pass dyn:hasUnit as reference for conversion
+                reference_unit_uri=default_unit,  # Pass dyn:hasUnit as reference for conversion
+                quantity_kind=getattr(prop, 'quantity_kind', None)
             )
 
             # Set tooltip if description available

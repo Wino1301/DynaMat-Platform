@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 from datetime import datetime
 
-from rdflib import Graph, Namespace, RDF, RDFS, OWL, Literal, URIRef
+from rdflib import Graph, Namespace, RDF, RDFS, OWL, Literal, URIRef, BNode
 from rdflib.namespace import XSD
 
 from ...ontology import OntologyManager
@@ -29,6 +29,9 @@ class IndividualWriter:
         # Define namespaces
         self.DYN = Namespace("https://dynamat.utep.edu/ontology#")
         self.GUI = Namespace("https://dynamat.utep.edu/ontology/gui#")
+        self.QUDT = Namespace("http://qudt.org/schema/qudt/")
+        self.UNIT = Namespace("http://qudt.org/vocab/unit/")
+        self.QKDV = Namespace("http://qudt.org/vocab/quantitykind/")
 
     def write_individual(
         self,
@@ -120,6 +123,9 @@ class IndividualWriter:
         graph.bind("rdfs", RDFS)
         graph.bind("owl", OWL)
         graph.bind("xsd", XSD)
+        graph.bind("qudt", self.QUDT)
+        graph.bind("unit", self.UNIT)
+        graph.bind("qkdv", self.QKDV)
 
     def _uri_to_ref(self, uri: str) -> URIRef:
         """Convert URI string (prefixed or full) to RDFLib URIRef."""
@@ -131,7 +137,11 @@ class IndividualWriter:
         elif ":" in uri and not uri.startswith("http"):
             # Prefixed URI, try to resolve
             prefix, local = uri.split(":", 1)
-            if prefix == "rdfs":
+            if prefix == "unit":
+                return self.UNIT[local]
+            elif prefix == "qkdv":
+                return self.QKDV[local]
+            elif prefix == "rdfs":
                 return RDFS[local]
             elif prefix == "rdf":
                 return RDF[local]
@@ -150,7 +160,13 @@ class IndividualWriter:
         """Add a property triple to the graph, handling different value types."""
         prop_ref = self._uri_to_ref(prop_uri)
 
-        if isinstance(value, str) and (value.startswith("dyn:") or value.startswith("http")):
+        # Measurement dict from UnitValueWidget -> QuantityValue BNode
+        if isinstance(value, dict) and 'value' in value:
+            bnode = self._create_quantity_value(graph, value, prop_uri)
+            graph.add((subject, prop_ref, bnode))
+            logger.debug(f"Added QuantityValue property: {prop_uri} -> {value.get('value')}")
+
+        elif isinstance(value, str) and (value.startswith("dyn:") or value.startswith("http")):
             value_ref = self._uri_to_ref(value)
             graph.add((subject, prop_ref, value_ref))
             logger.debug(f"Added object property: {prop_uri} -> {value}")
@@ -174,6 +190,40 @@ class IndividualWriter:
         else:
             graph.add((subject, prop_ref, Literal(str(value), datatype=XSD.string)))
             logger.debug(f"Added string property: {prop_uri} -> {value}")
+
+    def _create_quantity_value(self, graph: Graph, value_dict: dict,
+                               prop_uri: str = None) -> BNode:
+        """Create a qudt:QuantityValue blank node from a measurement dictionary."""
+        numeric_value = value_dict['value']
+        unit_uri = value_dict.get('reference_unit') or value_dict.get('unit')
+        quantity_kind = value_dict.get('quantity_kind')
+
+        # Fallback: look up quantity_kind from ontology
+        if not quantity_kind and prop_uri:
+            try:
+                prop_ref = self._uri_to_ref(prop_uri)
+                qk_pred = URIRef("http://qudt.org/schema/qudt/hasQuantityKind")
+                for _, _, qk in self.ontology_manager.graph.triples((prop_ref, qk_pred, None)):
+                    quantity_kind = str(qk)
+                    break
+            except Exception:
+                pass
+
+        bnode = BNode()
+        graph.add((bnode, RDF.type, self.QUDT.QuantityValue))
+        graph.add((bnode, self.QUDT.numericValue,
+                   Literal(float(numeric_value), datatype=XSD.double)))
+
+        if unit_uri:
+            graph.add((bnode, self.QUDT.unit, self._uri_to_ref(unit_uri)))
+
+        if quantity_kind:
+            if quantity_kind.startswith("http"):
+                graph.add((bnode, self.QUDT.hasQuantityKind, URIRef(quantity_kind)))
+            else:
+                graph.add((bnode, self.QUDT.hasQuantityKind, self._uri_to_ref(quantity_kind)))
+
+        return bnode
 
     def update_individual(
         self,

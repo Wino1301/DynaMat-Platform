@@ -27,13 +27,15 @@ class UnitValueWidget(QWidget):
     dataChanged = pyqtSignal()
     
     def __init__(self, default_unit: str = None, available_units: List = None,
-                 property_uri: str = None, reference_unit_uri: str = None, parent=None):
+                 property_uri: str = None, reference_unit_uri: str = None,
+                 quantity_kind: str = None, parent=None):
         super().__init__(parent)
 
         self.default_unit = default_unit
         self.available_units = available_units or []
         self.property_uri = property_uri
         self.reference_unit_uri = reference_unit_uri  # The dyn:hasUnit from ontology
+        self.quantity_kind = quantity_kind  # qudt:hasQuantityKind URI for QuantityValue serialization
         
         self._setup_ui()
         self._populate_units()

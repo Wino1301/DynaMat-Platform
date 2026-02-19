@@ -127,8 +127,7 @@ dyn:SHPBCompressionShape a sh:NodeShape ;
     sh:property [
         sh:path dyn:hasStrikerVelocity ;
         sh:minCount 1 ; sh:maxCount 1 ;
-        sh:datatype xsd:double ;
-        sh:minExclusive 0.0 ;
+        sh:node dyn:QuantityValueShape ;
         sh:message "Striker velocity is required (needed for strain rate characterization)" ;
         sh:severity sh:Violation ;
     ] ;
@@ -169,11 +168,11 @@ dyn:SHPBCompressionShape a sh:NodeShape ;
     sh:property [ sh:path dyn:hasStrikerLength ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path dyn:hasIncidentBarLength ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path dyn:hasTransmissionBarLength ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
-    sh:property [ sh:path dyn:hasBarrelOffset ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasBarrelOffset ; sh:maxCount 1 ] ;
     sh:property [ sh:path dyn:hasIncidentStrainGaugeDistance ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path dyn:hasTransmissionStrainGaugeDistance ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path dyn:hasLubrication ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
-    sh:property [ sh:path dyn:hasMomentumTrapTailoredDistance ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasMomentumTrapTailoredDistance ; sh:maxCount 1 ] ;
 
     # Pulse shaping
     sh:property [ sh:path dyn:hasPulseShaping ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
@@ -184,37 +183,33 @@ dyn:SHPBCompressionShape a sh:NodeShape ;
     sh:property [
         sh:path dyn:hasPulseDuration ;
         sh:minCount 1 ; sh:maxCount 1 ;
-        sh:datatype xsd:double ;
-        sh:minExclusive 0.0 ;
+        sh:node dyn:QuantityValueShape ;
         sh:message "Pulse duration should be calculated (2L/C) from striker geometry" ;
         sh:severity sh:Warning ;
     ] ;
     sh:property [
         sh:path dyn:hasPulseLength ;
         sh:minCount 1 ; sh:maxCount 1 ;
-        sh:datatype xsd:double ;
-        sh:minExclusive 0.0 ;
+        sh:node dyn:QuantityValueShape ;
         sh:message "Pulse length should be calculated (2L) from striker geometry" ;
         sh:severity sh:Warning ;
     ] ;
     sh:property [
         sh:path dyn:hasPulseStrainAmplitude ;
         sh:minCount 1 ; sh:maxCount 1 ;
-        sh:datatype xsd:double ;
-        sh:minExclusive 0.0 ;
+        sh:node dyn:QuantityValueShape ;
         sh:message "Pulse strain amplitude should be calculated (V/2C)" ;
         sh:severity sh:Warning ;
     ] ;
     sh:property [
         sh:path dyn:hasPulseStressAmplitude ;
         sh:minCount 1 ; sh:maxCount 1 ;
-        sh:datatype xsd:double ;
-        sh:minExclusive 0.0 ;
+        sh:node dyn:QuantityValueShape ;
         sh:message "Pulse stress amplitude should be calculated (rhoCV/2)" ;
         sh:severity sh:Warning ;
     ] ;
-    sh:property [ sh:path dyn:hasPulseSpeed ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
-    sh:property [ sh:path dyn:hasPulseRiseTime ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasPulseSpeed ; sh:maxCount 1 ] ;
+    sh:property [ sh:path dyn:hasPulseRiseTime ; sh:maxCount 1 ] ;
     sh:property [ sh:path dyn:hasPulsePoints ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
 
     # Processing parameters (sub-instance links)
@@ -226,7 +221,7 @@ dyn:SHPBCompressionShape a sh:NodeShape ;
     # Analysis metadata
     sh:property [ sh:path dyn:hasAnalysisTimestamp ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
     sh:property [ sh:path dyn:hasCenteredSegmentPoints ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
-    sh:property [ sh:path dyn:hasSamplingInterval ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
+    sh:property [ sh:path dyn:hasSamplingInterval ; sh:maxCount 1 ] ;
     sh:property [ sh:path dyn:hasTukeyAlphaParam ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path dyn:hasShiftValue ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
     sh:property [ sh:path dyn:hasSelectionMetric ; sh:maxCount 1 ; sh:class dyn:DetectionMetric ] ;
@@ -492,13 +487,20 @@ dyn:MomentumTrapDistanceConstraint a sh:NodeShape ;
             sh:declare [
                 sh:prefix "dyn" ;
                 sh:namespace "https://dynamat.utep.edu/ontology#"^^xsd:anyURI ;
+            ] ;
+            sh:declare [
+                sh:prefix "qudt" ;
+                sh:namespace "http://qudt.org/schema/qudt/"^^xsd:anyURI ;
             ]
         ] ;
         sh:select """
             SELECT ?this WHERE {
                 ?this dyn:hasMomentumTrap dyn:MomentumTrap_TailoredGap .
-                OPTIONAL { ?this dyn:hasMomentumTrapTailoredDistance ?dist }
-                FILTER(!BOUND(?dist) || ?dist <= 0.0)
+                OPTIONAL {
+                    ?this dyn:hasMomentumTrapTailoredDistance ?distBN .
+                    ?distBN qudt:numericValue ?distVal .
+                }
+                FILTER(!BOUND(?distVal) || ?distVal <= 0.0)
             }
         """ ;
     ] .

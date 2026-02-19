@@ -8,8 +8,10 @@ from typing import Dict, List, Optional, Any
 from pathlib import Path
 from datetime import datetime
 
-from rdflib import Graph, Namespace, RDF, RDFS, Literal, URIRef
+from rdflib import Graph, Namespace, RDF, RDFS, Literal, URIRef, BNode
 from rdflib.namespace import XSD
+
+QUDT = Namespace("http://qudt.org/schema/qudt/")
 
 logger = logging.getLogger(__name__)
 
@@ -187,6 +189,8 @@ class InstanceQueryBuilder:
                     metadata[pred_str] = obj.toPython()
                 elif isinstance(obj, URIRef):
                     metadata[pred_str] = str(obj)
+                elif isinstance(obj, BNode) and (obj, RDF.type, QUDT.QuantityValue) in graph:
+                    metadata[pred_str] = self._extract_quantity_value(graph, obj)
 
             return metadata
 
@@ -561,6 +565,8 @@ class InstanceQueryBuilder:
                     data[pred_str] = obj.toPython()
                 elif isinstance(obj, URIRef):
                     data[pred_str] = str(obj)
+                elif isinstance(obj, BNode) and (obj, RDF.type, QUDT.QuantityValue) in graph:
+                    data[pred_str] = self._extract_quantity_value(graph, obj)
 
             self.logger.info(f"Loaded {len(data)} properties for {instance_uri}")
             return data
@@ -568,6 +574,23 @@ class InstanceQueryBuilder:
         except Exception as e:
             self.logger.error(f"Failed to load full instance data: {e}")
             return {}
+
+    @staticmethod
+    def _extract_quantity_value(graph: Graph, bnode: BNode) -> Dict[str, Any]:
+        """Extract measurement dict from a QuantityValue BNode."""
+        result = {}
+        for obj in graph.objects(bnode, QUDT.numericValue):
+            if isinstance(obj, Literal):
+                result['value'] = float(obj.toPython())
+                break
+        for obj in graph.objects(bnode, QUDT.unit):
+            result['unit'] = str(obj)
+            result['reference_unit'] = str(obj)
+            break
+        for obj in graph.objects(bnode, QUDT.hasQuantityKind):
+            result['quantity_kind'] = str(obj)
+            break
+        return result
 
     # ============================================================================
     # UTILITY METHODS

@@ -1110,6 +1110,9 @@ class DependencyManager(QObject):
                 current_uri = str(value)
             else:
                 # Final hop: value is the numeric result
+                # Handle measurement dicts from QuantityValue properties
+                if isinstance(value, dict) and 'value' in value:
+                    value = value['value']
                 try:
                     numeric_value = float(value)
                 except (ValueError, TypeError):

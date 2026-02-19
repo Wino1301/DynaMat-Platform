@@ -367,7 +367,8 @@ class SpecimenLoader:
         if not property_name.startswith('dyn:') and not property_name.startswith('http'):
             property_name = f"dyn:{property_name}"
 
-        # Query for the property
+        # Query handles both direct literal values and QuantityValue BNodes.
+        # COALESCE picks the BNode numeric value when present, else the raw value.
         query = f"""
         PREFIX dyn: <{self.ns.DYN}>
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -377,9 +378,19 @@ class SpecimenLoader:
         PREFIX unit: <http://qudt.org/vocab/unit/>
 
         SELECT ?value ?unit ?quantityKind WHERE {{
-            <{individual_uri}> {property_name} ?value .
-            OPTIONAL {{ {property_name} qudt:hasUnit ?unit }}
-            OPTIONAL {{ {property_name} qudt:hasQuantityKind ?quantityKind }}
+            <{individual_uri}> {property_name} ?raw .
+
+            OPTIONAL {{ ?raw qudt:numericValue ?qvValue }}
+            OPTIONAL {{ ?raw qudt:unit ?qvUnit }}
+            OPTIONAL {{ ?raw qudt:hasQuantityKind ?qvQK }}
+
+            BIND(COALESCE(?qvValue, ?raw) AS ?value)
+
+            OPTIONAL {{ {property_name} dyn:hasUnit ?annotUnit }}
+            OPTIONAL {{ {property_name} qudt:hasQuantityKind ?annotQK }}
+
+            BIND(COALESCE(?qvUnit, ?annotUnit) AS ?unit)
+            BIND(COALESCE(?qvQK, ?annotQK) AS ?quantityKind)
         }}
         """
 

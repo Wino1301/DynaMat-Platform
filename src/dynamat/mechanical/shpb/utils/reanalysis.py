@@ -367,11 +367,17 @@ class SHPBReanalyzer:
         logger.debug(f"Parameters extracted: {list(self._original_params.keys())}")
 
     def _get_ttl_value(self, property_name: str) -> Optional[float]:
-        """Get a property value from the test TTL."""
+        """Get a property value from the test TTL.
+
+        Handles both direct literal values and QuantityValue BNodes.
+        """
         query = f"""
         PREFIX dyn: <https://dynamat.utep.edu/ontology#>
+        PREFIX qudt: <http://qudt.org/schema/qudt/>
         SELECT ?value WHERE {{
-            ?test dyn:{property_name} ?value .
+            ?test dyn:{property_name} ?raw .
+            OPTIONAL {{ ?raw qudt:numericValue ?qvValue }}
+            BIND(COALESCE(?qvValue, ?raw) AS ?value)
         }}
         """
         results = list(self._test_graph.query(query))

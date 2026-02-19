@@ -13,198 +13,84 @@
 # MATERIAL CLASS PROPERTIES
 # For DynaMat Platform - Dynamic Materials Testing Ontology
 # Properties only - no individual instances
-# =============================================================================
-
-# =============================================================================
-# PROPERTY VALUE CLASS AND PROVENANCE SUPPORT
-# =============================================================================
-
-#################################################################
-#    PropertyValue Class (needs to be added to core ontology)
-#################################################################
-
-# Note: PropertyValue class should be added to core ontology
-# dyn:PropertyValue rdf:type owl:Class ;
-#     rdfs:label "Property Value"@en ;
-#     rdfs:comment "A property value with provenance and uncertainty information"@en .
-
-#################################################################
-#    PropertyValue Data Properties
-#################################################################
-
-dyn:hasValue rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:PropertyValue ;
-    rdfs:range xsd:double ;
-    rdfs:label "Value"@en ;
-    gui:hasDisplayName "Value" ;
-    gui:hasFormGroup "PropertyValue" ;
-    gui:hasDisplayOrder 1 ;
-    rdfs:comment "Numerical value of the property"@en .
-
-dyn:hasUnit rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:PropertyValue ;
-    rdfs:range dyn:Unit ;
-    rdfs:label "Unit"@en ;
-    gui:hasDisplayName "Unit" ;
-    gui:hasFormGroup "PropertyValue" ;
-    gui:hasDisplayOrder 2 ;
-    rdfs:comment "Measurement unit for the property value"@en .
-
-dyn:hasUncertainty rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:PropertyValue ;
-    rdfs:range xsd:double ;
-    rdfs:label "Uncertainty"@en ;
-    gui:hasDisplayName "Uncertainty (±)" ;
-    gui:hasFormGroup "PropertyValue" ;
-    gui:hasDisplayOrder 3 ;
-    rdfs:comment "Measurement uncertainty or standard deviation"@en .
-
-dyn:hasProvenance rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:PropertyValue ;
-    rdfs:range xsd:string ;
-    rdfs:label "Provenance"@en ;
-    gui:hasDisplayName "Provenance" ;
-    gui:hasFormGroup "PropertyValue" ;
-    gui:hasDisplayOrder 4 ;
-    gui:hasValidValues "Literature, Experimental, Fitted" ;
-    rdfs:comment "Source type: Literature (handbook), Experimental (test), or Fitted (ML/statistical)"@en .
-
-dyn:hasSource rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:PropertyValue ;
-    rdfs:range xsd:string ;
-    rdfs:label "Source"@en ;
-    gui:hasDisplayName "Source" ;
-    gui:hasFormGroup "PropertyValue" ;
-    gui:hasDisplayOrder 5 ;
-    rdfs:comment "Source reference (literature citation, test ID, or fitting method)"@en .
-
-dyn:hasConfidenceLevel rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:PropertyValue ;
-    rdfs:range xsd:double ;
-    rdfs:label "Confidence Level"@en ;
-    gui:hasDisplayName "Confidence Level (%)" ;
-    gui:hasFormGroup "PropertyValue" ;
-    gui:hasDisplayOrder 6 ;
-    rdfs:comment "Statistical confidence level (0-100%) for fitted values"@en .
-
-#################################################################
-#    PropertyValue Object Properties
-#################################################################
-
-# Link to the test that determined this property (for Experimental provenance)
-dyn:isDeterminedBy rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:PropertyValue ;
-    rdfs:range dyn:MechanicalTest ;
-    rdfs:label "Determined By"@en ;
-    gui:hasDisplayName "Determined By Test" ;
-    gui:hasFormGroup "PropertyValue" ;
-    gui:hasDisplayOrder 7 ;
-    rdfs:comment "Test that determined this property value (for experimental provenance)"@en .
-
-# Link to characterization that revealed this property
-dyn:isCharacterizedBy rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:domain dyn:PropertyValue ;
-    rdfs:range dyn:CharacterizationTest ;
-    rdfs:label "Characterized By"@en ;
-    gui:hasDisplayName "Characterized By" ;
-    gui:hasFormGroup "PropertyValue" ;
-    gui:hasDisplayOrder 8 ;
-    rdfs:comment "Characterization test that revealed this property"@en .
-
-# =============================================================================
-# MATERIAL CLASS PROPERTIES CONTINUE...
+#
+# All measurement properties use qudt:QuantityValue range to produce
+# self-describing blank nodes with numeric value, unit, quantity kind,
+# and optional uncertainty/provenance.
 # =============================================================================
 
 #################################################################
-#    Object Properties - Mechanical Properties (Legacy Support)
+#    Object Properties - Mechanical Properties
 #################################################################
 
-# Links to legacy mechanical property individuals for simulation inference
-dyn:hasMechanicalProperty rdf:type owl:ObjectProperty ;
-    rdfs:domain dyn:Material ;
-    rdfs:range dyn:MechanicalProperty ;
-    rdfs:label "Mechanical Property"@en ;
-    gui:hasDisplayName "Mechanical Property" ;
-    gui:hasFormGroup "MechanicalProperties" ;
-    gui:hasDisplayOrder 1 ;
-    rdfs:comment "Links material to its mechanical property instances"@en .
-
-# Specific mechanical property relationships for Johnson-Cook model
 dyn:hasElasticModulus rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:subPropertyOf dyn:hasMechanicalProperty ;
     rdfs:domain dyn:Material ;
-    rdfs:range dyn:PropertyValue ;
+    rdfs:range qudt:QuantityValue ;
     qudt:hasQuantityKind qkdv:ForcePerArea ;
     rdfs:label "Elastic Modulus"@en ;
     gui:hasDisplayName "Elastic Modulus" ;
     gui:hasFormGroup "ElasticProperties" ;
     gui:hasDisplayOrder 1 ;
     dyn:hasUnit "unit:MegaPA" ;
-    rdfs:comment "Young's modulus of elasticity with provenance"@en .
+    rdfs:comment "Young's modulus of elasticity"@en .
 
 dyn:hasPoissonsRatio rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:subPropertyOf dyn:hasMechanicalProperty ;
     rdfs:domain dyn:Material ;
-    rdfs:range dyn:PropertyValue ;
+    rdfs:range qudt:QuantityValue ;
     rdfs:label "Poisson's Ratio"@en ;
     gui:hasDisplayName "Poisson's Ratio" ;
     gui:hasFormGroup "ElasticProperties" ;
     gui:hasDisplayOrder 2 ;
-    rdfs:comment "Poisson's ratio with provenance"@en .
+    rdfs:comment "Poisson's ratio"@en .
 
 dyn:hasYieldStrength rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:subPropertyOf dyn:hasMechanicalProperty ;
     rdfs:domain dyn:Material ;
-    rdfs:range dyn:PropertyValue ;
+    rdfs:range qudt:QuantityValue ;
     qudt:hasQuantityKind qkdv:ForcePerArea ;
     rdfs:label "Yield Strength"@en ;
     gui:hasDisplayName "Yield Strength" ;
     gui:hasFormGroup "JohnsonCookParameters" ;
     gui:hasDisplayOrder 1 ;
     dyn:hasUnit "unit:MegaPA" ;
-    rdfs:comment "Yield strength (Johnson-Cook A parameter) with provenance"@en .
+    rdfs:comment "Yield strength (Johnson-Cook A parameter)"@en .
 
 dyn:hasHardeningConstant rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:subPropertyOf dyn:hasMechanicalProperty ;
     rdfs:domain dyn:Material ;
-    rdfs:range dyn:PropertyValue ;
+    rdfs:range qudt:QuantityValue ;
     qudt:hasQuantityKind qkdv:ForcePerArea ;
     rdfs:label "Hardening Constant"@en ;
     gui:hasDisplayName "Hardening Constant" ;
     gui:hasFormGroup "JohnsonCookParameters" ;
     gui:hasDisplayOrder 2 ;
     dyn:hasUnit "unit:MegaPA" ;
-    rdfs:comment "Hardening constant (Johnson-Cook B parameter) with provenance"@en .
+    rdfs:comment "Hardening constant (Johnson-Cook B parameter)"@en .
 
 dyn:hasHardeningExponent rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:subPropertyOf dyn:hasMechanicalProperty ;
     rdfs:domain dyn:Material ;
-    rdfs:range dyn:PropertyValue ;
+    rdfs:range qudt:QuantityValue ;
     rdfs:label "Hardening Exponent"@en ;
     gui:hasDisplayName "Hardening Exponent" ;
     gui:hasFormGroup "JohnsonCookParameters" ;
     gui:hasDisplayOrder 3 ;
-    rdfs:comment "Hardening exponent (Johnson-Cook n parameter) with provenance"@en .
+    rdfs:comment "Hardening exponent (Johnson-Cook n parameter)"@en .
 
 dyn:hasStrainRateCoefficient rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:subPropertyOf dyn:hasMechanicalProperty ;
     rdfs:domain dyn:Material ;
-    rdfs:range dyn:PropertyValue ;
+    rdfs:range qudt:QuantityValue ;
     rdfs:label "Strain Rate Coefficient"@en ;
     gui:hasDisplayName "Strain Rate Coefficient" ;
     gui:hasFormGroup "JohnsonCookParameters" ;
     gui:hasDisplayOrder 4 ;
-    rdfs:comment "Strain rate coefficient (Johnson-Cook C parameter) with provenance"@en .
+    rdfs:comment "Strain rate coefficient (Johnson-Cook C parameter)"@en .
 
 dyn:hasThermalSofteningCoefficient rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:subPropertyOf dyn:hasMechanicalProperty ;
     rdfs:domain dyn:Material ;
-    rdfs:range dyn:PropertyValue ;
+    rdfs:range qudt:QuantityValue ;
     rdfs:label "Thermal Softening Coefficient"@en ;
     gui:hasDisplayName "Thermal Softening Coefficient" ;
     gui:hasFormGroup "JohnsonCookParameters" ;
     gui:hasDisplayOrder 5 ;
-    rdfs:comment "Thermal softening coefficient (Johnson-Cook m parameter) with provenance"@en .
+    rdfs:comment "Thermal softening coefficient (Johnson-Cook m parameter)"@en .
 
 #################################################################
 #    Object Properties - Characterization and Phases
@@ -293,12 +179,12 @@ dyn:hasLotNumber rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
 dyn:hasDescription rdfs:domain dyn:Material .
 
 #################################################################
-#    Data Properties - Basic Material Properties
+#    Object Properties - Basic Material Properties (QuantityValue)
 #################################################################
 
-dyn:hasDensity rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+dyn:hasDensity rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Material ;
-    rdfs:range xsd:double ;
+    rdfs:range qudt:QuantityValue ;
     qudt:hasQuantityKind qkdv:Density ;
     rdfs:label "Density"@en ;
     gui:hasDisplayName "Density" ;
@@ -307,9 +193,9 @@ dyn:hasDensity rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     dyn:hasUnit "unit:GM-PER-CentiM3" ;
     rdfs:comment "Material density"@en .
 
-dyn:hasMeltingPoint rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+dyn:hasMeltingPoint rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Material ;
-    rdfs:range xsd:double ;
+    rdfs:range qudt:QuantityValue ;
     qudt:hasQuantityKind qkdv:MeltingPoint ;
     rdfs:label "Melting Point"@en ;
     gui:hasDisplayName "Melting Point (°C)" ;
@@ -318,9 +204,9 @@ dyn:hasMeltingPoint rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     dyn:hasUnit "unit:DEG_C" ;
     rdfs:comment "Melting temperature of the material"@en .
 
-dyn:hasThermalConductivity rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+dyn:hasThermalConductivity rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Material ;
-    rdfs:range xsd:double ;
+    rdfs:range qudt:QuantityValue ;
     qudt:hasQuantityKind qkdv:ThermalConductivity ;
     rdfs:label "Thermal Conductivity"@en ;
     gui:hasDisplayName "Thermal Conductivity (W/m·K)" ;
@@ -329,9 +215,9 @@ dyn:hasThermalConductivity rdf:type owl:DatatypeProperty, owl:FunctionalProperty
     dyn:hasUnit "unit:W-PER-M-K" ;
     rdfs:comment "Thermal conductivity coefficient"@en .
 
-dyn:hasSpecificHeat rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+dyn:hasSpecificHeat rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Material ;
-    rdfs:range xsd:double ;
+    rdfs:range qudt:QuantityValue ;
     qudt:hasQuantityKind qkdv:SpecificHeatCapacity ;
     rdfs:label "Specific Heat"@en ;
     gui:hasDisplayName "Specific Heat (J/kg·K)" ;
@@ -340,9 +226,9 @@ dyn:hasSpecificHeat rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     dyn:hasUnit "unit:J-PER-KiloGM-K" ;
     rdfs:comment "Specific heat capacity"@en .
 
-dyn:hasWaveSpeed rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+dyn:hasWaveSpeed rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Material ;
-    rdfs:range xsd:double ;
+    rdfs:range qudt:QuantityValue ;
     qudt:hasQuantityKind qkdv:Velocity ;
     rdfs:label "Wave Speed"@en ;
     gui:hasDisplayName "Elastic Wave Speed (m/s)" ;
