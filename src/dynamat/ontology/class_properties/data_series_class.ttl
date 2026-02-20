@@ -9,6 +9,7 @@
 @prefix qudt: <http://qudt.org/schema/qudt/> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix unit: <http://qudt.org/vocab/unit/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
 @base <http://www.w3.org/2002/07/owl#> .
 
 [ rdf:type owl:Ontology
@@ -16,6 +17,10 @@
 
 # NOTE: Annotation properties (gui:*, qudt:hasQuantityKind, dyn:hasUnit) are
 # defined in core/annotation_vocabulary.ttl - do not redeclare here.
+
+# ProcessedData instances may carry qudt:relativeStandardUncertainty (xsd:double,
+# dimensionless 0-1) when specimen dimension uncertainty was propagated through
+# SHPB stress-strain calculations. This is a scalar systematic error band.
 
 #################################################################
 #    Classes

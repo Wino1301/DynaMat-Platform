@@ -17,7 +17,7 @@ Example:
 
 import logging
 import math
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 from enum import Enum
 
 from dynamat.mechanical.shpb.core.pulse_characteristics import PulseCharacteristics
@@ -101,6 +101,13 @@ class CalculationEngine:
             'pulse_stress_amplitude': self._calc_pulse_stress_amplitude,
         }
         
+        # Uncertainty propagation rules (function_name -> propagation method)
+        self._uncertainty_propagation = {
+            'circular_area_from_diameter': self._unc_circular_area,
+            'rectangular_area': self._unc_rectangular_area,
+            'square_area': self._unc_square_area,
+        }
+
         # Unit conversion factors (to SI base units)
         self.unit_conversions = {
             # Length conversions to meters
@@ -170,7 +177,51 @@ class CalculationEngine:
     def get_available_calculations(self) -> List[str]:
         """Get list of available calculation functions."""
         return list(self.calculation_functions.keys())
-    
+
+    def calculate_with_uncertainty(
+        self, function_name: str, value: float, uncertainty: float = None
+    ) -> Tuple[Optional[float], float]:
+        """Calculate a value and propagate uncertainty.
+
+        Args:
+            function_name: Registered calculation function name.
+            value: The primary input value.
+            uncertainty: Absolute uncertainty of the input (same units as value).
+
+        Returns:
+            (calculated_result, relative_uncertainty_of_result).
+            relative_uncertainty is 0.0 when uncertainty is None/0.
+        """
+        result = self.calculate(function_name, Diameter=value)
+        if result is None:
+            return None, 0.0
+
+        if not uncertainty or uncertainty <= 0 or value == 0:
+            return result, 0.0
+
+        prop_fn = self._uncertainty_propagation.get(function_name)
+        if prop_fn is None:
+            return result, 0.0
+
+        try:
+            rel_unc = prop_fn(value, uncertainty)
+            return result, rel_unc
+        except Exception as e:
+            self.logger.warning(f"Uncertainty propagation failed for {function_name}: {e}")
+            return result, 0.0
+
+    def _unc_circular_area(self, value: float, uncertainty: float) -> float:
+        """A = pi*(d/2)^2 => delta_A/A = 2*(delta_d/d)"""
+        return 2.0 * (uncertainty / abs(value))
+
+    def _unc_rectangular_area(self, value: float, uncertainty: float) -> float:
+        """For single-dimension input: delta_A/A = 2*(delta_s/s) (square assumption)"""
+        return 2.0 * (uncertainty / abs(value))
+
+    def _unc_square_area(self, value: float, uncertainty: float) -> float:
+        """A = s^2 => delta_A/A = 2*(delta_s/s)"""
+        return 2.0 * (uncertainty / abs(value))
+
     def validate_calculation_inputs(self, function_name: str, **kwargs) -> List[str]:
         """
         Validate inputs for a calculation.

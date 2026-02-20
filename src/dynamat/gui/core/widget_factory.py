@@ -520,7 +520,8 @@ class WidgetFactory:
                 default_unit=default_unit,
                 available_units=compatible_units,
                 property_uri=prop.uri,
-                quantity_kind=getattr(prop, 'quantity_kind', None)
+                quantity_kind=getattr(prop, 'quantity_kind', None),
+                show_uncertainty=True
             )
 
             # Set tooltip if description available

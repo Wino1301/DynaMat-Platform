@@ -53,6 +53,35 @@ def extract_numeric_value(value: Any) -> Optional[float]:
     return None
 
 
+def extract_uncertainty_value(value: Any) -> Optional[float]:
+    """Extract standardUncertainty from a QuantityValue dict.
+
+    Returns the uncertainty as a float, or None if not present.
+
+    Args:
+        value: A QuantityValue dict (``{'value': 6.35, 'uncertainty': 0.01, ...}``)
+               or any other type (returns None).
+
+    Returns:
+        The extracted uncertainty float (positive), or ``None`` if not present.
+
+    Examples:
+        >>> extract_uncertainty_value({'value': 6.35, 'uncertainty': 0.01})
+        0.01
+        >>> extract_uncertainty_value({'value': 6.35})
+        >>> extract_uncertainty_value(6.35)
+    """
+    if isinstance(value, dict):
+        unc = value.get('uncertainty')
+        if unc is not None:
+            try:
+                f = float(unc)
+                return f if f > 0 else None
+            except (TypeError, ValueError):
+                return None
+    return None
+
+
 def ensure_typed_literal(value: Any) -> Union[Literal, Any]:
     """
     Convert Python types to RDF Literals with explicit XSD datatypes.

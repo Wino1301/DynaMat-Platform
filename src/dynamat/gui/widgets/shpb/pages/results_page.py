@@ -11,12 +11,12 @@ from PyQt6.QtWidgets import (
     QTabWidget, QWidget
 )
 from PyQt6.QtCore import Qt
-from rdflib import Graph, Namespace, URIRef
-from rdflib.namespace import RDF
+from rdflib import Graph, Literal, Namespace, URIRef
+from rdflib.namespace import RDF, XSD
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.stress_strain import StressStrainCalculator
-from .....mechanical.shpb.io.rdf_helpers import extract_numeric_value
+from .....mechanical.shpb.io.rdf_helpers import extract_numeric_value, extract_uncertainty_value
 from .....mechanical.shpb.io.series_config import (
     get_series_metadata, get_windowed_series_metadata, SHPB_DERIVATION_MAP
 )
@@ -432,6 +432,23 @@ class ResultsPage(BaseSHPBPage):
                 )
                 g.add((ref, RDF.type, DYN.DataSeries))
 
+                # Attach relative uncertainty to stress/strain series
+                UNC_KEY_MAP = {
+                    'stress': 'relative_uncertainty_stress',
+                    'true_stress': 'relative_uncertainty_stress',
+                    'strain': 'relative_uncertainty_strain',
+                    'true_strain': 'relative_uncertainty_strain',
+                    'strain_rate': 'relative_uncertainty_strain_rate',
+                    'true_strain_rate': 'relative_uncertainty_strain_rate',
+                }
+                unc_result_key = UNC_KEY_MAP.get(base_name)
+                if unc_result_key:
+                    rel_unc = results.get(unc_result_key, 0.0)
+                    if isinstance(rel_unc, (int, float)) and rel_unc > 0:
+                        QUDT = Namespace("http://qudt.org/schema/qudt/")
+                        g.add((ref, QUDT.relativeStandardUncertainty,
+                               Literal(float(rel_unc), datatype=XSD.double)))
+
                 # Declare SeriesType individual
                 st_ref = URIRef(meta['series_type'])
                 g.add((st_ref, RDF.type, DYN.SeriesType))
@@ -481,6 +498,24 @@ class ResultsPage(BaseSHPBPage):
             if not specimen_area or not specimen_height:
                 raise ValueError("Missing specimen dimensions")
 
+            # Extract uncertainty from specimen dimensions
+            # Diameter uncertainty -> area relative uncertainty
+            diameter_data = specimen_data.get(f'{DYN_NS}hasOriginalDiameter')
+            diameter = extract_numeric_value(diameter_data)
+            diameter_unc = extract_uncertainty_value(diameter_data)
+
+            area_rel_unc = 0.0
+            if diameter and diameter > 0 and diameter_unc and diameter_unc > 0:
+                area_rel_unc = 2.0 * (diameter_unc / diameter)  # delta_A/A = 2*(delta_d/d)
+
+            # Height uncertainty -> strain/strain-rate relative uncertainty
+            height_data = specimen_data.get(f'{DYN_NS}hasOriginalHeight')
+            height_unc = extract_uncertainty_value(height_data)
+
+            height_rel_unc = 0.0
+            if specimen_height and specimen_height > 0 and height_unc and height_unc > 0:
+                height_rel_unc = height_unc / specimen_height  # delta_L/L
+
             # Get aligned pulses
             incident = self.state.aligned_pulses.get('incident')
             transmitted = self.state.aligned_pulses.get('transmitted')
@@ -498,7 +533,9 @@ class ResultsPage(BaseSHPBPage):
                 specimen_area=float(specimen_area),
                 specimen_height=float(specimen_height),
                 strain_scale_factor=1e4,  # Assuming voltage input
-                use_voltage_input=False
+                use_voltage_input=False,
+                specimen_area_rel_uncertainty=area_rel_unc,
+                specimen_height_rel_uncertainty=height_rel_unc
             )
 
             # Calculate results
@@ -630,6 +667,17 @@ class ResultsPage(BaseSHPBPage):
                     label="1-wave", color="blue", linewidth=2
                 )
 
+                # Uncertainty band for 1-wave stress-strain
+                rel_unc = results.get('relative_uncertainty_stress', 0.0)
+                if rel_unc > 0:
+                    self.stress_strain_plot.fill_between(
+                        strain_1w,
+                        stress_1w * (1 - rel_unc),
+                        stress_1w * (1 + rel_unc),
+                        color='blue', alpha=0.12,
+                        label=f'\u00b1{rel_unc:.2%} systematic'
+                    )
+
             # Engineering 3-wave (dashed blue)
             strain_3w = results.get('strain_3w', [])
             stress_3w = results.get('stress_3w', [])
@@ -743,6 +791,17 @@ class ResultsPage(BaseSHPBPage):
                     label="1-wave", color="blue", linewidth=1.5
                 )
 
+                # Uncertainty band for 1-wave stress vs time
+                rel_unc = results.get('relative_uncertainty_stress', 0.0)
+                if rel_unc > 0:
+                    self.stress_time_plot.fill_between(
+                        time[:len(stress_1w)],
+                        stress_1w * (1 - rel_unc),
+                        stress_1w * (1 + rel_unc),
+                        color='blue', alpha=0.12,
+                        label=f'\u00b1{rel_unc:.2%} area unc.'
+                    )
+
             # Engineering 3-wave (dashed blue)
             stress_3w = results.get('stress_3w', [])
             if len(stress_3w) > 0:
@@ -797,6 +856,17 @@ class ResultsPage(BaseSHPBPage):
                     y_series_type_uri='dyn:Strain',
                     label="1-wave", color="blue", linewidth=1.5
                 )
+
+                # Uncertainty band for 1-wave strain vs time
+                rel_unc = results.get('relative_uncertainty_strain', 0.0)
+                if rel_unc > 0:
+                    self.strain_time_plot.fill_between(
+                        time[:len(strain_1w)],
+                        strain_1w * (1 - rel_unc),
+                        strain_1w * (1 + rel_unc),
+                        color='green', alpha=0.12,
+                        label=f'\u00b1{rel_unc:.2%} height unc.'
+                    )
 
             # Engineering 3-wave (dashed blue)
             strain_3w = results.get('strain_3w', [])
