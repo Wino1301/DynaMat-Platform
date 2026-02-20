@@ -5,10 +5,52 @@ Provides functions for converting Python types to RDF Literals with explicit XSD
 Extracted from SHPBTestMetadata for reuse across the io module.
 """
 
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 import numpy as np
 from rdflib import Literal
 from rdflib.namespace import XSD
+
+
+def extract_numeric_value(value: Any) -> Optional[float]:
+    """Extract a numeric value from a QuantityValue dict or a scalar.
+
+    Handles the dual format produced by the QuantityValue refactoring:
+    - If *value* is a dict with a ``'value'`` key (QuantityValue pattern),
+      returns the numeric value as a float.
+    - If *value* is already numeric (int/float), returns ``float(value)``.
+    - Otherwise returns ``None``.
+
+    Args:
+        value: A QuantityValue dict (``{'value': 6.35, 'unit': ...}``)
+               or a plain numeric scalar.
+
+    Returns:
+        The extracted float, or ``None`` if the input is not numeric.
+
+    Examples:
+        >>> extract_numeric_value({'value': 6.35, 'unit': 'http://qudt.org/vocab/unit/MilliM'})
+        6.35
+        >>> extract_numeric_value(6.35)
+        6.35
+        >>> extract_numeric_value("not a number")
+    """
+    if isinstance(value, dict):
+        v = value.get('value')
+        if v is not None:
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return None
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    # Try string-to-float as last resort (RDF Literal .toPython() may return str)
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            return None
+    return None
 
 
 def ensure_typed_literal(value: Any) -> Union[Literal, Any]:

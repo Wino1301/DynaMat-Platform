@@ -68,31 +68,44 @@ dyn:Specimen rdf:type owl:Class ;
 - [ ] Has descriptive rdfs:comment
 - [ ] Follows naming convention (PascalCase for classes)
 
-### 2. Property Definition with GUI Annotations
+### 2. Measurement Property Definition (QuantityValue Pattern)
+
+All measurement properties use `qudt:QuantityValue` range to produce self-describing blank nodes.
 
 ```turtle
 # In specimen_class.ttl
-dyn:hasOriginalLength rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+dyn:hasOriginalLength rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
+    rdfs:range qudt:QuantityValue ;
     qudt:hasQuantityKind qkdv:Length ;
 
     # GUI annotations (CRITICAL for form generation)
-    gui:hasDisplayName "Original Length (mm)" ;
+    gui:hasDisplayName "Original Length" ;
     gui:hasFormGroup "GeometryDimensions" ;
     gui:hasGroupOrder 2 ;
     gui:hasDisplayOrder 3 ;
-    dyn:hasUnit "unit:MilliM" ;
+    dyn:hasUnit "unit:MilliM" ;           # GUI default unit for combo box
 
     rdfs:label "Original Length"@en ;
     rdfs:comment "Initial length of specimen before testing"@en .
 ```
 
+Instance data produced by the GUI:
+```turtle
+dyn:DYNML_A356_0001 dyn:hasOriginalLength [
+    a qudt:QuantityValue ;
+    qudt:numericValue "10.0"^^xsd:double ;
+    qudt:unit unit:MilliM ;
+    qudt:hasQuantityKind qkdv:Length ;
+    qudt:standardUncertainty "0.01"^^xsd:double   # optional
+] .
+```
+
 **Validation Checklist**:
-- [ ] Correct property type (owl:DatatypeProperty or owl:ObjectProperty)
+- [ ] Correct property type (`owl:ObjectProperty` for measurements, `owl:DatatypeProperty` for strings/dates/booleans)
 - [ ] Functional property when appropriate (single value)
 - [ ] Proper rdfs:domain (which class this property belongs to)
-- [ ] Proper rdfs:range (data type or class)
+- [ ] Proper rdfs:range (`qudt:QuantityValue` for measurements, `xsd:string`/`xsd:date` for non-measurements)
 - [ ] QUDT integration for measurements (qudt:hasQuantityKind)
 - [ ] **GUI Annotations** (essential for GUI generation):
   - [ ] gui:hasDisplayName (user-friendly label)
@@ -180,30 +193,36 @@ The GUI automatically chooses widgets based on property definitions:
 | `xsd:string` + `gui:hasValidValues` | Dropdown (QComboBox) |
 | `xsd:integer` | Number input (QSpinBox) |
 | `xsd:double` | Decimal input (QDoubleSpinBox) |
-| `xsd:double` + `qudt:hasQuantityKind` | UnitValueWidget (number + unit dropdown) |
+| `qudt:QuantityValue` range | UnitValueWidget (value + unit dropdown + optional uncertainty) |
 | `xsd:boolean` | Checkbox (QCheckBox) |
 | `xsd:date` | Date picker (QDateEdit) |
 | `owl:ObjectProperty` → Class | Dropdown with individuals of that class |
 
 ## Established Patterns You Must Enforce
 
-### Pattern 1: The Measurement Pattern
+### Pattern 1: The Measurement Pattern (QuantityValue)
 
 **WRONG**:
 ```turtle
-dyn:SPN_001 dyn:hasLength "10.0 mm" .  # Loses semantic meaning!
+dyn:SPN_001 dyn:hasLength "10.0 mm" .           # Loses semantic meaning!
+dyn:SPN_001 dyn:hasOriginalLength "10.0"^^xsd:double .  # Loses unit info!
 ```
 
-**CORRECT**:
+**CORRECT** (QuantityValue blank node):
 ```turtle
-# Option A: Separate value and unit properties
-dyn:SPN_001 dyn:hasOriginalLength 10.0 ;
-            dyn:hasOriginalLengthUnit unit:MilliM .
-
-# Option B: QUDT integration (preferred for new properties)
-dyn:hasOriginalLength rdf:type owl:DatatypeProperty ;
+# Property definition (T-Box):
+dyn:hasOriginalLength rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:range qudt:QuantityValue ;
     qudt:hasQuantityKind qkdv:Length ;
-    dyn:hasUnit "unit:MilliM" .
+    dyn:hasUnit "unit:MilliM" .         # GUI default unit
+
+# Instance data (A-Box):
+dyn:SPN_001 dyn:hasOriginalLength [
+    a qudt:QuantityValue ;
+    qudt:numericValue "10.0"^^xsd:double ;
+    qudt:unit unit:MilliM ;
+    qudt:hasQuantityKind qkdv:Length
+] .
 ```
 
 ### Pattern 2: Individual vs. Literal Values
@@ -334,9 +353,9 @@ dyn:hasSurfaceRoughness rdf:type owl:DatatypeProperty ;
 Adding surface roughness property to Specimen class.
 
 ### Semantic Analysis
-✅ Correct property type (owl:DatatypeProperty)
+❌ Wrong property type — measurement properties must be `owl:ObjectProperty` with `rdfs:range qudt:QuantityValue`
 ✅ Proper domain (dyn:Specimen)
-✅ Appropriate range (xsd:double)
+❌ Range should be `qudt:QuantityValue`, not `xsd:double`
 ⚠️ Missing owl:FunctionalProperty (should be single-valued)
 ❌ Missing documentation (rdfs:label, rdfs:comment)
 
@@ -348,16 +367,16 @@ Adding surface roughness property to Specimen class.
 ❌ Missing QUDT annotations (this is a measurement!)
 
 ### Pattern Compliance
-⚠️ Should include unit information (Ra values in micrometers)
+❌ Must use QuantityValue pattern — all measurements use `qudt:QuantityValue` range
 ⚠️ File location not specified (should go in specimen_class.ttl)
 
 ### Recommendations
 
-Add QUDT integration for unit handling:
+Use the QuantityValue measurement pattern:
 ```turtle
-dyn:hasSurfaceRoughness rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+dyn:hasSurfaceRoughness rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
-    rdfs:range xsd:double ;
+    rdfs:range qudt:QuantityValue ;
     qudt:hasQuantityKind qkdv:Length ;  # Surface roughness is a length measurement
 
     # GUI annotations
@@ -365,7 +384,7 @@ dyn:hasSurfaceRoughness rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     gui:hasFormGroup "Manufacturing" ;
     gui:hasGroupOrder 3 ;  # Manufacturing is typically group 3
     gui:hasDisplayOrder 1 ;  # First field in Manufacturing group
-    dyn:hasUnit "unit:MicroM" ;  # Ra typically measured in micrometers
+    dyn:hasUnit "unit:MicroM" ;  # Ra typically measured in micrometers (GUI default unit)
     gui:hasTooltip "Average surface roughness (Ra) measured via profilometry" ;
 
     rdfs:label "Surface Roughness"@en ;
@@ -375,7 +394,7 @@ dyn:hasSurfaceRoughness rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
 This should be added to: `dynamat/ontology/class_properties/specimen_class.ttl`
 
 ### Approval Status
-❌ NEEDS REVISION - Missing critical GUI annotations and documentation
+❌ NEEDS REVISION - Must use QuantityValue pattern, missing GUI annotations and documentation
 
 ---
 

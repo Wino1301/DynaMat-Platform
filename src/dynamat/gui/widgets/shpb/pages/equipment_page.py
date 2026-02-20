@@ -20,6 +20,7 @@ from rdflib import Graph, Namespace, URIRef
 from rdflib.namespace import RDF
 
 from .base_page import BaseSHPBPage
+from .....mechanical.shpb.io.rdf_helpers import extract_numeric_value
 from .....mechanical.shpb.io.specimen_loader import SpecimenLoader
 from .....config import config
 from ....builders.customizable_form_builder import CustomizableFormBuilder
@@ -419,14 +420,9 @@ class EquipmentPage(BaseSHPBPage):
         }
 
         for uri, key in prop_map.items():
-            value = form_data.get(uri)
-            if isinstance(value, dict):
-                value = value.get('value')
-            if value is not None:
-                try:
-                    chars[key] = float(value)
-                except (ValueError, TypeError):
-                    pass
+            numeric = extract_numeric_value(form_data.get(uri))
+            if numeric is not None:
+                chars[key] = numeric
 
         # Compute pulse_points from equipment properties + sampling interval
         # Uses same approach as PulseCharacteristics: 2*L_mm / C_m_s gives ms
@@ -434,12 +430,14 @@ class EquipmentPage(BaseSHPBPage):
         sampling_interval = self.state.sampling_interval
 
         if equipment and sampling_interval:
-            striker_length = equipment.get('striker_bar', {}).get('length')
-            bar_wave_speed = equipment.get('incident_bar', {}).get('wave_speed')
+            striker_length = extract_numeric_value(
+                equipment.get('striker_bar', {}).get('length'))
+            bar_wave_speed = extract_numeric_value(
+                equipment.get('incident_bar', {}).get('wave_speed'))
 
             if striker_length and bar_wave_speed:
                 try:
-                    pulse_duration_ms = (2.0 * float(striker_length)) / float(bar_wave_speed)
+                    pulse_duration_ms = (2.0 * striker_length) / bar_wave_speed
                     chars['pulse_points'] = int(pulse_duration_ms / float(sampling_interval))
                 except (ValueError, TypeError, ZeroDivisionError):
                     pass

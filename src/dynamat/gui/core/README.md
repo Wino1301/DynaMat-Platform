@@ -159,7 +159,7 @@ Centralized factory for creating form widgets from ontology metadata.
 The factory determines widget types in priority order:
 
 1. Read-only string properties -> QLabel
-2. Measurement properties (has compatible_units) -> UnitValueWidget
+2. Measurement properties (has compatible_units) -> QuantityValueWidget
 3. Object properties (data_type=object) -> QComboBox or QListWidget
 4. Suggested widget type from metadata
 5. Fallback based on data_type
@@ -176,7 +176,7 @@ The factory determines widget types in priority order:
 | date | QDateEdit | Date picker with calendar |
 | object | QComboBox | Dropdown for individuals |
 | object (non-functional) | QListWidget | Multi-select list |
-| measurement | UnitValueWidget | Value + unit selection |
+| measurement | QuantityValueWidget | Value + unit selection |
 
 **Example:**
 
@@ -237,7 +237,7 @@ data = handler.extract_form_data(form)
 | QDoubleSpinBox | float |
 | QDateEdit | str (yyyy-MM-dd) |
 | QCheckBox | bool |
-| UnitValueWidget | Dict[value, unit, unit_symbol] |
+| QuantityValueWidget | Dict[value, unit, unit_symbol] |
 
 ---
 

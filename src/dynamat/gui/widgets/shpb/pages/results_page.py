@@ -16,6 +16,7 @@ from rdflib.namespace import RDF
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.stress_strain import StressStrainCalculator
+from .....mechanical.shpb.io.rdf_helpers import extract_numeric_value
 from .....mechanical.shpb.io.series_config import (
     get_series_metadata, get_windowed_series_metadata, SHPB_DERIVATION_MAP
 )
@@ -459,9 +460,12 @@ class ResultsPage(BaseSHPBPage):
                 raise ValueError("Equipment properties not available")
 
             # Get bar properties
-            bar_area = equipment.get('incident_bar', {}).get('cross_section')
-            bar_wave_speed = equipment.get('incident_bar', {}).get('wave_speed')
-            bar_modulus = equipment.get('incident_bar', {}).get('elastic_modulus')
+            bar_area = extract_numeric_value(
+                equipment.get('incident_bar', {}).get('cross_section'))
+            bar_wave_speed = extract_numeric_value(
+                equipment.get('incident_bar', {}).get('wave_speed'))
+            bar_modulus = extract_numeric_value(
+                equipment.get('incident_bar', {}).get('elastic_modulus'))
 
             if not all([bar_area, bar_wave_speed, bar_modulus]):
                 raise ValueError("Missing bar properties")
@@ -469,18 +473,10 @@ class ResultsPage(BaseSHPBPage):
             # Get specimen properties
             specimen_data = self.state.specimen_data or {}
 
-            specimen_area = specimen_data.get(
-                f'{DYN_NS}hasOriginalCrossSection'
-            )
-            specimen_height = specimen_data.get(
-                f'{DYN_NS}hasOriginalHeight'
-            )
-
-            # Handle measurement dictionaries
-            if isinstance(specimen_area, dict):
-                specimen_area = specimen_area.get('value')
-            if isinstance(specimen_height, dict):
-                specimen_height = specimen_height.get('value')
+            specimen_area = extract_numeric_value(
+                specimen_data.get(f'{DYN_NS}hasOriginalCrossSection'))
+            specimen_height = extract_numeric_value(
+                specimen_data.get(f'{DYN_NS}hasOriginalHeight'))
 
             if not specimen_area or not specimen_height:
                 raise ValueError("Missing specimen dimensions")

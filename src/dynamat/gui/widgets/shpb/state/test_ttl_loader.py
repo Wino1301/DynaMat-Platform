@@ -291,7 +291,7 @@ class TestTTLLoader:
         """Extract all properties of a subject into a URI-keyed dict.
 
         Skips rdf:type triples.  For QuantityValue BNodes, returns
-        measurement dicts compatible with UnitValueWidget/InstanceWriter.
+        measurement dicts compatible with QuantityValueWidget/InstanceWriter.
         """
         props = {}
         for pred, obj in self._graph.predicate_objects(subject):
@@ -339,8 +339,8 @@ class TestTTLLoader:
     def _extract_quantity_value(self, bnode: BNode) -> Dict[str, Any]:
         """Extract measurement dict from a QuantityValue BNode.
 
-        Returns dict compatible with UnitValueWidget.getData() format:
-        {'value': float, 'unit': str, 'reference_unit': str, 'quantity_kind': str}
+        Returns dict compatible with QuantityValueWidget.getData() format:
+        {'value': float, 'unit': str, 'quantity_kind': str}
         """
         result = {}
 

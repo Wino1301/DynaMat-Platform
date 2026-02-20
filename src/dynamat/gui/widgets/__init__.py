@@ -7,7 +7,7 @@ Custom widgets for the DynaMat application
 from .forms.specimen_form import SpecimenFormWidget
 
 # Import from base
-from .base.unit_value_widget import UnitValueWidget
+from .base.quantity_value_widget import QuantityValueWidget
 from .base.entity_selector import (
     EntitySelectorConfig,
     EntitySelectorWidget,
@@ -32,7 +32,7 @@ __all__ = [
     'SpecimenFormWidget',
 
     # Base widgets
-    'UnitValueWidget',
+    'QuantityValueWidget',
 
     # Entity selector
     'EntitySelectorConfig',

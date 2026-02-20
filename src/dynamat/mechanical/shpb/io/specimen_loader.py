@@ -219,10 +219,15 @@ class SpecimenLoader:
                 'properties': {...}  # All other properties
             }
         """
-        # Query for all properties of the specimen
+        # Query handles both direct literal values and QuantityValue BNodes.
+        # For BNodes, OPTIONAL patterns extract the numeric value via COALESCE.
         query = f"""
+        PREFIX qudt: <http://qudt.org/schema/qudt/>
+
         SELECT ?property ?value WHERE {{
-            <{specimen_uri}> ?property ?value .
+            <{specimen_uri}> ?property ?raw .
+            OPTIONAL {{ ?raw qudt:numericValue ?qvValue }}
+            BIND(COALESCE(?qvValue, ?raw) AS ?value)
         }}
         """
 
@@ -257,6 +262,14 @@ class SpecimenLoader:
         for result in results:
             prop = str(result['property'])
             value = result['value']
+
+            # Convert RDFLib types to Python
+            if hasattr(value, 'toPython'):
+                value = value.toPython()
+            if isinstance(value, Decimal):
+                value = float(value)
+            elif isinstance(value, int) and not isinstance(value, bool):
+                value = float(value)
 
             # Extract local name from property URI
             if '#' in prop:

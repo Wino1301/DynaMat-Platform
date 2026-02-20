@@ -20,7 +20,7 @@ Supported Widget Types
 - QDoubleSpinBox (floating-point values)
 - QDateEdit (date values)
 - QCheckBox (boolean values)
-- UnitValueWidget (measurement with units)
+- QuantityValueWidget (measurement with units)
 
 Example
 -------
@@ -363,8 +363,8 @@ class FormDataHandler:
         """
         try:
             # Check for custom unit value widget
-            if self._is_unit_value_widget(widget):
-                return self._extract_unit_value_widget_value(widget)
+            if self._is_quantity_value_widget(widget):
+                return self._extract_quantity_value_widget_value(widget)
             
             # Check standard widget types
             widget_type = type(widget)
@@ -399,8 +399,8 @@ class FormDataHandler:
                 return False
             
             # Check for custom unit value widget
-            if self._is_unit_value_widget(widget):
-                return self._set_unit_value_widget_value(widget, value)
+            if self._is_quantity_value_widget(widget):
+                return self._set_quantity_value_widget_value(widget, value)
             
             # Check standard widget types
             widget_type = type(widget)
@@ -485,18 +485,14 @@ class FormDataHandler:
         """Extract value from QCheckBox."""
         return widget.isChecked()
     
-    def _extract_unit_value_widget_value(self, widget: QWidget) -> Dict[str, Any]:
-        """Extract value from UnitValueWidget."""
+    def _extract_quantity_value_widget_value(self, widget: QWidget) -> Dict[str, Any]:
+        """Extract value from QuantityValueWidget."""
         try:
             data = {
                 'value': widget.getValue(),
                 'unit': widget.getUnit(),
                 'unit_symbol': widget.getUnitSymbol()
             }
-
-            # Add reference_unit if available (for unit conversion)
-            if hasattr(widget, 'reference_unit_uri') and widget.reference_unit_uri:
-                data['reference_unit'] = widget.reference_unit_uri
 
             # Add quantity_kind for QuantityValue BNode serialization
             if hasattr(widget, 'quantity_kind') and widget.quantity_kind:
@@ -686,8 +682,8 @@ class FormDataHandler:
         except Exception:
             return False
     
-    def _set_unit_value_widget_value(self, widget: QWidget, value: Any) -> bool:
-        """Set value for UnitValueWidget."""
+    def _set_quantity_value_widget_value(self, widget: QWidget, value: Any) -> bool:
+        """Set value for QuantityValueWidget."""
         try:
             if isinstance(value, dict):
                 # Set value and unit separately
@@ -725,8 +721,8 @@ class FormDataHandler:
     # HELPER METHODS
     # ============================================================================
     
-    def _is_unit_value_widget(self, widget: QWidget) -> bool:
-        """Check if widget is a UnitValueWidget."""
+    def _is_quantity_value_widget(self, widget: QWidget) -> bool:
+        """Check if widget is a QuantityValueWidget."""
         return (hasattr(widget, 'getValue') and 
                 hasattr(widget, 'setValue') and 
                 hasattr(widget, 'getUnit') and 

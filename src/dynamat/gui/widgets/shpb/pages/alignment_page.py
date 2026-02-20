@@ -18,6 +18,7 @@ from rdflib import Graph
 
 from .base_page import BaseSHPBPage
 from .....mechanical.shpb.core.pulse_alignment import PulseAligner
+from .....mechanical.shpb.io.rdf_helpers import extract_numeric_value
 from ...base.plotting import create_plot_widget
 from ....builders.customizable_form_builder import CustomizableFormBuilder
 
@@ -296,17 +297,17 @@ class AlignmentPage(BaseSHPBPage):
                 raise ValueError("Equipment properties not available")
 
             # Get bar wave speed and specimen height
-            bar_wave_speed = equipment.get('incident_bar', {}).get('wave_speed')
+            bar_wave_speed = extract_numeric_value(
+                equipment.get('incident_bar', {}).get('wave_speed')
+            )
             if not bar_wave_speed:
                 raise ValueError("Bar wave speed not available")
 
             # Get specimen height
             specimen_data = self.state.specimen_data or {}
-            specimen_height = specimen_data.get(f'{DYN_NS}hasOriginalHeight')
-
-            if isinstance(specimen_height, dict):
-                specimen_height = specimen_height.get('value')
-
+            specimen_height = extract_numeric_value(
+                specimen_data.get(f'{DYN_NS}hasOriginalHeight')
+            )
             if not specimen_height:
                 raise ValueError("Specimen height not available")
 

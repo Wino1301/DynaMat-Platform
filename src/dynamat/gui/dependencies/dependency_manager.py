@@ -196,11 +196,11 @@ class DependencyManager(QObject):
         field = self.active_form.form_fields[trigger_property]
         widget = field.widget
 
-        # Import UnitValueWidget here to avoid circular imports
+        # Import QuantityValueWidget here to avoid circular imports
         try:
-            from ..widgets.base.unit_value_widget import UnitValueWidget
+            from ..widgets.base.quantity_value_widget import QuantityValueWidget
         except ImportError:
-            UnitValueWidget = None
+            QuantityValueWidget = None
 
         # Connect appropriate signal based on widget type
         if isinstance(widget, QComboBox):
@@ -211,7 +211,7 @@ class DependencyManager(QObject):
             widget.valueChanged.connect(
                 lambda: self._on_trigger_changed(trigger_property)
             )
-        elif UnitValueWidget and isinstance(widget, UnitValueWidget):
+        elif QuantityValueWidget and isinstance(widget, QuantityValueWidget):
             widget.valueChanged.connect(
                 lambda: self._on_trigger_changed(trigger_property)
             )
@@ -1028,7 +1028,7 @@ class DependencyManager(QObject):
             self.logger.debug(f"Flat input {property_uri} has no value")
             return None
 
-        # Handle UnitValueWidget dict values
+        # Handle QuantityValueWidget dict values
         if isinstance(raw_value, dict):
             raw_value = raw_value.get('value', raw_value)
 
@@ -1528,11 +1528,11 @@ class DependencyManager(QObject):
         For QListWidget: Returns list of URIs from selected items
         For other widgets: Returns their native value
         """
-        # Import UnitValueWidget here to avoid circular imports
+        # Import QuantityValueWidget here to avoid circular imports
         try:
-            from ..widgets.base.unit_value_widget import UnitValueWidget
+            from ..widgets.base.quantity_value_widget import QuantityValueWidget
         except ImportError:
-            UnitValueWidget = None
+            QuantityValueWidget = None
 
         if isinstance(widget, QComboBox):
             # QComboBox should store URI in currentData()
@@ -1562,7 +1562,7 @@ class DependencyManager(QObject):
             return widget.text()
         elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
             return widget.value()
-        elif UnitValueWidget and isinstance(widget, UnitValueWidget):
+        elif QuantityValueWidget and isinstance(widget, QuantityValueWidget):
             return widget.getValue()
         elif isinstance(widget, QCheckBox):
             return widget.isChecked()
@@ -1578,11 +1578,11 @@ class DependencyManager(QObject):
 
         from PyQt6.QtWidgets import QLabel
 
-        # Import UnitValueWidget here to avoid circular imports
+        # Import QuantityValueWidget here to avoid circular imports
         try:
-            from ..widgets.base.unit_value_widget import UnitValueWidget
+            from ..widgets.base.quantity_value_widget import QuantityValueWidget
         except ImportError:
-            UnitValueWidget = None
+            QuantityValueWidget = None
 
         if isinstance(widget, QLabel):
             widget.setText(str(value))
@@ -1590,7 +1590,7 @@ class DependencyManager(QObject):
             widget.setText(str(value))
         elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
             widget.setValue(float(value))
-        elif UnitValueWidget and isinstance(widget, UnitValueWidget):
+        elif QuantityValueWidget and isinstance(widget, QuantityValueWidget):
             widget.setValue(float(value))
         elif isinstance(widget, QCheckBox):
             widget.setChecked(bool(value))
@@ -1673,11 +1673,11 @@ class DependencyManager(QObject):
         field = self.active_form.form_fields[property_uri]
         widget = field.widget
 
-        # Import UnitValueWidget here to avoid circular imports
+        # Import QuantityValueWidget here to avoid circular imports
         try:
-            from ..widgets.base.unit_value_widget import UnitValueWidget
+            from ..widgets.base.quantity_value_widget import QuantityValueWidget
         except ImportError:
-            UnitValueWidget = None
+            QuantityValueWidget = None
 
         # Reset to default based on widget type
         if isinstance(widget, QComboBox):
@@ -1692,7 +1692,7 @@ class DependencyManager(QObject):
             widget.setValue(0)
         elif isinstance(widget, QDoubleSpinBox):
             widget.setValue(0.0)
-        elif UnitValueWidget and isinstance(widget, UnitValueWidget):
+        elif QuantityValueWidget and isinstance(widget, QuantityValueWidget):
             widget.setValue(0.0)
         elif isinstance(widget, QCheckBox):
             widget.setChecked(False)

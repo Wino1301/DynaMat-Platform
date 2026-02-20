@@ -12,6 +12,8 @@ from rdflib import Graph, Namespace, RDF, RDFS, Literal, URIRef, BNode
 from rdflib.namespace import XSD
 
 QUDT = Namespace("http://qudt.org/schema/qudt/")
+PROV = Namespace("http://www.w3.org/ns/prov#")
+DC = Namespace("http://purl.org/dc/elements/1.1/")
 
 logger = logging.getLogger(__name__)
 
@@ -577,8 +579,12 @@ class InstanceQueryBuilder:
 
     @staticmethod
     def _extract_quantity_value(graph: Graph, bnode: BNode) -> Dict[str, Any]:
-        """Extract measurement dict from a QuantityValue BNode."""
-        result = {}
+        """Extract full measurement dict from a QuantityValue BNode.
+
+        Reads qudt:numericValue, qudt:unit, qudt:hasQuantityKind,
+        qudt:standardUncertainty, dc:source, and prov:wasGeneratedBy.
+        """
+        result: Dict[str, Any] = {'pattern': 'quantity_value'}
         for obj in graph.objects(bnode, QUDT.numericValue):
             if isinstance(obj, Literal):
                 result['value'] = float(obj.toPython())
@@ -589,6 +595,19 @@ class InstanceQueryBuilder:
             break
         for obj in graph.objects(bnode, QUDT.hasQuantityKind):
             result['quantity_kind'] = str(obj)
+            break
+        # Optional: standard uncertainty
+        for obj in graph.objects(bnode, QUDT.standardUncertainty):
+            if isinstance(obj, Literal):
+                result['uncertainty'] = float(obj.toPython())
+            break
+        # Optional: Dublin Core source (provenance text)
+        for obj in graph.objects(bnode, DC.source):
+            result['source'] = str(obj)
+            break
+        # Optional: PROV-O activity link
+        for obj in graph.objects(bnode, PROV.wasGeneratedBy):
+            result['activity'] = str(obj)
             break
         return result
 

@@ -1,8 +1,8 @@
-# Replace dynamat/gui/widgets/unit_value_widget.py
-
 """
-DynaMat Platform - Unit-Value Widget
-Custom widget for entering dimensional values with units from QUDT ontology
+DynaMat Platform - QuantityValue Widget
+
+Custom widget for entering dimensional values with units from QUDT ontology.
+Supports optional uncertainty entry via qudt:standardUncertainty.
 """
 
 import logging
@@ -16,34 +16,33 @@ from PyQt6.QtCore import Qt, pyqtSignal
 logger = logging.getLogger(__name__)
 
 
-# Add debug output to your UnitValueWidget class
+class QuantityValueWidget(QWidget):
+    """Widget for entering a measurement value with QUDT unit and optional uncertainty."""
 
-class UnitValueWidget(QWidget):
-    """Enhanced UnitValueWidget with debugging"""
-
-    # Signals 
+    # Signals
     valueChanged = pyqtSignal(float)
     unitChanged = pyqtSignal(str)
+    uncertaintyChanged = pyqtSignal(float)
     dataChanged = pyqtSignal()
-    
+
     def __init__(self, default_unit: str = None, available_units: List = None,
-                 property_uri: str = None, reference_unit_uri: str = None,
-                 quantity_kind: str = None, parent=None):
+                 property_uri: str = None,
+                 quantity_kind: str = None, show_uncertainty: bool = False,
+                 parent=None):
         super().__init__(parent)
 
         self.default_unit = default_unit
         self.available_units = available_units or []
         self.property_uri = property_uri
-        self.reference_unit_uri = reference_unit_uri  # The dyn:hasUnit from ontology
         self.quantity_kind = quantity_kind  # qudt:hasQuantityKind URI for QuantityValue serialization
-        
+        self._show_uncertainty = show_uncertainty
+
         self._setup_ui()
         self._populate_units()
         self._connect_signals()
         
     def _setup_ui(self):
-        """Setup the widget UI"""
-
+        """Setup the widget UI."""
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
@@ -58,12 +57,32 @@ class UnitValueWidget(QWidget):
         self.value_spinbox.setMinimumWidth(100)
         layout.addWidget(self.value_spinbox, 1)
 
-        # Unit combobox - MAKE IT WIDER AND MORE VISIBLE
+        # Unit combobox
         self.unit_combobox = QComboBox()
-        self.unit_combobox.setMinimumWidth(100)  # Increased from 60
-        self.unit_combobox.setMaximumWidth(120)  # Increased from 80
-        self.unit_combobox.setStyleSheet("QComboBox { border: 1px solid gray; padding: 2px; }")  # Make it more visible
+        self.unit_combobox.setMinimumWidth(100)
+        self.unit_combobox.setMaximumWidth(120)
+        self.unit_combobox.setStyleSheet("QComboBox { border: 1px solid gray; padding: 2px; }")
         layout.addWidget(self.unit_combobox, 0)
+
+        # Uncertainty spinbox (optional, shown via show_uncertainty param)
+        self.uncertainty_label = QLabel("\u00b1")
+        self.uncertainty_label.setToolTip("Standard uncertainty (qudt:standardUncertainty)")
+        layout.addWidget(self.uncertainty_label, 0)
+
+        self.uncertainty_spinbox = QDoubleSpinBox()
+        self.uncertainty_spinbox.setMinimum(0.0)
+        self.uncertainty_spinbox.setMaximum(1e10)
+        self.uncertainty_spinbox.setDecimals(6)
+        self.uncertainty_spinbox.setSingleStep(0.01)
+        self.uncertainty_spinbox.setValue(0.0)
+        self.uncertainty_spinbox.setSpecialValueText("")  # Show blank when 0
+        self.uncertainty_spinbox.setMinimumWidth(80)
+        self.uncertainty_spinbox.setToolTip("Standard uncertainty")
+        layout.addWidget(self.uncertainty_spinbox, 0)
+
+        # Show/hide uncertainty controls
+        self.uncertainty_label.setVisible(self._show_uncertainty)
+        self.uncertainty_spinbox.setVisible(self._show_uncertainty)
             
     def _populate_units(self):
         """Populate the unit combobox from available units"""
@@ -136,14 +155,14 @@ class UnitValueWidget(QWidget):
         
         return uri
 
-# Also add debugging to the form builder's _create_unit_value_widget method:
-
     def _connect_signals(self):
-        """Connect internal signals"""
+        """Connect internal signals."""
         self.value_spinbox.valueChanged.connect(self.valueChanged.emit)
         self.value_spinbox.valueChanged.connect(self.dataChanged.emit)
         self.unit_combobox.currentTextChanged.connect(self.unitChanged.emit)
         self.unit_combobox.currentTextChanged.connect(self.dataChanged.emit)
+        self.uncertainty_spinbox.valueChanged.connect(self.uncertaintyChanged.emit)
+        self.uncertainty_spinbox.valueChanged.connect(self.dataChanged.emit)
     
     def getValue(self) -> float:
         """Get the current value"""
@@ -176,26 +195,37 @@ class UnitValueWidget(QWidget):
                 break
     
     def getData(self) -> Dict[str, Any]:
-        """Get both value and unit as a dictionary"""
-        return {
+        """Get value, unit, and optional uncertainty as a QuantityValue dict."""
+        data = {
             'value': self.getValue(),
             'unit': self.getUnit(),
             'unit_symbol': self.getUnitSymbol(),
-            'reference_unit': self.reference_unit_uri  # Storage unit from ontology
+            'quantity_kind': self.quantity_kind,
+            'pattern': 'quantity_value',
         }
-    
+        # Include uncertainty only when the field is visible and has a non-zero value
+        if self._show_uncertainty:
+            unc = self.uncertainty_spinbox.value()
+            data['uncertainty'] = unc if unc > 0 else None
+        else:
+            data['uncertainty'] = None
+        return data
+
     def setData(self, data: Dict[str, Any]):
-        """Set value and unit from dictionary"""
+        """Set value, unit, and optional uncertainty from a QuantityValue dict."""
         if 'value' in data:
             self.setValue(data['value'])
         if 'unit' in data:
             self.setUnit(data['unit'])
         elif 'unit_symbol' in data:
             self.setUnitBySymbol(data['unit_symbol'])
+        if 'uncertainty' in data and data['uncertainty'] is not None:
+            self.uncertainty_spinbox.setValue(float(data['uncertainty']))
     
     def clear(self):
-        """Clear the widget"""
+        """Clear the widget."""
         self.value_spinbox.setValue(0.0)
+        self.uncertainty_spinbox.setValue(0.0)
         if self.unit_combobox.count() > 0:
             self.unit_combobox.setCurrentIndex(0)
 
@@ -221,16 +251,24 @@ class UnitValueWidget(QWidget):
         self.value_spinbox.setSingleStep(step)
     
     def setReadOnly(self, read_only: bool):
-        """Set read-only mode"""
+        """Set read-only mode."""
         self.value_spinbox.setReadOnly(read_only)
         self.unit_combobox.setEnabled(not read_only)
+        self.uncertainty_spinbox.setReadOnly(read_only)
     
     def isReadOnly(self) -> bool:
         """Check if widget is read-only"""
         return self.value_spinbox.isReadOnly()
     
+    def setShowUncertainty(self, show: bool):
+        """Show or hide the uncertainty controls at runtime."""
+        self._show_uncertainty = show
+        self.uncertainty_label.setVisible(show)
+        self.uncertainty_spinbox.setVisible(show)
+
     def setEnabled(self, enabled: bool):
-        """Set enabled state"""
+        """Set enabled state."""
         super().setEnabled(enabled)
         self.value_spinbox.setEnabled(enabled)
         self.unit_combobox.setEnabled(enabled)
+        self.uncertainty_spinbox.setEnabled(enabled)

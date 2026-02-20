@@ -160,7 +160,7 @@ class IndividualWriter:
         """Add a property triple to the graph, handling different value types."""
         prop_ref = self._uri_to_ref(prop_uri)
 
-        # Measurement dict from UnitValueWidget -> QuantityValue BNode
+        # Measurement dict from QuantityValueWidget -> QuantityValue BNode
         if isinstance(value, dict) and 'value' in value:
             bnode = self._create_quantity_value(graph, value, prop_uri)
             graph.add((subject, prop_ref, bnode))
@@ -195,7 +195,7 @@ class IndividualWriter:
                                prop_uri: str = None) -> BNode:
         """Create a qudt:QuantityValue blank node from a measurement dictionary."""
         numeric_value = value_dict['value']
-        unit_uri = value_dict.get('reference_unit') or value_dict.get('unit')
+        unit_uri = value_dict.get('unit')
         quantity_kind = value_dict.get('quantity_kind')
 
         # Fallback: look up quantity_kind from ontology

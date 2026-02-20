@@ -37,6 +37,8 @@ class InstanceWriter:
         self.QUDT = Namespace("http://qudt.org/schema/qudt/")
         self.UNIT = Namespace("http://qudt.org/vocab/unit/")
         self.QKDV = Namespace("http://qudt.org/vocab/quantitykind/")
+        self.PROV = Namespace("http://www.w3.org/ns/prov#")
+        self.DC_ELEMENTS = Namespace("http://purl.org/dc/elements/1.1/")
 
         # Initialize SHACL validator
         self.validator = SHACLValidator(ontology_manager)
@@ -186,6 +188,8 @@ class InstanceWriter:
             graph.bind("qudt", self.QUDT)
             graph.bind("unit", self.UNIT)
             graph.bind("qkdv", self.QKDV)
+            graph.bind("prov", self.PROV)
+            graph.bind("dce", self.DC_ELEMENTS)
 
     def _create_instance_uri(self, instance_id: str) -> str:
         """Create full URI for instance from ID."""
@@ -212,7 +216,7 @@ class InstanceWriter:
             return URIRef(self.DYN[uri_string])
 
     def _is_measurement_dict(self, value: Any) -> bool:
-        """Check if value is a measurement dictionary from UnitValueWidget."""
+        """Check if value is a measurement dictionary from QuantityValueWidget."""
         return isinstance(value, dict) and 'value' in value
 
     def _create_quantity_value(self, graph: Graph, value_dict: dict,
@@ -220,44 +224,23 @@ class InstanceWriter:
         """
         Create a qudt:QuantityValue blank node from a measurement dictionary.
 
-        Performs unit conversion if user's selected unit differs from ontology default,
-        then serializes as a structured QuantityValue with numericValue, unit, and
-        hasQuantityKind.
+        Serializes the value as-is (in the user's selected unit) as a structured
+        QuantityValue with numericValue, unit, hasQuantityKind, and optional
+        PROV/DC provenance.
 
         Args:
             graph: RDF graph to add BNode triples to
-            value_dict: Measurement dict with keys: value, unit, reference_unit,
-                        quantity_kind (optional)
+            value_dict: Measurement dict with keys: value, unit,
+                        quantity_kind, uncertainty, source, activity (all optional
+                        except value)
             property_uri: Property URI for quantity_kind fallback lookup
 
         Returns:
             BNode representing the QuantityValue
         """
-        numeric_value = value_dict['value']
-        user_unit = value_dict.get('unit')
-        reference_unit = value_dict.get('reference_unit')
+        stored_value = value_dict['value']
+        stored_unit = value_dict.get('unit')
         quantity_kind = value_dict.get('quantity_kind')
-
-        # Perform unit conversion if units differ
-        stored_value = numeric_value
-        stored_unit = user_unit or reference_unit
-        if user_unit and reference_unit and user_unit != reference_unit and self.qudt:
-            try:
-                stored_value = self.qudt.convert_value(
-                    value=numeric_value,
-                    from_unit_uri=user_unit,
-                    to_unit_uri=reference_unit
-                )
-                stored_unit = reference_unit
-                logger.info(
-                    f"Unit conversion: {numeric_value} ({user_unit}) -> "
-                    f"{stored_value:.6f} ({reference_unit})"
-                )
-            except Exception as e:
-                logger.warning(f"Unit conversion failed ({user_unit} -> {reference_unit}): {e}")
-                stored_unit = user_unit
-        elif reference_unit:
-            stored_unit = reference_unit
 
         # Fallback: look up quantity_kind from ontology if not in dict
         if not quantity_kind and property_uri:
@@ -282,6 +265,16 @@ class InstanceWriter:
         if uncertainty is not None:
             graph.add((bnode, self.QUDT.standardUncertainty,
                        Literal(float(uncertainty), datatype=XSD.double)))
+
+        # Optional: provenance (dc:source and prov:wasGeneratedBy)
+        source = value_dict.get('source')
+        if source:
+            graph.add((bnode, self.DC_ELEMENTS.source,
+                       Literal(str(source), datatype=XSD.string)))
+
+        activity = value_dict.get('activity')
+        if activity:
+            graph.add((bnode, self.PROV.wasGeneratedBy, self._resolve_uri(activity)))
 
         return bnode
 
