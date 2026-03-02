@@ -215,6 +215,10 @@ class DependencyManager(QObject):
             widget.valueChanged.connect(
                 lambda: self._on_trigger_changed(trigger_property)
             )
+            # Re-trigger on uncertainty changes so propagation recalculates
+            widget.uncertaintyChanged.connect(
+                lambda: self._on_trigger_changed(trigger_property)
+            )
         elif isinstance(widget, QLineEdit):
             widget.textChanged.connect(
                 lambda: self._on_trigger_changed(trigger_property)
@@ -942,7 +946,7 @@ class DependencyManager(QObject):
                 field.widget.setEnabled(enabled)
     
     def _action_calculate(self, constraint: Constraint):
-        """Perform calculation operation with nested input resolution and unit conversion."""
+        """Perform calculation operation with nested input resolution, unit conversion, and uncertainty propagation."""
         try:
             # Resolve all inputs (flat and nested) into SI values
             input_values = self._resolve_calculation_inputs(constraint.calculation_inputs)
@@ -954,10 +958,12 @@ class DependencyManager(QObject):
                 )
                 return
 
-            # Perform calculation (engine works in SI)
-            result = self.calculation_engine.calculate(
-                constraint.calculation_function,
-                **input_values
+            # Extract uncertainties from QV input widgets (SI units)
+            input_uncertainties = self._resolve_input_uncertainties(constraint.calculation_inputs)
+
+            # Perform calculation with uncertainty propagation (engine works in SI)
+            result, abs_uncertainty = self.calculation_engine.calculate_with_uncertainty(
+                constraint.calculation_function, input_values, input_uncertainties
             )
 
             if result is not None:
@@ -968,9 +974,21 @@ class DependencyManager(QObject):
 
                 # Set result in target field
                 self._set_widget_value(constraint.calculation_target, display_result)
+
+                # Propagate uncertainty to target widget (same unit conversion)
+                if abs_uncertainty is not None and abs_uncertainty > 0:
+                    display_uncertainty = self._convert_result_to_target_unit(
+                        abs_uncertainty, constraint.calculation_target
+                    )
+                    self._set_widget_uncertainty(constraint.calculation_target, display_uncertainty)
+                else:
+                    # Clear uncertainty when inputs have none
+                    self._set_widget_uncertainty(constraint.calculation_target, 0.0)
+
                 self.logger.info(
                     f"Calculation result: {constraint.calculation_function} = {result} (SI) "
                     f"-> {display_result} (display) -> {constraint.calculation_target}"
+                    f"{f', uncertainty={abs_uncertainty:.6g}' if abs_uncertainty else ''}"
                 )
                 self.calculation_performed.emit(constraint.calculation_target, float(display_result))
                 self._signal_emission_counts['calculation_performed'] += 1
@@ -1237,6 +1255,66 @@ class DependencyManager(QObject):
             self.logger.debug(f"Result conversion failed for {unit_str}: {e}")
             return si_value
     
+    def _resolve_input_uncertainties(self, inputs: List) -> Dict[str, float]:
+        """Extract absolute uncertainties from QuantityValue input widgets, converted to SI.
+
+        Only flat URI inputs are checked (nested tuple inputs reference individual
+        properties which don't carry widget-level uncertainty).
+
+        Args:
+            inputs: List of flat property URI strings or nested tuples.
+
+        Returns:
+            Dict mapping param names (URI local name) to SI absolute uncertainties.
+        """
+        try:
+            from ..widgets.base.quantity_value_widget import QuantityValueWidget
+        except ImportError:
+            return {}
+
+        uncertainties = {}
+        for inp in inputs:
+            if isinstance(inp, tuple):
+                continue  # Nested inputs: no widget uncertainty
+
+            if inp not in self.active_form.form_fields:
+                continue
+
+            field = self.active_form.form_fields[inp]
+            widget = field.widget
+
+            if isinstance(widget, QuantityValueWidget):
+                unc = widget.uncertainty_spinbox.value()
+                if unc > 0:
+                    si_unc = self._convert_to_si(unc, inp)
+                    param_name = inp.split('#')[-1].split('/')[-1]
+                    uncertainties[param_name] = si_unc
+
+        return uncertainties
+
+    def _set_widget_uncertainty(self, property_uri: str, uncertainty: float):
+        """Set the uncertainty value on a QuantityValueWidget target.
+
+        Has no effect if the target widget is not a QuantityValueWidget.
+
+        Args:
+            property_uri: URI of the target property.
+            uncertainty: Absolute uncertainty in the widget's display units.
+        """
+        if property_uri not in self.active_form.form_fields:
+            return
+
+        field = self.active_form.form_fields[property_uri]
+        widget = field.widget
+
+        try:
+            from ..widgets.base.quantity_value_widget import QuantityValueWidget
+        except ImportError:
+            return
+
+        if isinstance(widget, QuantityValueWidget):
+            widget.uncertainty_spinbox.setValue(uncertainty)
+
     def _action_generate(self, constraint: Constraint, trigger_values: Dict[str, Any]):
         """Generate value from template operation."""
         try:

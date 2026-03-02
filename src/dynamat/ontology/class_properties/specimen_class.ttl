@@ -168,8 +168,9 @@ dyn:hasOriginalCrossSection rdf:type owl:ObjectProperty, owl:FunctionalProperty 
     gui:hasFormGroup "GeometryDimensions" ;
     gui:hasGroupOrder 4 ;
     gui:hasDisplayOrder 8 ;
+    gui:isReadOnly true ;
     dyn:hasUnit "unit:MilliM2" ;
-    rdfs:comment "Initial cross-sectional area of specimen"@en .
+    rdfs:comment "Initial cross-sectional area of specimen (calculated from dimensions)"@en .
 
 dyn:hasOriginalMass rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;
@@ -268,8 +269,9 @@ dyn:hasFinalCrossSection rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     gui:hasFormGroup "PostTestDimensions" ;
     gui:hasGroupOrder 5 ;
     gui:hasDisplayOrder 7 ;
+    gui:isReadOnly true ;
     dyn:hasUnit "unit:MilliM2" ;
-    rdfs:comment "Final cross-sectional area after testing"@en .
+    rdfs:comment "Final cross-sectional area after testing (calculated from dimensions)"@en .
 
 dyn:hasFinalMass rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain dyn:Specimen ;

@@ -106,6 +106,8 @@ class CalculationEngine:
             'circular_area_from_diameter': self._unc_circular_area,
             'rectangular_area': self._unc_rectangular_area,
             'square_area': self._unc_square_area,
+            'pulse_strain_amplitude': self._unc_pulse_from_velocity,
+            'pulse_stress_amplitude': self._unc_pulse_from_velocity,
         }
 
         # Unit conversion factors (to SI base units)
@@ -179,48 +181,107 @@ class CalculationEngine:
         return list(self.calculation_functions.keys())
 
     def calculate_with_uncertainty(
-        self, function_name: str, value: float, uncertainty: float = None
-    ) -> Tuple[Optional[float], float]:
-        """Calculate a value and propagate uncertainty.
+        self, function_name: str,
+        input_values: Dict[str, float],
+        input_uncertainties: Dict[str, float]
+    ) -> Tuple[Optional[float], Optional[float]]:
+        """Calculate a value and propagate absolute uncertainty.
+
+        Uses the same calculation function as ``calculate()`` for the value,
+        then delegates to a registered propagation function to compute the
+        absolute uncertainty of the result via standard error propagation.
 
         Args:
             function_name: Registered calculation function name.
-            value: The primary input value.
-            uncertainty: Absolute uncertainty of the input (same units as value).
+            input_values: Dict mapping param names to float values
+                          (same kwargs used by ``calculate``).
+            input_uncertainties: Dict mapping param names to absolute
+                                 uncertainties (same keys as *input_values*).
 
         Returns:
-            (calculated_result, relative_uncertainty_of_result).
-            relative_uncertainty is 0.0 when uncertainty is None/0.
+            ``(result, absolute_uncertainty)`` or ``(result, None)`` when
+            no uncertainty can be propagated.
         """
-        result = self.calculate(function_name, Diameter=value)
+        result = self.calculate(function_name, **input_values)
         if result is None:
-            return None, 0.0
+            return None, None
 
-        if not uncertainty or uncertainty <= 0 or value == 0:
-            return result, 0.0
+        if not input_uncertainties:
+            return result, None
 
         prop_fn = self._uncertainty_propagation.get(function_name)
         if prop_fn is None:
-            return result, 0.0
+            return result, None
 
         try:
-            rel_unc = prop_fn(value, uncertainty)
-            return result, rel_unc
+            abs_unc = prop_fn(result, input_values, input_uncertainties)
+            return result, abs_unc
         except Exception as e:
             self.logger.warning(f"Uncertainty propagation failed for {function_name}: {e}")
-            return result, 0.0
+            return result, None
 
-    def _unc_circular_area(self, value: float, uncertainty: float) -> float:
-        """A = pi*(d/2)^2 => delta_A/A = 2*(delta_d/d)"""
-        return 2.0 * (uncertainty / abs(value))
+    # -- Uncertainty propagation helpers (return absolute uncertainty) ---------
 
-    def _unc_rectangular_area(self, value: float, uncertainty: float) -> float:
-        """For single-dimension input: delta_A/A = 2*(delta_s/s) (square assumption)"""
-        return 2.0 * (uncertainty / abs(value))
+    def _unc_circular_area(self, result: float, values: Dict[str, float],
+                           uncertainties: Dict[str, float]) -> Optional[float]:
+        """A = pi*(d/2)^2 => delta_A = |A| * 2 * (delta_d / |d|)"""
+        for key in values:
+            if 'Diameter' in key or 'diameter' in key:
+                d = values[key]
+                d_unc = uncertainties.get(key)
+                if d_unc and d_unc > 0 and d != 0:
+                    return abs(result) * 2.0 * (d_unc / abs(d))
+        return None
 
-    def _unc_square_area(self, value: float, uncertainty: float) -> float:
-        """A = s^2 => delta_A/A = 2*(delta_s/s)"""
-        return 2.0 * (uncertainty / abs(value))
+    def _unc_rectangular_area(self, result: float, values: Dict[str, float],
+                              uncertainties: Dict[str, float]) -> Optional[float]:
+        """A = w*t => delta_A = |A| * sqrt((delta_w/w)^2 + (delta_t/t)^2)"""
+        w, w_unc, t, t_unc = None, None, None, None
+        for key in values:
+            if 'Width' in key or 'width' in key:
+                w = values[key]
+                w_unc = uncertainties.get(key)
+            elif 'Thickness' in key or 'thickness' in key:
+                t = values[key]
+                t_unc = uncertainties.get(key)
+
+        rel_sq = 0.0
+        if w and w_unc and w_unc > 0 and w != 0:
+            rel_sq += (w_unc / abs(w)) ** 2
+        if t and t_unc and t_unc > 0 and t != 0:
+            rel_sq += (t_unc / abs(t)) ** 2
+
+        if rel_sq == 0:
+            return None
+        return abs(result) * math.sqrt(rel_sq)
+
+    def _unc_square_area(self, result: float, values: Dict[str, float],
+                         uncertainties: Dict[str, float]) -> Optional[float]:
+        """A = s^2 => delta_A = |A| * 2 * (delta_s / |s|)"""
+        for key in values:
+            if 'Length' in key or 'length' in key:
+                s = values[key]
+                s_unc = uncertainties.get(key)
+                if s_unc and s_unc > 0 and s != 0:
+                    return abs(result) * 2.0 * (s_unc / abs(s))
+        return None
+
+    def _unc_pulse_from_velocity(self, result: float, values: Dict[str, float],
+                                 uncertainties: Dict[str, float]) -> Optional[float]:
+        """Pulse strain/stress amplitude: result ~ V => delta_R/R = delta_V/V.
+
+        Both pulse_strain_amplitude (V/2C) and pulse_stress_amplitude (rhoCV/2)
+        are linearly proportional to striker velocity V.  The other terms
+        (wave speed C, density rho) come from equipment individuals with no
+        widget-level uncertainty, so only V contributes.
+        """
+        for key in values:
+            if 'StrikerVelocity' in key or 'strikerVelocity' in key or 'Velocity' in key:
+                v = values[key]
+                v_unc = uncertainties.get(key)
+                if v_unc and v_unc > 0 and v != 0:
+                    return abs(result) * (v_unc / abs(v))
+        return None
 
     def validate_calculation_inputs(self, function_name: str, **kwargs) -> List[str]:
         """
