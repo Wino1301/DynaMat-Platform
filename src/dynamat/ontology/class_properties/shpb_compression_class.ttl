@@ -275,8 +275,8 @@ dyn:hasPulseStrainAmplitude rdf:type owl:ObjectProperty ,
                                      owl:FunctionalProperty ;
                             rdfs:domain dyn:SHPBCompression ;
                             rdfs:range qudt:QuantityValue ;
-                            qudt:hasQuantityKind qkdv:Strain ;
-                            rdfs:comment "Maximum strain amplitude of the incident pulse (calculated: V/2C)"@en ;
+                            qudt:hasQuantityKind qkdv:Dimensionless ;
+                            rdfs:comment "Maximum strain amplitude of the incident pulse (calculated: V/2C). Dimensionless (ΔL/L)."@en ;
                             rdfs:label "Pulse Strain Amplitude"@en ;
                             dyn:hasUnit "unit:UNITLESS" ;
                             gui:hasDisplayName "Strain Amplitude" ;
