@@ -394,7 +394,15 @@ class ExportPage(BaseSHPBPage):
         self._instance_writer._setup_namespaces(final)
 
         for s, p, o in graph:
-            new_s = URIRef(replacements.get(str(s), str(s)))
+            # Only rename URIRef subjects that are in the replacements map.
+            # BNode subjects (e.g. qudt:QuantityValue blank nodes) must be
+            # preserved as BNodes — converting them to URIRefs would
+            # disconnect the blank node object references from their
+            # sub-triples and produce bare, invalid qudt:QuantityValue nodes.
+            if isinstance(s, URIRef):
+                new_s = URIRef(replacements.get(str(s), str(s)))
+            else:
+                new_s = s  # preserve BNodes as-is
             new_o = URIRef(replacements[str(o)]) if isinstance(o, URIRef) and str(o) in replacements else o
             final.add((new_s, p, new_o))
 

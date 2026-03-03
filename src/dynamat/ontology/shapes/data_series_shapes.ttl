@@ -125,6 +125,20 @@ dyn:ProcessedDataShape a sh:NodeShape ;
         sh:path dyn:derivedFrom ;
         sh:message "Processed data should reference source raw data series" ;
         sh:severity sh:Info ;
+    ] ;
+
+    # Relative standard uncertainty propagated from specimen dimensions (0–1 scalar)
+    # Written by StressStrainCalculator when hasOriginalCrossSection/hasFinalCrossSection
+    # carry qudt:standardUncertainty. See data_series_class.ttl for narrative.
+    sh:property [
+        sh:path qudt:relativeStandardUncertainty ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:minInclusive 0.0 ;
+        sh:maxExclusive 1.0 ;
+        sh:name "Relative Standard Uncertainty" ;
+        sh:message "Relative standard uncertainty must be a dimensionless xsd:double in [0, 1) when present" ;
+        sh:severity sh:Violation ;
     ] .
 
 

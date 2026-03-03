@@ -486,19 +486,13 @@ class FormDataHandler:
         return widget.isChecked()
     
     def _extract_quantity_value_widget_value(self, widget: QWidget) -> Dict[str, Any]:
-        """Extract value from QuantityValueWidget."""
+        """Extract value from QuantityValueWidget.
+
+        Delegates to widget.getData() which returns a complete dict including
+        value, unit, unit_symbol, quantity_kind, pattern, and uncertainty.
+        """
         try:
-            data = {
-                'value': widget.getValue(),
-                'unit': widget.getUnit(),
-                'unit_symbol': widget.getUnitSymbol()
-            }
-
-            # Add quantity_kind for QuantityValue BNode serialization
-            if hasattr(widget, 'quantity_kind') and widget.quantity_kind:
-                data['quantity_kind'] = widget.quantity_kind
-
-            return data
+            return widget.getData()
         except Exception as e:
             logger.error(f"Error extracting unit value widget: {e}")
             return None
@@ -683,18 +677,19 @@ class FormDataHandler:
             return False
     
     def _set_quantity_value_widget_value(self, widget: QWidget, value: Any) -> bool:
-        """Set value for QuantityValueWidget."""
+        """Set value for QuantityValueWidget.
+
+        Delegates to widget.setData() when a dict is provided so that
+        uncertainty and unit are restored together with the numeric value.
+        """
         try:
             if isinstance(value, dict):
-                # Set value and unit separately
                 if 'value' in value:
                     val = value['value']
                     # Handle empty strings and None
                     if val is None or val == '':
                         return False
-                    widget.setValue(float(val))
-                if 'unit' in value:
-                    widget.setUnit(value['unit'])
+                widget.setData(value)
                 return True
             else:
                 # Handle empty strings and None

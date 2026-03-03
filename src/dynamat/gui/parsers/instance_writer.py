@@ -246,11 +246,21 @@ class InstanceWriter:
         if not quantity_kind and property_uri:
             quantity_kind = self._get_quantity_kind_for_property(property_uri)
 
-        # Create QuantityValue blank node
+        # Validate required fields BEFORE creating the BNode so that a
+        # failed conversion never leaves an orphaned bare qudt:QuantityValue
+        # node in the graph (which would trigger QuantityValueShape violations).
+        numeric_value = float(stored_value)   # raises if value is None / wrong type
+        if not stored_unit:
+            raise ValueError(
+                f"QuantityValue for {property_uri} has no unit — "
+                "cannot write a conforming qudt:QuantityValue blank node"
+            )
+
+        # All required fields present — create the blank node
         bnode = BNode()
         graph.add((bnode, RDF.type, self.QUDT.QuantityValue))
         graph.add((bnode, self.QUDT.numericValue,
-                   Literal(float(stored_value), datatype=XSD.double)))
+                   Literal(numeric_value, datatype=XSD.double)))
 
         if stored_unit:
             unit_ref = self._resolve_uri(stored_unit)
@@ -400,9 +410,17 @@ class InstanceWriter:
                         graph.add((instance_ref, property_ref, rdf_value))
                 logger.debug(f"Added {len(value)} values for multi-valued property {property_uri}")
             elif self._is_measurement_dict(value):
-                # Measurement property -> create qudt:QuantityValue blank node
-                bnode = self._create_quantity_value(graph, value, property_uri)
-                graph.add((instance_ref, property_ref, bnode))
+                # Measurement property -> create qudt:QuantityValue blank node.
+                # Skip (don't add the property at all) if the widget is in its
+                # default / empty state — a missing property is valid SHACL;
+                # a bare BNode with only rdf:type qudt:QuantityValue is not.
+                try:
+                    bnode = self._create_quantity_value(graph, value, property_uri)
+                    graph.add((instance_ref, property_ref, bnode))
+                except (ValueError, TypeError) as exc:
+                    logger.debug(
+                        f"Skipping incomplete QuantityValue for {property_uri}: {exc}"
+                    )
             else:
                 # Single-valued property
                 rdf_value = self._convert_to_rdf_value(value)
@@ -527,9 +545,15 @@ class InstanceWriter:
                                 graph.add((instance_ref, property_ref, rdf_value))
                         logger.debug(f"Updated with {len(new_value)} values for multi-valued property {property_uri}")
                     elif self._is_measurement_dict(new_value):
-                        # Measurement property -> create QuantityValue BNode
-                        bnode = self._create_quantity_value(graph, new_value, property_uri)
-                        graph.add((instance_ref, property_ref, bnode))
+                        # Measurement property -> create QuantityValue BNode.
+                        # Skip if value is incomplete (same guard as create_single_instance).
+                        try:
+                            bnode = self._create_quantity_value(graph, new_value, property_uri)
+                            graph.add((instance_ref, property_ref, bnode))
+                        except (ValueError, TypeError) as exc:
+                            logger.debug(
+                                f"Skipping incomplete QuantityValue for {property_uri}: {exc}"
+                            )
                     else:
                         # Single-valued property
                         rdf_value = self._convert_to_rdf_value(new_value)
