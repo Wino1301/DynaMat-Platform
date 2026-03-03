@@ -92,3 +92,9 @@ tmpclaude-*-cwd
 
 .gemini/
 gha-creds-*.json
+
+# Local working folders
+docs/
+improvements/
+misc/
+src/
