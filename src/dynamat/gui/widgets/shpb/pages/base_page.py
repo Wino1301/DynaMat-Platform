@@ -497,5 +497,5 @@ class BaseSHPBPage(QWizardPage):
         self.logger.debug(f"Has segmented pulses: {self.state.has_segmented_pulses()}")
         self.logger.debug(f"Has aligned pulses: {self.state.has_aligned_pulses()}")
         self.logger.debug(f"Has results: {self.state.has_results()}")
-        self.logger.debug(f"Has equilibrium metrics: {self.state.has_equilibrium_metrics()}")
+        self.logger.debug(f"Has DQV metrics: {self.state.has_metrics()}")
         self.logger.debug("==============================")

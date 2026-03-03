@@ -17,7 +17,7 @@
 # 1. SHPBCompression (equipment, test conditions, processing links)
 # 2. PulseDetectionParams (detection configuration per pulse)
 # 3. AlignmentParams (alignment configuration and results)
-# 4. EquilibriumMetrics (force equilibrium assessment)
+# 4. ScienceTrustCard link (contextual validity — shapes in dqv_shapes.ttl)
 # 5. SegmentationParams (segment extraction parameters)
 # 6. Tukey parameters (signal tapering - directly on SHPBCompression)
 # 7. Business rules (pulse shaper, lubrication, dimensions)
@@ -215,7 +215,7 @@ dyn:SHPBCompressionShape a sh:NodeShape ;
 
     # Processing parameters (sub-instance links)
     sh:property [ sh:path dyn:hasAlignmentParams ; sh:maxCount 1 ; sh:class dyn:AlignmentParams ] ;
-    sh:property [ sh:path dyn:hasEquilibriumMetrics ; sh:maxCount 1 ; sh:class dyn:EquilibriumMetrics ] ;
+    sh:property [ sh:path dyn:hasScienceTrustCard ; sh:maxCount 1 ; sh:class dyn:ScienceTrustCard ] ;
     sh:property [ sh:path dyn:hasSegmentationParams ; sh:maxCount 1 ; sh:class dyn:SegmentationParams ] ;
     sh:property [ sh:path dyn:hasPulseDetectionParams ; sh:class dyn:PulseDetectionParams ] ;
 
@@ -233,12 +233,6 @@ dyn:SHPBCompressionShape a sh:NodeShape ;
     sh:property [ sh:path dyn:hasDetectionLowerBound ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
     sh:property [ sh:path dyn:hasDetectionUpperBound ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
     sh:property [ sh:path dyn:hasDetectionPolarity ; sh:maxCount 1 ; sh:class dyn:PolarityType ] ;
-
-    # Equilibrium metrics (stored at test level)
-    sh:property [ sh:path dyn:hasDSUF ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
-    sh:property [ sh:path dyn:hasFBC ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
-    sh:property [ sh:path dyn:hasSEQI ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
-    sh:property [ sh:path dyn:hasSOI ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
 
     # Qualitative assessment
     sh:property [ sh:path dyn:hasWaveDispersion ; sh:maxCount 1 ; sh:datatype xsd:string ] .
@@ -369,30 +363,6 @@ dyn:AlignmentParamsShape a sh:NodeShape ;
     sh:property [ sh:path dyn:hasFrontThreshold ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
     sh:property [ sh:path dyn:hasFrontIndex ; sh:maxCount 1 ; sh:datatype xsd:integer ] ;
     sh:property [ sh:path dyn:hasCenteredSegmentPoints ; sh:maxCount 1 ; sh:datatype xsd:integer ] .
-
-
-#################################################################
-#    EquilibriumMetrics Shape (Force equilibrium assessment)
-#################################################################
-
-dyn:EquilibriumMetricsShape a sh:NodeShape ;
-    sh:targetClass dyn:EquilibriumMetrics ;
-    rdfs:comment "Validation rules for equilibrium metrics instances" ;
-
-    # =========================================================================
-    # CARDINALITY CONSTRAINTS
-    # =========================================================================
-
-    sh:property [ sh:path dyn:hasDSUF ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
-    sh:property [ sh:path dyn:hasDSUFLoading ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
-    sh:property [ sh:path dyn:hasDSUFPlateau ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
-    sh:property [ sh:path dyn:hasDSUFUnloading ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
-    sh:property [ sh:path dyn:hasFBC ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
-    sh:property [ sh:path dyn:hasFBCLoading ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
-    sh:property [ sh:path dyn:hasFBCPlateau ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
-    sh:property [ sh:path dyn:hasFBCUnloading ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
-    sh:property [ sh:path dyn:hasSEQI ; sh:maxCount 1 ; sh:datatype xsd:double ] ;
-    sh:property [ sh:path dyn:hasSOI ; sh:maxCount 1 ; sh:datatype xsd:double ] .
 
 
 #################################################################

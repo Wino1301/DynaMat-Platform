@@ -39,6 +39,9 @@ class InstanceWriter:
         self.QKDV = Namespace("http://qudt.org/vocab/quantitykind/")
         self.PROV = Namespace("http://www.w3.org/ns/prov#")
         self.DC_ELEMENTS = Namespace("http://purl.org/dc/elements/1.1/")
+        # W3C DQV / OA namespaces (for ScienceTrustCard metrics)
+        self.DQV = Namespace("http://www.w3.org/ns/dqv#")
+        self.OA = Namespace("http://www.w3.org/ns/oa#")
 
         # Initialize SHACL validator
         self.validator = SHACLValidator(ontology_manager)
@@ -190,6 +193,8 @@ class InstanceWriter:
             graph.bind("qkdv", self.QKDV)
             graph.bind("prov", self.PROV)
             graph.bind("dce", self.DC_ELEMENTS)
+            graph.bind("dqv", self.DQV)
+            graph.bind("oa", self.OA)
 
     def _create_instance_uri(self, instance_id: str) -> str:
         """Create full URI for instance from ID."""
@@ -210,6 +215,12 @@ class InstanceWriter:
                 return URIRef(self.QKDV[local])
             elif prefix == "gui":
                 return URIRef(self.GUI[local])
+            elif prefix == "dqv":
+                return URIRef(self.DQV[local])
+            elif prefix == "oa":
+                return URIRef(self.OA[local])
+            elif prefix == "skos":
+                return URIRef(Namespace("http://www.w3.org/2004/02/skos/core#")[local])
             else:
                 return URIRef(uri_string)
         else:
@@ -217,7 +228,69 @@ class InstanceWriter:
 
     def _is_measurement_dict(self, value: Any) -> bool:
         """Check if value is a measurement dictionary from QuantityValueWidget."""
-        return isinstance(value, dict) and 'value' in value
+        return isinstance(value, dict) and 'value' in value and value.get('pattern') != 'quality_measurement'
+
+    def _is_quality_measurement_dict(self, value: Any) -> bool:
+        """Check if value is a DQV QualityMeasurement dict from MetricsBridge."""
+        return isinstance(value, dict) and value.get('pattern') == 'quality_measurement'
+
+    def _is_quality_annotation_dict(self, value: Any) -> bool:
+        """Check if value is a DQV QualityAnnotation dict from MetricsBridge."""
+        return isinstance(value, dict) and value.get('pattern') == 'quality_annotation'
+
+    def _create_quality_measurement(self, graph: Graph, value_dict: dict) -> BNode:
+        """Create a dqv:QualityMeasurement BNode from a metric dict.
+
+        Dict keys: pattern, metric (URI), value (numeric), computed_on (URI),
+                   assessment (str), unit (URI, optional),
+                   uncertainty (float, optional), window (str, optional)
+
+        Returns:
+            BNode representing the QualityMeasurement
+        """
+        bnode = BNode()
+        graph.add((bnode, RDF.type, self.DQV.QualityMeasurement))
+        graph.add((bnode, self.DQV.isMeasurementOf,
+                   self._resolve_uri(value_dict['metric'])))
+        graph.add((bnode, self.DQV.value,
+                   Literal(float(value_dict['value']), datatype=XSD.double)))
+
+        if value_dict.get('computed_on'):
+            graph.add((bnode, self.DQV.computedOn,
+                       self._resolve_uri(value_dict['computed_on'])))
+        if value_dict.get('assessment'):
+            graph.add((bnode, self.DYN.assessment,
+                       Literal(value_dict['assessment'], datatype=XSD.string)))
+        if value_dict.get('unit'):
+            graph.add((bnode, self.QUDT.unit,
+                       self._resolve_uri(value_dict['unit'])))
+        if value_dict.get('uncertainty') is not None:
+            graph.add((bnode, self.QUDT.standardUncertainty,
+                       Literal(float(value_dict['uncertainty']), datatype=XSD.double)))
+        if value_dict.get('window'):
+            graph.add((bnode, self.DYN.windowSpec,
+                       Literal(value_dict['window'], datatype=XSD.string)))
+        return bnode
+
+    def _create_quality_certificate(self, graph: Graph, value_dict: dict) -> BNode:
+        """Create a dqv:QualityCertificate BNode from a fitness annotation dict.
+
+        Dict keys: pattern, target (URI), body (URI),
+                   motivation (URI, default dqv:qualityAssessment)
+
+        Returns:
+            BNode representing the QualityCertificate
+        """
+        bnode = BNode()
+        graph.add((bnode, RDF.type, self.DQV.QualityCertificate))
+        graph.add((bnode, self.OA.hasTarget,
+                   self._resolve_uri(value_dict['target'])))
+        graph.add((bnode, self.OA.hasBody,
+                   self._resolve_uri(value_dict['body'])))
+        motivation = value_dict.get('motivation', 'dqv:qualityAssessment')
+        graph.add((bnode, self.OA.motivatedBy,
+                   self._resolve_uri(motivation)))
+        return bnode
 
     def _create_quantity_value(self, graph: Graph, value_dict: dict,
                                property_uri: str = None) -> BNode:
@@ -405,7 +478,21 @@ class InstanceWriter:
             # Handle multi-valued properties (lists)
             if isinstance(value, list):
                 for item in value:
-                    if item is not None and item != "":
+                    if item is None or item == "":
+                        continue
+                    if self._is_quality_measurement_dict(item):
+                        bnode = self._create_quality_measurement(graph, item)
+                        graph.add((instance_ref, property_ref, bnode))
+                    elif self._is_quality_annotation_dict(item):
+                        bnode = self._create_quality_certificate(graph, item)
+                        graph.add((instance_ref, property_ref, bnode))
+                    elif self._is_measurement_dict(item):
+                        try:
+                            bnode = self._create_quantity_value(graph, item, property_uri)
+                            graph.add((instance_ref, property_ref, bnode))
+                        except (ValueError, TypeError) as exc:
+                            logger.debug(f"Skipping incomplete QuantityValue in list for {property_uri}: {exc}")
+                    else:
                         rdf_value = self._convert_to_rdf_value(item)
                         graph.add((instance_ref, property_ref, rdf_value))
                 logger.debug(f"Added {len(value)} values for multi-valued property {property_uri}")
@@ -540,7 +627,21 @@ class InstanceWriter:
                     # Handle multi-valued properties (lists from multi-select widgets)
                     if isinstance(new_value, list):
                         for item in new_value:
-                            if item is not None and item != "":
+                            if item is None or item == "":
+                                continue
+                            if self._is_quality_measurement_dict(item):
+                                bnode = self._create_quality_measurement(graph, item)
+                                graph.add((instance_ref, property_ref, bnode))
+                            elif self._is_quality_annotation_dict(item):
+                                bnode = self._create_quality_certificate(graph, item)
+                                graph.add((instance_ref, property_ref, bnode))
+                            elif self._is_measurement_dict(item):
+                                try:
+                                    bnode = self._create_quantity_value(graph, item, property_uri)
+                                    graph.add((instance_ref, property_ref, bnode))
+                                except (ValueError, TypeError) as exc:
+                                    logger.debug(f"Skipping incomplete QuantityValue in list for {property_uri}: {exc}")
+                            else:
                                 rdf_value = self._convert_to_rdf_value(item)
                                 graph.add((instance_ref, property_ref, rdf_value))
                         logger.debug(f"Updated with {len(new_value)} values for multi-valued property {property_uri}")

@@ -358,9 +358,8 @@ dyn:hasTukeyAlpha rdf:type owl:DatatypeProperty ,
                   rdfs:label "Tukey Alpha"@en .
 
 
-# NOTE: Validity Assessment properties (hasTestValidity, hasValidityCriteria) are inherited
-# from MechanicalTest class defined in mechanical_testing_class.ttl
-# GUI annotations for those properties should be updated there if needed.
+# NOTE: Old validity properties (hasTestValidity, hasValidityCriteria) have been replaced
+# by the DQV-compliant ScienceTrustCard with contextual fitness annotations.
 
 
 #################################################################
@@ -425,10 +424,6 @@ dyn:PulseDetectionParams rdf:type owl:Class .
 dyn:AlignmentParams rdf:type owl:Class .
 
 
-###  https://dynamat.utep.edu/ontology#EquilibriumMetrics
-dyn:EquilibriumMetrics rdf:type owl:Class .
-
-
 ###  https://dynamat.utep.edu/ontology#hasTestCondition (reference to parent property)
 dyn:hasTestCondition rdf:type owl:DatatypeProperty .
 
@@ -471,15 +466,6 @@ dyn:hasAlignmentParams rdf:type owl:ObjectProperty ,
                        rdfs:range dyn:AlignmentParams ;
                        rdfs:comment "Links test to pulse alignment configuration parameters"@en ;
                        rdfs:label "Alignment Parameters"@en .
-
-
-###  https://dynamat.utep.edu/ontology#hasEquilibriumMetrics
-dyn:hasEquilibriumMetrics rdf:type owl:ObjectProperty ,
-                                   owl:FunctionalProperty ;
-                          rdfs:domain dyn:SHPBCompression ;
-                          rdfs:range dyn:EquilibriumMetrics ;
-                          rdfs:comment "Links test to force equilibrium assessment metrics"@en ;
-                          rdfs:label "Equilibrium Metrics"@en .
 
 
 #################################################################

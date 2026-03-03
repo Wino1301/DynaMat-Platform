@@ -29,21 +29,9 @@ dyn:hasStrainGauge rdf:type owl:ObjectProperty ;
                    rdfs:label "Strain Gauge"@en .
 
 
-###  https://dynamat.utep.edu/ontology#hasTestValidity
-dyn:hasTestValidity rdf:type owl:ObjectProperty ,
-                             owl:FunctionalProperty ;
-                    rdfs:domain dyn:MechanicalTest ;
-                    rdfs:range dyn:TestValidity ;
-                    rdfs:comment "Overall assessment of test validity (ValidTest, QuestionableTest, or InvalidTest)"@en ;
-                    rdfs:label "Test Validity"@en .
-
-
-###  https://dynamat.utep.edu/ontology#hasValidityCriteria
-dyn:hasValidityCriteria rdf:type owl:ObjectProperty ;
-                        rdfs:domain dyn:MechanicalTest ;
-                        rdfs:range dyn:TestValidity ;
-                        rdfs:comment "Specific validity criteria achieved by the test (e.g., ForceEquilibrium, ConstantStrainRate)"@en ;
-                        rdfs:label "Validity Criteria"@en .
+### NOTE: hasTestValidity and hasValidityCriteria removed — replaced by
+### DQV-compliant ScienceTrustCard with contextual fitness annotations.
+### See shpb_metrics_class.ttl and metrics_individuals.ttl.
 
 
 ###  https://dynamat.utep.edu/ontology#hasTestingMachine

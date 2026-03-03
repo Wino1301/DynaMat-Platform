@@ -14,7 +14,7 @@ All parameter forms are **ontology-driven**: the GUI reads property definitions 
 | `segmentation_page.py` | `dyn:SegmentationParams` | SegmentationConfig | `shpb_processing_class.ttl` |
 | `alignment_page.py` | `dyn:AlignmentParams` | AlignmentConfig, FitnessWeights, ShiftSearchBounds, AlignmentResults | `shpb_processing_class.ttl` |
 | `tukey_window_page.py` | `dyn:TukeyWindowParams` | WindowConfig | `shpb_processing_class.ttl` |
-| `results_page.py` | `dyn:EquilibriumMetrics` | OverallMetrics, PhaseMetrics | `shpb_processing_class.ttl` |
+| `results_page.py` | `dyn:ScienceTrustCard` | DQV contextual validity (29 metrics, 8 stages) | `shpb_metrics_class.ttl` |
 
 ## Form URI to State Mapping Pattern
 

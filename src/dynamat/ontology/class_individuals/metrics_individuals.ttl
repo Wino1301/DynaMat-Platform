@@ -1,0 +1,394 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix dqv: <http://www.w3.org/ns/dqv#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# =============================================================================
+# DynaMat Platform — SHPB Contextual Validity Metric Individuals
+#
+# W3C DQV-compliant metric definitions, quality dimensions, and
+# fitness/diagnostic annotation body individuals.
+#
+# Counts:
+#   - 8  dqv:Dimension individuals (quality categories)
+#   - 33 dqv:Metric individuals (29 logical metrics + sub-components)
+#   - 8  Fitness annotation individuals (positive labels)
+#   - 13 Diagnostic annotation individuals (flags/warnings)
+# =============================================================================
+
+
+#################################################################
+#    Quality Dimensions (dqv:Dimension — standard DQV class)
+#################################################################
+
+dyn:DIM_SignalQuality a dqv:Dimension ;
+    skos:prefLabel "Signal Quality"@en ;
+    rdfs:comment "Signal acquisition quality metrics — hardware trust (Stage 0-1)."@en .
+
+dyn:DIM_StructuralEquilibrium a dqv:Dimension ;
+    skos:prefLabel "Structural Equilibrium"@en ;
+    rdfs:comment "Force balance and stress equilibrium metrics — physics trust (Stage 3-4)."@en .
+
+dyn:DIM_ProcessStability a dqv:Dimension ;
+    skos:prefLabel "Process Stability"@en ;
+    rdfs:comment "Strain rate constancy and waveform agreement metrics — data trust (Stage 4)."@en .
+
+dyn:DIM_SetupValidation a dqv:Dimension ;
+    skos:prefLabel "Setup Validation"@en ;
+    rdfs:comment "Pre-condition metrics from geometry and impedance — setup trust (Stage 2)."@en .
+
+dyn:DIM_Conservation a dqv:Dimension ;
+    skos:prefLabel "Conservation"@en ;
+    rdfs:comment "Energy and momentum conservation metrics — thermodynamic trust (Stage 5)."@en .
+
+dyn:DIM_DeformationMode a dqv:Dimension ;
+    skos:prefLabel "Deformation Mode"@en ;
+    rdfs:comment "Specimen deformation uniformity metrics — 1D assumption trust (Stage 6-7)."@en .
+
+dyn:DIM_GlobalSanity a dqv:Dimension ;
+    skos:prefLabel "Global Sanity"@en ;
+    rdfs:comment "Broad sanity checks including SNR and signal completeness (Stage 6)."@en .
+
+dyn:DIM_PipelineValidation a dqv:Dimension ;
+    skos:prefLabel "Pipeline Validation"@en ;
+    rdfs:comment "End-to-end validation via post-test physical measurements (Stage 7)."@en .
+
+
+#################################################################
+#    Metric Individuals — Stage 0: Critical Pre-Check
+#################################################################
+
+dyn:Metric_SCD a dqv:Metric ;
+    skos:prefLabel "Signal Clipping Detector"@en ;
+    dqv:expectedDataType xsd:integer ;
+    dqv:inDimension dyn:DIM_SignalQuality ;
+    rdfs:comment "Number of channels with ADC clipping. SCD > 0 is a critical failure."@en .
+
+dyn:Metric_PSC a dqv:Metric ;
+    skos:prefLabel "Pulse Separation Check"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_SetupValidation ;
+    rdfs:comment "Ratio of wave round-trip time to pulse duration. PSC < 1.0 means pulse overlap — critical failure."@en .
+
+
+#################################################################
+#    Metric Individuals — Stage 1: Signal Quality
+#################################################################
+
+dyn:Metric_BQI_offset a dqv:Metric ;
+    skos:prefLabel "Baseline Quality Index — Offset"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_SignalQuality ;
+    rdfs:comment "Pre-trigger baseline DC offset normalized to full-scale range."@en .
+
+dyn:Metric_BQI_drift a dqv:Metric ;
+    skos:prefLabel "Baseline Quality Index — Drift"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_SignalQuality ;
+    rdfs:comment "Pre-trigger baseline linear drift normalized to full-scale range."@en .
+
+dyn:Metric_FSR_inc a dqv:Metric ;
+    skos:prefLabel "Full-Scale Range — Incident"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_SignalQuality ;
+    rdfs:comment "Incident channel peak-to-ADC-range utilization ratio."@en .
+
+dyn:Metric_FSR_ref a dqv:Metric ;
+    skos:prefLabel "Full-Scale Range — Reflected"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_SignalQuality ;
+    rdfs:comment "Reflected channel peak-to-ADC-range utilization ratio."@en .
+
+dyn:Metric_FSR_trs a dqv:Metric ;
+    skos:prefLabel "Full-Scale Range — Transmitted"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_SignalQuality ;
+    rdfs:comment "Transmitted channel peak-to-ADC-range utilization ratio."@en .
+
+
+#################################################################
+#    Metric Individuals — Stage 2: Pre-Conditions
+#################################################################
+
+dyn:Metric_GDI a dqv:Metric ;
+    skos:prefLabel "Geometry Deviation Index"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_SetupValidation ;
+    rdfs:comment "Ratio of actual specimen L/D to optimal Davies-Hunter L/D. GDI ~1.0 is balanced; >1.5 = inertia risk; <0.5 = friction risk."@en .
+
+dyn:Metric_IMR a dqv:Metric ;
+    skos:prefLabel "Impedance Mismatch Ratio"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_SetupValidation ;
+    rdfs:comment "Specimen-to-bar acoustic impedance ratio. Contextualizes SNR and 1w/3w agreement."@en .
+
+dyn:Metric_DSI a dqv:Metric ;
+    skos:prefLabel "Dispersion Severity Index"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_SetupValidation ;
+    rdfs:comment "Bar diameter to dominant wavelength ratio. DSI > 0.10 = dispersion correction required."@en .
+
+dyn:Metric_SRI a dqv:Metric ;
+    skos:prefLabel "Secondary Reflection Index"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_SetupValidation ;
+    rdfs:comment "Secondary reflection round-trip to pulse duration ratio. SRI < 1.5 = tail contamination risk."@en .
+
+
+#################################################################
+#    Metric Individuals — Stage 3: Equilibrium & Timing
+#################################################################
+
+dyn:Metric_T_eq a dqv:Metric ;
+    skos:prefLabel "Time to Equilibrium"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_StructuralEquilibrium ;
+    rdfs:comment "Time (ms) from pulse start until FBC consistently stays above 0.90."@en .
+
+dyn:Metric_EYR a dqv:Metric ;
+    skos:prefLabel "Equilibrium-Yield Ratio"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_GlobalSanity ;
+    rdfs:comment "T_yield / T_eq. EYR > 1.0 means yield occurs after equilibrium — elastic data is valid."@en .
+
+dyn:Metric_REI a dqv:Metric ;
+    skos:prefLabel "Reverberation Equilibrium Index"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_StructuralEquilibrium ;
+    rdfs:comment "Actual wave reverberations before equilibrium vs required minimum. REI > 1.0 = adequate."@en .
+
+
+#################################################################
+#    Metric Individuals — Stage 4: Science Window Metrics
+#################################################################
+
+dyn:Metric_FBC_Plateau a dqv:Metric ;
+    skos:prefLabel "Plateau Force Balance Coefficient"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_StructuralEquilibrium ;
+    rdfs:comment "FBC within 30%-85% peak stress window. Primary science trust metric for plastic flow."@en .
+
+dyn:Metric_SRCV a dqv:Metric ;
+    skos:prefLabel "Strain Rate Coefficient of Variation"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_ProcessStability ;
+    rdfs:comment "StdDev/Mean of strain rate within science window. < 0.05 excellent, < 0.10 acceptable."@en .
+
+dyn:Metric_RPFI_trend a dqv:Metric ;
+    skos:prefLabel "Reflected Pulse Flatness — Trend"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_ProcessStability ;
+    rdfs:comment "Linear trend component of reflected pulse within science window, normalized by mean."@en .
+
+dyn:Metric_RPFI_noise a dqv:Metric ;
+    skos:prefLabel "Reflected Pulse Flatness — Noise"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_ProcessStability ;
+    rdfs:comment "Noise component (residual std) of reflected pulse within science window, normalized by mean."@en .
+
+dyn:Metric_CCC a dqv:Metric ;
+    skos:prefLabel "Lin's Concordance Correlation Coefficient"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_ProcessStability ;
+    rdfs:comment "CCC between 1-wave and 3-wave stress within science window. Captures both correlation and bias."@en .
+
+dyn:Metric_NRMSE a dqv:Metric ;
+    skos:prefLabel "Normalized Root Mean Square Error"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_ProcessStability ;
+    rdfs:comment "NRMSE between 1-wave and 3-wave stress within science window. Magnitude of disagreement."@en .
+
+dyn:Metric_ISC a dqv:Metric ;
+    skos:prefLabel "Inertia Stress Contribution"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_Conservation ;
+    rdfs:comment "Maximum fraction of measured stress attributable to inertia within science window. ISC > 0.05 = inertia contaminated."@en .
+
+
+#################################################################
+#    Metric Individuals — Stage 5: Conservation & Energy
+#################################################################
+
+dyn:Metric_E_bal a dqv:Metric ;
+    skos:prefLabel "Energy Conservation Index"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_Conservation ;
+    rdfs:comment "Ratio (E_ref + E_trs + W_spec) / E_inc. Should be 1.0 +/- 0.1."@en .
+
+dyn:Metric_MCI a dqv:Metric ;
+    skos:prefLabel "Momentum Conservation Index"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_Conservation ;
+    rdfs:comment "Impulse balance between input and output faces. More sensitive to DC offset than E_bal."@en .
+
+dyn:Metric_EAE a dqv:Metric ;
+    skos:prefLabel "Energy Absorption Efficiency"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_Conservation ;
+    rdfs:comment "Fraction of incident wave energy absorbed as plastic work. Material-class dependent."@en .
+
+dyn:Metric_KEI a dqv:Metric ;
+    skos:prefLabel "Kinetic Energy Index"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_Conservation ;
+    rdfs:comment "Residual kinetic energy as fraction of absorbed work. KEI > 0.10 = incomplete deformation."@en .
+
+dyn:Metric_DOR a dqv:Metric ;
+    skos:prefLabel "Damage Onset Ratio"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_Conservation ;
+    rdfs:comment "Strain at which energy absorption rate deviates by >2sigma. Derived from EPR time-resolved analysis. NaN if no damage onset detected."@en .
+
+dyn:Metric_SPC a dqv:Metric ;
+    skos:prefLabel "Stress Power Consistency"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_Conservation ;
+    rdfs:comment "Cross-validation of stress-strain integration vs wave energy calculation. SPC ~1.0 = internally consistent."@en .
+
+
+#################################################################
+#    Metric Individuals — Stage 6: Global Sanity
+#################################################################
+
+dyn:Metric_SNR_trs a dqv:Metric ;
+    skos:prefLabel "Transmitted Signal-to-Noise Ratio"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_GlobalSanity ;
+    rdfs:comment "Transmitted signal SNR in dB. Must be interpreted with IMR and FSR context."@en .
+
+dyn:Metric_TailTruncation a dqv:Metric ;
+    skos:prefLabel "Tail Truncation Check"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_GlobalSanity ;
+    rdfs:comment "Residual amplitude ratio at end of detected pulse window. Should be near zero."@en .
+
+dyn:Metric_ATR a dqv:Metric ;
+    skos:prefLabel "Adiabatic Temperature Rise"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_DeformationMode ;
+    rdfs:comment "Estimated temperature rise (K) from adiabatic plastic work. > 50K = significant thermal softening."@en .
+
+
+#################################################################
+#    Metric Individuals — Stage 7: Post-Test Validation
+#################################################################
+
+dyn:Metric_VCI a dqv:Metric ;
+    skos:prefLabel "Volume Conservation Index"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_PipelineValidation ;
+    rdfs:comment "Post-test volume / pre-test volume. VCI ~1.0 for incompressible metals."@en .
+
+dyn:Metric_BI a dqv:Metric ;
+    skos:prefLabel "Barreling Index"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_DeformationMode ;
+    rdfs:comment "Measured post-test diameter vs volume-conservation predicted diameter. BI > 1.05 = barreling."@en .
+
+dyn:Metric_SVC a dqv:Metric ;
+    skos:prefLabel "Strain Verification Coefficient"@en ;
+    dqv:expectedDataType xsd:double ;
+    dqv:inDimension dyn:DIM_PipelineValidation ;
+    rdfs:comment "Signal-derived strain vs caliper-measured strain. End-to-end pipeline validation."@en .
+
+
+#################################################################
+#    Fitness Annotation Individuals (Section 7.3 — positive labels)
+#    Used as oa:hasBody targets for dqv:QualityCertificate BNodes
+#################################################################
+
+dyn:ValidForPlasticFlow a skos:Concept ;
+    skos:prefLabel "Valid for Plastic Flow"@en ;
+    rdfs:comment "FBC_30-85 > 0.95, CCC > 0.93. Plastic flow data is trustworthy."@en .
+
+dyn:ValidForRateSensitivity a skos:Concept ;
+    skos:prefLabel "Valid for Rate Sensitivity"@en ;
+    rdfs:comment "SRCV < 0.10, RPFI_trend < 0.08, RPFI_noise < 0.08. Constant, well-characterized strain rate."@en .
+
+dyn:ValidForElasticModulus a skos:Concept ;
+    skos:prefLabel "Valid for Elastic Modulus"@en ;
+    rdfs:comment "EYR > 1.0, FBC > 0.90 at yield, ISC_max < 0.05. Elastic data is trustworthy."@en .
+
+dyn:ValidForYieldStress a skos:Concept ;
+    skos:prefLabel "Valid for Yield Stress"@en ;
+    rdfs:comment "EYR >= 0.8, FBC > 0.90 at yield. Yield stress measurement is valid."@en .
+
+dyn:ValidForFailureStrain a skos:Concept ;
+    skos:prefLabel "Valid for Failure Strain"@en ;
+    rdfs:comment "Tail Truncation PASS, SVC in [0.90, 1.10], KEI < 0.05. Complete strain history captured."@en .
+
+dyn:HighConfidenceForJC a skos:Concept ;
+    skos:prefLabel "High Confidence for JC"@en ;
+    rdfs:comment "Composite: ValidForPlasticFlow AND ValidForRateSensitivity AND GDI in [0.5, 1.5] AND SVC in [0.90, 1.10] AND SPC in [0.90, 1.10] AND BI < 1.05."@en .
+
+dyn:ConsistentConservation a skos:Concept ;
+    skos:prefLabel "Consistent Conservation"@en ;
+    rdfs:comment "E_bal in [0.9, 1.1] AND MCI in [0.95, 1.05]. Both energy and momentum balance."@en .
+
+dyn:InternallyConsistent a skos:Concept ;
+    skos:prefLabel "Internally Consistent"@en ;
+    rdfs:comment "SPC in [0.95, 1.05]. Two independent work calculations agree."@en .
+
+
+#################################################################
+#    Diagnostic Annotation Individuals (Section 7.3 — flags/warnings)
+#    Used as oa:hasBody targets for dqv:QualityCertificate BNodes
+#################################################################
+
+dyn:SignalClipped a skos:Concept ;
+    skos:prefLabel "Signal Clipped"@en ;
+    rdfs:comment "SCD > 0. ADC saturation detected — unrecoverable signal loss."@en .
+
+dyn:PulseOverlap a skos:Concept ;
+    skos:prefLabel "Pulse Overlap"@en ;
+    rdfs:comment "PSC < 1.0. Incident and reflected pulses overlap at the strain gauge."@en .
+
+dyn:LowSNR_ExpectedFromImpedance a skos:Concept ;
+    skos:prefLabel "Low SNR Expected From Impedance"@en ;
+    rdfs:comment "IMR < 0.1 AND SNR_trs < 20 dB. Low transmitted SNR is expected from impedance mismatch."@en .
+
+dyn:DispersionUncorrected a skos:Concept ;
+    skos:prefLabel "Dispersion Uncorrected"@en ;
+    rdfs:comment "DSI > 0.10. Oscillations may be dispersion artifacts requiring Pochhammer-Chree correction."@en .
+
+dyn:SecondaryReflectionRisk a skos:Concept ;
+    skos:prefLabel "Secondary Reflection Risk"@en ;
+    rdfs:comment "SRI < 1.5. Signal tail may be contaminated by bar secondary reflections."@en .
+
+dyn:InertiaRisk a skos:Concept ;
+    skos:prefLabel "Inertia Risk"@en ;
+    rdfs:comment "GDI > 1.5. Specimen too thick — axial inertia may overestimate stress."@en .
+
+dyn:FrictionRisk a skos:Concept ;
+    skos:prefLabel "Friction Risk"@en ;
+    rdfs:comment "GDI < 0.5. Specimen too thin — interface friction may cause apparent hardening."@en .
+
+dyn:InertiaContaminated a skos:Concept ;
+    skos:prefLabel "Inertia Contaminated"@en ;
+    rdfs:comment "ISC_max > 0.05 in science window. Measured stress includes significant inertia contribution."@en .
+
+dyn:BarrelingDetected a skos:Concept ;
+    skos:prefLabel "Barreling Detected"@en ;
+    rdfs:comment "BI > 1.05. Non-uniform deformation from friction — stress is an average, not uniaxial."@en .
+
+dyn:IncompleteDeformation a skos:Concept ;
+    skos:prefLabel "Incomplete Deformation"@en ;
+    rdfs:comment "KEI > 0.10. Specimen still in motion at pulse end — strain integration incomplete."@en .
+
+dyn:BaselineDriftDetected a skos:Concept ;
+    skos:prefLabel "Baseline Drift Detected"@en ;
+    rdfs:comment "E_bal in [0.9, 1.1] AND MCI not in [0.95, 1.05]. DC offset detected via momentum imbalance."@en .
+
+dyn:DamageOnsetDetected a skos:Concept ;
+    skos:prefLabel "Damage Onset Detected"@en ;
+    rdfs:comment "EPR absorption rate deviation exceeds 2-sigma threshold. Material event during test."@en .
+
+dyn:SignificantThermalSoftening a skos:Concept ;
+    skos:prefLabel "Significant Thermal Softening"@en ;
+    rdfs:comment "ATR > 50 K. Adiabatic heating affects constitutive response — thermal term required."@en .
+
+
+###  Generated by DynaMat Platform — SHPB Contextual Validity Metrics

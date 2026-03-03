@@ -248,7 +248,8 @@ class SpecimenLoader:
         material_props = ['hasMaterial', 'hasStructure', 'hasShape']
         dimension_props = [
             'hasOriginalHeight', 'hasOriginalDiameter', 'hasOriginalCrossSection',
-            'hasFinalHeight', 'hasFinalDiameter', 'hasFinalCrossSection'
+            'hasFinalHeight', 'hasFinalDiameter', 'hasFinalCrossSection',
+            'hasFinalLength',
         ]
         manufacturing_props = [
             'hasManufacturingMethod', 'hasManufacturedDate',

@@ -20,11 +20,13 @@ logger = logging.getLogger(__name__)
 DYN_NS = "https://dynamat.utep.edu/ontology#"
 DYN = Namespace(DYN_NS)
 QUDT = Namespace("http://qudt.org/schema/qudt/")
+DQV = Namespace("http://www.w3.org/ns/dqv#")
+OA = Namespace("http://www.w3.org/ns/oa#")
 
 # Properties on SHPBCompression that link to sub-instances (not equipment form data)
 _SUB_INSTANCE_PREDICATES = {
     f"{DYN_NS}hasAlignmentParams",
-    f"{DYN_NS}hasEquilibriumMetrics",
+    f"{DYN_NS}hasScienceTrustCard",
     f"{DYN_NS}hasDataSeries",
     f"{DYN_NS}hasPulseDetectionParams",
     f"{DYN_NS}performedOn",
@@ -70,7 +72,7 @@ class TestTTLLoader:
             self._load_equipment_form_data(state)
             self._load_detection_form_data(state)
             self._load_alignment_form_data(state)
-            self._load_equilibrium_form_data(state)
+            self._load_trust_card_form_data(state)
             self._load_tukey_form_data(state)
             self._load_export_form_data(state)
 
@@ -192,11 +194,15 @@ class TestTTLLoader:
             if pred_str in (
                 f"{DYN_NS}hasTestID",
                 f"{DYN_NS}hasTukeyAlpha",
+                # Legacy validity fields (kept for backward compat with old TTL files)
                 f"{DYN_NS}hasTestValidity",
                 f"{DYN_NS}hasValidityCriteria",
                 f"{DYN_NS}hasValidityNotes",
                 f"{DYN_NS}hasValidityOverrideReason",
                 f"{DYN_NS}isValidityOverridden",
+                # New DQV fields
+                f"{DYN_NS}isAssessmentOverridden",
+                f"{DYN_NS}hasOverrideReason",
             ):
                 continue
 
@@ -237,11 +243,19 @@ class TestTTLLoader:
             state.alignment_form_data = self._extract_properties(align_uri)
             break  # Only one expected
 
-    def _load_equilibrium_form_data(self, state: SHPBAnalysisState) -> None:
-        """Extract EquilibriumMetrics into state.equilibrium_form_data."""
+    def _load_trust_card_form_data(self, state: SHPBAnalysisState) -> None:
+        """Extract ScienceTrustCard into state.metrics_form_data.
+
+        For backward compat, also checks for legacy EquilibriumMetrics.
+        """
+        # New DQV format
+        for tc_uri in self._graph.subjects(RDF.type, DYN.ScienceTrustCard):
+            state.metrics_form_data = self._extract_properties(tc_uri)
+            return
+        # Legacy format — load into equilibrium_form_data for old files
         for eq_uri in self._graph.subjects(RDF.type, DYN.EquilibriumMetrics):
             state.equilibrium_form_data = self._extract_properties(eq_uri)
-            break  # Only one expected
+            return
 
     def _load_tukey_form_data(self, state: SHPBAnalysisState) -> None:
         """Extract hasTukeyAlphaParam from main test instance into state.tukey_form_data."""
@@ -253,32 +267,33 @@ class TestTTLLoader:
             }
 
     def _load_export_form_data(self, state: SHPBAnalysisState) -> None:
-        """Extract validity/test type into state.export_form_data."""
+        """Extract export metadata into state.export_form_data.
+
+        Handles both new DQV fields and legacy validity fields for backward compat.
+        """
         form_data = {}
-
-        validity = self._get_object(self._test_uri, DYN.hasTestValidity)
-        if validity:
-            form_data[f"{DYN_NS}hasTestValidity"] = str(validity)
-
-        criteria = self._get_object(self._test_uri, DYN.hasValidityCriteria)
-        if criteria:
-            form_data[f"{DYN_NS}hasValidityCriteria"] = str(criteria)
-
-        notes = self._get_literal(self._test_uri, DYN.hasValidityNotes)
-        if notes is not None:
-            form_data[f"{DYN_NS}hasValidityNotes"] = str(notes)
 
         test_type = self._get_object(self._test_uri, DYN.hasTestType)
         if test_type:
             form_data[f"{DYN_NS}hasTestType"] = str(test_type)
 
-        override_reason = self._get_literal(self._test_uri, DYN.hasValidityOverrideReason)
-        if override_reason is not None:
-            form_data[f"{DYN_NS}hasValidityOverrideReason"] = str(override_reason)
-
-        override_flag = self._get_literal(self._test_uri, DYN.isValidityOverridden)
+        # New DQV override fields
+        override_flag = self._get_literal(self._test_uri, DYN.isAssessmentOverridden)
         if override_flag is not None:
-            form_data[f"{DYN_NS}isValidityOverridden"] = bool(override_flag)
+            form_data[f"{DYN_NS}isAssessmentOverridden"] = bool(override_flag)
+
+        override_reason = self._get_literal(self._test_uri, DYN.hasOverrideReason)
+        if override_reason is not None:
+            form_data[f"{DYN_NS}hasOverrideReason"] = str(override_reason)
+
+        # Legacy validity fields (backward compat with old TTL files)
+        if not override_flag:
+            old_flag = self._get_literal(self._test_uri, DYN.isValidityOverridden)
+            if old_flag is not None:
+                form_data[f"{DYN_NS}isAssessmentOverridden"] = bool(old_flag)
+            old_reason = self._get_literal(self._test_uri, DYN.hasValidityOverrideReason)
+            if old_reason is not None:
+                form_data[f"{DYN_NS}hasOverrideReason"] = str(old_reason)
 
         if form_data:
             state.export_form_data = form_data
@@ -290,14 +305,26 @@ class TestTTLLoader:
     def _extract_properties(self, subject: URIRef) -> Dict[str, Any]:
         """Extract all properties of a subject into a URI-keyed dict.
 
-        Skips rdf:type triples.  For QuantityValue BNodes, returns
-        measurement dicts compatible with QuantityValueWidget/InstanceWriter.
+        Skips rdf:type triples.  For QuantityValue/DQV BNodes, returns
+        measurement dicts compatible with InstanceWriter patterns.
+        Multi-valued predicates (e.g. dqv:hasQualityMeasurement) are
+        collected into lists.
         """
         props = {}
         for pred, obj in self._graph.predicate_objects(subject):
             if pred == RDF.type:
                 continue
-            props[str(pred)] = self._python_value(obj)
+            key = str(pred)
+            value = self._python_value(obj)
+            if key in props:
+                # Convert to list for multi-valued predicates
+                existing = props[key]
+                if isinstance(existing, list):
+                    existing.append(value)
+                else:
+                    props[key] = [existing, value]
+            else:
+                props[key] = value
         return props
 
     def _get_literal(self, subject: URIRef, predicate: URIRef) -> Any:
@@ -322,12 +349,16 @@ class TestTTLLoader:
     def _python_value(self, obj) -> Any:
         """Convert an RDF term to a Python value.
 
-        Handles QuantityValue BNodes by returning measurement dicts.
+        Handles QuantityValue and DQV BNodes by returning appropriate dicts.
         """
         if isinstance(obj, Literal):
             return obj.toPython()
         if self._is_quantity_value(obj):
             return self._extract_quantity_value(obj)
+        if self._is_quality_measurement(obj):
+            return self._extract_quality_measurement(obj)
+        if self._is_quality_annotation(obj):
+            return self._extract_quality_annotation(obj)
         return str(obj)
 
     def _is_quantity_value(self, node) -> bool:
@@ -362,5 +393,81 @@ class TestTTLLoader:
             if isinstance(obj, Literal):
                 result['uncertainty'] = float(obj.toPython())
                 break
+
+        return result
+
+    # -- DQV BNode helpers -------------------------------------------------
+
+    def _is_quality_measurement(self, node) -> bool:
+        """Check if an RDF node is a dqv:QualityMeasurement blank node."""
+        if not isinstance(node, BNode):
+            return False
+        return (node, RDF.type, DQV.QualityMeasurement) in self._graph
+
+    def _extract_quality_measurement(self, bnode: BNode) -> Dict[str, Any]:
+        """Extract dict from a dqv:QualityMeasurement BNode.
+
+        Returns dict compatible with InstanceWriter's quality_measurement pattern.
+        """
+        result: Dict[str, Any] = {'pattern': 'quality_measurement'}
+
+        for obj in self._graph.objects(bnode, DQV.isMeasurementOf):
+            result['metric'] = str(obj)
+            break
+
+        for obj in self._graph.objects(bnode, DQV.value):
+            if isinstance(obj, Literal):
+                result['value'] = float(obj.toPython())
+            break
+
+        for obj in self._graph.objects(bnode, DQV.computedOn):
+            result['computed_on'] = str(obj)
+            break
+
+        for obj in self._graph.objects(bnode, DYN.assessment):
+            if isinstance(obj, Literal):
+                result['assessment'] = str(obj)
+            break
+
+        for obj in self._graph.objects(bnode, QUDT.unit):
+            result['unit'] = str(obj)
+            break
+
+        for obj in self._graph.objects(bnode, QUDT.standardUncertainty):
+            if isinstance(obj, Literal):
+                result['uncertainty'] = float(obj.toPython())
+            break
+
+        for obj in self._graph.objects(bnode, DYN.windowSpec):
+            if isinstance(obj, Literal):
+                result['window'] = str(obj)
+            break
+
+        return result
+
+    def _is_quality_annotation(self, node) -> bool:
+        """Check if an RDF node is a dqv:QualityCertificate blank node."""
+        if not isinstance(node, BNode):
+            return False
+        return (node, RDF.type, DQV.QualityCertificate) in self._graph
+
+    def _extract_quality_annotation(self, bnode: BNode) -> Dict[str, Any]:
+        """Extract dict from a dqv:QualityCertificate BNode.
+
+        Returns dict compatible with InstanceWriter's quality_annotation pattern.
+        """
+        result: Dict[str, Any] = {'pattern': 'quality_annotation'}
+
+        for obj in self._graph.objects(bnode, OA.hasTarget):
+            result['target'] = str(obj)
+            break
+
+        for obj in self._graph.objects(bnode, OA.hasBody):
+            result['body'] = str(obj)
+            break
+
+        for obj in self._graph.objects(bnode, OA.motivatedBy):
+            result['motivation'] = str(obj)
+            break
 
         return result

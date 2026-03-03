@@ -1,6 +1,11 @@
-"""Results Page - Calculate and display stress-strain results."""
+"""Results Page - Calculate and display stress-strain results.
+
+Evaluates 29 contextual validity metrics across 8 stages after
+stress-strain calculation, displaying a DQV-compliant Science Trust Card.
+"""
 
 import logging
+import math
 from typing import Optional, Dict
 
 import numpy as np
@@ -8,7 +13,7 @@ import numpy as np
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QGroupBox, QGridLayout, QSplitter, QFrame,
-    QTabWidget, QWidget
+    QTabWidget, QWidget, QScrollArea
 )
 from PyQt6.QtCore import Qt
 from rdflib import Graph, Literal, Namespace, URIRef
@@ -21,33 +26,55 @@ from .....mechanical.shpb.io.series_config import (
     get_series_metadata, get_windowed_series_metadata, SHPB_DERIVATION_MAP
 )
 from ...base.plotting import create_plot_widget
-from ....builders.customizable_form_builder import CustomizableFormBuilder
 
 logger = logging.getLogger(__name__)
 
 DYN_NS = "https://dynamat.utep.edu/ontology#"
 
-# Metric URI to metrics dict key mapping
-METRIC_URI_MAP = {
-    f"{DYN_NS}hasFBC": "FBC",
-    f"{DYN_NS}hasSEQI": "SEQI",
-    f"{DYN_NS}hasSOI": "SOI",
-    f"{DYN_NS}hasDSUF": "DSUF",
-    f"{DYN_NS}hasFBCLoading": "windowed_FBC_loading",
-    f"{DYN_NS}hasDSUFLoading": "windowed_DSUF_loading",
-    f"{DYN_NS}hasFBCPlateau": "windowed_FBC_plateau",
-    f"{DYN_NS}hasDSUFPlateau": "windowed_DSUF_plateau",
-    f"{DYN_NS}hasFBCUnloading": "windowed_FBC_unloading",
-    f"{DYN_NS}hasDSUFUnloading": "windowed_DSUF_unloading",
+# Stage display names for Science Trust Card
+STAGE_NAMES = {
+    0: "Critical Pre-Check",
+    1: "Signal Quality",
+    2: "Pre-Conditions",
+    3: "Equilibrium & Timing",
+    4: "Science Window",
+    5: "Conservation & Energy",
+    6: "Global Sanity",
+    7: "Post-Test Validation",
 }
 
-# Color thresholds for overall metrics
-METRIC_THRESHOLDS = {
-    "FBC": lambda v: "green" if v > 0.95 else "orange" if v > 0.90 else "red",
-    "SEQI": lambda v: "green" if v > 0.90 else "orange" if v > 0.80 else "red",
-    "SOI": lambda v: "green" if v < 0.05 else "orange" if v < 0.10 else "red",
-    "DSUF": lambda v: "green" if v > 0.98 else "orange" if v > 0.95 else "red",
-}
+# Assessment → color classification for metric value badges
+_GREEN_ASSESSMENTS = frozenset({
+    'HighTrust', 'Excellent', 'GoodSNR', 'NearOptimalGeometry',
+    'VolumeConserved', 'UniformDeformation', 'NegligibleInertia',
+    'EnergyConserved', 'MomentumConserved', 'TestComplete',
+    'PulsesSeparated', 'AdequateReverberations', 'InternallyConsistent',
+    'DispersionNegligible', 'NoSecondaryReflectionRisk',
+    'NegligibleThermalEffect', 'AcceptableStrainAgreement', 'WellMatched',
+})
+_AMBER_ASSESSMENTS = frozenset({
+    'Acceptable', 'AcceptableSNR', 'ModerateInertia', 'MinorResidualMotion',
+    'Borderline', 'AcceptableConsistency', 'ModerateThermalSoftening',
+    'MinorNonUniformity', 'DispersionCorrectionRecommended',
+    'LatePulseContaminationRisk', 'ModeratelyMismatched',
+})
+_ORANGE_ASSESSMENTS = frozenset({
+    'Marginal', 'FrictionRisk', 'InertiaRisk', 'BarrelingDetected',
+    'IncompleteDeformation', 'SpecimenDominant', 'DamageOnsetDetected',
+})
+
+
+def _assessment_color(assessment: str) -> str:
+    """Map assessment string to hex color."""
+    if not assessment or assessment == 'Skipped':
+        return '#757575'
+    if assessment in _GREEN_ASSESSMENTS:
+        return '#2e7d32'
+    if assessment in _AMBER_ASSESSMENTS:
+        return '#f9a825'
+    if assessment in _ORANGE_ASSESSMENTS:
+        return '#e65100'
+    return '#c62828'
 
 
 class ResultsPage(BaseSHPBPage):
@@ -55,7 +82,8 @@ class ResultsPage(BaseSHPBPage):
 
     Features:
     - Calculate 1-wave and 3-wave stress-strain curves
-    - Display equilibrium metrics (ontology-driven)
+    - Evaluate 29 contextual validity metrics across 8 stages
+    - Display Science Trust Card with fitness/diagnostic annotations
     - Visualize stress-strain plots
     """
 
@@ -63,16 +91,13 @@ class ResultsPage(BaseSHPBPage):
         super().__init__(state, ontology_manager, qudt_manager, parent)
 
         self.setTitle("Analysis Results")
-        self.setSubTitle("Calculate stress-strain curves and equilibrium metrics.")
+        self.setSubTitle("Calculate stress-strain curves and evaluate contextual validity.")
 
         self.calculator: Optional[StressStrainCalculator] = None
-
-        # Ontology-driven form for metrics
-        self.form_builder = CustomizableFormBuilder(ontology_manager)
-        self._metrics_form: Optional[QWidget] = None
+        self._trust_card_layout: Optional[QVBoxLayout] = None
 
     def _setup_ui(self) -> None:
-        """Setup page UI with ontology-driven metrics form."""
+        """Setup page UI with Science Trust Card panel."""
         layout = self._create_base_layout()
 
         # Create splitter
@@ -87,12 +112,21 @@ class ResultsPage(BaseSHPBPage):
         calc_btn.clicked.connect(self._calculate_results)
         left_layout.addWidget(calc_btn)
 
-        # Ontology-driven equilibrium metrics form (read-only)
-        METRICS_CLASS = f"{DYN_NS}EquilibriumMetrics"
-        self._metrics_form = self.form_builder.build_form(
-            METRICS_CLASS, parent=left_frame
-        )
-        left_layout.addWidget(self._metrics_form)
+        # Science Trust Card (scroll area, populated after calculation)
+        trust_scroll = QScrollArea()
+        trust_scroll.setWidgetResizable(True)
+        trust_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        trust_container = QWidget()
+        self._trust_card_layout = QVBoxLayout(trust_container)
+        self._trust_card_layout.setContentsMargins(2, 2, 2, 2)
+        self._trust_card_layout.setSpacing(4)
+        placeholder = QLabel("Press 'Calculate Results' to evaluate metrics.")
+        placeholder.setStyleSheet("color: gray; padding: 20px;")
+        placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._trust_card_layout.addWidget(placeholder)
+        self._trust_card_layout.addStretch()
+        trust_scroll.setWidget(trust_container)
+        left_layout.addWidget(trust_scroll, stretch=1)
 
         # Calculated characteristics (hardcoded for now - future ontology-driven)
         chars_group = self._create_group_box("Calculated Characteristics")
@@ -113,7 +147,6 @@ class ResultsPage(BaseSHPBPage):
             chars_layout.addWidget(value_label, row, 1)
 
         left_layout.addWidget(chars_group)
-        left_layout.addStretch()
 
         splitter.addWidget(left_frame)
 
@@ -214,7 +247,7 @@ class ResultsPage(BaseSHPBPage):
 
         # If results already calculated, show them
         if self.state.has_results():
-            self._update_metrics_display()
+            self._build_trust_card()
             self._update_plots()
 
     def validatePage(self) -> bool:
@@ -226,7 +259,7 @@ class ResultsPage(BaseSHPBPage):
             )
             return False
 
-        # Run SHACL validation on equilibrium metrics graph
+        # Run SHACL validation on Science Trust Card graph
         validation_graph = self._build_validation_graph()
         if validation_graph and not self._validate_page_data(
             validation_graph, page_key="results"
@@ -238,31 +271,31 @@ class ResultsPage(BaseSHPBPage):
     def _build_validation_graph(self) -> Optional[Graph]:
         """Build partial RDF graph for SHACL validation.
 
-        Merges EquilibriumMetrics instance with windowed + processed DataSeries
+        Merges ScienceTrustCard instance with windowed + processed DataSeries
         and the processed AnalysisFile.
 
         Returns:
             RDF graph with all results instances, or None if no data.
         """
-        if not self.state.equilibrium_form_data:
+        if not self.state.metrics_form_data:
             return None
 
         try:
-            # Build equilibrium metrics graph
-            eq_graph = self._build_graph_from_form_data(
-                self.state.equilibrium_form_data,
-                f"{DYN_NS}EquilibriumMetrics",
-                "_val_equilibrium",
+            # Build Science Trust Card graph
+            card_graph = self._build_graph_from_form_data(
+                self.state.metrics_form_data,
+                f"{DYN_NS}ScienceTrustCard",
+                "_val_trust_card",
             )
 
             # Build series graph (windowed + processed + analysis file)
             series_graph = self._build_series_graph()
 
-            if series_graph and eq_graph:
+            if series_graph and card_graph:
                 for triple in series_graph:
-                    eq_graph.add(triple)
+                    card_graph.add(triple)
 
-            return eq_graph
+            return card_graph
         except Exception as e:
             self.logger.error(f"Failed to build validation graph: {e}")
             return None
@@ -549,20 +582,39 @@ class ResultsPage(BaseSHPBPage):
             # Store results (flat dict for backward compat)
             self.state.calculation_results = results
 
-            # Calculate equilibrium metrics and store as form data
-            metrics = self.calculator.calculate_equilibrium_metrics(results)
-            self.state.equilibrium_form_data = {}
-            for uri, metric_key in METRIC_URI_MAP.items():
-                value = metrics.get(metric_key)
-                if value is not None:
-                    self.state.equilibrium_form_data[uri] = value
+            # Evaluate contextual validity metrics (29 metrics, 8 stages)
+            self.set_status("Evaluating contextual validity metrics...")
+
+            from .....mechanical.shpb.metrics import evaluate_all
+            from .....mechanical.shpb.metrics.bridge import (
+                extract_metrics_inputs, metrics_result_to_form_data
+            )
+
+            inputs = extract_metrics_inputs(self.state, self.ontology_manager)
+            metrics_result = evaluate_all(**inputs)
+            self.state.metrics_result = metrics_result
+
+            # Convert to DQV form data for InstanceWriter serialization
+            test_uri = (
+                f"dyn:{self.state.specimen_id}_SHPBTest"
+                if self.state.specimen_id
+                else "dyn:_val_equipment"
+            )
+            self.state.metrics_form_data = metrics_result_to_form_data(
+                metrics_result, test_uri
+            )
 
             # Update display
-            self._update_metrics_display()
+            self._build_trust_card()
             self._update_plots()
 
             self.set_status("Calculation completed successfully")
-            self.logger.info("Stress-strain calculation completed")
+            self.logger.info(
+                f"Stress-strain calculation completed. "
+                f"Metrics: {len(metrics_result.metrics)} evaluated, "
+                f"stages={metrics_result.evaluation_stages_completed}, "
+                f"critical_failure={metrics_result.critical_failure}"
+            )
 
         except Exception as e:
             self.logger.error(f"Calculation failed: {e}")
@@ -572,42 +624,124 @@ class ResultsPage(BaseSHPBPage):
         finally:
             self.hide_progress()
 
-    def _update_metrics_display(self) -> None:
-        """Update metrics display using ontology form and color coding."""
-        if not self.state.equilibrium_form_data:
+    def _build_trust_card(self) -> None:
+        """Build the Science Trust Card display from MetricsResult.
+
+        Dynamically populates the trust card scroll area with:
+        - Critical failure banner (if applicable)
+        - Fitness annotation chips (green)
+        - Diagnostic annotation chips (orange/red)
+        - Metrics grouped by evaluation stage with color-coded assessments
+        """
+        if not self.state.metrics_result or not self._trust_card_layout:
             return
 
-        # Populate the ontology form with metric values from form data
-        self.form_builder.set_form_data(self._metrics_form, self.state.equilibrium_form_data)
+        result = self.state.metrics_result
 
-        # Build reverse lookup for color coding
-        metrics = {}
-        for uri, metric_key in METRIC_URI_MAP.items():
-            value = self.state.equilibrium_form_data.get(uri)
-            if value is not None:
-                metrics[metric_key] = value
+        # Clear existing content
+        while self._trust_card_layout.count():
+            child = self._trust_card_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
 
-        # Apply color coding to overall metrics
-        self._apply_metric_colors(metrics)
+        # Critical failure banner
+        if result.critical_failure:
+            banner = QLabel("CRITICAL FAILURE — Signal integrity compromised")
+            banner.setStyleSheet(
+                "background-color: #c62828; color: white; padding: 8px; "
+                "font-weight: bold; border-radius: 4px;"
+            )
+            banner.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self._trust_card_layout.addWidget(banner)
+
+        # Stages completed
+        stages_label = QLabel(
+            f"Evaluation: {result.evaluation_stages_completed}/8 stages completed"
+        )
+        stages_label.setStyleSheet("color: gray; padding: 2px;")
+        self._trust_card_layout.addWidget(stages_label)
+
+        # Fitness annotations (green chips)
+        if result.fitness_annotations:
+            fitness_group = self._create_group_box("Fitness for Purpose")
+            fitness_layout = QVBoxLayout(fitness_group)
+            fitness_text = "  ".join(
+                f'<span style="background-color: #2e7d32; color: white; '
+                f'padding: 2px 6px; border-radius: 3px;">{a}</span>'
+                for a in result.fitness_annotations
+            )
+            fitness_label = QLabel(fitness_text)
+            fitness_label.setTextFormat(Qt.TextFormat.RichText)
+            fitness_label.setWordWrap(True)
+            fitness_layout.addWidget(fitness_label)
+            self._trust_card_layout.addWidget(fitness_group)
+
+        # Diagnostic annotations (orange chips)
+        if result.diagnostic_annotations:
+            diag_group = self._create_group_box("Diagnostics")
+            diag_layout = QVBoxLayout(diag_group)
+            diag_text = "  ".join(
+                f'<span style="background-color: #e65100; color: white; '
+                f'padding: 2px 6px; border-radius: 3px;">{a}</span>'
+                for a in result.diagnostic_annotations
+            )
+            diag_label = QLabel(diag_text)
+            diag_label.setTextFormat(Qt.TextFormat.RichText)
+            diag_label.setWordWrap(True)
+            diag_layout.addWidget(diag_label)
+            self._trust_card_layout.addWidget(diag_group)
+
+        # Metrics grouped by stage
+        metrics_by_stage: Dict[int, list] = {}
+        for name, metric in result.metrics.items():
+            metrics_by_stage.setdefault(metric.stage, []).append(metric)
+
+        for stage_num in sorted(metrics_by_stage.keys()):
+            stage_metrics = metrics_by_stage[stage_num]
+            stage_name = STAGE_NAMES.get(stage_num, f"Stage {stage_num}")
+
+            group = self._create_group_box(f"Stage {stage_num}: {stage_name}")
+            grid = QGridLayout(group)
+            grid.setColumnStretch(1, 1)
+
+            for row, metric in enumerate(stage_metrics):
+                # Metric name
+                name_label = QLabel(metric.name)
+                name_label.setStyleSheet("font-weight: bold;")
+                grid.addWidget(name_label, row, 0)
+
+                # Value
+                if metric.skipped:
+                    val_text = f"Skipped"
+                    if metric.skip_reason:
+                        val_text += f" ({metric.skip_reason})"
+                elif isinstance(metric.value, float) and math.isnan(metric.value):
+                    val_text = "N/A"
+                elif isinstance(metric.value, float):
+                    val_text = f"{metric.value:.4f}"
+                    if metric.uncertainty is not None:
+                        val_text += f" \u00b1 {metric.uncertainty:.4f}"
+                else:
+                    val_text = str(metric.value)
+
+                val_label = QLabel(val_text)
+                grid.addWidget(val_label, row, 1)
+
+                # Assessment badge
+                assessment = metric.assessment if not metric.skipped else "Skipped"
+                color = _assessment_color(assessment)
+                badge = QLabel(assessment)
+                badge.setStyleSheet(
+                    f"color: {color}; font-weight: bold; padding: 1px 4px;"
+                )
+                grid.addWidget(badge, row, 2)
+
+            self._trust_card_layout.addWidget(group)
+
+        self._trust_card_layout.addStretch()
 
         # Update calculated characteristics
         self._update_characteristics()
-
-    def _apply_metric_colors(self, metrics: Dict[str, float]) -> None:
-        """Apply color stylesheets to FBC/SEQI/SOI/DSUF fields based on thresholds."""
-        for metric_key, threshold_fn in METRIC_THRESHOLDS.items():
-            value = metrics.get(metric_key)
-            if value is None:
-                continue
-
-            # Find the URI for this metric
-            uri = f"{DYN_NS}has{metric_key}"
-            form_fields = self._metrics_form.form_fields
-            if uri in form_fields:
-                color = threshold_fn(value)
-                form_fields[uri].widget.setStyleSheet(
-                    f"color: {color}; font-weight: bold;"
-                )
 
     def _update_characteristics(self) -> None:
         """Update calculated characteristics labels."""

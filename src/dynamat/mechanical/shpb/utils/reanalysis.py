@@ -41,7 +41,6 @@ from dynamat.mechanical.shpb.core import (
 )
 from dynamat.mechanical.shpb.io import (
     SpecimenLoader,
-    ValidityAssessor,
 )
 from dynamat.mechanical.shpb.io.rdf_helpers import extract_numeric_value
 
@@ -83,7 +82,6 @@ class SHPBReanalyzer:
         self.ontology_manager = ontology_manager
         self.qudt_manager = qudt_manager
         self.specimen_loader = SpecimenLoader(ontology_manager)
-        self.validity_assessor = ValidityAssessor()
 
         # Data storage
         self._test_uri: Optional[str] = None
@@ -992,12 +990,12 @@ class SHPBReanalyzer:
                 f'    dyn:hasDSUF "{self._metrics["DSUF"]:.6f}"^^xsd:double ;',
             ])
 
-        # Add validity assessment
-        validity = self.validity_assessor.assess_validity_from_metrics(self._metrics)
-        ttl_lines.extend([
-            f'    dyn:hasTestValidity {validity["test_validity"]} ;',
-            f'    dyn:hasValidityNotes "{validity["validity_notes"]}"^^xsd:string .',
-        ])
+        # NOTE: Full DQV contextual validity (ScienceTrustCard with 29 metrics)
+        # is computed by the SHPB wizard. Reanalysis exports only the legacy
+        # equilibrium metrics above; the old ValidityAssessor has been removed.
+        # Close the last property with a period.
+        if ttl_lines and ttl_lines[-1].rstrip().endswith(';'):
+            ttl_lines[-1] = ttl_lines[-1].rstrip().rstrip(';') + ' .'
 
         # Write file
         with open(ttl_path, 'w', encoding='utf-8') as f:

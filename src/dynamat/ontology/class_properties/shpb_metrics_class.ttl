@@ -1,0 +1,115 @@
+@prefix dc: <http://purl.org/dc/terms/> .
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix dqv: <http://www.w3.org/ns/dqv#> .
+@prefix gui: <https://dynamat.utep.edu/ontology/gui#> .
+@prefix oa: <http://www.w3.org/ns/oa#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@base <http://www.w3.org/2002/07/owl#> .
+
+[ rdf:type owl:Ontology
+ ] .
+
+# =============================================================================
+# SHPB Contextual Validity Metrics — ScienceTrustCard Class & Properties
+#
+# W3C DQV-compliant quality assessment for SHPB tests.
+# Uses standard DQV classes (dqv:Metric, dqv:Dimension, dqv:QualityMeasurement,
+# dqv:QualityCertificate) directly. Only custom class is ScienceTrustCard.
+# =============================================================================
+
+#################################################################
+#    Classes
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#ScienceTrustCard
+dyn:ScienceTrustCard rdf:type owl:Class ;
+    rdfs:subClassOf dqv:QualityMeasurementDataset ;
+    rdfs:label "Science Trust Card"@en ;
+    rdfs:comment "DQV-compliant quality assessment containing all 29 contextual validity metrics and fitness-for-purpose annotations for an SHPB test. Extends the W3C DQV QualityMeasurementDataset with SHPB-specific metadata. Replaces the binary Valid/Questionable/Invalid system with per-regime fitness annotations (e.g., ValidForPlasticFlow, HighConfidenceForJC)."@en .
+
+
+# Forward declarations for DQV/OA standard classes used
+dqv:QualityMeasurementDataset rdf:type owl:Class .
+dqv:QualityMeasurement rdf:type owl:Class .
+dqv:QualityCertificate rdf:type owl:Class .
+dqv:Metric rdf:type owl:Class .
+dqv:Dimension rdf:type owl:Class .
+
+
+#################################################################
+#    Object Properties — Link from SHPBCompression
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasScienceTrustCard
+dyn:hasScienceTrustCard rdf:type owl:ObjectProperty ,
+                                  owl:FunctionalProperty ;
+    rdfs:domain dyn:SHPBCompression ;
+    rdfs:range dyn:ScienceTrustCard ;
+    rdfs:comment "Links an SHPB compression test to its DQV-compliant Science Trust Card containing contextual validity metrics and fitness annotations."@en ;
+    rdfs:label "Science Trust Card"@en .
+
+
+#################################################################
+#    Data Properties — ScienceTrustCard Metadata
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#hasCriticalFailure
+dyn:hasCriticalFailure rdf:type owl:DatatypeProperty ,
+                                 owl:FunctionalProperty ;
+    rdfs:domain dyn:ScienceTrustCard ;
+    rdfs:range xsd:boolean ;
+    rdfs:comment "True if Stage 0 critical pre-check failed (signal clipping or pulse overlap). When true, signal-derived metric stages (1,3,4,5,6) are skipped."@en ;
+    rdfs:label "Critical Failure"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasStagesCompleted
+dyn:hasStagesCompleted rdf:type owl:DatatypeProperty ,
+                                 owl:FunctionalProperty ;
+    rdfs:domain dyn:ScienceTrustCard ;
+    rdfs:range xsd:integer ;
+    rdfs:comment "Number of evaluation stages completed (0-8). Stages may be skipped due to critical failures or missing data."@en ;
+    rdfs:label "Stages Completed"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasScienceWindowStart
+dyn:hasScienceWindowStart rdf:type owl:DatatypeProperty ,
+                                    owl:FunctionalProperty ;
+    rdfs:domain dyn:ScienceTrustCard ;
+    rdfs:range xsd:integer ;
+    rdfs:comment "Start index of the 30%-85% peak stress science window relative to pulse start."@en ;
+    rdfs:label "Science Window Start"@en .
+
+
+###  https://dynamat.utep.edu/ontology#hasScienceWindowEnd
+dyn:hasScienceWindowEnd rdf:type owl:DatatypeProperty ,
+                                  owl:FunctionalProperty ;
+    rdfs:domain dyn:ScienceTrustCard ;
+    rdfs:range xsd:integer ;
+    rdfs:comment "End index of the 30%-85% peak stress science window relative to pulse start."@en ;
+    rdfs:label "Science Window End"@en .
+
+
+#################################################################
+#    Custom Annotation Properties — SHPB-specific (no DQV equivalent)
+#################################################################
+
+###  https://dynamat.utep.edu/ontology#assessment
+dyn:assessment rdf:type owl:DatatypeProperty ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Qualitative threshold label for a DQV QualityMeasurement (e.g., 'HighTrust', 'Acceptable', 'CriticalFail'). No DQV equivalent exists for this domain-specific assessment."@en ;
+    rdfs:label "Assessment"@en .
+
+
+###  https://dynamat.utep.edu/ontology#windowSpec
+dyn:windowSpec rdf:type owl:DatatypeProperty ;
+    rdfs:range xsd:string ;
+    rdfs:comment "SHPB science window specification for a metric (e.g., '30%-85% peak stress'). Domain-specific context for metrics computed within the science window."@en ;
+    rdfs:label "Window Specification"@en .
+
+
+###  Generated by DynaMat Platform — SHPB Contextual Validity Metrics

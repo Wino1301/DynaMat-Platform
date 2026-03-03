@@ -26,14 +26,10 @@ from rdflib import Literal
 from rdflib.namespace import XSD
 
 from .rdf_helpers import ensure_typed_literal, apply_type_conversion_to_dict
-from .validity_assessment import ValidityAssessor
 from .series_config import SERIES_METADATA as _SERIES_METADATA, DataSeriesBuilder
 from .form_conversion import FormDataConverter
 
 logger = logging.getLogger(__name__)
-
-# Module-level assessor instance for convenience
-_validity_assessor = ValidityAssessor()
 
 
 @dataclass
@@ -570,38 +566,16 @@ class SHPBTestMetadata:
         logger.info(f"SHPBTestMetadata validation passed for test_id: {self.test_id}")
 
     def assess_validity_from_metrics(self, metrics: Dict[str, float]) -> None:
-        """
-        Automatically assess test validity based on equilibrium metrics.
-
-        Delegates to ValidityAssessor for implementation.
-
-        Args:
-            metrics: Dictionary from StressStrainCalculator.calculate_equilibrium_metrics()
-                     Must contain keys: 'FBC', 'SEQI', 'SOI', 'DSUF'
-
-        Sets:
-            test_validity: URI of validity status
-            validity_notes: Human-readable description
-            validity_criteria: List of criteria URIs achieved
-
-        See Also:
-            validity_assessment.ValidityAssessor: Full implementation and thresholds
-        """
-        result = _validity_assessor.assess_validity_from_metrics(metrics)
-        self.test_validity = result['test_validity']
-        self.validity_notes = result['validity_notes']
-        self.validity_criteria = result['validity_criteria']
+        """Legacy: assess test validity. Replaced by shpb.metrics.evaluate_all()."""
+        logger.warning("assess_validity_from_metrics is deprecated — use shpb.metrics.evaluate_all()")
+        self.test_validity = 'dyn:UnknownValidity'
+        self.validity_notes = 'Legacy method — use DQV ScienceTrustCard metrics'
+        self.validity_criteria = []
 
     def get_validity_criteria(self, metrics: Dict[str, float]) -> List[str]:
-        """
-        Get list of specific validity criteria URIs that were achieved.
-
-        Delegates to ValidityAssessor for implementation.
-
-        See Also:
-            validity_assessment.ValidityAssessor.get_validity_criteria: Full implementation
-        """
-        return _validity_assessor.get_validity_criteria(metrics)
+        """Legacy: get validity criteria. Replaced by DQV fitness annotations."""
+        logger.warning("get_validity_criteria is deprecated — use MetricsResult.fitness_annotations")
+        return []
 
     def is_valid(self) -> bool:
         """Check if test is valid. Returns True if test_validity is 'dyn:ValidTest'."""
@@ -614,30 +588,3 @@ class SHPBTestMetadata:
     def is_invalid(self) -> bool:
         """Check if test is invalid. Returns True if test_validity is 'dyn:InvalidTest'."""
         return self.test_validity == 'dyn:InvalidTest'
-
-    @staticmethod
-    def _assess_force_equilibrium(fbc: float, dsuf: float) -> str:
-        """Assess force equilibrium. Delegates to ValidityAssessor."""
-        return _validity_assessor.assess_force_equilibrium(fbc, dsuf)
-
-    @staticmethod
-    def _assess_strain_rate(soi: float) -> str:
-        """Assess strain rate. Delegates to ValidityAssessor."""
-        return _validity_assessor.assess_strain_rate(soi)
-
-    @staticmethod
-    def _determine_overall_validity(fbc: float, seqi: float, soi: float, dsuf: float) -> str:
-        """Determine overall validity. Delegates to ValidityAssessor."""
-        return _validity_assessor.determine_overall_validity(
-            {'FBC': fbc, 'SEQI': seqi, 'SOI': soi, 'DSUF': dsuf}
-        )
-
-    @staticmethod
-    def _generate_validity_notes(
-        fbc: float, seqi: float, soi: float, dsuf: float,
-        force_eq: str, const_sr: str
-    ) -> str:
-        """Generate validity notes. Delegates to ValidityAssessor."""
-        return _validity_assessor.generate_validity_notes(
-            fbc, seqi, soi, dsuf, force_eq, const_sr
-        )

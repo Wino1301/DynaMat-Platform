@@ -376,7 +376,7 @@ class SHPBTestWriter:
         4. PulseShift instances (2x: transmitted, reflected)
         5. PulseDetectionParams instances (3x)
         6. AlignmentParams instance
-        7. EquilibriumMetrics instance
+        7. ScienceTrustCard instance (DQV metrics)
         8. SHPBCompression test (links to all above)
 
         Args:

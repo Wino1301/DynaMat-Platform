@@ -17,7 +17,7 @@ This module provides RDF data extraction and test ingestion functionality for Sp
          | - SHPBTestMetadata (120+ analysis parameters)  |
          | - FormDataConverter (metadata -> RDF)          |
          | - DataSeriesBuilder (DataFrame -> DataSeries)  |
-         | - ValidityAssessor (equilibrium metrics)       |
+         | - (see shpb/metrics/ for DQV validity)        |
          | - SpecimenLoader (RDF graph queries)           |
          +------------------------------------------------+
 ```
@@ -37,7 +37,6 @@ from dynamat.mechanical.shpb.io import (
     apply_type_conversion_to_dict,
 
     # Extracted modules
-    ValidityAssessor,
     SERIES_METADATA,
     DataSeriesBuilder,
     FormDataConverter,
@@ -279,51 +278,22 @@ print(f"Gauge factor: {gauge_props['hasGaugeFactor']}")
 
 ---
 
-### ValidityAssessor
+### Contextual Validity (DQV Metrics)
 
-Assesses SHPB test validity based on equilibrium metrics using multi-level criteria.
+The old `ValidityAssessor` (binary Valid/Questionable/Invalid) has been replaced by the
+W3C DQV-compliant contextual validity system in `dynamat.mechanical.shpb.metrics`.
 
-**Threshold Constants:**
-
-| Metric | Strict | Relaxed | Description |
-|--------|--------|---------|-------------|
-| FBC    | 0.95   | 0.85    | Force Balance Coefficient |
-| SEQI   | 0.90   | 0.80    | Stress Equilibrium Quality Index |
-| SOI    | 0.05   | 0.10    | Strain Offset Index (lower is better) |
-| DSUF   | 0.98   | 0.90    | Dynamic Stress Uniformity Factor |
-
-**Validity Levels:**
-- `dyn:ValidTest` - All 4 metrics meet strict standards
-- `dyn:QuestionableTest` - At least 2/4 relaxed standards met
-- `dyn:InvalidTest` - Less than 2/4 relaxed standards met
-
-**Example:**
+See `dynamat/mechanical/shpb/metrics/` for the full 29-metric evaluation engine with
+per-regime fitness annotations (e.g., `ValidForPlasticFlow`, `HighConfidenceForJC`).
 
 ```python
-from dynamat.mechanical.shpb.io import ValidityAssessor
+from dynamat.mechanical.shpb.metrics import evaluate_all
 
-assessor = ValidityAssessor()
-
-metrics = {
-    'FBC': 0.96,
-    'SEQI': 0.92,
-    'SOI': 0.04,
-    'DSUF': 0.99
-}
-
-# Full assessment
-result = assessor.assess_validity_from_metrics(metrics)
-print(f"Validity: {result['test_validity']}")
-print(f"Notes: {result['validity_notes']}")
-print(f"Criteria met: {result['validity_criteria']}")
-
-# Individual assessments
-validity = assessor.determine_overall_validity(metrics)
-force_eq = assessor.assess_force_equilibrium(0.96, 0.99)
-strain_rate = assessor.assess_strain_rate(0.04)
-
-print(f"Force equilibrium: {force_eq}")  # 'achieved'
-print(f"Constant strain rate: {strain_rate}")  # 'achieved'
+result = evaluate_all(raw_signals=..., time=..., ...)
+print(f"Critical failure: {result.critical_failure}")
+print(f"Stages completed: {result.evaluation_stages_completed}")
+print(f"Fitness: {result.fitness_annotations}")
+print(f"Diagnostics: {result.diagnostic_annotations}")
 ```
 
 ---

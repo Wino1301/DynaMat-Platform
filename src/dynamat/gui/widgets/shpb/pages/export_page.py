@@ -4,9 +4,8 @@ Merges all cumulative page_graphs, renames validation-time instance IDs
 to production IDs, runs final SHACL validation, and serializes to TTL.
 
 Identification section is ontology-driven (read-only mirror of equipment page).
-Validity assessment section shows auto-assessed metrics; the override checkbox
-reveals the ontology-driven form (hasTestValidity + hasValidityNotes +
-hasValidityOverrideReason) per the gui:export_c001 constraint rule.
+Fitness assessment section shows DQV fitness annotations from the Science
+Trust Card; the override checkbox allows manual annotation changes.
 """
 
 import logging
@@ -41,14 +40,11 @@ class ExportPage(BaseSHPBPage):
 
     Layout (top → bottom inside scroll):
       1. Test Identification   – ontology-driven, read-only
-      2. Validity Assessment   – auto-assessed labels → override checkbox
-                                → [hidden] validity form (shown on override)
+      2. Fitness Assessment    – DQV fitness/diagnostic annotations from
+                                Science Trust Card; override checkbox for
+                                manual annotation changes
       3. Test Summary          – computed metrics display
       4. Output                – destination file path
-
-    The validity form (hasTestValidity / hasValidityNotes /
-    hasValidityOverrideReason) is governed by constraint gui:export_c001:
-    hidden by default, visible only when the analyst overrides.
     """
 
     def __init__(self, state, ontology_manager, qudt_manager=None, parent=None):
@@ -58,13 +54,7 @@ class ExportPage(BaseSHPBPage):
         self.setSubTitle("Review and save the SHPB test results.")
 
         self.id_form_widget: Optional[QWidget] = None
-        self.validity_form_widget: Optional[QWidget] = None
         self._form_builder: Optional[CustomizableFormBuilder] = None
-
-        # Cached auto-assessment results
-        self._assessed_validity: Optional[str] = None
-        self._assessed_criteria: list = []
-        self._assessed_notes: str = ""
 
     def _setup_ui(self) -> None:
         """Setup page UI using ontology-driven form builder."""
@@ -100,50 +90,59 @@ class ExportPage(BaseSHPBPage):
 
         content_layout.addWidget(id_section)
 
-        # ── 2. Validity Assessment ───────────────────────────────────────────
-        validity_section = self._create_group_box("Validity Assessment")
-        validity_layout = QVBoxLayout(validity_section)
-        validity_layout.setContentsMargins(4, 4, 4, 4)
-        validity_layout.setSpacing(6)
+        # ── 2. Fitness Assessment (DQV annotations) ─────────────────────────
+        fitness_section = self._create_group_box("Fitness Assessment")
+        fitness_layout = QVBoxLayout(fitness_section)
+        fitness_layout.setContentsMargins(4, 4, 4, 4)
+        fitness_layout.setSpacing(6)
 
-        # Auto-computed results display (always visible)
-        metrics_widget = QWidget()
-        metrics_layout = QGridLayout(metrics_widget)
-        metrics_layout.setContentsMargins(0, 0, 0, 4)
+        # Stages completed
+        self._stages_label = QLabel("--")
+        self._stages_label.setStyleSheet("color: gray;")
+        fitness_layout.addWidget(self._stages_label)
 
-        metrics_layout.addWidget(QLabel("Assessed Validity:"), 0, 0)
-        self.assessed_validity_label = QLabel("--")
-        self.assessed_validity_label.setStyleSheet("font-weight: bold;")
-        metrics_layout.addWidget(self.assessed_validity_label, 0, 1)
+        # Critical failure banner (hidden by default)
+        self._critical_banner = QLabel("CRITICAL FAILURE — Signal integrity compromised")
+        self._critical_banner.setStyleSheet(
+            "background-color: #c62828; color: white; padding: 6px; "
+            "font-weight: bold; border-radius: 4px;"
+        )
+        self._critical_banner.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._critical_banner.setVisible(False)
+        fitness_layout.addWidget(self._critical_banner)
 
-        metrics_layout.addWidget(QLabel("Criteria Met:"), 1, 0)
-        self.criteria_label = QLabel("--")
-        self.criteria_label.setWordWrap(True)
-        metrics_layout.addWidget(self.criteria_label, 1, 1)
+        # Fitness annotations display
+        fitness_layout.addWidget(QLabel("Fitness for Purpose:"))
+        self._fitness_label = QLabel("--")
+        self._fitness_label.setTextFormat(Qt.TextFormat.RichText)
+        self._fitness_label.setWordWrap(True)
+        fitness_layout.addWidget(self._fitness_label)
 
-        validity_layout.addWidget(metrics_widget)
+        # Diagnostic annotations display
+        fitness_layout.addWidget(QLabel("Diagnostics:"))
+        self._diagnostics_label = QLabel("--")
+        self._diagnostics_label.setTextFormat(Qt.TextFormat.RichText)
+        self._diagnostics_label.setWordWrap(True)
+        fitness_layout.addWidget(self._diagnostics_label)
 
         # Override checkbox (always visible)
-        self.override_check = QCheckBox("Override Validity Assessment")
+        self.override_check = QCheckBox("Override Fitness Assessment")
         self.override_check.stateChanged.connect(self._on_override_changed)
-        validity_layout.addWidget(self.override_check)
+        fitness_layout.addWidget(self.override_check)
 
-        # Validity form: hasTestValidity / hasValidityNotes / hasValidityOverrideReason
-        # Hidden by default per constraint gui:export_c001; revealed on override.
-        try:
-            self.validity_form_widget = self._form_builder.build_form(
-                SHPB_COMPRESSION_URI,
-                parent=validity_section,
-                include_groups={"ValidityAssessment"},
-                use_scroll_area=False,
-            )
-            self.validity_form_widget.setVisible(False)   # hidden until override checked
-            validity_layout.addWidget(self.validity_form_widget)
-        except Exception as e:
-            self.logger.error(f"Failed to build validity form: {e}", exc_info=True)
-            validity_layout.addWidget(QLabel(f"Error: {e}"))
+        # Override notes — plain text field, hidden by default
+        self._override_notes_label = QLabel("Override Reason:")
+        self._override_notes_label.setVisible(False)
+        fitness_layout.addWidget(self._override_notes_label)
 
-        content_layout.addWidget(validity_section)
+        self._override_notes = QLineEdit()
+        self._override_notes.setPlaceholderText(
+            "Describe why the auto-assessment is being overridden..."
+        )
+        self._override_notes.setVisible(False)
+        fitness_layout.addWidget(self._override_notes)
+
+        content_layout.addWidget(fitness_section)
 
         # ── 3. Test Summary ──────────────────────────────────────────────────
         summary_group = self._create_group_box("Test Summary")
@@ -155,7 +154,7 @@ class ExportPage(BaseSHPBPage):
             ("Equipment:", "equipment"),
             ("Peak Stress:", "stress"),
             ("Peak Strain:", "strain"),
-            ("FBC Metric:", "fbc"),
+            ("FBC (Plateau):", "fbc"),
         ]
 
         self.summary_labels = {}
@@ -196,33 +195,33 @@ class ExportPage(BaseSHPBPage):
             self._form_builder.set_form_data(self.id_form_widget, self.state.equipment_form_data)
         self._make_id_form_readonly()
 
-        # Compute auto-assessment from equilibrium metrics
-        self._assess_validity()
+        # Display fitness/diagnostic annotations from Science Trust Card
+        self._display_fitness_assessment()
 
-        # Always start with override unchecked and form hidden
+        # Always start with override unchecked and notes hidden
         self.override_check.blockSignals(True)
         self.override_check.setChecked(False)
         self.override_check.blockSignals(False)
-        if self.validity_form_widget:
-            self.validity_form_widget.setVisible(False)
+        self._override_notes_label.setVisible(False)
+        self._override_notes.setVisible(False)
+        self._override_notes.clear()
 
-        # Restore from previous export OR pre-populate from auto-assessment
+        # Restore from previous export
         if getattr(self.state, '_loaded_from_previous', False) and self.state.export_form_data:
-            if self.validity_form_widget:
-                self._form_builder.set_form_data(
-                    self.validity_form_widget, self.state.export_form_data
-                )
-            # Restore override visibility if it was previously active
-            was_overridden = self.state.export_form_data.get(
-                f"{DYN_NS}isValidityOverridden", False
+            override_reason = self.state.export_form_data.get(
+                f"{DYN_NS}hasOverrideReason", ""
             )
-            if was_overridden and self.validity_form_widget:
+            was_overridden = self.state.export_form_data.get(
+                f"{DYN_NS}isAssessmentOverridden", False
+            )
+            if was_overridden:
                 self.override_check.blockSignals(True)
                 self.override_check.setChecked(True)
                 self.override_check.blockSignals(False)
-                self.validity_form_widget.setVisible(True)
-        else:
-            self._populate_validity_form()
+                self._override_notes_label.setVisible(True)
+                self._override_notes.setVisible(True)
+                if override_reason:
+                    self._override_notes.setText(str(override_reason))
 
         # Update summary and output path
         self._update_summary()
@@ -233,22 +232,10 @@ class ExportPage(BaseSHPBPage):
     def validatePage(self) -> bool:
         """Validate and export test."""
         export_data = {}
-        if self.validity_form_widget:
-            export_data = self._form_builder.get_form_data(self.validity_form_widget)
-
         is_overriding = self.override_check.isChecked()
-        export_data[f"{DYN_NS}isValidityOverridden"] = is_overriding
-
-        # When not overriding, always use auto-assessed validity
-        if not is_overriding and self._assessed_validity:
-            export_data[f"{DYN_NS}hasTestValidity"] = _dyn_prefix_to_uri(self._assessed_validity)
-            export_data.pop(f"{DYN_NS}hasValidityOverrideReason", None)
-
-        # Always save auto-assessed criteria (multi-valued, not in the form)
-        if self._assessed_criteria:
-            export_data[f"{DYN_NS}hasValidityCriteria"] = [
-                _dyn_prefix_to_uri(c) for c in self._assessed_criteria
-            ]
+        export_data[f"{DYN_NS}isAssessmentOverridden"] = is_overriding
+        if is_overriding:
+            export_data[f"{DYN_NS}hasOverrideReason"] = self._override_notes.text().strip()
 
         self.state.export_form_data = export_data
 
@@ -262,7 +249,7 @@ class ExportPage(BaseSHPBPage):
     # ── Validation graph ──────────────────────────────────────────────────────
 
     def _build_validation_graph(self) -> Optional[Graph]:
-        """Build graph with export metadata and sub-instance links on the test node."""
+        """Build graph with export metadata, ScienceTrustCard, and sub-instance links."""
         try:
             DYN = Namespace(DYN_NS)
             writer = self._instance_writer
@@ -290,16 +277,22 @@ class ExportPage(BaseSHPBPage):
             graph.add((test_node, DYN.hasAnalysisTimestamp,
                         writer._convert_to_rdf_value(datetime.now().isoformat())))
 
+            # Build ScienceTrustCard sub-instance from metrics form data
+            if self.state.metrics_form_data:
+                card_ref = writer.create_single_instance(
+                    graph, self.state.metrics_form_data,
+                    f"{DYN_NS}ScienceTrustCard", "_val_trust_card"
+                )
+                graph.add((test_node, DYN.hasScienceTrustCard, card_ref))
+
             # Link to sub-instances
             sub_links = {
                 "hasAlignmentParams": "_val_alignment",
-                "hasEquilibriumMetrics": "_val_equilibrium",
                 "hasSegmentationParams": "_val_segmentation",
             }
             for prop_name, inst_id in sub_links.items():
                 page_key = {
                     "_val_alignment": "alignment",
-                    "_val_equilibrium": "results",
                     "_val_segmentation": "segmentation",
                 }.get(inst_id)
                 if page_key and page_key in self.state.page_graphs:
@@ -359,7 +352,7 @@ class ExportPage(BaseSHPBPage):
         replacements = {
             str(DYN["_val_equipment"]): str(DYN[test_id_clean]),
             str(DYN["_val_alignment"]): str(DYN[f"{test_id_clean}_alignment"]),
-            str(DYN["_val_equilibrium"]): str(DYN[f"{test_id_clean}_equilibrium"]),
+            str(DYN["_val_trust_card"]): str(DYN[f"{test_id_clean}_trust_card"]),
             str(DYN["_val_segmentation"]): str(DYN[f"{test_id_clean}_segmentation"]),
         }
         for pulse_type in ["incident", "transmitted", "reflected"]:
@@ -527,9 +520,11 @@ class ExportPage(BaseSHPBPage):
             self.set_status(f"Exported successfully: {output_path}")
             self.logger.info(f"Test exported to {output_path}")
 
-            validity = (self.state.export_form_data or {}).get(
-                f"{DYN_NS}hasTestValidity", "Unknown"
-            )
+            # Summarize fitness annotations for display
+            fitness_summary = "None"
+            if self.state.metrics_result and self.state.metrics_result.fitness_annotations:
+                fitness_summary = ", ".join(self.state.metrics_result.fitness_annotations)
+
             if result.has_any_issues():
                 self.show_warning(
                     "Export Complete with Warnings",
@@ -542,7 +537,7 @@ class ExportPage(BaseSHPBPage):
                     f"Test saved successfully!\n\n"
                     f"File: {output_path}\n\n"
                     f"Test ID: {self.state.test_id}\n"
-                    f"Validity: {validity}"
+                    f"Fitness: {fitness_summary}"
                 )
 
             return True
@@ -593,14 +588,15 @@ class ExportPage(BaseSHPBPage):
                 w.setEnabled(False)
 
     def _on_override_changed(self, state: int) -> None:
-        """Handle override checkbox — confirm, then show/hide the validity form."""
+        """Handle override checkbox — confirm, then show/hide override notes."""
         if state == Qt.CheckState.Checked.value:
             reply = QMessageBox.question(
                 self,
-                "Override Validity Assessment",
-                "Are you sure you want to manually override the auto-assessed validity?\n\n"
-                "The auto-assessment is based on equilibrium metrics (FBC, SEQI, DSUF).\n"
-                "Only override if you have expert knowledge that the auto-assessment is incorrect.",
+                "Override Fitness Assessment",
+                "Are you sure you want to manually override the fitness assessment?\n\n"
+                "The assessment is based on 29 contextual validity metrics evaluated\n"
+                "across 8 stages. Only override if you have expert knowledge that\n"
+                "the auto-assessment is incorrect.",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
             )
@@ -609,76 +605,62 @@ class ExportPage(BaseSHPBPage):
                 self.override_check.setChecked(False)
                 self.override_check.blockSignals(False)
                 return
-            # Reveal validity form for manual editing
-            if self.validity_form_widget:
-                self.validity_form_widget.setVisible(True)
+            self._override_notes_label.setVisible(True)
+            self._override_notes.setVisible(True)
         else:
-            # Hide form and restore auto-assessed values
-            self._populate_validity_form()
-            if self.validity_form_widget:
-                self.validity_form_widget.setVisible(False)
+            self._override_notes_label.setVisible(False)
+            self._override_notes.setVisible(False)
 
-    def _assess_validity(self) -> None:
-        """Assess test validity from equilibrium metrics and update labels."""
-        if not self.state.equilibrium_form_data:
-            self.assessed_validity_label.setText("Cannot assess - no metrics")
-            self.assessed_validity_label.setStyleSheet("color: gray; font-weight: bold;")
-            self._assessed_validity = None
-            self._assessed_criteria = []
-            self._assessed_notes = ""
+    def _display_fitness_assessment(self) -> None:
+        """Display fitness/diagnostic annotations from the Science Trust Card."""
+        result = self.state.metrics_result
+
+        if not result:
+            self._stages_label.setText("No metrics available")
+            self._fitness_label.setText("--")
+            self._diagnostics_label.setText("--")
+            self._critical_banner.setVisible(False)
             return
 
         try:
-            fbc = self.state.get_equilibrium_metric('hasFBC')
-            dsuf = self.state.get_equilibrium_metric('hasDSUF')
-            seqi = self.state.get_equilibrium_metric('hasSEQI')
+            # Stages completed
+            self._stages_label.setText(
+                f"{result.evaluation_stages_completed}/8 stages completed"
+            )
 
-            criteria = []
-            if fbc is not None and fbc > 0.95:
-                criteria.append("dyn:FBCAbove95")
-            if dsuf is not None and dsuf > 0.98:
-                criteria.append("dyn:DSUFAbove98")
-            if seqi is not None and seqi > 0.90:
-                criteria.append("dyn:SEQIAbove90")
+            # Critical failure banner
+            self._critical_banner.setVisible(result.critical_failure)
 
-            if fbc is not None and fbc > 0.95 and dsuf is not None and dsuf > 0.98:
-                validity = "dyn:ValidTest"
-                notes = "Test meets equilibrium criteria."
-                self.assessed_validity_label.setText("VALID")
-                self.assessed_validity_label.setStyleSheet("color: green; font-weight: bold;")
-            elif fbc is not None and fbc > 0.90:
-                validity = "dyn:QuestionableTest"
-                notes = "Test partially meets equilibrium criteria."
-                self.assessed_validity_label.setText("QUESTIONABLE")
-                self.assessed_validity_label.setStyleSheet("color: orange; font-weight: bold;")
+            # Fitness annotations (green chips)
+            if result.fitness_annotations:
+                fitness_html = "  ".join(
+                    f'<span style="background-color: #2e7d32; color: white; '
+                    f'padding: 2px 6px; border-radius: 3px;">{a}</span>'
+                    for a in result.fitness_annotations
+                )
+                self._fitness_label.setText(fitness_html)
             else:
-                validity = "dyn:InvalidTest"
-                notes = "Test does not meet equilibrium criteria."
-                self.assessed_validity_label.setText("INVALID")
-                self.assessed_validity_label.setStyleSheet("color: red; font-weight: bold;")
+                self._fitness_label.setText(
+                    '<span style="color: gray;">No fitness annotations</span>'
+                )
 
-            self._assessed_validity = validity
-            self._assessed_criteria = criteria
-            self._assessed_notes = notes
-
-            criteria_text = ", ".join(c.replace("dyn:", "") for c in criteria) or "None"
-            self.criteria_label.setText(criteria_text)
+            # Diagnostic annotations (orange chips)
+            if result.diagnostic_annotations:
+                diag_html = "  ".join(
+                    f'<span style="background-color: #e65100; color: white; '
+                    f'padding: 2px 6px; border-radius: 3px;">{a}</span>'
+                    for a in result.diagnostic_annotations
+                )
+                self._diagnostics_label.setText(diag_html)
+            else:
+                self._diagnostics_label.setText(
+                    '<span style="color: gray;">No diagnostic flags</span>'
+                )
 
         except Exception as e:
-            self.logger.error(f"Failed to assess validity: {e}")
-            self.assessed_validity_label.setText("Assessment Error")
-            self.assessed_validity_label.setStyleSheet("color: red; font-weight: bold;")
-
-    def _populate_validity_form(self) -> None:
-        """Pre-populate the (hidden) validity form with auto-assessed values."""
-        if not self.validity_form_widget or not self._assessed_validity:
-            return
-
-        validity_data = {
-            f"{DYN_NS}hasTestValidity": _dyn_prefix_to_uri(self._assessed_validity),
-            f"{DYN_NS}hasValidityNotes": self._assessed_notes,
-        }
-        self._form_builder.set_form_data(self.validity_form_widget, validity_data)
+            self.logger.error(f"Failed to display fitness assessment: {e}")
+            self._fitness_label.setText("Assessment Error")
+            self._diagnostics_label.setText("")
 
     def _update_summary(self) -> None:
         """Update test summary display."""
@@ -705,9 +687,10 @@ class ExportPage(BaseSHPBPage):
             if len(strain_1w) > 0:
                 self.summary_labels['strain'].setText(f"{np.max(np.abs(strain_1w)):.4f}")
 
-        fbc = self.state.get_equilibrium_metric('hasFBC')
-        if fbc is not None:
-            self.summary_labels['fbc'].setText(f"{fbc:.4f}")
+        # Show FBC from Science Trust Card metrics
+        fbc_metric = self.state.get_metric('FBC_Plateau') if self.state.has_metrics() else None
+        if fbc_metric is not None and not fbc_metric.skipped:
+            self.summary_labels['fbc'].setText(f"{fbc_metric.value:.4f}")
 
     def _update_output_path(self) -> None:
         """Update output path display."""
@@ -720,12 +703,3 @@ class ExportPage(BaseSHPBPage):
             self.output_label.setText(str(output_path))
         else:
             self.output_label.setText("(will be determined on export)")
-
-
-# ── Module-level helpers ──────────────────────────────────────────────────────
-
-def _dyn_prefix_to_uri(value: str) -> str:
-    """Convert 'dyn:Foo' or full URI to full https://dynamat.utep.edu/ontology#Foo URI."""
-    if value.startswith("dyn:"):
-        return f"{DYN_NS}{value[4:]}"
-    return value

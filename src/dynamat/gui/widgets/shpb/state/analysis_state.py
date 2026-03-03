@@ -84,7 +84,9 @@ class SHPBAnalysisState:
     enriched_results: Optional[Dict[str, Dict[str, Any]]] = None
     # Flat results dict for backward compat (key -> np.ndarray)
     calculation_results: Optional[Dict[str, np.ndarray]] = None
-    equilibrium_form_data: Optional[Dict[str, Any]] = None  # dyn:EquilibriumMetrics
+    equilibrium_form_data: Optional[Dict[str, Any]] = None  # dyn:EquilibriumMetrics (legacy)
+    metrics_form_data: Optional[Dict[str, Any]] = None  # dyn:ScienceTrustCard (DQV)
+    metrics_result: Optional[Any] = None  # MetricsResult (for GUI display without re-parsing)
 
     # ==================== TUKEY (alpha stored directly on SHPBCompression) =====
     tukey_form_data: Optional[Dict[str, Any]] = None
@@ -147,10 +149,27 @@ class SHPBAnalysisState:
         return self.alignment_form_data.get(f"{DYN_NS}{property_name}")
 
     def get_equilibrium_metric(self, property_name: str) -> Any:
-        """Read equilibrium metric from form data."""
+        """Read equilibrium metric from form data (legacy)."""
         if not self.equilibrium_form_data:
             return None
         return self.equilibrium_form_data.get(f"{DYN_NS}{property_name}")
+
+    def get_metric(self, metric_name: str) -> Any:
+        """Read a metric value from the ScienceTrustCard metrics result.
+
+        Args:
+            metric_name: Metric name (e.g. 'FBC_Plateau', 'CCC', 'GDI').
+
+        Returns:
+            MetricValue or None.
+        """
+        if not self.metrics_result:
+            return None
+        return self.metrics_result.metrics.get(metric_name)
+
+    def has_metrics(self) -> bool:
+        """Check if contextual validity metrics have been computed."""
+        return self.metrics_result is not None
 
     def get_tukey_param(self, property_name: str) -> Any:
         """Read Tukey window param from form data."""
@@ -270,6 +289,8 @@ class SHPBAnalysisState:
             self.enriched_results = None
             self.calculation_results = None
             self.equilibrium_form_data = None
+            self.metrics_form_data = None
+            self.metrics_result = None
             self.windowed_series_uris = {}
             self.processed_series_uris = {}
             self.processed_file_uri = None

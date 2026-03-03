@@ -180,8 +180,8 @@ class EquipmentPage(BaseSHPBPage):
             exclude = {
                 # Alignment
                 "hasAlignmentParams",
-                # Equilibrium
-                "hasEquilibriumMetrics",
+                # Science Trust Card (DQV metrics)
+                "hasScienceTrustCard",
                 # Detection
                 "hasPulseDetectionParams",
                 # Segmentation

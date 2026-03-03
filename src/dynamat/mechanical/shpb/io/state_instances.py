@@ -134,12 +134,12 @@ class StateToInstancesConverter:
                 f'{test_id_clean}_alignment'
             ))
 
-        # 7. Equilibrium metrics
-        if state.equilibrium_form_data:
+        # 7. Science Trust Card (DQV metrics)
+        if state.metrics_form_data:
             instances.append((
-                apply_type_conversion_to_dict(dict(state.equilibrium_form_data)),
-                'dyn:EquilibriumMetrics',
-                f'{test_id_clean}_equilibrium'
+                apply_type_conversion_to_dict(dict(state.metrics_form_data)),
+                'dyn:ScienceTrustCard',
+                f'{test_id_clean}_trust_card'
             ))
 
         # 8. Tukey alpha is stored directly on SHPBCompression (no sub-instance)
@@ -201,8 +201,8 @@ class StateToInstancesConverter:
         # Add links to processing objects
         if state.alignment_form_data:
             form[f'{DYN_NS}hasAlignmentParams'] = f'dyn:{test_id_clean}_alignment'
-        if state.equilibrium_form_data:
-            form[f'{DYN_NS}hasEquilibriumMetrics'] = f'dyn:{test_id_clean}_equilibrium'
+        if state.metrics_form_data:
+            form[f'{DYN_NS}hasScienceTrustCard'] = f'dyn:{test_id_clean}_trust_card'
 
         # Add all DataSeries links
         series_uris = []

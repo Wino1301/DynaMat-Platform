@@ -1,0 +1,149 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dqv: <http://www.w3.org/ns/dqv#> .
+@prefix oa: <http://www.w3.org/ns/oa#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+
+# =============================================================================
+# DynaMat Platform - DQV (Data Quality Vocabulary) SHACL Shapes
+# =============================================================================
+#
+# Reusable shapes for W3C DQV quality assessment instances.
+# Used by ScienceTrustCard (SHPB contextual validity) and potentially
+# by any future mechanical test type that adopts DQV quality metadata.
+#
+# Covers:
+# 1. ScienceTrustCardShape — top-level quality dataset
+# 2. QualityMeasurementShape — individual metric measurement BNodes
+# 3. QualityAnnotationShape — fitness/diagnostic annotation BNodes
+# =============================================================================
+
+
+#################################################################
+#    ScienceTrustCard Shape
+#################################################################
+
+dyn:ScienceTrustCardShape a sh:NodeShape ;
+    sh:targetClass dyn:ScienceTrustCard ;
+    rdfs:comment "Validation rules for ScienceTrustCard (DQV quality dataset) instances" ;
+
+    # Card-level metadata (required)
+    sh:property [
+        sh:path dyn:hasCriticalFailure ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:boolean ;
+        sh:message "Critical failure flag is required on ScienceTrustCard" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    sh:property [
+        sh:path dyn:hasStagesCompleted ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:integer ;
+        sh:message "Number of evaluation stages completed is required" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    # Science window bounds (optional — only present when no critical failure)
+    sh:property [
+        sh:path dyn:hasScienceWindowStart ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:integer ;
+    ] ;
+
+    sh:property [
+        sh:path dyn:hasScienceWindowEnd ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:integer ;
+    ] ;
+
+    # QualityMeasurement BNodes (0..n, each validated individually)
+    sh:property [
+        sh:path dqv:hasQualityMeasurement ;
+        sh:node dyn:QualityMeasurementShape ;
+    ] ;
+
+    # QualityAnnotation BNodes (0..n, each validated individually)
+    sh:property [
+        sh:path dqv:hasQualityAnnotation ;
+        sh:node dyn:QualityAnnotationShape ;
+    ] .
+
+
+#################################################################
+#    QualityMeasurement Shape (individual metric BNode)
+#################################################################
+
+dyn:QualityMeasurementShape a sh:NodeShape ;
+    rdfs:comment "Validation rules for dqv:QualityMeasurement BNodes" ;
+
+    sh:property [
+        sh:path dqv:isMeasurementOf ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:class dqv:Metric ;
+        sh:message "Quality measurement must reference a dqv:Metric individual" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    sh:property [
+        sh:path dqv:value ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:double ;
+        sh:message "Quality measurement must have a numeric value" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    sh:property [
+        sh:path dyn:assessment ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+    ] ;
+
+    sh:property [
+        sh:path qudt:unit ;
+        sh:maxCount 1 ;
+    ] ;
+
+    sh:property [
+        sh:path qudt:standardUncertainty ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:double ;
+    ] ;
+
+    sh:property [
+        sh:path dyn:windowSpec ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+    ] .
+
+
+#################################################################
+#    QualityAnnotation Shape (fitness/diagnostic BNode)
+#################################################################
+
+dyn:QualityAnnotationShape a sh:NodeShape ;
+    rdfs:comment "Validation rules for dqv:QualityCertificate (annotation) BNodes" ;
+
+    sh:property [
+        sh:path oa:hasTarget ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:message "Quality annotation must have a target (the test instance)" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    sh:property [
+        sh:path oa:hasBody ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:message "Quality annotation must have a body (the annotation concept)" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    sh:property [
+        sh:path oa:motivatedBy ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:message "Quality annotation must have a motivation" ;
+        sh:severity sh:Violation ;
+    ] .

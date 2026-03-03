@@ -29,7 +29,11 @@ dyn:Al6061_T6 rdf:type owl:NamedIndividual, dyn:AluminiumAlloy ;
     dyn:hasMeltingPoint "582.0"^^xsd:double ;
     dyn:hasThermalConductivity "167.0"^^xsd:double ;
     dyn:hasSpecificHeat "896.0"^^xsd:double ;
-    dyn:hasDensity "2.70"^^xsd:double .
+    dyn:hasDensity "2.70"^^xsd:double ;
+    # Mechanical properties (ASM Handbook)
+    dyn:hasElasticModulus "68900.0"^^xsd:double ;
+    dyn:hasPoissonsRatio "0.33"^^xsd:double ;
+    dyn:hasWaveSpeed "5050.0"^^xsd:double .
 
 dyn:Al7075_T6 rdf:type owl:NamedIndividual, dyn:AluminiumAlloy ;
     rdfs:label "Al7075-T6"@en ;
@@ -45,7 +49,11 @@ dyn:Al7075_T6 rdf:type owl:NamedIndividual, dyn:AluminiumAlloy ;
     dyn:hasMeltingPoint "477.0"^^xsd:double ;
     dyn:hasThermalConductivity "130.0"^^xsd:double ;
     dyn:hasSpecificHeat "960.0"^^xsd:double ;
-    dyn:hasDensity "2.81"^^xsd:double .
+    dyn:hasDensity "2.81"^^xsd:double ;
+    # Mechanical properties (ASM Handbook)
+    dyn:hasElasticModulus "71700.0"^^xsd:double ;
+    dyn:hasPoissonsRatio "0.33"^^xsd:double ;
+    dyn:hasWaveSpeed "5047.0"^^xsd:double .
 
 dyn:A356 rdf:type owl:NamedIndividual, dyn:AluminiumAlloy ;
     rdfs:label "A356"@en ;
@@ -61,7 +69,11 @@ dyn:A356 rdf:type owl:NamedIndividual, dyn:AluminiumAlloy ;
     dyn:hasMeltingPoint "615.0"^^xsd:double ;
     dyn:hasThermalConductivity "151.0"^^xsd:double ;
     dyn:hasSpecificHeat "963.0"^^xsd:double ;
-    dyn:hasDensity "2.68"^^xsd:double .
+    dyn:hasDensity "2.68"^^xsd:double ;
+    # Mechanical properties (ASM Handbook / MatWeb)
+    dyn:hasElasticModulus "72400.0"^^xsd:double ;
+    dyn:hasPoissonsRatio "0.33"^^xsd:double ;
+    dyn:hasWaveSpeed "5197.0"^^xsd:double .
 
 #################################################################
 #    Material Individuals - Steel Alloys
@@ -81,7 +93,11 @@ dyn:SS316 rdf:type owl:NamedIndividual, dyn:SteelAlloy ;
     dyn:hasMeltingPoint "1375.0"^^xsd:double ;
     dyn:hasThermalConductivity "16.2"^^xsd:double ;
     dyn:hasSpecificHeat "500.0"^^xsd:double ;
-    dyn:hasDensity "8.00"^^xsd:double .
+    dyn:hasDensity "8.00"^^xsd:double ;
+    # Mechanical properties (ASM Handbook)
+    dyn:hasElasticModulus "193000.0"^^xsd:double ;
+    dyn:hasPoissonsRatio "0.30"^^xsd:double ;
+    dyn:hasWaveSpeed "4912.0"^^xsd:double .
 
 dyn:C350_Maraging rdf:type owl:NamedIndividual, dyn:SteelAlloy ;
     rdfs:label "C350 Maraging Steel"@en ;
@@ -94,7 +110,10 @@ dyn:C350_Maraging rdf:type owl:NamedIndividual, dyn:SteelAlloy ;
     dyn:hasPlottingLabel "C350"@en ;
     dyn:hasDensity "8.0825"^^xsd:double ;
     dyn:hasWaveSpeed "4953.321"^^xsd:double ;
-    dyn:hasElasticModulus "199990"^^xsd:double .
+    dyn:hasElasticModulus "199990.0"^^xsd:double ;
+    # Additional properties for metrics
+    dyn:hasPoissonsRatio "0.30"^^xsd:double ;
+    dyn:hasSpecificHeat "450.0"^^xsd:double .
 
 #################################################################
 #    Material Individuals - Copper Alloys
@@ -114,7 +133,11 @@ dyn:CU101 rdf:type owl:NamedIndividual, dyn:Metal ;
     dyn:hasMeltingPoint "1083.0"^^xsd:double ;
     dyn:hasThermalConductivity "391.0"^^xsd:double ;
     dyn:hasSpecificHeat "385.0"^^xsd:double ;
-    dyn:hasDensity "8.96"^^xsd:double .
+    dyn:hasDensity "8.96"^^xsd:double ;
+    # Mechanical properties (ASM Handbook)
+    dyn:hasElasticModulus "117000.0"^^xsd:double ;
+    dyn:hasPoissonsRatio "0.34"^^xsd:double ;
+    dyn:hasWaveSpeed "3610.0"^^xsd:double .
 
 #################################################################
 #    Material Individuals - Composite Alloys
