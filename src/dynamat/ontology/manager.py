@@ -246,14 +246,19 @@ class OntologyManager:
             For non-functional properties (multiple values): returns list of strings
             For object properties, returns the URI of the object(s)
             For datatype properties, returns the literal value(s)
+            For QuantityValue BNode properties: returns the numeric value as string
         """
         # Build SPARQL query to get all requested properties
         property_values = {}
 
         for prop_uri in property_uris:
+            # COALESCE handles both direct literals and QuantityValue BNodes
             query = f"""
+            PREFIX qudt: <http://qudt.org/schema/qudt/>
             SELECT ?value WHERE {{
-                <{individual_uri}> <{prop_uri}> ?value .
+                <{individual_uri}> <{prop_uri}> ?raw .
+                OPTIONAL {{ ?raw qudt:numericValue ?qvValue }}
+                BIND(COALESCE(?qvValue, ?raw) AS ?value)
             }}
             """
 

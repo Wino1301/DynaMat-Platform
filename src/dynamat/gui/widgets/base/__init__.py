@@ -3,7 +3,7 @@ DynaMat Platform - GUI Base Widgets Module
 Base widget components used throughout the application
 """
 
-from .unit_value_widget import UnitValueWidget
+from .quantity_value_widget import QuantityValueWidget
 from .property_display import PropertyDisplayConfig, PropertyDisplayWidget
 from .raw_data_loader import RawDataLoaderConfig, RawDataLoaderWidget
 
@@ -32,7 +32,7 @@ from .entity_selector import (
 )
 
 __all__ = [
-    'UnitValueWidget',
+    'QuantityValueWidget',
     'SeriesMetadataResolver',
     'DataSeriesWidget',
     'PropertyDisplayConfig',

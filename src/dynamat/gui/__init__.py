@@ -20,7 +20,7 @@ from .core.data_handler import FormDataHandler
 from .dependencies.dependency_manager import DependencyManager
 from .dependencies.calculation_engine import CalculationEngine, CalculationType
 from .widgets.forms.specimen_form import SpecimenFormWidget
-from .widgets.base.unit_value_widget import UnitValueWidget
+from .widgets.base.quantity_value_widget import QuantityValueWidget
 from .widgets.terminal_widget import TerminalWidget
 from .widgets.action_panel import ActionPanelWidget
 
@@ -52,7 +52,7 @@ __all__ = [
     
     # Widgets
     'SpecimenFormWidget',
-    'UnitValueWidget',
+    'QuantityValueWidget',
     'TerminalWidget',
     'ActionPanelWidget',
     

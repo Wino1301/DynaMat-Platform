@@ -846,15 +846,20 @@ class DomainQueries:
             # Normalize property URI
             normalized_prop = self._normalize_property_uri(prop_uri)
 
-            # Query for value, label, unit, and also the value's label if it's an object property
-            # This handles both datatype properties (literal values) and object properties (URI values)
+            # Query for value, label, unit — handles both plain literals and
+            # qudt:QuantityValue blank nodes via COALESCE.
             query = f"""
             SELECT ?value ?displayName ?label ?unit ?unitSymbol ?valueLabel ?valuePlotLabel WHERE {{
-                <{individual_uri}> <{normalized_prop}> ?value .
+                <{individual_uri}> <{normalized_prop}> ?raw .
+
+                OPTIONAL {{ ?raw qudt:numericValue ?qvValue }}
+                OPTIONAL {{ ?raw qudt:unit ?qvUnit }}
+                BIND(COALESCE(?qvValue, ?raw) AS ?value)
 
                 OPTIONAL {{ <{normalized_prop}> gui:hasDisplayName ?displayName }}
                 OPTIONAL {{ <{normalized_prop}> rdfs:label ?label }}
-                OPTIONAL {{ <{normalized_prop}> dyn:hasUnit ?unit }}
+                OPTIONAL {{ <{normalized_prop}> dyn:hasUnit ?annotUnit }}
+                BIND(COALESCE(?qvUnit, ?annotUnit) AS ?unit)
                 OPTIONAL {{ ?unit qudt:symbol ?unitSymbol }}
 
                 # For object properties, get the label of the linked individual

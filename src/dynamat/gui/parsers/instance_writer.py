@@ -37,6 +37,8 @@ class InstanceWriter:
         self.QUDT = Namespace("http://qudt.org/schema/qudt/")
         self.UNIT = Namespace("http://qudt.org/vocab/unit/")
         self.QKDV = Namespace("http://qudt.org/vocab/quantitykind/")
+        self.PROV = Namespace("http://www.w3.org/ns/prov#")
+        self.DC_ELEMENTS = Namespace("http://purl.org/dc/elements/1.1/")
 
         # Initialize SHACL validator
         self.validator = SHACLValidator(ontology_manager)
@@ -120,41 +122,13 @@ class InstanceWriter:
         return validation_result
 
     def _convert_to_rdf_value(self, value: Any) -> Union[URIRef, Literal]:
-        """Convert Python/form value to RDF value, performing unit conversion if needed."""
-        # Unit-value dictionary from UnitValueWidget
-        if isinstance(value, dict) and 'value' in value:
-            numeric_value = value['value']
-            user_unit = value.get('unit')  # Unit selected by user in dropdown
-            reference_unit = value.get('reference_unit')  # dyn:hasUnit from ontology (storage unit)
+        """Convert Python/form value to RDF value.
 
-            # Perform unit conversion if units differ (URI-level comparison)
-            if user_unit and reference_unit and user_unit != reference_unit and self.qudt:
-                try:
-                    # Convert from user's unit to ontology-defined storage unit
-                    converted_value = self.qudt.convert_value(
-                        value=numeric_value,
-                        from_unit_uri=user_unit,
-                        to_unit_uri=reference_unit
-                    )
-
-                    logger.info(
-                        f"Unit conversion: {numeric_value} ({user_unit}) to "
-                        f"{converted_value:.6f} ({reference_unit})"
-                    )
-
-                    return Literal(converted_value, datatype=XSD.double)
-
-                except Exception as e:
-                    logger.warning(
-                        f"Unit conversion failed ({user_unit} → {reference_unit}): {e}. "
-                        f"Storing original value."
-                    )
-                    return Literal(numeric_value, datatype=XSD.double)
-            else:
-                return Literal(numeric_value, datatype=XSD.double)
-
+        NOTE: Measurement dicts (dict with 'value' key) are handled by
+        _create_quantity_value() in create_single_instance(), not here.
+        """
         # Pass through already-typed literals unchanged
-        elif isinstance(value, Literal):
+        if isinstance(value, Literal):
             return value
 
         # Standard type conversions
@@ -214,6 +188,8 @@ class InstanceWriter:
             graph.bind("qudt", self.QUDT)
             graph.bind("unit", self.UNIT)
             graph.bind("qkdv", self.QKDV)
+            graph.bind("prov", self.PROV)
+            graph.bind("dce", self.DC_ELEMENTS)
 
     def _create_instance_uri(self, instance_id: str) -> str:
         """Create full URI for instance from ID."""
@@ -238,6 +214,106 @@ class InstanceWriter:
                 return URIRef(uri_string)
         else:
             return URIRef(self.DYN[uri_string])
+
+    def _is_measurement_dict(self, value: Any) -> bool:
+        """Check if value is a measurement dictionary from QuantityValueWidget."""
+        return isinstance(value, dict) and 'value' in value
+
+    def _create_quantity_value(self, graph: Graph, value_dict: dict,
+                               property_uri: str = None) -> BNode:
+        """
+        Create a qudt:QuantityValue blank node from a measurement dictionary.
+
+        Serializes the value as-is (in the user's selected unit) as a structured
+        QuantityValue with numericValue, unit, hasQuantityKind, and optional
+        PROV/DC provenance.
+
+        Args:
+            graph: RDF graph to add BNode triples to
+            value_dict: Measurement dict with keys: value, unit,
+                        quantity_kind, uncertainty, source, activity (all optional
+                        except value)
+            property_uri: Property URI for quantity_kind fallback lookup
+
+        Returns:
+            BNode representing the QuantityValue
+        """
+        stored_value = value_dict['value']
+        stored_unit = value_dict.get('unit')
+        quantity_kind = value_dict.get('quantity_kind')
+
+        # Fallback: look up quantity_kind from ontology if not in dict
+        if not quantity_kind and property_uri:
+            quantity_kind = self._get_quantity_kind_for_property(property_uri)
+
+        # Validate required fields BEFORE creating the BNode so that a
+        # failed conversion never leaves an orphaned bare qudt:QuantityValue
+        # node in the graph (which would trigger QuantityValueShape violations).
+        numeric_value = float(stored_value)   # raises if value is None / wrong type
+        if not stored_unit:
+            raise ValueError(
+                f"QuantityValue for {property_uri} has no unit — "
+                "cannot write a conforming qudt:QuantityValue blank node"
+            )
+
+        # All required fields present — create the blank node
+        bnode = BNode()
+        graph.add((bnode, RDF.type, self.QUDT.QuantityValue))
+        graph.add((bnode, self.QUDT.numericValue,
+                   Literal(numeric_value, datatype=XSD.double)))
+
+        if stored_unit:
+            unit_ref = self._resolve_uri(stored_unit)
+            graph.add((bnode, self.QUDT.unit, unit_ref))
+
+        if quantity_kind:
+            qk_ref = self._resolve_uri(quantity_kind)
+            graph.add((bnode, self.QUDT.hasQuantityKind, qk_ref))
+
+        # Optional: standard uncertainty
+        uncertainty = value_dict.get('uncertainty')
+        if uncertainty is not None:
+            graph.add((bnode, self.QUDT.standardUncertainty,
+                       Literal(float(uncertainty), datatype=XSD.double)))
+
+        # Optional: provenance (dc:source and prov:wasGeneratedBy)
+        source = value_dict.get('source')
+        if source:
+            graph.add((bnode, self.DC_ELEMENTS.source,
+                       Literal(str(source), datatype=XSD.string)))
+
+        activity = value_dict.get('activity')
+        if activity:
+            graph.add((bnode, self.PROV.wasGeneratedBy, self._resolve_uri(activity)))
+
+        return bnode
+
+    def _get_quantity_kind_for_property(self, property_uri: str) -> Optional[str]:
+        """
+        Look up qudt:hasQuantityKind annotation for a property from the ontology.
+
+        Used as fallback when the measurement dict doesn't include quantity_kind
+        (e.g., programmatic paths like SHPBTestMetadata).
+
+        Args:
+            property_uri: Full or prefixed property URI
+
+        Returns:
+            Quantity kind URI string, or None if not found
+        """
+        if not self.ontology:
+            return None
+
+        try:
+            prop_ref = self._resolve_uri(property_uri)
+            qk_predicate = URIRef("http://qudt.org/schema/qudt/hasQuantityKind")
+
+            for _, _, qk in self.ontology.graph.triples((prop_ref, qk_predicate, None)):
+                return str(qk)
+        except Exception as e:
+            logger.debug(f"Could not look up quantity_kind for {property_uri}: {e}")
+
+        return None
 
     def _save_graph(self, graph: Graph, output_path: Path):
         """Serialize and save graph to TTL file with explicit datatypes."""
@@ -333,6 +409,18 @@ class InstanceWriter:
                         rdf_value = self._convert_to_rdf_value(item)
                         graph.add((instance_ref, property_ref, rdf_value))
                 logger.debug(f"Added {len(value)} values for multi-valued property {property_uri}")
+            elif self._is_measurement_dict(value):
+                # Measurement property -> create qudt:QuantityValue blank node.
+                # Skip (don't add the property at all) if the widget is in its
+                # default / empty state — a missing property is valid SHACL;
+                # a bare BNode with only rdf:type qudt:QuantityValue is not.
+                try:
+                    bnode = self._create_quantity_value(graph, value, property_uri)
+                    graph.add((instance_ref, property_ref, bnode))
+                except (ValueError, TypeError) as exc:
+                    logger.debug(
+                        f"Skipping incomplete QuantityValue for {property_uri}: {exc}"
+                    )
             else:
                 # Single-valued property
                 rdf_value = self._convert_to_rdf_value(value)
@@ -440,19 +528,32 @@ class InstanceWriter:
             for property_uri, new_value in updates.items():
                 property_ref = self._resolve_uri(property_uri)
 
-                # Remove old triples
+                # Remove old triples (including QuantityValue BNode sub-triples)
+                for _, _, old_obj in list(graph.triples((instance_ref, property_ref, None))):
+                    if isinstance(old_obj, BNode):
+                        # Remove all triples where BNode is the subject
+                        graph.remove((old_obj, None, None))
                 graph.remove((instance_ref, property_ref, None))
 
                 # Add new value(s)
                 if new_value is not None and new_value != "":
                     # Handle multi-valued properties (lists from multi-select widgets)
                     if isinstance(new_value, list):
-                        # Add multiple triples for multi-valued properties
                         for item in new_value:
                             if item is not None and item != "":
                                 rdf_value = self._convert_to_rdf_value(item)
                                 graph.add((instance_ref, property_ref, rdf_value))
                         logger.debug(f"Updated with {len(new_value)} values for multi-valued property {property_uri}")
+                    elif self._is_measurement_dict(new_value):
+                        # Measurement property -> create QuantityValue BNode.
+                        # Skip if value is incomplete (same guard as create_single_instance).
+                        try:
+                            bnode = self._create_quantity_value(graph, new_value, property_uri)
+                            graph.add((instance_ref, property_ref, bnode))
+                        except (ValueError, TypeError) as exc:
+                            logger.debug(
+                                f"Skipping incomplete QuantityValue for {property_uri}: {exc}"
+                            )
                     else:
                         # Single-valued property
                         rdf_value = self._convert_to_rdf_value(new_value)

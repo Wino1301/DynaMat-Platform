@@ -7,13 +7,13 @@ Design philosophy:
 - Store ALL analysis parameters (120+) for complete provenance
 - Use widget factory format for consistency: field values, not tuples
 - Map field names to RDF property URIs in to_form_data()
-- Support unit dictionaries: {'value': X, 'unit': user_unit, 'reference_unit': storage_unit}
+- Support unit dictionaries: {'value': X, 'unit': unit_uri, 'quantity_kind': qk_uri}
 - Enable automatic re-analysis when material properties change
 
 Key format:
 - Simple values: test_id = "TEST_001" → 'dyn:hasTestID': "TEST_001"
 - URIs: incident_bar_uri = "dyn:IncidentBar_..." → 'dyn:hasIncidentBar': "dyn:IncidentBar_..."
-- Measurements: striker_velocity = {'value': 10.0, 'unit': '...', 'reference_unit': '...'} → 'dyn:hasStrikerVelocity': dict
+- Measurements: striker_velocity = {'value': 10.0, 'unit': '...', 'quantity_kind': '...'} → 'dyn:hasStrikerVelocity': dict
 """
 
 from dataclasses import dataclass, field
@@ -48,7 +48,7 @@ class SHPBTestMetadata:
     Value formats (following widget factory convention):
     - Simple values: "TEST_001", 32881, 0.35, True
     - URIs: "dyn:IncidentBar_C350_8ft_0375in"
-    - Measurements with units: {'value': 10.0, 'unit': 'unit:M-PER-SEC', 'reference_unit': 'unit:M-PER-SEC'}
+    - Measurements with units: {'value': 10.0, 'unit': 'unit:M-PER-SEC', 'quantity_kind': 'qkdv:Speed'}
     - Lists: ["dyn:SG1", "dyn:SG2"]
 
     The to_form_data() method maps field names → RDF property URIs for InstanceWriter.
@@ -75,7 +75,7 @@ class SHPBTestMetadata:
     pulse_shaper_uri: Optional[str] = None  # dyn:PulseShaper_... (optional)
 
     # ==================== INITIAL TEST CONDITIONS ====================
-    # Measurements with units: {'value': X, 'unit': user_unit, 'reference_unit': storage_unit}
+    # Measurements with units: {'value': X, 'unit': unit_uri, 'quantity_kind': qk_uri}
     striker_velocity: Optional[Dict[str, Any]] = None  # Impact velocity
     striker_launch_pressure: Optional[Dict[str, Any]] = None  # Gas pressure used to launch striker
     momentum_trap_distance: Optional[Dict[str, Any]] = None  # Distance to trap

@@ -1,0 +1,31 @@
+$# LS-PrePost command file created by LS-PrePost(R) 2025 R1 (v4.12.0) - 13Sep2024 -64bit-Window
+$# Created on Aug-22-2025 (08:03:11)
+open keyword "D:\DynaMat_UTEP\SHPB_Johnson_Cook\SHPB_Sims\Templates\SHPB_Composite_SC_066SS.k"
+Message 1
+Message 0
+KEYWORD INPUT 15
+*DATABASE_ELOUT
+$#      dt    binary      lcur     ioopt   option1   option2   option3   option4
+     0.001         3         0         1         0         0         0         0
+*END
+keyword updatekind
+DATABASE_ELOUT
+KEYWORD INPUT 26
+*DATABASE_NODOUT
+$#      dt    binary      lcur     ioopt   option1   option2
+     0.001         3         0         1       0.0         0
+*END
+keyword updatekind
+DATABASE_NODOUT
+KEYWORD INPUT 39
+*DATABASE_SPCFORC
+$#      dt    binary      lcur     ioopt
+     0.001         3         0         1
+*END
+keyword updatekind
+DATABASE_SPCFORC
+save keywordabsolute 0
+save keywordbylongfmt 0
+save keywordbyi10fmt 0
+save outversion 13
+save keyword "D:\DynaMat_UTEP\SHPB_Johnson_Cook\SHPB_Sims\Templates\SHPB_Composite_SC_066SS.k"

@@ -73,7 +73,7 @@ dynamat/gui/
 │
 ├── widgets/                             # UI components
 │   ├── base/
-│   │   └── unit_value_widget.py         # Measurement + unit selector
+│   │   └── quantity_value_widget.py         # Measurement + unit selector
 │   ├── forms/
 │   │   └── specimen_form.py             # Example form implementation
 │   ├── action_panel.py                  # Action buttons panel
@@ -114,7 +114,7 @@ dynamat/gui/
 │ - object_multi_select        │
 │ - spinbox                    │
 │ - double_spinbox             │
-│ - unit_value ← UnitValueWidget│
+│ - unit_value ← QuantityValueWidget│
 │ - checkbox                   │
 │ - date                       │
 │ - text_area                  │
@@ -194,7 +194,7 @@ widget = factory.create_widget(property_metadata)
 | `xsd:string` + valid values | `QComboBox` | `combo` |
 | `xsd:integer` | `QSpinBox` | `spinbox` |
 | `xsd:double` | `QDoubleSpinBox` | `double_spinbox` |
-| `xsd:double` + QUDT | `UnitValueWidget` | `unit_value` |
+| `xsd:double` + QUDT | `QuantityValueWidget` | `unit_value` |
 | `xsd:boolean` | `QCheckBox` | `checkbox` |
 | `xsd:date` | `QDateEdit` | `date` |
 | `owl:ObjectProperty` + functional | `QComboBox` | `object_combo` |
@@ -369,7 +369,7 @@ The handler knows how to extract/set values for each widget type:
 # QDateEdit → str (ISO format)
 # QComboBox → str (selected item data)
 # QListWidget → List[str] (list of selected URIs for multi-select)
-# UnitValueWidget → Dict {'value': float, 'unit': str, 'unit_symbol': str}
+# QuantityValueWidget → Dict {'value': float, 'unit': str, 'unit_symbol': str}
 ```
 
 ---
@@ -645,14 +645,14 @@ next_id = gen_engine.generate_auto_increment(
 
 ---
 
-### 9. UnitValueWidget
+### 9. QuantityValueWidget
 
 **Composite widget for measurements with units.**
 
 ```python
-from dynamat.gui.widgets.base import UnitValueWidget
+from dynamat.gui.widgets.base import QuantityValueWidget
 
-widget = UnitValueWidget(
+widget = QuantityValueWidget(
     default_unit="unit:MilliM",
     available_units=unit_info_list,
     property_uri="dyn:hasOriginalLength"
@@ -662,7 +662,7 @@ widget = UnitValueWidget(
 **Structure:**
 ```
 ┌───────────────────────────────────────┐
-│  UnitValueWidget                      │
+│  QuantityValueWidget                      │
 │  ┌──────────────────┬──────────────┐ │
 │  │ QDoubleSpinBox   │  QComboBox   │ │
 │  │  [10.0        ]  │  [mm     ▼] │ │
@@ -742,7 +742,7 @@ for property in metadata.properties:
     widgets[property.uri] = widget
 
 # For the example above, creates:
-# UnitValueWidget(default_unit="unit:MilliM", compatible_units=[...])
+# QuantityValueWidget(default_unit="unit:MilliM", compatible_units=[...])
 ```
 
 ### 3. Layout Organization
@@ -898,7 +898,7 @@ length_property = next(p for p in class_metadata.properties if p.name == "hasOri
 factory = WidgetFactory(ontology_manager)
 widget = factory.create_widget(length_property)
 
-# Widget is a UnitValueWidget, ready to use
+# Widget is a QuantityValueWidget, ready to use
 widget.setData(value=10.0, unit='unit:MilliM')
 ```
 
@@ -1079,7 +1079,7 @@ from dynamat.gui import (
     Constraint,
 
     # Widgets
-    UnitValueWidget,
+    QuantityValueWidget,
 
     # Enums
     FormStyle,
@@ -1367,7 +1367,7 @@ Load widgets only when needed:
 **Issue**: Form doesn't update after ontology changes
 **Solution**: Clear caches: `form_manager.clear_cache()` and `ontology_manager.clear_caches()`
 
-**Issue**: UnitValueWidget shows no units
+**Issue**: QuantityValueWidget shows no units
 **Solution**: Ensure property has `qudt:hasQuantityKind` annotation and QUDT ontology is loaded
 
 **Issue**: Constraints not working

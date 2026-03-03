@@ -1,0 +1,62 @@
+@prefix dyn: <https://dynamat.utep.edu/ontology#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+
+# =============================================================================
+# DynaMat Platform - QUDT QuantityValue SHACL Shape
+# =============================================================================
+#
+# Validates qudt:QuantityValue blank nodes produced by the QuantityValueWidget.
+# All measurement properties (specimen dimensions, material properties, SHPB
+# test conditions) serialize to this structure.
+#
+# Required: numericValue, unit, hasQuantityKind
+# Optional: standardUncertainty (must be positive when present)
+# =============================================================================
+
+dyn:QuantityValueShape a sh:NodeShape ;
+    sh:targetClass qudt:QuantityValue ;
+    rdfs:comment "Validates qudt:QuantityValue blank nodes for measurement properties" ;
+
+    sh:property [
+        sh:path qudt:numericValue ;
+        sh:datatype xsd:double ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:name "Numeric Value" ;
+        sh:message "QuantityValue must have exactly one qudt:numericValue of type xsd:double" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    sh:property [
+        sh:path qudt:unit ;
+        sh:nodeKind sh:IRI ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:name "Unit" ;
+        sh:message "QuantityValue must have exactly one qudt:unit (QUDT unit IRI)" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    sh:property [
+        sh:path qudt:hasQuantityKind ;
+        sh:nodeKind sh:IRI ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:name "Quantity Kind" ;
+        sh:message "QuantityValue must have exactly one qudt:hasQuantityKind (QUDT quantity kind IRI)" ;
+        sh:severity sh:Violation ;
+    ] ;
+
+    sh:property [
+        sh:path qudt:standardUncertainty ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1 ;
+        sh:minExclusive 0 ;
+        sh:name "Standard Uncertainty" ;
+        sh:message "Standard uncertainty must be a positive xsd:double when present" ;
+        sh:severity sh:Violation ;
+    ] .

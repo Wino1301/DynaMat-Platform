@@ -275,21 +275,37 @@ history = query_builder.get_specimen_test_history("SPN-AL6061-001")
 
 ## Key Patterns
 
-### The Measurement Pattern
+### The Measurement Pattern (QuantityValue)
 
-Store measurements with proper units:
+All measurements use `qudt:QuantityValue` blank nodes — self-describing, FAIR-compliant, and readable by any QUDT-aware tool.
 
+**Property definition** (ontology T-Box):
 ```turtle
-# WRONG - loses semantic meaning
-dyn:SPN_001 dyn:hasLength "10.0 mm" .
-
-# RIGHT - structured and queryable
-dyn:hasOriginalLength rdf:type owl:DatatypeProperty ;
+dyn:hasOriginalLength rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain dyn:Specimen ;
+    rdfs:range qudt:QuantityValue ;
     qudt:hasQuantityKind qkdv:Length ;
-    dyn:hasUnit "unit:MilliM" .
+    dyn:hasUnit "unit:MilliM" .           # GUI default unit for combo box
 ```
 
-The GUI automatically creates a UnitValueWidget when it sees `qudt:hasQuantityKind`.
+**Instance data** (user A-Box):
+```turtle
+dyn:DYNML_A356_0001 dyn:hasOriginalLength [
+    a qudt:QuantityValue ;
+    qudt:numericValue "10.0"^^xsd:double ;
+    qudt:unit unit:MilliM ;
+    qudt:hasQuantityKind qkdv:Length ;
+    qudt:standardUncertainty "0.01"^^xsd:double   # optional
+] .
+```
+
+The GUI automatically creates a UnitValueWidget when it sees `qudt:QuantityValue` range. `getData()` returns a dict with `'pattern': 'quantity_value'`, and the InstanceWriter serializes it as a blank node. The InstanceQueryBuilder reads it back into the same dict format.
+
+**For SHPB consumer code** reading measurement values that may be either floats or QuantityValue dicts, use:
+```python
+from dynamat.mechanical.shpb.io.rdf_helpers import extract_numeric_value
+height = extract_numeric_value(specimen_data.get('hasOriginalHeight'))  # always float or None
+```
 
 ### Individual vs. Literal Values
 

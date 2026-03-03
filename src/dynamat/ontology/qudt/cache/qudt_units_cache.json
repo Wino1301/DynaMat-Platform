@@ -905,31 +905,131 @@
       "symbol": "\u00b0C",
       "label": "degree Celsius",
       "quantity_kinds": [
-        "http://qudt.org/vocab/quantitykind/MeltingPoint",
-        "http://qudt.org/vocab/quantitykind/Temperature"
+        "http://qudt.org/vocab/quantitykind/Temperature",
+        "http://qudt.org/vocab/quantitykind/MeltingPoint"
       ],
       "conversion_multiplier": 1.0,
       "conversion_offset": 273.15
+    },
+    {
+      "uri": "http://qudt.org/vocab/unit/DEG_C-PER-HR",
+      "symbol": "\u00b0C/h",
+      "label": "Degree Celsius per Hour",
+      "quantity_kinds": [
+        "http://qudt.org/vocab/quantitykind/TemperaturePerTime"
+      ],
+      "conversion_multiplier": 0.0002777777777777778,
+      "conversion_offset": 0.0
+    },
+    {
+      "uri": "http://qudt.org/vocab/unit/DEG_C-PER-MIN",
+      "symbol": "\u00b0C/min",
+      "label": "Degree Celsius per Minute",
+      "quantity_kinds": [
+        "http://qudt.org/vocab/quantitykind/TemperaturePerTime"
+      ],
+      "conversion_multiplier": 0.016666666666666666,
+      "conversion_offset": 0.0
+    },
+    {
+      "uri": "http://qudt.org/vocab/unit/DEG_C-PER-SEC",
+      "symbol": "\u00b0C/s",
+      "label": "Degree Celsius per Second",
+      "quantity_kinds": [
+        "http://qudt.org/vocab/quantitykind/TemperaturePerTime"
+      ],
+      "conversion_multiplier": 1.0,
+      "conversion_offset": 0.0
+    },
+    {
+      "uri": "http://qudt.org/vocab/unit/DEG_C-PER-YR",
+      "symbol": "\u00b0C/a",
+      "label": "Degrees Celsius per year",
+      "quantity_kinds": [
+        "http://qudt.org/vocab/quantitykind/TemperaturePerTime"
+      ],
+      "conversion_multiplier": 3.16880878140289e-08,
+      "conversion_offset": 0.0
     },
     {
       "uri": "http://qudt.org/vocab/unit/DEG_F",
       "symbol": "\u00b0F",
       "label": "Degree Fahrenheit",
       "quantity_kinds": [
-        "http://qudt.org/vocab/quantitykind/MeltingPoint",
-        "http://qudt.org/vocab/quantitykind/Temperature"
+        "http://qudt.org/vocab/quantitykind/Temperature",
+        "http://qudt.org/vocab/quantitykind/MeltingPoint"
       ],
       "conversion_multiplier": 0.5555555555555556,
       "conversion_offset": 459.67
+    },
+    {
+      "uri": "http://qudt.org/vocab/unit/DEG_F-PER-HR",
+      "symbol": "\u00b0F/h",
+      "label": "Degree Fahrenheit per Hour",
+      "quantity_kinds": [
+        "http://qudt.org/vocab/quantitykind/TemperaturePerTime"
+      ],
+      "conversion_multiplier": 0.000154320987654321,
+      "conversion_offset": 0.0
+    },
+    {
+      "uri": "http://qudt.org/vocab/unit/DEG_F-PER-MIN",
+      "symbol": "\u00b0F/min",
+      "label": "Degree Fahrenheit per Minute",
+      "quantity_kinds": [
+        "http://qudt.org/vocab/quantitykind/TemperaturePerTime"
+      ],
+      "conversion_multiplier": 0.00925925925925926,
+      "conversion_offset": 0.0
+    },
+    {
+      "uri": "http://qudt.org/vocab/unit/DEG_F-PER-SEC",
+      "symbol": "\u00b0F/s",
+      "label": "Degree Fahrenheit per Second",
+      "quantity_kinds": [
+        "http://qudt.org/vocab/quantitykind/TemperaturePerTime"
+      ],
+      "conversion_multiplier": 0.5555555555555556,
+      "conversion_offset": 0.0
     },
     {
       "uri": "http://qudt.org/vocab/unit/DEG_R",
       "symbol": "\u00b0R",
       "label": "Degree Rankine",
       "quantity_kinds": [
+        "http://qudt.org/vocab/quantitykind/Temperature",
         "http://qudt.org/vocab/quantitykind/ThermodynamicTemperature",
-        "http://qudt.org/vocab/quantitykind/MeltingPoint",
-        "http://qudt.org/vocab/quantitykind/Temperature"
+        "http://qudt.org/vocab/quantitykind/MeltingPoint"
+      ],
+      "conversion_multiplier": 0.5555555555555556,
+      "conversion_offset": 0.0
+    },
+    {
+      "uri": "http://qudt.org/vocab/unit/DEG_R-PER-HR",
+      "symbol": "\u00b0R/h",
+      "label": "Degree Rankine per Hour",
+      "quantity_kinds": [
+        "http://qudt.org/vocab/quantitykind/TemperaturePerTime"
+      ],
+      "conversion_multiplier": 0.000154320987654321,
+      "conversion_offset": 0.0
+    },
+    {
+      "uri": "http://qudt.org/vocab/unit/DEG_R-PER-MIN",
+      "symbol": "\u00b0R/min",
+      "label": "Degree Rankine per Minute",
+      "quantity_kinds": [
+        "http://qudt.org/vocab/quantitykind/TemperaturePerTime"
+      ],
+      "conversion_multiplier": 0.00925925925925926,
+      "conversion_offset": 0.0
+    },
+    {
+      "uri": "http://qudt.org/vocab/unit/DEG_R-PER-SEC",
+      "symbol": "\u00b0R/s",
+      "label": "Degree Rankine per Second",
+      "quantity_kinds": [
+        "http://qudt.org/vocab/quantitykind/TemperaturePerTime"
       ],
       "conversion_multiplier": 0.5555555555555556,
       "conversion_offset": 0.0
@@ -2352,9 +2452,39 @@
       "symbol": "K",
       "label": "kelvin",
       "quantity_kinds": [
+        "http://qudt.org/vocab/quantitykind/Temperature",
         "http://qudt.org/vocab/quantitykind/ThermodynamicTemperature",
-        "http://qudt.org/vocab/quantitykind/MeltingPoint",
-        "http://qudt.org/vocab/quantitykind/Temperature"
+        "http://qudt.org/vocab/quantitykind/MeltingPoint"
+      ],
+      "conversion_multiplier": 1.0,
+      "conversion_offset": 0.0
+    },
+    {
+      "uri": "http://qudt.org/vocab/unit/K-PER-HR",
+      "symbol": "K/h",
+      "label": "Kelvin per Hour",
+      "quantity_kinds": [
+        "http://qudt.org/vocab/quantitykind/TemperaturePerTime"
+      ],
+      "conversion_multiplier": 0.0002777777777777778,
+      "conversion_offset": 0.0
+    },
+    {
+      "uri": "http://qudt.org/vocab/unit/K-PER-MIN",
+      "symbol": "K/min",
+      "label": "Kelvin per Minute",
+      "quantity_kinds": [
+        "http://qudt.org/vocab/quantitykind/TemperaturePerTime"
+      ],
+      "conversion_multiplier": 0.01666667,
+      "conversion_offset": 0.0
+    },
+    {
+      "uri": "http://qudt.org/vocab/unit/K-PER-SEC",
+      "symbol": "K/s",
+      "label": "Kelvin per Second",
+      "quantity_kinds": [
+        "http://qudt.org/vocab/quantitykind/TemperaturePerTime"
       ],
       "conversion_multiplier": 1.0,
       "conversion_offset": 0.0
@@ -4161,8 +4291,8 @@
       "symbol": "m\u00b0C",
       "label": "Millidegree Celsius",
       "quantity_kinds": [
-        "http://qudt.org/vocab/quantitykind/MeltingPoint",
-        "http://qudt.org/vocab/quantitykind/Temperature"
+        "http://qudt.org/vocab/quantitykind/Temperature",
+        "http://qudt.org/vocab/quantitykind/MeltingPoint"
       ],
       "conversion_multiplier": 0.001,
       "conversion_offset": 273150.0
@@ -4583,8 +4713,8 @@
       "symbol": "#",
       "label": "Number",
       "quantity_kinds": [
-        "http://qudt.org/vocab/quantitykind/Dimensionless",
-        "http://qudt.org/vocab/quantitykind/DimensionlessRatio"
+        "http://qudt.org/vocab/quantitykind/DimensionlessRatio",
+        "http://qudt.org/vocab/quantitykind/Dimensionless"
       ],
       "conversion_multiplier": 1.0,
       "conversion_offset": 0.0
@@ -5687,9 +5817,9 @@
       "symbol": "plancktemperature",
       "label": "PlanckTemperature",
       "quantity_kinds": [
+        "http://qudt.org/vocab/quantitykind/Temperature",
         "http://qudt.org/vocab/quantitykind/ThermodynamicTemperature",
-        "http://qudt.org/vocab/quantitykind/MeltingPoint",
-        "http://qudt.org/vocab/quantitykind/Temperature"
+        "http://qudt.org/vocab/quantitykind/MeltingPoint"
       ],
       "conversion_multiplier": 1.416784e+32,
       "conversion_offset": 0.0
@@ -6319,8 +6449,8 @@
       "symbol": "\u4e00",
       "label": "Unitless",
       "quantity_kinds": [
-        "http://qudt.org/vocab/quantitykind/Dimensionless",
-        "http://qudt.org/vocab/quantitykind/DimensionlessRatio"
+        "http://qudt.org/vocab/quantitykind/DimensionlessRatio",
+        "http://qudt.org/vocab/quantitykind/Dimensionless"
       ],
       "conversion_multiplier": 1.0,
       "conversion_offset": 0.0

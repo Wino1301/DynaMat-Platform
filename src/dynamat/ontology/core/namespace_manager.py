@@ -34,7 +34,9 @@ class NamespaceManager:
         self.QKDV = None
         self.SH = None
         self.DC = None
-        
+        self.PROV = None
+        self.DC_ELEMENTS = None
+
         self._setup_namespace_uris()
         logger.info("Namespace manager initialized")
     
@@ -50,7 +52,9 @@ class NamespaceManager:
         self.QKDV = Namespace("http://qudt.org/vocab/quantitykind/")
         self.SH = Namespace("http://www.w3.org/ns/shacl#")
         self.DC = Namespace("http://purl.org/dc/terms/")
-        
+        self.PROV = Namespace("http://www.w3.org/ns/prov#")
+        self.DC_ELEMENTS = Namespace("http://purl.org/dc/elements/1.1/")
+
         # Store all namespaces
         self.namespaces = {
             'dyn': self.DYN,
@@ -60,6 +64,8 @@ class NamespaceManager:
             'qkdv': self.QKDV,
             'sh': self.SH,
             'dc': self.DC,
+            'prov': self.PROV,
+            'dce': self.DC_ELEMENTS,
             'rdf': RDF,
             'rdfs': RDFS,
             'owl': OWL,
@@ -81,7 +87,9 @@ class NamespaceManager:
         graph.bind("qkdv", self.QKDV)
         graph.bind("sh", self.SH)
         graph.bind("dc", self.DC)
-        
+        graph.bind("prov", self.PROV)
+        graph.bind("dce", self.DC_ELEMENTS)
+
         # Bind standard namespaces
         graph.bind("rdf", RDF)
         graph.bind("rdfs", RDFS)

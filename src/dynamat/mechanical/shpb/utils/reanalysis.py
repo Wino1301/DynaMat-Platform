@@ -43,6 +43,7 @@ from dynamat.mechanical.shpb.io import (
     SpecimenLoader,
     ValidityAssessor,
 )
+from dynamat.mechanical.shpb.io.rdf_helpers import extract_numeric_value
 
 logger = logging.getLogger(__name__)
 
@@ -299,8 +300,10 @@ class SHPBReanalyzer:
 
         # Get specimen properties
         specimen_data = self.specimen_loader.get_specimen_data(specimen_uri)
-        specimen_cross_section = specimen_data['dimensions'].get('hasOriginalCrossSection')
-        specimen_height = specimen_data['dimensions'].get('hasOriginalHeight')
+        specimen_cross_section = extract_numeric_value(
+            specimen_data['dimensions'].get('hasOriginalCrossSection'))
+        specimen_height = extract_numeric_value(
+            specimen_data['dimensions'].get('hasOriginalHeight'))
 
         # Build parameters dictionary
         self._original_params = {
@@ -333,8 +336,8 @@ class SHPBReanalyzer:
             },
             'specimen': {
                 'uri': specimen_uri,
-                'cross_section': float(specimen_cross_section) if specimen_cross_section else None,
-                'height': float(specimen_height) if specimen_height else None,
+                'cross_section': specimen_cross_section,
+                'height': specimen_height,
             },
             'incident_gauge': {
                 'uri': incident_gauge_uri,
@@ -367,11 +370,17 @@ class SHPBReanalyzer:
         logger.debug(f"Parameters extracted: {list(self._original_params.keys())}")
 
     def _get_ttl_value(self, property_name: str) -> Optional[float]:
-        """Get a property value from the test TTL."""
+        """Get a property value from the test TTL.
+
+        Handles both direct literal values and QuantityValue BNodes.
+        """
         query = f"""
         PREFIX dyn: <https://dynamat.utep.edu/ontology#>
+        PREFIX qudt: <http://qudt.org/schema/qudt/>
         SELECT ?value WHERE {{
-            ?test dyn:{property_name} ?value .
+            ?test dyn:{property_name} ?raw .
+            OPTIONAL {{ ?raw qudt:numericValue ?qvValue }}
+            BIND(COALESCE(?qvValue, ?raw) AS ?value)
         }}
         """
         results = list(self._test_graph.query(query))

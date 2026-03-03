@@ -12,6 +12,9 @@
 # =============================================================================
 # DynaMat Platform - Material Class SHACL Shapes
 # Based on properties defined in material_class.ttl
+#
+# Mechanical and physical properties now use qudt:QuantityValue range.
+# Validated by dyn:QuantityValueShape (defined in qudt_shapes.ttl).
 # =============================================================================
 
 #################################################################
@@ -20,87 +23,78 @@
 
 dyn:MaterialShape a sh:NodeShape ;
     sh:targetClass dyn:Material ;
-    
-    # Object Properties - Mechanical Properties with Provenance
-    sh:property [
-        sh:path dyn:hasMechanicalProperty ;
-        sh:class dyn:MechanicalProperty ;
-        sh:name "Mechanical Property" ;
-        sh:description "Links material to its mechanical property instances" ;
-        sh:group "MechanicalProperties" ;
-        sh:order 1 ;
-    ] ;
-    
+
+    # Object Properties - Mechanical Properties (QuantityValue)
     sh:property [
         sh:path dyn:hasElasticModulus ;
-        sh:class dyn:PropertyValue ;
+        sh:node dyn:QuantityValueShape ;
         sh:maxCount 1 ;
         sh:name "Elastic Modulus" ;
-        sh:description "Young's modulus of elasticity with provenance" ;
+        sh:description "Young's modulus of elasticity" ;
         sh:group "ElasticProperties" ;
         sh:order 1 ;
     ] ;
-    
+
     sh:property [
         sh:path dyn:hasPoissonsRatio ;
-        sh:class dyn:PropertyValue ;
+        sh:node dyn:QuantityValueShape ;
         sh:maxCount 1 ;
         sh:name "Poisson's Ratio" ;
-        sh:description "Poisson's ratio with provenance" ;
+        sh:description "Poisson's ratio" ;
         sh:group "ElasticProperties" ;
         sh:order 2 ;
     ] ;
-    
+
     sh:property [
         sh:path dyn:hasYieldStrength ;
-        sh:class dyn:PropertyValue ;
+        sh:node dyn:QuantityValueShape ;
         sh:maxCount 1 ;
         sh:name "Yield Strength" ;
-        sh:description "Yield strength (Johnson-Cook A parameter) with provenance" ;
+        sh:description "Yield strength (Johnson-Cook A parameter)" ;
         sh:group "JohnsonCookParameters" ;
         sh:order 1 ;
     ] ;
-    
+
     sh:property [
         sh:path dyn:hasHardeningConstant ;
-        sh:class dyn:PropertyValue ;
+        sh:node dyn:QuantityValueShape ;
         sh:maxCount 1 ;
         sh:name "Hardening Constant" ;
-        sh:description "Hardening constant (Johnson-Cook B parameter) with provenance" ;
+        sh:description "Hardening constant (Johnson-Cook B parameter)" ;
         sh:group "JohnsonCookParameters" ;
         sh:order 2 ;
     ] ;
-    
+
     sh:property [
         sh:path dyn:hasHardeningExponent ;
-        sh:class dyn:PropertyValue ;
+        sh:node dyn:QuantityValueShape ;
         sh:maxCount 1 ;
         sh:name "Hardening Exponent" ;
-        sh:description "Hardening exponent (Johnson-Cook n parameter) with provenance" ;
+        sh:description "Hardening exponent (Johnson-Cook n parameter)" ;
         sh:group "JohnsonCookParameters" ;
         sh:order 3 ;
     ] ;
-    
+
     sh:property [
         sh:path dyn:hasStrainRateCoefficient ;
-        sh:class dyn:PropertyValue ;
+        sh:node dyn:QuantityValueShape ;
         sh:maxCount 1 ;
         sh:name "Strain Rate Coefficient" ;
-        sh:description "Strain rate coefficient (Johnson-Cook C parameter) with provenance" ;
+        sh:description "Strain rate coefficient (Johnson-Cook C parameter)" ;
         sh:group "JohnsonCookParameters" ;
         sh:order 4 ;
     ] ;
-    
+
     sh:property [
         sh:path dyn:hasThermalSofteningCoefficient ;
-        sh:class dyn:PropertyValue ;
+        sh:node dyn:QuantityValueShape ;
         sh:maxCount 1 ;
         sh:name "Thermal Softening Coefficient" ;
-        sh:description "Thermal softening coefficient (Johnson-Cook m parameter) with provenance" ;
+        sh:description "Thermal softening coefficient (Johnson-Cook m parameter)" ;
         sh:group "JohnsonCookParameters" ;
         sh:order 5 ;
     ] ;
-    
+
     # Object Properties - Characterization and Phases
     sh:property [
         sh:path dyn:hasCharacterization ;
@@ -110,7 +104,7 @@ dyn:MaterialShape a sh:NodeShape ;
         sh:group "Characterization" ;
         sh:order 1 ;
     ] ;
-    
+
     sh:property [
         sh:path dyn:hasPhase ;
         sh:class dyn:Phase ;
@@ -119,7 +113,7 @@ dyn:MaterialShape a sh:NodeShape ;
         sh:group "Microstructure" ;
         sh:order 1 ;
     ] ;
-    
+
     sh:property [
         sh:path dyn:hasPrimaryPhase ;
         sh:class dyn:Phase ;
@@ -129,16 +123,7 @@ dyn:MaterialShape a sh:NodeShape ;
         sh:group "Microstructure" ;
         sh:order 2 ;
     ] ;
-    
-    sh:property [
-        sh:path dyn:hasPropertyValue ;
-        sh:class dyn:PropertyValue ;
-        sh:name "Property Values" ;
-        sh:description "Property values with provenance information" ;
-        sh:group "MaterialProperties" ;
-        sh:order 2 ;
-    ] ;
-    
+
     # Data Properties - Material Identification
     sh:property [
         sh:path dyn:hasMaterialName ;
@@ -149,7 +134,7 @@ dyn:MaterialShape a sh:NodeShape ;
         sh:group "Identification" ;
         sh:order 1 ;
     ] ;
-    
+
     sh:property [
         sh:path dyn:hasMaterialCode ;
         sh:datatype xsd:string ;
@@ -159,7 +144,7 @@ dyn:MaterialShape a sh:NodeShape ;
         sh:group "Identification" ;
         sh:order 2 ;
     ] ;
-    
+
     sh:property [
         sh:path dyn:hasSupplier ;
         sh:datatype xsd:string ;
@@ -169,7 +154,7 @@ dyn:MaterialShape a sh:NodeShape ;
         sh:group "Identification" ;
         sh:order 3 ;
     ] ;
-    
+
     sh:property [
         sh:path dyn:hasLotNumber ;
         sh:datatype xsd:string ;
@@ -179,52 +164,48 @@ dyn:MaterialShape a sh:NodeShape ;
         sh:group "Identification" ;
         sh:order 4 ;
     ] ;
-    
-    # Data Properties - Basic Physical Properties
+
+    # Object Properties - Basic Physical Properties (QuantityValue)
     sh:property [
         sh:path dyn:hasDensity ;
-        sh:datatype xsd:double ;
+        sh:node dyn:QuantityValueShape ;
         sh:maxCount 1 ;
-        sh:name "Density (g/cm³)" ;
+        sh:name "Density" ;
         sh:description "Material density" ;
         sh:group "PhysicalProperties" ;
         sh:order 1 ;
-        sh:minExclusive 0.0 ;
     ] ;
-    
+
     sh:property [
         sh:path dyn:hasMeltingPoint ;
-        sh:datatype xsd:double ;
+        sh:node dyn:QuantityValueShape ;
         sh:maxCount 1 ;
-        sh:name "Melting Point (°C)" ;
+        sh:name "Melting Point" ;
         sh:description "Melting temperature of the material" ;
         sh:group "ThermalProperties" ;
         sh:order 1 ;
-        sh:minInclusive -273.15 ;  # Absolute zero limit
     ] ;
-    
+
     sh:property [
         sh:path dyn:hasThermalConductivity ;
-        sh:datatype xsd:double ;
+        sh:node dyn:QuantityValueShape ;
         sh:maxCount 1 ;
-        sh:name "Thermal Conductivity (W/m·K)" ;
+        sh:name "Thermal Conductivity" ;
         sh:description "Thermal conductivity coefficient" ;
         sh:group "ThermalProperties" ;
         sh:order 2 ;
-        sh:minExclusive 0.0 ;
     ] ;
-    
+
     sh:property [
         sh:path dyn:hasSpecificHeat ;
-        sh:datatype xsd:double ;
+        sh:node dyn:QuantityValueShape ;
         sh:maxCount 1 ;
-        sh:name "Specific Heat (J/kg·K)" ;
+        sh:name "Specific Heat" ;
         sh:description "Specific heat capacity" ;
         sh:group "ThermalProperties" ;
         sh:order 3 ;
-        sh:minExclusive 0.0 ;
     ] ;
-    
+
     # Data Properties - Alloy and Composition
     sh:property [
         sh:path dyn:hasAlloyDesignation ;
@@ -235,7 +216,7 @@ dyn:MaterialShape a sh:NodeShape ;
         sh:group "Composition" ;
         sh:order 1 ;
     ] ;
-    
+
     sh:property [
         sh:path dyn:hasTemper ;
         sh:datatype xsd:string ;
@@ -245,7 +226,7 @@ dyn:MaterialShape a sh:NodeShape ;
         sh:group "Composition" ;
         sh:order 2 ;
     ] ;
-    
+
     sh:property [
         sh:path dyn:hasChemicalComposition ;
         sh:datatype xsd:string ;
@@ -255,7 +236,7 @@ dyn:MaterialShape a sh:NodeShape ;
         sh:group "Composition" ;
         sh:order 3 ;
     ] ;
-    
+
     # Data Properties - Material Source and Certification
     sh:property [
         sh:path dyn:hasCertificationLevel ;
@@ -267,7 +248,7 @@ dyn:MaterialShape a sh:NodeShape ;
         sh:order 1 ;
         sh:in ("Mill Test Certificate" "ASTM Certified" "Research Grade" "Commercial Grade" "Unknown") ;
     ] ;
-    
+
     sh:property [
         sh:path dyn:hasCertificateNumber ;
         sh:datatype xsd:string ;
@@ -277,7 +258,7 @@ dyn:MaterialShape a sh:NodeShape ;
         sh:group "Certification" ;
         sh:order 2 ;
     ] ;
-    
+
     sh:property [
         sh:path dyn:hasReceiptDate ;
         sh:datatype xsd:date ;
@@ -287,7 +268,7 @@ dyn:MaterialShape a sh:NodeShape ;
         sh:group "Certification" ;
         sh:order 3 ;
     ] ;
-    
+
     # Data Properties - Notes and Metadata
     sh:property [
         sh:path dyn:hasDescription ;
@@ -298,7 +279,7 @@ dyn:MaterialShape a sh:NodeShape ;
         sh:group "Notes" ;
         sh:order 1 ;
     ] ;
-    
+
     sh:property [
         sh:path dyn:hasSpecialNotes ;
         sh:datatype xsd:string ;
@@ -307,105 +288,6 @@ dyn:MaterialShape a sh:NodeShape ;
         sh:description "Special considerations or observations about the material" ;
         sh:group "Notes" ;
         sh:order 2 ;
-    ] .
-
-#################################################################
-#    PropertyValue Shape (for material properties with provenance)
-#################################################################
-
-dyn:PropertyValueShape a sh:NodeShape ;
-    sh:targetClass dyn:PropertyValue ;
-    
-    # Core value and unit (required)
-    sh:property [
-        sh:path dyn:hasValue ;
-        sh:datatype xsd:double ;
-        sh:minCount 1 ;
-        sh:maxCount 1 ;
-        sh:name "Value" ;
-        sh:description "Numerical value of the property" ;
-        sh:group "PropertyValue" ;
-        sh:order 1 ;
-    ] ;
-    
-    sh:property [
-        sh:path dyn:hasUnit ;
-        sh:class dyn:Unit ;
-        sh:minCount 1 ;
-        sh:maxCount 1 ;
-        sh:name "Unit" ;
-        sh:description "Measurement unit for the property value" ;
-        sh:group "PropertyValue" ;
-        sh:order 2 ;
-    ] ;
-    
-    # Uncertainty information (optional)
-    sh:property [
-        sh:path dyn:hasUncertainty ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Uncertainty (±)" ;
-        sh:description "Measurement uncertainty or standard deviation" ;
-        sh:group "PropertyValue" ;
-        sh:order 3 ;
-        sh:minInclusive 0.0 ;
-    ] ;
-    
-    # Provenance information (required)
-    sh:property [
-        sh:path dyn:hasProvenance ;
-        sh:datatype xsd:string ;
-        sh:minCount 1 ;
-        sh:maxCount 1 ;
-        sh:name "Provenance" ;
-        sh:description "Source type: Literature (handbook), Experimental (test), or Fitted (ML/statistical)" ;
-        sh:group "PropertyValue" ;
-        sh:order 4 ;
-        sh:in ("Literature" "Experimental" "Fitted") ;
-    ] ;
-    
-    sh:property [
-        sh:path dyn:hasSource ;
-        sh:datatype xsd:string ;
-        sh:maxCount 1 ;
-        sh:name "Source" ;
-        sh:description "Source reference (literature citation, test ID, or fitting method)" ;
-        sh:group "PropertyValue" ;
-        sh:order 5 ;
-    ] ;
-    
-    # Confidence level (for fitted values)
-    sh:property [
-        sh:path dyn:hasConfidenceLevel ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Confidence Level (%)" ;
-        sh:description "Statistical confidence level (0-100%) for fitted values" ;
-        sh:group "PropertyValue" ;
-        sh:order 6 ;
-        sh:minInclusive 0.0 ;
-        sh:maxInclusive 100.0 ;
-    ] ;
-    
-    # Links to tests (for experimental provenance)
-    sh:property [
-        sh:path dyn:isDeterminedBy ;
-        sh:class dyn:MechanicalTest ;
-        sh:maxCount 1 ;
-        sh:name "Determined By Test" ;
-        sh:description "Test that determined this property value (for experimental provenance)" ;
-        sh:group "PropertyValue" ;
-        sh:order 7 ;
-    ] ;
-    
-    sh:property [
-        sh:path dyn:isCharacterizedBy ;
-        sh:class dyn:CharacterizationTest ;
-        sh:maxCount 1 ;
-        sh:name "Characterized By" ;
-        sh:description "Characterization test that revealed this property" ;
-        sh:group "PropertyValue" ;
-        sh:order 8 ;
     ] .
 
 #################################################################
@@ -463,87 +345,6 @@ dyn:CertificationConstraint a sh:NodeShape ;
         ]
     ] ;
     sh:message "Certificate number must be provided when certification level is 'Mill Test Certificate'" .
-
-# Ensure PropertyValue has appropriate provenance links
-dyn:PropertyValueProvenanceConstraint a sh:NodeShape ;
-    sh:targetClass dyn:PropertyValue ;
-    sh:if [
-        sh:property [
-            sh:path dyn:hasProvenance ;
-            sh:hasValue "Experimental" ;
-        ]
-    ] ;
-    sh:then [
-        sh:or (
-            [ sh:property [ sh:path dyn:isDeterminedBy ; sh:minCount 1 ] ]
-            [ sh:property [ sh:path dyn:isCharacterizedBy ; sh:minCount 1 ] ]
-        )
-    ] ;
-    sh:message "For experimental provenance, PropertyValue must link to either a MechanicalTest or CharacterizationTest" .
-
-# Ensure confidence level is provided for fitted values
-dyn:FittedValueConstraint a sh:NodeShape ;
-    sh:targetClass dyn:PropertyValue ;
-    sh:if [
-        sh:property [
-            sh:path dyn:hasProvenance ;
-            sh:hasValue "Fitted" ;
-        ]
-    ] ;
-    sh:then [
-        sh:property [
-            sh:path dyn:hasConfidenceLevel ;
-            sh:minCount 1 ;
-        ]
-    ] ;
-    sh:message "Confidence level must be provided for fitted property values" .
-
-# Ensure source is provided for literature values
-dyn:LiteratureValueConstraint a sh:NodeShape ;
-    sh:targetClass dyn:PropertyValue ;
-    sh:if [
-        sh:property [
-            sh:path dyn:hasProvenance ;
-            sh:hasValue "Literature" ;
-        ]
-    ] ;
-    sh:then [
-        sh:property [
-            sh:path dyn:hasSource ;
-            sh:minCount 1 ;
-        ]
-    ] ;
-    sh:message "Source reference must be provided for literature property values" .
-
-# Ensure density is within reasonable range for materials
-dyn:DensityRangeConstraint a sh:NodeShape ;
-    sh:targetClass dyn:Material ;
-    sh:if [
-        sh:property [ sh:path dyn:hasDensity ; sh:minCount 1 ]
-    ] ;
-    sh:then [
-        sh:property [
-            sh:path dyn:hasDensity ;
-            sh:minInclusive 0.1 ;  # Very light materials (aerogels)
-            sh:maxInclusive 30.0 ; # Very heavy materials (platinum, etc.)
-        ]
-    ] ;
-    sh:message "Density must be between 0.1 and 30.0 g/cm³" .
-
-# Ensure melting point is within reasonable range
-dyn:MeltingPointRangeConstraint a sh:NodeShape ;
-    sh:targetClass dyn:Material ;
-    sh:if [
-        sh:property [ sh:path dyn:hasMeltingPoint ; sh:minCount 1 ]
-    ] ;
-    sh:then [
-        sh:property [
-            sh:path dyn:hasMeltingPoint ;
-            sh:minInclusive -273.15 ;  # Absolute zero
-            sh:maxInclusive 4000.0 ;   # Very high melting point materials
-        ]
-    ] ;
-    sh:message "Melting point must be between -273.15°C and 4000°C" .
 
 # Ensure primary phase is also listed in general phases
 dyn:PrimaryPhaseConstraint a sh:NodeShape ;

@@ -61,7 +61,7 @@ writer = InstanceWriter(ontology, qudt)
 
 # Write single instance
 data = {
-    'dyn:hasOriginalLength': {'value': 10.0, 'unit': 'unit:IN', 'reference_unit': 'unit:MilliM'},
+    'dyn:hasOriginalLength': {'value': 10.0, 'unit': 'unit:IN', 'quantity_kind': 'qkdv:Length'},
     'dyn:hasSpecimenID': 'DYNML-AL6061-001',
     'dyn:hasMaterial': 'dyn:Al6061_T6'
 }
@@ -142,23 +142,27 @@ writer.delete_individual(
 
 InstanceWriter performs automatic unit conversion during save operations:
 
-1. **UnitValueWidget provides**: `{'value': X, 'unit': user_unit, 'reference_unit': storage_unit}`
-2. **If units differ**: Convert using QUDTManager from user's unit to ontology-defined storage unit
-3. **Store**: Only the converted numeric value (xsd:double) in TTL
-4. **Unit preservation**: Unit information is defined in the ontology via `dyn:hasUnit`
+1. **QuantityValueWidget provides**: `{'value': X, 'unit': unit_uri, 'quantity_kind': qk_uri}`
+2. **Store as QuantityValue**: Write a `qudt:QuantityValue` blank node with `qudt:numericValue`, `qudt:unit`, and `qudt:hasQuantityKind`
+3. **Unit preservation**: The selected unit URI is stored directly on the blank node
 
 ```python
-# User enters 10.0 inches, ontology specifies storage in millimeters
+# User enters 10.0 inches
 input_data = {
     'dyn:hasOriginalLength': {
         'value': 10.0,
         'unit': 'unit:IN',
-        'reference_unit': 'unit:MilliM'
+        'quantity_kind': 'qkdv:Length'
     }
 }
 
-# Output in TTL (converted to millimeters):
-# dyn:SPECIMEN_001 dyn:hasOriginalLength "254.0"^^xsd:double .
+# Output in TTL (QuantityValue blank node):
+# dyn:SPECIMEN_001 dyn:hasOriginalLength [
+#     a qudt:QuantityValue ;
+#     qudt:numericValue "10.0"^^xsd:double ;
+#     qudt:unit unit:IN ;
+#     qudt:hasQuantityKind qkdv:Length
+# ] .
 ```
 
 ---

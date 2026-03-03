@@ -21,7 +21,7 @@ Base Widgets Module
        |        +---> SeriesMetadataResolver (axis labels)
        |
        +---> Input Widgets
-                +---> UnitValueWidget (value + unit)
+                +---> QuantityValueWidget (value + unit)
 ```
 
 ## Module Exports
@@ -42,7 +42,7 @@ from dynamat.gui.widgets.base import (
     SeriesMetadataResolver,   # Axis label resolution
 
     # Input Widgets
-    UnitValueWidget,          # Value with unit selection
+    QuantityValueWidget,          # Value with unit selection
 )
 ```
 
@@ -453,7 +453,7 @@ resolver.clear_cache()
 
 ---
 
-## UnitValueWidget
+## QuantityValueWidget
 
 Custom widget for entering dimensional values with QUDT unit selection.
 
@@ -468,7 +468,7 @@ Custom widget for entering dimensional values with QUDT unit selection.
 **Widget Structure:**
 
 ```
-UnitValueWidget(QWidget)
+QuantityValueWidget(QWidget)
 +-- QHBoxLayout
     +-- QDoubleSpinBox (value)
     +-- QComboBox (unit selector)
@@ -477,14 +477,13 @@ UnitValueWidget(QWidget)
 **Example:**
 
 ```python
-from dynamat.gui.widgets.base import UnitValueWidget
+from dynamat.gui.widgets.base import QuantityValueWidget
 
 # Create with available units
-widget = UnitValueWidget(
+widget = QuantityValueWidget(
     default_unit='http://qudt.org/vocab/unit/MilliM',
     available_units=length_units,  # List of UnitInfo objects
-    property_uri='dyn:hasOriginalLength',
-    reference_unit_uri='http://qudt.org/vocab/unit/MilliM'
+    property_uri='dyn:hasOriginalLength'
 )
 
 # Get/set value
@@ -502,7 +501,7 @@ data = widget.getData()
 #     'value': 10.5,
 #     'unit': 'http://qudt.org/vocab/unit/MilliM',
 #     'unit_symbol': 'mm',
-#     'reference_unit': 'http://qudt.org/vocab/unit/MilliM'
+#     'quantity_kind': 'http://qudt.org/vocab/quantitykind/Length'
 # }
 
 # Set from data

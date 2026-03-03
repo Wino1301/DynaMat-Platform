@@ -160,42 +160,9 @@ dyn:MechanicalTestShape a sh:NodeShape ;
         sh:description "Test condition parameters" ;
     ] .
 
-#################################################################
-#    Specimen Shape
-#################################################################
-
-dyn:SpecimenShape a sh:NodeShape ;
-    sh:targetClass dyn:Specimen ;
-    sh:property [
-        sh:path dyn:hasSpecimenID ;
-        sh:datatype xsd:string ;
-        sh:maxCount 1 ;
-        sh:minCount 1 ;
-        sh:name "Specimen ID" ;
-        sh:description "Unique specimen identifier (format: DYNML-MaterialCode-Number)" ;
-        sh:pattern "^DYNML-[A-Z0-9]+-[0-9]+$" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasMaterial ;
-        sh:nodeKind sh:IRI ;  # Use IRI check instead of sh:class to support subclass hierarchy (AluminiumAlloy → Metal → Material)
-        sh:maxCount 1 ;
-        sh:name "Material" ;
-        sh:description "Material composition of the specimen" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasOriginalLength ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Original Length" ;
-        sh:description "Initial length of specimen before testing (mm)" ;
-    ] ;
-    sh:property [
-        sh:path dyn:hasOriginalDiameter ;
-        sh:datatype xsd:double ;
-        sh:maxCount 1 ;
-        sh:name "Original Diameter" ;
-        sh:description "Initial diameter for cylindrical specimens (mm)" ;
-    ] .
+# Specimen Shape — see specimen_shapes.ttl for full definition
+# Removed: dyn:SpecimenShape was moved to specimen_shapes.ttl
+# which is the authoritative source for Specimen validation.
 
 #################################################################
 #    User Shape

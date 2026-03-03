@@ -4,9 +4,11 @@
 @prefix dyn: <https://dynamat.utep.edu/ontology#> .
 @prefix gui: <https://dynamat.utep.edu/ontology/gui#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @base <https://dynamat.utep.edu/ontology#> .
 
@@ -112,12 +114,10 @@ dyn:hasDataSeries rdf:type owl:ObjectProperty ;
                   rdfs:label "Data Series"@en .
 
 
-###  https://dynamat.utep.edu/ontology#hasMeasurement
-dyn:hasMeasurement rdf:type owl:ObjectProperty ;
-                   rdfs:domain dyn:PhysicalObject ;
-                   rdfs:range dyn:Measurement ;
-                   rdfs:comment "Generic measurement property"@en ;
-                   rdfs:label "Measurement"@en .
+###  External class declaration: qudt:QuantityValue
+qudt:QuantityValue rdf:type owl:Class ;
+    rdfs:comment "A QUDT Quantity Value - represents a measurement with numeric value, unit, and quantity kind. Imported from QUDT ontology."@en ;
+    rdfs:label "Quantity Value"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#hasUser
@@ -298,8 +298,8 @@ dyn:hasTestID rdf:type owl:DatatypeProperty ;
 
 ###  https://dynamat.utep.edu/ontology#Activity
 dyn:Activity rdf:type owl:Class ;
-             rdfs:subClassOf dyn:Entity ;
-             rdfs:comment "Any process or activity performed in the laboratory"@en ;
+             rdfs:subClassOf dyn:Entity, prov:Activity ;
+             rdfs:comment "Any process or activity performed in the laboratory. Aligned with W3C PROV-O: all DynaMat activities (tests, characterizations, simulations) are prov:Activity instances, enabling standard provenance linking via prov:wasGeneratedBy."@en ;
              rdfs:label "Activity"@en .
 
 
@@ -472,11 +472,6 @@ dyn:MaterialModel rdf:type owl:Class ;
                   rdfs:label "Material Model"@en .
 
 
-###  https://dynamat.utep.edu/ontology#Measurement
-dyn:Measurement rdf:type owl:Class ;
-                rdfs:subClassOf dyn:InformationObject ;
-                rdfs:comment "A measured quantity with value and unit"@en ;
-                rdfs:label "Measurement"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#MeasurementEquipment
@@ -549,12 +544,6 @@ dyn:ProcessedData rdf:type owl:Class ;
                   rdfs:label "Processed Data"@en .
 
 
-###  https://dynamat.utep.edu/ontology#PropertyValue
-dyn:PropertyValue rdf:type owl:Class ;
-                  rdfs:subClassOf dyn:InformationObject ;
-                  rdfs:comment "A material property value with provenance and uncertainty information"@en ,
-                               "Material property value with provenance"@en ;
-                  rdfs:label "Property Value"@en .
 
 
 ###  https://dynamat.utep.edu/ontology#PulseShaper

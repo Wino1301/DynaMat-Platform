@@ -13,7 +13,7 @@ Widget Type Mapping
 The factory determines widget types based on property metadata:
 
 1. Read-only string properties -> QLabel
-2. Measurement properties (has compatible_units) -> UnitValueWidget
+2. Measurement properties (has compatible_units) -> QuantityValueWidget
 3. Object properties (data_type=object) -> QComboBox or QListWidget
 4. Boolean properties -> QCheckBox
 5. Integer properties -> QSpinBox
@@ -103,7 +103,7 @@ class WidgetFactory:
             'double_spinbox': self._create_double_spinbox_widget,
             'checkbox': self._create_checkbox_widget,
             'date': self._create_date_widget,
-            'unit_value': self._create_unit_value_widget
+            'unit_value': self._create_quantity_value_widget
         }
 
         # Statistics tracking (always-on)
@@ -501,26 +501,27 @@ class WidgetFactory:
 
         return widget
     
-    def _create_unit_value_widget(self, prop: PropertyMetadata) -> QWidget:
-        """Create a unit-value widget for measurement properties."""
+    def _create_quantity_value_widget(self, prop: PropertyMetadata) -> QWidget:
+        """Create a QuantityValue widget for measurement properties."""
         try:
             # Import here to avoid circular imports
-            from ..widgets.base.unit_value_widget import UnitValueWidget
-            
+            from ..widgets.base.quantity_value_widget import QuantityValueWidget
+
             # Get compatible units from the property
             compatible_units = getattr(prop, 'compatible_units', [])
             default_unit = getattr(prop, 'default_unit', None)
-            
+
             if not compatible_units:
                 logger.warning(f"No compatible units for {prop.name}, falling back to double spinbox")
                 return self._create_double_spinbox_widget(prop)
-            
-            # Create unit value widget
-            widget = UnitValueWidget(
+
+            # Create QuantityValue widget
+            widget = QuantityValueWidget(
                 default_unit=default_unit,
                 available_units=compatible_units,
                 property_uri=prop.uri,
-                reference_unit_uri=default_unit  # Pass dyn:hasUnit as reference for conversion
+                quantity_kind=getattr(prop, 'quantity_kind', None),
+                show_uncertainty=True
             )
 
             # Set tooltip if description available

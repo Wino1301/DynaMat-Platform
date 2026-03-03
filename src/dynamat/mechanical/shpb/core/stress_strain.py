@@ -119,7 +119,9 @@ class StressStrainCalculator:
         strain_scale_factor: float = 1e4,
         use_voltage_input: bool = False,
         incident_reflected_gauge_params: dict = None,
-        transmitted_gauge_params: dict = None
+        transmitted_gauge_params: dict = None,
+        specimen_area_rel_uncertainty: float = 0.0,
+        specimen_height_rel_uncertainty: float = 0.0
     ):
 
         self.bar_wave_speed = bar_wave_speed
@@ -132,6 +134,10 @@ class StressStrainCalculator:
         self.bar_area = bar_area
         self.specimen_area = specimen_area
         self.area_ratio = self.bar_area / self.specimen_area
+
+        # Uncertainty propagation (dimensionless relative uncertainties)
+        self.specimen_area_rel_uncertainty = specimen_area_rel_uncertainty
+        self.specimen_height_rel_uncertainty = specimen_height_rel_uncertainty
 
         # Voltage-to-strain conversion parameters
         self.incident_reflected_gauge_params = incident_reflected_gauge_params
@@ -316,7 +322,7 @@ class StressStrainCalculator:
         # Return all results in a single flat dictionary with absolute values
         # First four columns: time, incident, transmitted, reflected (pulse windows)
         # Then all processed quantities for 1-wave and 3-wave analyses
-        return {
+        results = {
             'time': time_vector,
             'incident': incident_norm,
             'transmitted': transmitted_norm,
@@ -336,8 +342,16 @@ class StressStrainCalculator:
             'stress_3w': np.abs(stress_3w),
             'true_strain_rate_3w': np.abs(true_strain_rate_3w) * 1000,
             'true_strain_3w': np.abs(true_strain_3w),
-            'true_stress_3w': np.abs(true_stress_3w)
+            'true_stress_3w': np.abs(true_stress_3w),
         }
+
+        # Propagated uncertainty scalars (dimensionless relative uncertainties)
+        # delta_sigma/sigma = delta_A/A; delta_epsilon/epsilon = delta_L/L
+        results['relative_uncertainty_stress'] = self.specimen_area_rel_uncertainty
+        results['relative_uncertainty_strain'] = self.specimen_height_rel_uncertainty
+        results['relative_uncertainty_strain_rate'] = self.specimen_height_rel_uncertainty
+
+        return results
 
     def _normalize_inputs(
         self,

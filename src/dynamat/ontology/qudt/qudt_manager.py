@@ -69,16 +69,68 @@ class QUDTManager:
     QUDT_UNITS_URL = "https://qudt.org/2.1/vocab/unit"
     QUDT_QUANTITYKINDS_URL = "https://qudt.org/2.1/vocab/quantitykind"
 
-    # Engineering quantity kinds relevant to materials testing
+    # Engineering quantity kinds relevant to materials testing.
+    # NOTE: StrainRate and VolumeRatio have no units in the QUDT 2.1 online vocab;
+    # they are covered by SUPPLEMENTAL_UNITS below.  TemperaturePerTime was added
+    # in the QUDT vocab and requires a cache rebuild to pick up its 15 units.
     RELEVANT_QUANTITY_KINDS = [
         "Length", "Area", "Volume", "Mass", "Time", "Angle",
         "Velocity", "Acceleration", "Force", "Pressure", "Stress", "Strain",
         "StrainRate", "Frequency", "Energy", "Power",
-        "Temperature", "ThermodynamicTemperature", "MeltingPoint",
+        "Temperature", "ThermodynamicTemperature", "TemperaturePerTime", "MeltingPoint",
         "Density", "ModulusOfElasticity", "ThermalConductivity", "SpecificHeatCapacity",
         "Voltage", "ElectricCurrent", "Resistance",
         "Dimensionless", "DimensionlessRatio", "VolumeRatio",
-        "ForcePerArea"  # Standard QUDT kind for Stress/Pressure units (Pa, MPa, psi)
+        "ForcePerArea",  # Standard QUDT kind for Stress/Pressure units (Pa, MPa, psi)
+    ]
+
+    # Units for quantity kinds that have no entries in the QUDT 2.1 online vocab.
+    # These are merged into the manager index after every cache load so they are
+    # always available regardless of network state or cache age.
+    #
+    # Confirmed gaps in QUDT 2.1 (verified against qudt.org download 2025-09-30):
+    #   • StrainRate  — no qudt:hasQuantityKind associations exist online
+    #   • VolumeRatio — no qudt:hasQuantityKind associations exist online
+    SUPPLEMENTAL_UNITS = [
+        # -----------------------------------------------------------------------
+        # Strain rate (1/time) — qkdv:StrainRate has no units in QUDT online.
+        # -----------------------------------------------------------------------
+        {
+            "uri": "http://qudt.org/vocab/unit/PER-SEC",
+            "symbol": "s\u207b\u00b9",
+            "label": "per second",
+            "quantity_kinds": ["http://qudt.org/vocab/quantitykind/StrainRate"],
+            "conversion_multiplier": 1.0,
+            "conversion_offset": 0.0,
+        },
+        {
+            "uri": "http://qudt.org/vocab/unit/PER-MilliSEC",
+            "symbol": "ms\u207b\u00b9",
+            "label": "per millisecond",
+            "quantity_kinds": ["http://qudt.org/vocab/quantitykind/StrainRate"],
+            "conversion_multiplier": 1000.0,
+            "conversion_offset": 0.0,
+        },
+        # -----------------------------------------------------------------------
+        # Volume ratio/fraction — qkdv:VolumeRatio has no units in QUDT online.
+        # Volume fractions (0–1) are dimensionless; UNITLESS and PERCENT suffice.
+        # -----------------------------------------------------------------------
+        {
+            "uri": "http://qudt.org/vocab/unit/UNITLESS",
+            "symbol": "1",
+            "label": "unitless",
+            "quantity_kinds": ["http://qudt.org/vocab/quantitykind/VolumeRatio"],
+            "conversion_multiplier": 1.0,
+            "conversion_offset": 0.0,
+        },
+        {
+            "uri": "http://qudt.org/vocab/unit/PERCENT",
+            "symbol": "%",
+            "label": "percent",
+            "quantity_kinds": ["http://qudt.org/vocab/quantitykind/VolumeRatio"],
+            "conversion_multiplier": 0.01,
+            "conversion_offset": 0.0,
+        },
     ]
     
     def __init__(self, cache_dir: Optional[Path] = None):
@@ -127,6 +179,7 @@ class QUDTManager:
         
         # Try to load from cache first
         if not force_refresh and self._load_from_cache():
+            self._add_supplemental_units()
             self._is_loaded = True
             return True
         
@@ -134,11 +187,53 @@ class QUDTManager:
         logger.info("QUDT cache not found or expired, building cache...")
         
         if self._download_and_build_cache():
+            self._add_supplemental_units()
             self._is_loaded = True
             return True
-        
+
         logger.error("Failed to load QUDT data")
         return False
+
+    def _add_supplemental_units(self) -> None:
+        """Merge SUPPLEMENTAL_UNITS into the in-memory index.
+
+        Called after every successful cache load so that quantity kinds with no
+        QUDT online vocabulary entries (e.g. StrainRate, VolumeRatio) are still
+        available for widget creation.  Existing cache entries for a given URI
+        are left unchanged; only the quantity-kind index is extended.
+        """
+        for entry in self.SUPPLEMENTAL_UNITS:
+            uri = entry["uri"]
+
+            if uri in self.units_by_uri:
+                # Unit already loaded from cache — just extend its QK index
+                existing = self.units_by_uri[uri]
+                for qk in entry["quantity_kinds"]:
+                    if qk not in self.units_by_quantity_kind:
+                        self.units_by_quantity_kind[qk] = []
+                    if not any(u.uri == uri for u in self.units_by_quantity_kind[qk]):
+                        self.units_by_quantity_kind[qk].append(existing)
+            else:
+                # Unit not in cache — create a new QUDTUnit and register it
+                unit = QUDTUnit(
+                    uri=uri,
+                    symbol=entry["symbol"],
+                    label=entry["label"],
+                    quantity_kinds=list(entry["quantity_kinds"]),
+                    conversion_multiplier=entry.get("conversion_multiplier", 1.0),
+                    conversion_offset=entry.get("conversion_offset", 0.0),
+                )
+                self.units_by_uri[uri] = unit
+                for qk in unit.quantity_kinds:
+                    if qk not in self.units_by_quantity_kind:
+                        self.units_by_quantity_kind[qk] = []
+                    if not any(u.uri == uri for u in self.units_by_quantity_kind[qk]):
+                        self.units_by_quantity_kind[qk].append(unit)
+
+        logger.debug(
+            f"Supplemental units applied; manager now covers "
+            f"{len(self.units_by_quantity_kind)} quantity kinds"
+        )
 
     def rebuild_cache(self):
         """
