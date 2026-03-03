@@ -7,7 +7,9 @@
       "Bash(python tools/validate_constraints.py:*)",
       "Bash(python tools/validate_widget.py:*)",
       "Bash(python:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(grep:*)",
+      "WebFetch(domain:qudt.org)"
     ],
     "deny": [],
     "ask": []
